@@ -17,7 +17,8 @@ from urtpe import viewer as viewer_mod
 
 
 def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None, links: bool = False) -> None:
-    raw_recs = extract_mod.to_raw_records(extract_mod.extract_pdf(pdf))
+    recs, extract_meta = extract_mod.extract_pdf_with_meta(pdf)
+    raw_recs = extract_mod.to_raw_records(recs)
     if not raw_recs:
         print("未解析到任何記錄", file=sys.stderr)
         sys.exit(1)
@@ -47,6 +48,9 @@ def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None, lin
         "source": pdf,
         "thresholds": {"link": merge_mod.LINK_THRESHOLD, "flag": merge_mod.FLAG_THRESHOLD},
     }
+    # Include published_date from PDF extraction metadata
+    if "published_date" in extract_meta:
+        meta["published_date"] = extract_meta["published_date"]
     doc = graph_mod.build_graph_document(projects, meta, link_results)
     io_mod.write_json(f"{outdir}/projects.json", doc)
 

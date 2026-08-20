@@ -38,7 +38,7 @@ function init() {
   const total = projects.length;
   meta.textContent =
     `${window.PROJECTS.counts.projects} 個專案 / ${window.PROJECTS.counts.records} 筆記錄` +
-    ` · ${window.PROJECTS.generated_at || ""}`;
+    ` · ${window.PROJECTS.published_date || window.PROJECTS.generated_at || ""}`;
 
   const sel = { district: new Set(), year: new Set(), track: new Set() };
   const districts = [...new Set(projects.map(p => p.district))].sort();
@@ -225,20 +225,53 @@ function init() {
     s += "</svg>";
 
     const border = p.borderline || [];
-    let rows = nodes.map(n => {
-      const rec = p.nodes.find(x => x.recno === n.recno);
-      const isCur = rec.is_current ? ' <span class="badge">現況</span>' : "";
-      return `<tr class="${rec.is_current ? "current" : ""}">
-        <td>${rec.recno}</td><td>${rec.date}</td><td>${escapeHtml(rec.stage)}</td>
-        <td>${escapeHtml(rec.track)}</td>${isCur}
-      </tr>`;
-    }).join("");
-    s += `<table class="recs"><thead><tr><th>編號</th><th>核定日期</th><th>階段</th><th>事業種類</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
-
     if (border.length) {
       s += `<p class="flag">⚠ 臨界對（相似度 0.5–0.7，未自動合併，待人工檢視）：` +
         border.map(b => `編號 ${b[0]} ↔ ${b[1]}（${b[2]}）`).join("；") + "</p>";
     }
+
+    // Detail table with tiered columns (essential + full)
+    const essentialCols = ["recno", "date", "stage", "track", "is_current", "case_name", "land", "section", "implementer", "planner", "review_flags", "auto_fixes"];
+    const fullCols = ["parcels", "aliases", "land_count", "orig_count", "named_anchor", "area_section"];
+    const allCols = [...essentialCols, ...fullCols];
+
+    let rows = nodes.map(n => {
+      const rec = p.nodes.find(x => x.recno === n.recno);
+      const isCur = rec.is_current ? ' <span class="badge">現況</span>' : "";
+      const cells = allCols.map(col => {
+        let val = "";
+        if (col === "is_current") {
+          val = rec.is_current ? '<span class="badge">現況</span>' : "";
+        } else if (col === "review_flags") {
+          val = (rec.review_flags || []).join("、");
+        } else if (col === "auto_fixes") {
+          val = (rec.auto_fixes || []).join("、");
+        } else if (col === "parcels" || col === "aliases") {
+          val = JSON.stringify(rec[col] || []);
+        } else {
+          val = rec[col] !== undefined ? escapeHtml(String(rec[col])) : "";
+        }
+        const tier = essentialCols.includes(col) ? "essential" : "full";
+        return `<td data-tier="${tier}">${val}</td>`;
+      }).join("");
+      return `<tr class="${rec.is_current ? "current" : ""}">${cells}</tr>`;
+    }).join("");
+
+    const headerCells = allCols.map(col => {
+      const tier = essentialCols.includes(col) ? "essential" : "full";
+      const label = {
+        recno: "編號", date: "核定日期", stage: "階段", track: "事業種類",
+        is_current: "現況", case_name: "案名", land: "地號", section: "區段",
+        implementer: "實施者", planner: "更新規劃單位",
+        review_flags: "審查標記", auto_fixes: "自動修正",
+        parcels: "地號清單", aliases: "地號別名", land_count: "地號數",
+        orig_count: "原地號數", named_anchor: "命名錨點", area_section: "行政區段"
+      }[col] || col;
+      return `<th data-tier="${tier}">${label}</th>`;
+    }).join("");
+
+    s += `<div class="table-wrap"><table class="recs"><thead><tr>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>
+    <button id="expand-toggle" class="expand-btn" data-expanded="false">展開全部</button>`;
 
     // Render 相關連結 section
     const links = p.links || {};
@@ -257,6 +290,19 @@ function init() {
     }
 
     detail.innerHTML = s;
+
+    // Toggle for full columns
+    const toggleBtn = detail.querySelector("#expand-toggle");
+    if (toggleBtn) {
+      toggleBtn.onclick = () => {
+        const expanded = toggleBtn.dataset.expanded === "true";
+        toggleBtn.dataset.expanded = expanded ? "false" : "true";
+        toggleBtn.textContent = expanded ? "展開全部" : "收起";
+        detail.querySelectorAll("td[data-tier='full'], th[data-tier='full']").forEach(el => {
+          el.style.display = expanded ? "none" : "";
+        });
+      };
+    }
   }
 
   function escapeHtml(t) {

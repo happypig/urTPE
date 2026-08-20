@@ -75,3 +75,40 @@ def test_project_with_borderline_is_flagged():
     projects = merge([a, b])
     assert len(projects) == 2
     assert sum(len(p.borderline) for p in projects) == 1
+
+
+def test_graph_nodes_contain_full_cleanrecord_fields():
+    """Each node should contain all CleanRecord fields for the detail table."""
+    g = build_project_graph(_projects()[0], implementer="甲公司", name=SAMPLE_ROWS[0][3])
+    node = g["nodes"][0]
+    # Essential fields (existing)
+    assert "recno" in node
+    assert "date" in node
+    assert "stage" in node
+    assert "track" in node
+    assert "area" in node
+    assert "is_current" in node
+    # New fields from CleanRecord that should be included
+    expected_fields = [
+        "case_name", "land", "parcels", "aliases", "land_count",
+        "orig_count", "named_anchor", "area_section", "implementer",
+        "planner", "review_flags", "auto_fixes"
+    ]
+    for field in expected_fields:
+        assert field in node, f"Missing field: {field}"
+
+
+def test_graph_project_contains_published_date():
+    """Project should carry the official published_date from PDF metadata."""
+    doc = build_graph_document(_projects(), {"generated_at": "t", "source": "s", "published_date": "統計至 115年8月11日"})
+    project = doc["projects"][0]
+    assert "published_date" in project
+    assert project["published_date"] == "統計至 115年8月11日"
+
+
+def test_graph_project_published_date_empty_when_not_provided():
+    """Project published_date should be empty string when not in meta."""
+    doc = build_graph_document(_projects(), {"generated_at": "t", "source": "s"})
+    project = doc["projects"][0]
+    assert "published_date" in project
+    assert project["published_date"] == ""

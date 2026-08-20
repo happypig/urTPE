@@ -10,7 +10,7 @@ def _sort(members: list[CleanRecord]) -> list[CleanRecord]:
     return sorted(members, key=lambda r: (r.ymd, r.recno))
 
 
-def build_project_graph(project: Project, implementer: str, name: str) -> dict:
+def build_project_graph(project: Project, implementer: str, name: str, published_date: str = "") -> dict:
     ordered = _sort(project.members)
     anchor_recno = project.anchor_recno
 
@@ -23,6 +23,22 @@ def build_project_graph(project: Project, implementer: str, name: str) -> dict:
             "track": r.track,
             "area": r.area_section,
             "is_current": r.recno == anchor_recno,
+            # Full CleanRecord fields for detail table
+            "case_name": r.name,
+            "name_raw": r.name_raw,
+            "land": r.land,
+            "section": r.section,
+            "first_parcel": r.first_parcel,
+            "parcels": r.parcels,
+            "aliases": r.aliases,
+            "land_count": r.land_count,
+            "orig_count": r.orig_count,
+            "named_anchor": r.named_anchor,
+            "area_section": r.area_section,
+            "implementer": r.implementer,
+            "planner": r.planner,
+            "review_flags": r.review_flags,
+            "auto_fixes": r.auto_fixes,
         }
         # Include links if present on the member record
         if hasattr(r, 'links') and r.links:
@@ -79,6 +95,7 @@ def build_project_graph(project: Project, implementer: str, name: str) -> dict:
         "nodes": nodes,
         "edges": edges,
         "links": project_links,
+        "published_date": published_date,
     }
 
 
@@ -88,13 +105,15 @@ def build_graph_document(projects: list[Project], meta: dict, link_results: dict
         attach_links_to_projects(projects, link_results)
 
     graphs = []
+    published_date = meta.get("published_date", "")
     for p in projects:
         anchor = next(r for r in p.members if r.recno == p.anchor_recno)
-        graphs.append(build_project_graph(p, implementer=anchor.implementer, name=anchor.name))
+        graphs.append(build_project_graph(p, implementer=anchor.implementer, name=anchor.name, published_date=published_date))
     return {
         "schema_version": 1,
         "generated_at": meta.get("generated_at", ""),
         "source": meta.get("source", ""),
+        "published_date": meta.get("published_date", ""),
         "counts": {"projects": len(graphs), "records": sum(len(p.members) for p in projects)},
         "projects": graphs,
     }

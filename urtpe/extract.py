@@ -33,6 +33,9 @@ HEADER_WORDS = frozenset(
 RECNO_RE = re.compile(r"\d{1,4}")
 DATE_RE = re.compile(r"\d{1,3}/\d{1,2}/\d{1,2}")
 
+# Pattern for the official published date line on page 1
+PUBLISHED_DATE_RE = re.compile(r"統計至\s*(\d{1,3}[年/]\d{1,2}[月/]\d{1,2}日?)")
+
 
 def column_band(x0: float) -> str | None:
     """Return the column band id containing x0, or None."""
@@ -54,6 +57,30 @@ def is_furniture(text: str, page_height: float, x0: float, y0: float) -> bool:
     if text.isdigit() and len(text) <= 4 and x0 > 400.0 and y0 > page_height - 40.0:
         return True
     return False
+
+
+def extract_published_date_from_page(page) -> str | None:
+    """Extract the '統計至' date from page 1 if present.
+    
+    Returns formatted date string like '統計至 115年8月11日' or None if not found.
+    """
+    height = page.rect.height
+    words = page.get_text("words")
+    for x0, y0, _x1, _y1, word, *_rest in words:
+        # The published date is typically near the top of page 1 (y ≈ 40-60)
+        # and contains the pattern "統計至..."
+        if y0 < 100 and PUBLISHED_DATE_RE.search(word):
+            # Normalize the date format
+            match = PUBLISHED_DATE_RE.search(word)
+            if match:
+                date_part = match.group(1)
+                # Convert "115/8/11" or "115年8月11日" to "統計至 115年8月11日"
+                if "/" in date_part:
+                    parts = date_part.split("/")
+                    if len(parts) == 3:
+                        return f"統計至 {parts[0]}年{parts[1]}月{parts[2]}日"
+                return f"統計至 {date_part}"
+    return None
 
 
 def page_words(page) -> list[tuple[str, float, float, str]]:
@@ -106,6 +133,28 @@ def extract_pdf(path: str) -> list[dict[str, str]]:
     pages_words = [page_words(page) for page in doc]
     doc.close()
     return assemble_records(pages_words)
+
+
+def extract_pdf_with_meta(path: str) -> tuple[list[dict[str, str]], dict[str, str]]:
+    """Extract all records from a PDF file with metadata including published_date.
+    
+    Returns:
+        Tuple of (records, metadata) where metadata contains 'published_date' if found.
+    """
+    doc = pymupdf.open(path)
+    # Extract published date from page 1
+    published_date = None
+    if len(doc) > 0:
+        published_date = extract_published_date_from_page(doc[0])
+    
+    pages_words = [page_words(page) for page in doc]
+    doc.close()
+    
+    records = assemble_records(pages_words)
+    meta: dict[str, str] = {}
+    if published_date:
+        meta["published_date"] = published_date
+    return records, meta
 
 
 def to_raw_records(recs: list[dict[str, str]]) -> list:

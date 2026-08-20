@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pymupdf
 
-from urtpe.extract import extract_pdf, to_raw_records
+from urtpe.extract import extract_pdf, extract_pdf_with_meta, to_raw_records
 from tests.fixtures import SAMPLE_ROWS, build_sample_pdf
 
 
@@ -60,3 +60,20 @@ def test_raw_tsv_roundtrip(tmp_path):
     lines = tsv.strip().split("\n")
     assert len(lines) == len(raws) + 1
     assert lines[0].startswith("編號\t核定日期")
+
+
+def test_extracts_published_date_from_page1(tmp_path):
+    """PDF page 1 '統計至' line is captured as published_date in metadata."""
+    recs, meta = extract_pdf_with_meta(str(_fixture(tmp_path)))
+    assert "published_date" in meta
+    assert meta["published_date"] == "統計至 115年8月11日"
+
+
+def test_furniture_excludes_header_but_not_published_date(tmp_path):
+    """Header words still excluded; published date is in meta, not in records."""
+    recs, meta = extract_pdf_with_meta(str(_fixture(tmp_path)))
+    for r in recs:
+        for value in r.values():
+            assert "一覽表" not in value
+            # 統計至 should not leak into record cells
+            assert "統計至" not in value

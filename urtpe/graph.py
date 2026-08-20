@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from urtpe.links import attach_links_to_projects
 from urtpe.models import CleanRecord, Project
 
 
@@ -15,14 +16,18 @@ def build_project_graph(project: Project, implementer: str, name: str) -> dict:
 
     nodes = []
     for r in ordered:
-        nodes.append({
+        node = {
             "recno": r.recno,
             "date": r.iso_date,
             "stage": r.stage,
             "track": r.track,
             "area": r.area_section,
             "is_current": r.recno == anchor_recno,
-        })
+        }
+        # Include links if present on the member record
+        if hasattr(r, 'links') and r.links:
+            node["links"] = r.links
+        nodes.append(node)
 
     edges: list[dict] = []
     seen: set[tuple[int, int, str]] = set()
@@ -62,6 +67,7 @@ def build_project_graph(project: Project, implementer: str, name: str) -> dict:
         for a, b in zip(ms, ms[1:]):
             add_edge(a.recno, b.recno, "section")
 
+    project_links = getattr(project, 'links', {})
     return {
         "project_id": project.project_id,
         "anchor_recno": anchor_recno,
@@ -72,10 +78,15 @@ def build_project_graph(project: Project, implementer: str, name: str) -> dict:
         "member_recnos": [r.recno for r in ordered],
         "nodes": nodes,
         "edges": edges,
+        "links": project_links,
     }
 
 
-def build_graph_document(projects: list[Project], meta: dict) -> dict:
+def build_graph_document(projects: list[Project], meta: dict, link_results: dict | None = None) -> dict:
+    # Attach discovered links to projects if available
+    if link_results:
+        attach_links_to_projects(projects, link_results)
+
     graphs = []
     for p in projects:
         anchor = next(r for r in p.members if r.recno == p.anchor_recno)

@@ -239,6 +239,23 @@ function init() {
       s += `<p class="flag">⚠ 臨界對（相似度 0.5–0.7，未自動合併，待人工檢視）：` +
         border.map(b => `編號 ${b[0]} ↔ ${b[1]}（${b[2]}）`).join("；") + "</p>";
     }
+
+    // Render 相關連結 section
+    const links = p.links || {};
+    if (links.twur || (links.taipei && links.taipei.length)) {
+      s += `<div class="related-links"><h3>相關連結</h3><ul>`;
+      if (links.twur) {
+        s += `<li><a href="${escapeHtml(links.twur)}" target="_blank" rel="noopener">都市更新入口網 (twur.nlma.gov.tw)</a></li>`;
+      }
+      if (links.taipei && links.taipei.length) {
+        links.taipei.forEach(cid => {
+          const url = `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cid}`;
+          s += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">臺北市都市更新審議服務平台 (case_id: ${cid})</a></li>`;
+        });
+      }
+      s += `</ul></div>`;
+    }
+
     detail.innerHTML = s;
   }
 

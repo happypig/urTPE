@@ -162,3 +162,9 @@ table.recs th, table.recs td {
 table.recs tr.current td { background: #fef2f2; }
 .flag { color: #b45309; }
 .badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 10px; background: #fef2f2; color: var(--current); }
+.related-links { margin-top: 16px; padding: 12px; background: #f0f4ff; border-radius: 8px; border: 1px solid var(--accent); }
+.related-links h3 { margin: 0 0 8px; font-size: 13px; color: var(--accent); }
+.related-links ul { margin: 0; padding-left: 20px; }
+.related-links li { margin: 4px 0; font-size: 12px; }
+.related-links a { color: var(--accent); text-decoration: none; }
+.related-links a:hover { text-decoration: underline; }

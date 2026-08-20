@@ -10,12 +10,13 @@ from urtpe import cleanse as cleanse_mod
 from urtpe import extract as extract_mod
 from urtpe import graph as graph_mod
 from urtpe import io as io_mod
+from urtpe import links as links_mod
 from urtpe import merge as merge_mod
 from urtpe import report as report_mod
 from urtpe import viewer as viewer_mod
 
 
-def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None) -> None:
+def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None, links: bool = False) -> None:
     raw_recs = extract_mod.to_raw_records(extract_mod.extract_pdf(pdf))
     if not raw_recs:
         print("未解析到任何記錄", file=sys.stderr)
@@ -24,6 +25,15 @@ def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None) -> 
     clean = cleanse_mod.cleanse_all(raw_recs)
 
     projects = merge_mod.merge(clean)
+
+    # Run link discovery if requested
+    link_results = {}
+    if links:
+        print("執行官方連結發現...")
+        discovery = links_mod.LinksDiscovery(cache_dir=f"{outdir}/.link_cache")
+        link_results = discovery.run(projects, fresh=False)
+        discovery.write_crawl_log(link_results, f"{outdir}/crawl_log.tsv")
+        print(f"  完成: {sum(1 for r in link_results.values() if r.status != 'unresolved')} 解析, {sum(1 for r in link_results.values() if r.status == 'unresolved')} 未解析")
 
     report = report_mod.review_report(
         raw_recs, clean, projects,
@@ -37,7 +47,7 @@ def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None) -> 
         "source": pdf,
         "thresholds": {"link": merge_mod.LINK_THRESHOLD, "flag": merge_mod.FLAG_THRESHOLD},
     }
-    doc = graph_mod.build_graph_document(projects, meta)
+    doc = graph_mod.build_graph_document(projects, meta, link_results)
     io_mod.write_json(f"{outdir}/projects.json", doc)
 
     if not no_tsv:
@@ -60,14 +70,15 @@ def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None) -> 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="臺北市都市更新核定案件 PDF 管線")
-    parser.add_argument("pdf", help="來源 PDF 路徑")
+    parser.add_argument("pdf", help="來源 PDF 路徜")
     parser.add_argument("-o", "--outdir", default="data", help="輸出目錄 (預設 data)")
     parser.add_argument("--no-tsv", action="store_true", help="不輸出 TSV（僅 JSON 圖）")
     parser.add_argument("--viewer", metavar="DIR", default=None,
                         help="同步輸出 viewer/projects.data.js 至指定目錄")
+    parser.add_argument("--links", action="store_true", help="啟用官方連結發現（爬取國土管理署與台北市平台）")
     args = parser.parse_args(argv)
 
-    _run(args.pdf, args.outdir, args.no_tsv, args.viewer)
+    _run(args.pdf, args.outdir, args.no_tsv, args.viewer, args.links)
     return 0
 
 

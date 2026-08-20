@@ -1,0 +1,78 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+context: |
+  Project: urTPE — turn the Taipei City Government's urban-renewal approved-cases
+  list (臺北市都市更新核定案件一覽表, 1,419 approvals, dated 99/9/2–115/8/11 =
+  2010–2026) into a clean, merged dataset with per-project history.
+  Pipeline: PDF (gov.taipei) -> positional parse -> raw.tsv -> agent cleansing ->
+  clean.tsv -> similarity merge -> merged.tsv (project_id anchored on the latest
+  approval) -> projects.json (history graph) + viewer.
+  Domain: one 更新單元 (renewal unit) receives many stage approvals (擬訂 /
+  變更(第N次), 事業計畫 / 權利變換計畫, 甲/A/B區段). Parcel coverage changes
+  (13筆(原11筆)) and parcel renumbering (689地號(原726地號)) break exact-key
+  matching, so unit identity must be found by similarity, not equality. Named
+  anchors (原東星大樓基地) identify units with no stable parcel basis.
+  Key constraints:
+  - The list is newest-first (編號 1 = latest); a new approval is always
+    prepended, so the anchor of a project family is the newest record by
+    核定日期, never by 編號. project_id = slug of the latest approval's
+    normalized name-core — append-friendly and stable across revisions.
+  - ~70% of records are repeat approvals of the same unit; ~430 are singletons.
+  - Known data errors to normalize: 松化區→松山區, 計劃→計畫, ㄧ→一,
+    權利變換案 == 權利變換計畫案; ambiguous cases go to a review/flag column.
+  Tech stack: Python 3, pymupdf (positional text extraction), agent-assisted
+  cleansing & merge, JSON history graph + browser viewer.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+rules:
+  proposal:
+    - "Why must name the actors/roles involved and the concrete problem or event
+      that motivates the change (e.g. parse artifacts from line-wrapped cells,
+      the 松化區 district typo, or ~70% of records being stage repeats of the
+      same unit), not just an abstract problem statement."
+    - "Scope decisions are provisional: the PDF-parsing and similarity-threshold
+      POC may invalidate assumptions, so state which parts are gated on POC
+      findings (link ≥ 0.7, flag band 0.5–0.7, feature weights — starting
+      points, not contracts)."
+  design:
+    - "Context must state the actors, domain events, and system boundaries before
+      Decisions — for this batch pipeline the flow is PDF -> positional parse ->
+      raw.tsv -> cleanse -> clean.tsv -> similarity merge -> merged.tsv ->
+      projects.json (+ viewer)."
+    - "Keep pure pipeline logic (cleansing rules, similarity scoring, unit
+      clustering, anchor selection, name-core slugging) separated from I/O
+      adapters (PDF extraction, TSV/JSON read/write, browser viewer) — a
+      lightweight port/adapter split, not full Clean Architecture layering
+      (deliberately minimal for a batch data pipeline, no CRUD domain)."
+  specs:
+    - "Requirements must describe externally observable behavior."
+    - "Every requirement must include BDD-style scenarios using WHEN/THEN."
+  tasks:
+    - "Put test-writing tasks before implementation tasks."
+    - "Test-first gate: a change without a test-writing group SHALL declare the
+      escape hatch as the first non-heading line of tasks.md (`> POC: <reason>`);
+      a change with a test-writing group SHALL have every task in it fully
+      checked before any implementation task can be marked complete."
+    - "Separate domain/use-case tasks from adapter/infrastructure tasks."
+    - "Include acceptance or end-to-end tests for each user-visible requirement."
+    - "A POC (data-gathering experiment) must come first: validate positional
+      PDF parsing on real pages and calibrate the similarity threshold against
+      known clusters (e.g. 中華工程 寶清段, 永昌段三小段159, 逸仙段二小段 151)
+      before building the merge pipeline around them."
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+operations:
+  apply:
+    guidance:
+      - "Before marking any implementation task complete, verify the test-first
+        gate in tasks.md: locate the test-writing group (or the `> POC:` escape
+        hatch on the first non-heading line) and confirm every test-writing task
+        is checked. Report the gate result in the apply summary."
+      - "Verify the POC ran first: if tasks.md starts with a POC, its findings
+        must be reflected in the tasks/specs before applying further work."
+      - "Keep the apply summary concise: gate result, files changed, and any
+        flags/review items surfaced by the cleansing step."

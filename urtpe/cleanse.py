@@ -207,7 +207,16 @@ def cleanse(rec: RawRecord) -> CleanRecord:
     # the land cell.
     nd, ns, np, nc = parse_name_id(name)
     section = ns or pl["section"]
-    first_parcel = np or (pl["parcels"][0] if pl["parcels"] else "")
+    # Name fallback: when the 地號 cell cannot supply a parcel list (missing 地號
+    # separator, 及-split list, …), seed the set from the 案名 land fragment.
+    # count == 1 names the exact parcel; count > 1 names only the first parcel,
+    # so the set stays {first} (partial but non-empty). The source cell is still
+    # flagged below.
+    if not pl["parcels"] and np:
+        parcels = [np]
+    else:
+        parcels = pl["parcels"]
+    first_parcel = np or (parcels[0] if parcels else "")
     land_count = nc if nc is not None else pl["land_count"]
     if ns and pl["section"] and ns != pl["section"]:
         flags.append(f"案名與地號段小段不一致(地號為{pl['section']})")
@@ -235,7 +244,7 @@ def cleanse(rec: RawRecord) -> CleanRecord:
         land=rec.land,
         section=section,
         first_parcel=first_parcel,
-        parcels=pl["parcels"],
+        parcels=parcels,
         aliases=pl["aliases"],
         land_count=land_count,
         orig_count=orig,

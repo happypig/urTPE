@@ -126,3 +126,35 @@ def test_track_detection():
     assert "事業計畫" in c.track and "權利變換" not in c.track
     c2 = cleanse(_raw(name="擬訂臺北市松山區X段一小段1地號等10筆土地都市更新事業計畫及權利變換計畫案"))
     assert "事業計畫" in c2.track and "權利變換" in c2.track
+
+
+def test_name_fallback_single_parcel_exact():
+    """A malformed 地號 cell missing 地號 (…1251筆土地) yields parcels {125}
+    derived from the 案名 land fragment."""
+    c = cleanse(_raw(district="中山區",
+                     name="擬訂臺北市中山區中山段二小段125地號1筆土地都市更新權利變換計畫案",
+                     land="臺北市中山區中山段二小段1251筆土地"))
+    assert c.parcels == ["125"]
+    assert c.first_parcel == "125"
+    assert c.land_count == 1
+
+
+def test_name_fallback_partial_parcel_preserves_key():
+    """A name …531地號等2筆… preserves section, first_parcel 531, and land_count
+    2 via the name fallback when the 地號 cell splits on 及 instead of 、."""
+    c = cleanse(_raw(district="南港區",
+                     name="變更臺北市南港區南港段一小段531地號等2筆土地都市更新權利變換計畫案",
+                     land="臺北市南港區南港段一小段531及375-16地號等2筆土地"))
+    assert c.section == "南港段一小段"
+    assert c.first_parcel == "531"
+    assert c.land_count == 2
+    assert c.parcels == ["531"]
+
+
+def test_name_fallback_keeps_missing_list_flag():
+    """The malformed source cell still records 缺少地號清單 after the fallback."""
+    c = cleanse(_raw(district="中山區",
+                     name="擬訂臺北市中山區中山段二小段125地號1筆土地都市更新權利變換計畫案",
+                     land="臺北市中山區中山段二小段1251筆土地"))
+    assert c.parcels == ["125"]
+    assert any("缺少地號清單" in f for f in c.review_flags)

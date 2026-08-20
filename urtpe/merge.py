@@ -58,20 +58,27 @@ def score(r1: CleanRecord, r2: CleanRecord) -> float:
         elif p1 in r2.parcel_set() or p2 in r1.parcel_set():
             fp = 0.7
 
-    s1, s2 = r1.parcel_set(), r2.parcel_set()
-    if s1 and s2:
-        inter = len(s1 & s2)
-        union = len(s1 | s2)
-        jac = inter / union if union else 0.0
-    else:
-        jac = 0.0
-
     cnt = 0.0
     if r1.land_count and r2.land_count:
         if r1.land_count == r2.land_count:
             cnt = 1.0
         elif r1.orig_count == r2.land_count or r2.orig_count == r1.land_count:
             cnt = 0.8
+
+    s1, s2 = r1.parcel_set(), r2.parcel_set()
+    if s1 and s2:
+        inter = len(s1 & s2)
+        union = len(s1 | s2)
+        jac = inter / union if union else 0.0
+    elif not s1 and not s2 and fp >= 1.0 and cnt >= 1.0:
+        # Both parcel sets are empty (unparseable 地號 cells) but the full land
+        # key — district, section, first parcel, count — agrees. Redistribute
+        # the lost .3 Jaccard weight across the surviving components so a full
+        # match scores 1.0 and links (e.g. across implementer changes). A
+        # partial land-key match keeps the old (≤0.65) value: no over-merging.
+        return (0.35 * sec + 0.2 * fp + 0.1 * cnt) / (0.35 + 0.2 + 0.1)
+    else:
+        jac = 0.0
 
     return 0.35 * sec + 0.2 * fp + 0.3 * jac + 0.1 * cnt
 

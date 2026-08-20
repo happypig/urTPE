@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-20T21:08:39+08:00",
+  "generated_at": "2026-08-20T22:12:02+08:00",
   "source": "source.pdf",
   "counts": {
-    "projects": 718,
+    "projects": 709,
     "records": 1419
   },
   "projects": [
@@ -489,9 +489,18 @@
       "implementer": "中國建築經理股份有限公司",
       "name": "變更臺北市中山區中山段二小段125地號1筆土地都市更新權利變換計畫案",
       "member_recnos": [
+        478,
         234
       ],
       "nodes": [
+        {
+          "recno": 478,
+          "date": "2022-03-09",
+          "stage": "擬訂",
+          "track": "權利變換",
+          "area": "",
+          "is_current": false
+        },
         {
           "recno": 234,
           "date": "2024-04-09",
@@ -501,29 +510,18 @@
           "is_current": true
         }
       ],
-      "edges": []
-    },
-    {
-      "project_id": "中山區-中山段二小段-125地號等1筆-2",
-      "anchor_recno": 478,
-      "district": "中山區",
-      "section": "中山段二小段",
-      "implementer": "新碩建設股份有限公司",
-      "name": "擬訂臺北市中山區中山段二小段125地號1筆土地都市更新權利變換計畫案",
-      "member_recnos": [
-        478
-      ],
-      "nodes": [
+      "edges": [
         {
-          "recno": 478,
-          "date": "2022-03-09",
-          "stage": "擬訂",
-          "track": "權利變換",
-          "area": "",
-          "is_current": true
+          "from": 478,
+          "to": 234,
+          "kind": "revision"
+        },
+        {
+          "from": 478,
+          "to": 234,
+          "kind": "track"
         }
-      ],
-      "edges": []
+      ]
     },
     {
       "project_id": "中山區-中山段二小段-202地號等12筆",
@@ -7402,9 +7400,18 @@
       "implementer": "潤泰創新國際股份有限公司",
       "name": "變更臺北市信義區犁和段三小段302地號等2筆土地都市更新權利變換計畫案",
       "member_recnos": [
+        830,
         261
       ],
       "nodes": [
+        {
+          "recno": 830,
+          "date": "2019-01-31",
+          "stage": "擬訂",
+          "track": "事業計畫、權利變換",
+          "area": "",
+          "is_current": false
+        },
         {
           "recno": 261,
           "date": "2023-12-28",
@@ -7414,29 +7421,18 @@
           "is_current": true
         }
       ],
-      "edges": []
-    },
-    {
-      "project_id": "信義區-犁和段三小段-302地號等2筆-2",
-      "anchor_recno": 830,
-      "district": "信義區",
-      "section": "犁和段三小段",
-      "implementer": "潤泰創新國際股份有限公司",
-      "name": "擬訂臺北市信義區犁和段三小段302地號等2筆土地都市更新事業計畫及權利變換計畫案",
-      "member_recnos": [
-        830
-      ],
-      "nodes": [
+      "edges": [
         {
-          "recno": 830,
-          "date": "2019-01-31",
-          "stage": "擬訂",
-          "track": "事業計畫、權利變換",
-          "area": "",
-          "is_current": true
+          "from": 830,
+          "to": 261,
+          "kind": "revision"
+        },
+        {
+          "from": 830,
+          "to": 261,
+          "kind": "track"
         }
-      ],
-      "edges": []
+      ]
     },
     {
       "project_id": "信義區-犁和段三小段-89地號等16筆",
@@ -9431,9 +9427,18 @@
       "implementer": "臺北市內湖區東湖段一小段17-2地號(聯邦合家歡社區吉祥區)都市更新會",
       "name": "變更臺北市內湖區東湖段一小段17-2地號1筆土地都市更新事業計畫及權利變換計畫案",
       "member_recnos": [
+        1307,
         1199
       ],
       "nodes": [
+        {
+          "recno": 1307,
+          "date": "2009-06-30",
+          "stage": "擬訂",
+          "track": "事業計畫、權利變換",
+          "area": "",
+          "is_current": false
+        },
         {
           "recno": 1199,
           "date": "2013-01-21",
@@ -9443,29 +9448,18 @@
           "is_current": true
         }
       ],
-      "edges": []
-    },
-    {
-      "project_id": "內湖區-東湖段一小段-17-2地號等1筆-2",
-      "anchor_recno": 1307,
-      "district": "內湖區",
-      "section": "東湖段一小段",
-      "implementer": "臺北市內湖區東湖段一小段17-2地號(聯邦合家歡社區吉祥區)都市更新會",
-      "name": "擬訂臺北市內湖區東湖段一小段17-2地號1筆土地都市更新事業計畫及權利變換計畫案",
-      "member_recnos": [
-        1307
-      ],
-      "nodes": [
+      "edges": [
         {
-          "recno": 1307,
-          "date": "2009-06-30",
-          "stage": "擬訂",
-          "track": "事業計畫、權利變換",
-          "area": "",
-          "is_current": true
+          "from": 1307,
+          "to": 1199,
+          "kind": "revision"
+        },
+        {
+          "from": 1307,
+          "to": 1199,
+          "kind": "track"
         }
-      ],
-      "edges": []
+      ]
     },
     {
       "project_id": "內湖區-東湖段一小段-18地號等1筆",
@@ -13341,9 +13335,18 @@
       "implementer": "台灣肥料股份有限公司",
       "name": "變更臺北市南港區南港段一小段531-4地號等2筆土地(R13)都市更新事業計畫及權利變換計畫案",
       "member_recnos": [
+        1353,
         1306
       ],
       "nodes": [
+        {
+          "recno": 1353,
+          "date": "2008-01-15",
+          "stage": "擬訂",
+          "track": "事業計畫、權利變換",
+          "area": "",
+          "is_current": false
+        },
         {
           "recno": 1306,
           "date": "2009-07-03",
@@ -13353,29 +13356,18 @@
           "is_current": true
         }
       ],
-      "edges": []
-    },
-    {
-      "project_id": "南港區-南港段一小段-531-4地號等2筆-2",
-      "anchor_recno": 1353,
-      "district": "南港區",
-      "section": "南港段一小段",
-      "implementer": "台灣肥料股份有限公司",
-      "name": "擬訂臺北市南港區南港段一小段531-4、537地號等2筆土地都市更新事業計畫及權利變換計畫案",
-      "member_recnos": [
-        1353
-      ],
-      "nodes": [
+      "edges": [
         {
-          "recno": 1353,
-          "date": "2008-01-15",
-          "stage": "擬訂",
-          "track": "事業計畫、權利變換",
-          "area": "",
-          "is_current": true
+          "from": 1353,
+          "to": 1306,
+          "kind": "revision"
+        },
+        {
+          "from": 1353,
+          "to": 1306,
+          "kind": "track"
         }
-      ],
-      "edges": []
+      ]
     },
     {
       "project_id": "南港區-南港段一小段-531地號等2筆",
@@ -13385,9 +13377,45 @@
       "implementer": "愛山林建設開發股份有限公司",
       "name": "變更(第四次)臺北市南港區南港段一小段531地號等2筆土地都市更新權利變換計畫案",
       "member_recnos": [
+        1170,
+        971,
+        748,
+        473,
         416
       ],
       "nodes": [
+        {
+          "recno": 1170,
+          "date": "2013-08-20",
+          "stage": "擬訂",
+          "track": "事業計畫、權利變換",
+          "area": "",
+          "is_current": false
+        },
+        {
+          "recno": 971,
+          "date": "2017-07-20",
+          "stage": "變更",
+          "track": "事業計畫、權利變換",
+          "area": "",
+          "is_current": false
+        },
+        {
+          "recno": 748,
+          "date": "2019-10-25",
+          "stage": "變更(第二次)",
+          "track": "事業計畫、權利變換",
+          "area": "",
+          "is_current": false
+        },
+        {
+          "recno": 473,
+          "date": "2022-03-23",
+          "stage": "變更(第三次)",
+          "track": "事業計畫、權利變換",
+          "area": "",
+          "is_current": false
+        },
         {
           "recno": 416,
           "date": "2022-09-15",
@@ -13397,95 +13425,48 @@
           "is_current": true
         }
       ],
-      "edges": []
-    },
-    {
-      "project_id": "南港區-南港段一小段-531地號等2筆-2",
-      "anchor_recno": 473,
-      "district": "南港區",
-      "section": "南港段一小段",
-      "implementer": "愛山林建設開發股份有限公司",
-      "name": "變更(第三次)臺北市南港區南港段一小段531地號等2筆土地都市更新事業計畫及權利變換計畫案",
-      "member_recnos": [
-        473
-      ],
-      "nodes": [
+      "edges": [
         {
-          "recno": 473,
-          "date": "2022-03-23",
-          "stage": "變更(第三次)",
-          "track": "事業計畫、權利變換",
-          "area": "",
-          "is_current": true
-        }
-      ],
-      "edges": []
-    },
-    {
-      "project_id": "南港區-南港段一小段-531地號等2筆-3",
-      "anchor_recno": 748,
-      "district": "南港區",
-      "section": "南港段一小段",
-      "implementer": "愛山林建設開發股份有限公司",
-      "name": "變更(第二次)臺北市南港區南港段一小段531地號等2筆土地都市更新事業計畫及權利變換計畫案",
-      "member_recnos": [
-        748
-      ],
-      "nodes": [
+          "from": 1170,
+          "to": 971,
+          "kind": "revision"
+        },
         {
-          "recno": 748,
-          "date": "2019-10-25",
-          "stage": "變更(第二次)",
-          "track": "事業計畫、權利變換",
-          "area": "",
-          "is_current": true
-        }
-      ],
-      "edges": []
-    },
-    {
-      "project_id": "南港區-南港段一小段-531地號等2筆-4",
-      "anchor_recno": 971,
-      "district": "南港區",
-      "section": "南港段一小段",
-      "implementer": "台灣肥料股份有限公司",
-      "name": "變更臺北市南港區南港段一小段531地號等2筆土地都市更新事業計畫及權利變換計畫案",
-      "member_recnos": [
-        971
-      ],
-      "nodes": [
+          "from": 971,
+          "to": 748,
+          "kind": "revision"
+        },
         {
-          "recno": 971,
-          "date": "2017-07-20",
-          "stage": "變更",
-          "track": "事業計畫、權利變換",
-          "area": "",
-          "is_current": true
-        }
-      ],
-      "edges": []
-    },
-    {
-      "project_id": "南港區-南港段一小段-531地號等2筆-5",
-      "anchor_recno": 1170,
-      "district": "南港區",
-      "section": "南港段一小段",
-      "implementer": "台莊資產管理開發股份有限公司",
-      "name": "擬訂臺北市南港區南港段一小段531地號等2筆土地都市更新事業計畫及權利變換計畫案",
-      "member_recnos": [
-        1170
-      ],
-      "nodes": [
+          "from": 748,
+          "to": 473,
+          "kind": "revision"
+        },
         {
-          "recno": 1170,
-          "date": "2013-08-20",
-          "stage": "擬訂",
-          "track": "事業計畫、權利變換",
-          "area": "",
-          "is_current": true
+          "from": 473,
+          "to": 416,
+          "kind": "revision"
+        },
+        {
+          "from": 1170,
+          "to": 971,
+          "kind": "track"
+        },
+        {
+          "from": 971,
+          "to": 748,
+          "kind": "track"
+        },
+        {
+          "from": 748,
+          "to": 473,
+          "kind": "track"
+        },
+        {
+          "from": 473,
+          "to": 416,
+          "kind": "track"
         }
-      ],
-      "edges": []
+      ]
     },
     {
       "project_id": "南港區-南港段一小段-560地號等16筆",
@@ -25785,6 +25766,7 @@
       "name": "變更(第二次)臺北市松山區寶清段一小段51-17地號1筆土地都市更新權利變換計畫案",
       "member_recnos": [
         1131,
+        914,
         863
       ],
       "nodes": [
@@ -25793,6 +25775,14 @@
           "date": "2014-04-25",
           "stage": "擬訂",
           "track": "事業計畫、權利變換",
+          "area": "",
+          "is_current": false
+        },
+        {
+          "recno": 914,
+          "date": "2018-03-20",
+          "stage": "變更",
+          "track": "權利變換",
           "area": "",
           "is_current": false
         },
@@ -25808,37 +25798,25 @@
       "edges": [
         {
           "from": 1131,
+          "to": 914,
+          "kind": "revision"
+        },
+        {
+          "from": 914,
           "to": 863,
           "kind": "revision"
         },
         {
           "from": 1131,
+          "to": 914,
+          "kind": "track"
+        },
+        {
+          "from": 914,
           "to": 863,
           "kind": "track"
         }
       ]
-    },
-    {
-      "project_id": "松山區-寶清段一小段-51-17地號等1筆-2",
-      "anchor_recno": 914,
-      "district": "松山區",
-      "section": "寶清段一小段",
-      "implementer": "將作建設股份有限公司",
-      "name": "變更臺北市松山區寶清段一小段51-17地號1筆土地都市更新權利變換計畫案",
-      "member_recnos": [
-        914
-      ],
-      "nodes": [
-        {
-          "recno": 914,
-          "date": "2018-03-20",
-          "stage": "變更",
-          "track": "權利變換",
-          "area": "",
-          "is_current": true
-        }
-      ],
-      "edges": []
     },
     {
       "project_id": "松山區-寶清段一小段-51-3地號等1筆",

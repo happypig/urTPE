@@ -8,7 +8,7 @@ Publishes the merged result as a per-project JSON history graph whose revision e
 
 ### Requirement: Emit a valid history graph
 
-The system SHALL emit projects.json containing one graph per project family: nodes for each record (編號, ISO date, stage, track, 區段, is_current) and edges for revision progressions and section branches, with edges converging on the anchor.
+The system SHALL emit projects.json containing one graph per project family: nodes for each record (編號, ISO date, stage, track, 區段, is_current, links) and edges for revision progressions and section branches, with edges converging on the anchor. Each project SHALL carry a `links` object with its discovered official web URLs (national portal view URL and Taipei City platform case URLs), empty when discovery resolved none.
 
 #### Scenario: Every record has a node in exactly one project
 - **WHEN** projects.json is generated
@@ -27,6 +27,11 @@ The system SHALL emit projects.json containing one graph per project family: nod
 #### Scenario: JSON is schema-valid
 - **WHEN** projects.json is validated against its declared schema
 - **THEN** it parses without error and every project contains non-empty nodes and a single anchor
+
+#### Scenario: Project carries discovered links
+- **WHEN** a project's official links have been resolved by discovery
+- **THEN** the project's `links` object contains its national-portal URL and any city-platform case URLs
+- **AND** a project with no resolved link carries an empty `links` object
 
 ### Requirement: Render the history in a browser viewer
 

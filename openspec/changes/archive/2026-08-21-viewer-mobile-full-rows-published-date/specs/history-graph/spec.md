@@ -1,9 +1,5 @@
-# history-graph Specification
+## MODIFIED Requirements
 
-## Purpose
-
-Publishes the merged result as a per-project JSON history graph whose revision edges converge on each family's latest approval, and renders it in a browser viewer so an analyst can read one project's full approval timeline.
-## Requirements
 ### Requirement: Emit a valid history graph
 
 The system SHALL emit projects.json containing one graph per project family: nodes for each record (編號, ISO date, stage, track, 區段, is_current, case_name, land, parcels, aliases, land_count, orig_count, named_anchor, area_section, implementer, planner, review_flags, auto_fixes) and edges for revision progressions and section branches, with edges converging on the anchor. Each project SHALL carry a `published_date` field with the official PDF publication date (統計至 115年8月11日).
@@ -67,4 +63,3 @@ The system SHALL provide a viewer that loads projects.json and renders each proj
 #### Scenario: District is surfaced on list items
 - **WHEN** the list renders project items
 - **THEN** each item carries a district color chip alongside the project id
-

@@ -1,9 +1,5 @@
-# viewer-filtering Specification
+## MODIFIED Requirements
 
-## Purpose
-
-Lets an analyst narrow the project list to the districts, approval years, and plan types they care about, and keeps the project-history graph legible at any panel width.
-## Requirements
 ### Requirement: Filter the project list by district, year, and plan type
 
 The system SHALL provide multi-select filters above the project list for 地區 (12 districts), 年度 (approval years), and 事業種類 (`事業計畫`, `權利變換`, `事業計畫、權利變換`, `事業概要`, `都市更新計畫`, `其他`), combined with the existing search box.
@@ -47,6 +43,8 @@ The system SHALL echo the project's district chip in the detail header so the li
 - **WHEN** a project's detail is rendered
 - **THEN** the header shows the same district color chip as its list item
 
+## ADDED Requirements
+
 ### Requirement: Detail table shows full original row data with expand toggle
 
 The system SHALL render the record table under the graph with all original CleanRecord fields (案名, 地號, 區段, 實施者, 更新規劃單位, review_flags, auto_fixes) as additional columns after 現況, defaulting to analyst essentials with an "展開全部" toggle for the full set.
@@ -64,4 +62,3 @@ The system SHALL render the record table under the graph with all original Clean
 - **WHEN** the viewport is narrow and the table has many columns
 - **THEN** the table container shows a horizontal scrollbar
 - **AND** the user can scroll to see all columns without page-level horizontal scroll
-

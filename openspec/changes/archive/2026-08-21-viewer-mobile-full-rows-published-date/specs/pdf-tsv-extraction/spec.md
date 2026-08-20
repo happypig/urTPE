@@ -1,9 +1,5 @@
-# pdf-tsv-extraction Specification
+## MODIFIED Requirements
 
-## Purpose
-
-Converts the Taipei City Government's 201-page urban-renewal approved-cases PDF into a raw, verbatim TSV by positional extraction, re-joining line-wrapped cells and stripping page furniture so downstream steps see clean rows.
-## Requirements
 ### Requirement: Extract all records as raw TSV rows
 
 The system SHALL convert the source PDF into a raw TSV with one row per approved case (1,419 rows) plus a header, preserving the original cell text verbatim without normalization.
@@ -38,6 +34,8 @@ The system SHALL flag any record it cannot parse with the standard layout instea
 - **THEN** the record is still emitted with a parse-error marker in a dedicated column
 - **AND** the extraction report lists the record 編號 and the reason
 
+## ADDED Requirements
+
 ### Requirement: Capture the official published date from PDF header
 
 The system SHALL extract the "統計至115年8月11日" line from PDF page 1 (y≈60) and emit it as metadata alongside the raw TSV, without treating it as furniture.
@@ -51,4 +49,3 @@ The system SHALL extract the "統計至115年8月11日" line from PDF page 1 (y�
 - **WHEN** the CLI runs with the extracted published_date
 - **THEN** it appears in the pipeline meta dict, projects.json, and projects.data.js
 - **AND** the viewer header displays "統計至 115年8月11日" instead of generated_at
-

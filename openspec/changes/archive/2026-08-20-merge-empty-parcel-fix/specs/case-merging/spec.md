@@ -1,10 +1,4 @@
-# case-merging Specification
-
-## Purpose
-
-Links the approvals of one 更新單元 across stages, sections, and land-coverage changes into a project family, and derives a stable, append-friendly project_id anchored on the family's latest approval.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Link records by similarity
 
@@ -50,30 +44,3 @@ The system SHALL link two records into the same project family when their simila
 #### Scenario: Identical land links across an implementer change
 - **WHEN** two records share the same land key but different implementers (e.g. 南港段一小段531地號等2筆, 台灣肥料 → 愛山林)
 - **THEN** they are placed in the same project family
-
-### Requirement: Anchor a family on its latest approval
-
-The system SHALL designate the anchor of each family as the record with the newest 核定日期, breaking ties deterministically (closest to 編號 1), and SHALL derive project_id from the anchor's normalized name-core, never from 編號.
-
-#### Scenario: Anchor is the newest by date
-- **WHEN** a family spans approvals from 2013 to 2026
-- **THEN** the anchor is the 2026 approval regardless of its 編號 position
-- **AND** the anchor is flagged is_current
-
-#### Scenario: project_id is stable across revisions
-- **WHEN** a new 變更(第N次) approval for the same unit is added later
-- **THEN** the family's project_id does not change
-- **AND** the new approval becomes the anchor by date
-
-#### Scenario: Coverage change re-anchors to the newest state
-- **WHEN** the latest approval has a newer parcel configuration than earlier members (e.g. 13筆 supersedes 11筆)
-- **THEN** project_id reflects the latest state's name-core
-
-### Requirement: Emit merged dataset
-
-The system SHALL emit merged.tsv containing every record with its project_id, unit-level fields, is_current flag, and review flags, preserving traceability to the source 編號.
-
-#### Scenario: Complete coverage of records
-- **WHEN** the merge step finishes
-- **THEN** every record in clean.tsv appears exactly once in merged.tsv with a project_id
-- **AND** the record's source 編號 is preserved

@@ -51,6 +51,11 @@ The system SHALL derive and expose structured fields per record: 段X小段, fir
 - **WHEN** a 案名 is "變更(第二次)…都市更新權利變換計畫案"
 - **THEN** stage="變更(第二次)" and track="權利變換" are derived
 
+#### Scenario: Parcels derived from the 案名 when the 地號 cell is malformed
+- **WHEN** a 地號 cell cannot supply a parcel list (e.g. "…1251筆土地" missing 地號) but the 案名 identifies the parcel (e.g. "…125地號1筆土地…")
+- **THEN** the parcel set is populated from the 案名
+- **AND** the malformed source cell is still flagged in review_flags
+
 ### Requirement: Auto-fix obvious, flag ambiguous
 
 The system SHALL apply obvious fixes automatically and route ambiguous cases to a review/flag column with a reason, without guessing.

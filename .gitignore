@@ -1,3 +1,7 @@
-/.opencode
-/.pytest_cache
-/.specstory
+.opencode
+.pytest_cache
+.specstory
+__pycache__/
+*.pyc
+data/**
+data_test/**

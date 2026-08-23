@@ -120,7 +120,15 @@ class ListPageParser(html.parser.HTMLParser):
 
 
 class ViewPageParser(html.parser.HTMLParser):
-    """Parse national portal view page for 縣市政府案件連結 and 推動歷程."""
+    """Parse national portal view page for 縣市政府案件連結 and 推動歷程.
+
+    推動歷程 lives in a 項目/日期-headed table. Older portal builds rendered it
+    inside display:none boxes (handled by the legacy text path); the current
+    site serves it as visible static rows, so row-level parsing is the
+    primary path.
+    """
+
+    ROC_DATE_RE = re.compile(r"^\d{2,3}(?:\.\d{2}){2}$")
 
     def __init__(self):
         super().__init__()
@@ -131,6 +139,10 @@ class ViewPageParser(html.parser.HTMLParser):
         self._in_td = False
         self._tds = []
         self._current_table_text = ""
+        self._in_milestone_table = False
+        self._cell_active = False
+        self._cell_buf = ""
+        self._row_tds: list[str] = []
 
     def handle_starttag(self, tag, attrs):
         attrs_dict = dict(attrs)
@@ -142,14 +154,21 @@ class ViewPageParser(html.parser.HTMLParser):
                 self._tds = []
                 self._current_table_text = ""
                 self._in_hidden_table = "display:none" in style.replace(" ", "")
+        elif tag == "table":
+            self._in_milestone_table = False
+        elif tag == "tr":
+            self._row_tds = []
         elif tag == "a" and self._in_data_table:
             href = attrs_dict.get("href", "")
             if "case_id=" in href:
                 m = re.search(r"case_id=(\d+)", href)
                 if m:
                     self.case_ids.append(m.group(1))
-        elif tag in ("td", "th") and self._in_data_table:
-            self._in_td = True
+        elif tag in ("td", "th"):
+            self._cell_active = True
+            self._cell_buf = ""
+            if self._in_data_table:
+                self._in_td = True
 
     def handle_endtag(self, tag):
         if tag == "div" and self._in_data_table:
@@ -159,16 +178,43 @@ class ViewPageParser(html.parser.HTMLParser):
             self._tds = []
             self._in_hidden_table = False
             self._current_table_text = ""
-        elif tag in ("td", "th") and self._in_td:
+        elif tag == "table":
+            self._in_milestone_table = False
+        elif tag == "tr":
+            self._process_row()
+        elif tag in ("td", "th"):
+            if self._cell_active:
+                text = self._cell_buf.strip()
+                if text:
+                    self._row_tds.append(text)
+            self._cell_active = False
             self._in_td = False
 
     def handle_data(self, data):
+        if self._cell_active:
+            self._cell_buf += data
         if self._in_data_table:
             self._current_table_text += data
             if self._in_td:
                 text = data.strip()
                 if text:
                     self._tds.append(text)
+
+    def _process_row(self):
+        if not self._row_tds:
+            return
+        cells = self._row_tds
+        self._row_tds = []
+        if len(cells) == 2 and cells[0] == "項目" and cells[1] == "日期":
+            self._in_milestone_table = True
+            return
+        if not self._in_milestone_table or len(cells) < 2:
+            return
+        label, value = cells[0], cells[1]
+        if label == "備註" or not value:
+            return
+        if self.ROC_DATE_RE.match(value) and label not in self.tuidui_history:
+            self.tuidui_history[label] = value
 
     def _process_tuidui_table(self):
         text = self._current_table_text

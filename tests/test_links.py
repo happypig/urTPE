@@ -17,6 +17,7 @@ from tests.fixtures_links import (
     VIEW_771_HTML,
     VIEW_292_HTML,
     VIEW_NO_CITY_HTML,
+    VIEW_VISIBLE_TUIDUI_HTML,
     TAIPEI_CASE_10110211_HTML,
     SEARCH_UNIQUE_HIT_HTML,
     SEARCH_NO_HIT_HTML,
@@ -63,6 +64,22 @@ class TestViewPageParsing:
         assert history["事業計畫核定日期"] == "109.11.17"
         assert history["權利變換計畫申請日期"] == "101.12.28"
         assert history["權利變換計畫核定日期"] == "109.11.17"
+
+    def test_extract_tuidui_history_visible_table(self):
+        """Current portal serves 推動歷程 as a visible type4_table (no display:none)."""
+        history = extract_tuidui_history_from_view(VIEW_VISIBLE_TUIDUI_HTML)
+        assert history["事業計畫申請日期"] == "99.01.27"
+        assert history["事業計畫核定日期"] == "101.08.28"
+        assert history["權利變換計畫申請日期"] == "99.01.27"
+        assert history["第一次變更事業計畫核定日期"] == "105.08.24"
+        assert history["使用核發日期"] == "105.08.29"
+        # Negative guards: empty cells and non-milestone tables must not leak in
+        assert "備註" not in history
+        assert "資料更新日期" not in history
+
+    def test_case_ids_coexist_with_visible_tuidui_table(self):
+        ids = extract_case_ids_from_view(VIEW_VISIBLE_TUIDUI_HTML)
+        assert ids == ["11407009"]
 
 
 class TestTaipeiCaseParsing:

@@ -86,6 +86,38 @@ VIEW_NO_CITY_HTML = """
 </html>
 """
 
+# Live portal markup (2026-08): 推動歷程 as a VISIBLE type4_table with
+# 項目/日期 headers — the old display:none assumption no longer holds.
+VIEW_VISIBLE_TUIDUI_HTML = """
+<!DOCTYPE html>
+<html>
+<body>
+<div class="data_table_box">
+<table class='type4_table'>
+<tr><th scope="col" id="j01">項目</th><th scope="col" id="j02">日期</th></tr>
+<tr><td headers="j01">事業計畫申請日期</td><td headers="j02">99.01.27</td></tr>
+<tr><td headers="j01">事業計畫核定日期</td><td headers="j02">101.08.28</td></tr>
+<tr><td headers="j01">權利變換計畫申請日期</td><td headers="j02">99.01.27</td></tr>
+<tr><td headers="j01">第一次變更事業計畫核定日期</td><td headers="j02">105.08.24</td></tr>
+<tr><td headers="j01">使用核發日期</td><td headers="j02">105.08.29</td></tr>
+<tr><td headers="j01">備註</td><td headers="j02"></td></tr>
+</table>
+</div>
+<div class="data_table_box">
+<table class='type4_table'>
+<tr><th scope="col" id="j11">項目</th><th scope="col" id="j12">內容</th></tr>
+<tr><td headers="j11">資料更新日期</td><td headers="j12">本專案資料最後更新於112.03.17 17:40</td></tr>
+</table>
+</div>
+<div class="data_table_box">
+相關連結
+縣市政府案件連結
+<a href="https://gis.uro.taipei/r_progress_detail.aspx?case_id=11407009">案</a>
+</div>
+</body>
+</html>
+"""
+
 # Sample Taipei portal case page (case_id=10110211) with 階段辦理過程
 TAIPEI_CASE_10110211_HTML = """
 <!DOCTYPE html>

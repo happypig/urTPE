@@ -182,3 +182,45 @@ TEST_CORES = {
     "yuquan": "玉泉段二小段40地號等29筆",
     "linyi": "臨沂段一小段507地號等3筆",
 }
+
+# Sample national portal list page (page 1) with multiple cases
+LIST_PAGE_1_HTML = """
+<!DOCTYPE html>
+<html>
+<body>
+<table>
+<tr><th>縣市</th><th>核定年期</th><th>案件名稱</th><th>實施者</th><th>實施方式</th></tr>
+<tr><td>臺北市</td><td>109.11.17</td><td><a href="/zh/urban/rebuild/view/771">擬訂臺北市大同區玉泉段二小段40地號等29筆土地都市更新事業計畫及權利變換計畫案</a></td><td>弘千建設股份有限公司</td><td>重建區段：權利變換</td></tr>
+<tr><td>臺北市</td><td>108.06.20</td><td><a href="/zh/urban/rebuild/view/292">擬訂臺北市中正區臨沂段一小段507地號等3筆土地都市更新事業計畫案</a></td><td>東綺建設</td><td>重建區段：權利變換</td></tr>
+<tr><td>臺北市</td><td>107.12.05</td><td><a href="/zh/urban/rebuild/view/888">擬訂臺北市大同區玉泉段二小段40地號等29筆土地都市更新事業計畫案另一案</a></td><td>其他建設</td><td>重建區段：權利變換</td></tr>
+</table>
+<a href="?city_id=2&page=2">下一頁</a>
+</body>
+</html>
+"""
+
+# Sample national portal list page (page 2) - last page
+LIST_PAGE_2_HTML = """
+<!DOCTYPE html>
+<html>
+<body>
+<table>
+<tr><th>縣市</th><th>核定年期</th><th>案件名稱</th><th>實施者</th><th>實施方式</th></tr>
+<tr><td>臺北市</td><td>106.03.15</td><td><a href="/zh/urban/rebuild/view/999">擬訂臺北市信義區松仁段100地號等5筆土地都市更新事業計畫案</a></td><td>信義建設</td><td>重建區段：事業計畫</td></tr>
+</table>
+<!-- No next page link = last page -->
+</body>
+</html>
+"""
+
+# Sample list page with empty table (end of pagination)
+LIST_PAGE_EMPTY_HTML = """
+<!DOCTYPE html>
+<html>
+<body>
+<table>
+<tr><th>縣市</th><th>核定年期</th><th>案件名稱</th><th>實施者</th><th>實施方式</th></tr>
+</table>
+</body>
+</html>
+"""

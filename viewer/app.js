@@ -5,6 +5,13 @@ const KIND_COLOR = { revision: "#1d4ed8", track: "#0f766e", section: "#b45309" }
 const KIND_LABEL = { revision: "版本", track: "事業種類", section: "區段" };
 
 const TRACK_ORDER = ["事業計畫", "權利變換", "事業計畫、權利變換", "事業概要", "都市更新計畫", "其他"];
+
+// Track column positions: left, middle, right
+function trackPosition(track) {
+  if (track.includes("事業計畫") && !track.includes("權利變換")) return 0; // 事業計畫, 事業概要, 都市更新計畫 -> left
+  if (track.includes("事業計畫") && track.includes("權利變換")) return 1; // 事業計畫、權利變換 -> middle
+  return 2; // 權利變換, 其他 -> right
+}
 const DISTRICT_COLORS = [
   "#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6", "#06b6d4",
   "#ec4899", "#84cc16", "#f97316", "#14b8a6", "#6366f1", "#a16207",
@@ -21,6 +28,74 @@ function byDateNodes(nodes) {
     if (a.date !== b.date) return a.date < b.date ? -1 : 1;
     return a.recno - b.recno;
   });
+}
+
+function getNodeMilestoneBadges(node) {
+  const links = node.links || {};
+  const national = links.milestones_national || {};
+  const taipei = links.milestones_taipei || {};
+  const badges = [];
+  if (Object.keys(national).length > 0) badges.push('<span class="node-milestone-badge national" title="國土署里程碑">國</span>');
+  if (Object.keys(taipei).length > 0) badges.push('<span class="node-milestone-badge taipei" title="台北市里程碑">北</span>');
+  return badges.join("");
+}
+
+function renderMilestones(project, nodes) {
+  const links = project.links || {};
+  const national = links.milestones_national || {};
+  const taipei = links.milestones_taipei || {};
+  const twurUrl = links.twur || "";
+
+  let html = "";
+
+  // National portal milestones (推動歷程)
+  if (Object.keys(national).length > 0) {
+    html += `<details class="milestone-card" open>
+      <summary class="milestone-summary">
+        <span class="milestone-title">推動歷程 (國土署)</span>
+        <span class="milestone-badge national">國</span>
+      </summary>
+      <dl class="milestone-list">`;
+    for (const [label, date] of Object.entries(national)) {
+      html += `<div class="milestone-row">
+        <dt class="milestone-label">${escapeHtml(label)}</dt>
+        <dd class="milestone-date">${escapeHtml(date)}</dd>
+        <span class="milestone-badge national">國</span>
+      </div>`;
+    }
+    html += `</dl></details>`;
+  }
+
+  // Taipei platform milestones (階段辦理過程)
+  if (Object.keys(taipei).length > 0) {
+    html += `<details class="milestone-card" open>
+      <summary class="milestone-summary">
+        <span class="milestone-title">階段辦理過程 (台北市)</span>
+        <span class="milestone-badge taipei">北</span>
+      </summary>
+      <dl class="milestone-list">`;
+    for (const [label, date] of Object.entries(taipei)) {
+      html += `<div class="milestone-row">
+        <dt class="milestone-label">${escapeHtml(label)}</dt>
+        <dd class="milestone-date">${escapeHtml(date)}</dd>
+        <span class="milestone-badge taipei">北</span>
+      </div>`;
+    }
+    html += `</dl></details>`;
+  } else if (twurUrl) {
+    // Progressive loading placeholder for Taipei data
+    html += `<details class="milestone-card milestone-placeholder">
+      <summary class="milestone-summary">
+        <span class="milestone-title">階段辦理過程 (台北市)</span>
+        <span class="milestone-badge taipei">北</span>
+      </summary>
+      <div class="milestone-placeholder-content">
+        資料未取得 · <a href="${escapeHtml(twurUrl)}" target="_blank" rel="noopener">前往入口網查看</a>
+      </div>
+    </details>`;
+  }
+
+  return html;
 }
 
 function init() {
@@ -153,7 +228,12 @@ function init() {
   }
 
   function renderList() {
-    const shown = projects.filter(matches);
+    const shown = projects.filter(matches).sort((a, b) => {
+      // Sort by earliest date (ascending)
+      const dateA = a.nodes.reduce((min, n) => n.date < min ? n.date : min, "9999-12-31");
+      const dateB = b.nodes.reduce((min, n) => n.date < min ? n.date : min, "9999-12-31");
+      return dateA.localeCompare(dateB);
+    });
     rcount.textContent = `顯示 ${shown.length} / ${total}`;
     list.innerHTML = "";
     if (!shown.length) {
@@ -181,7 +261,14 @@ function init() {
       const col = `${n.track}${n.area ? "（" + n.area + "區段）" : ""}`;
       columns[col] = (columns[col] || 0) + 1;
     });
-    const colKeys = Object.keys(columns);
+    // Sort columns by track position (left -> middle -> right), then by area
+    const colKeys = Object.keys(columns).sort((a, b) => {
+      const trackA = a.split("（")[0];
+      const trackB = b.split("（")[0];
+      const posDiff = trackPosition(trackA) - trackPosition(trackB);
+      if (posDiff !== 0) return posDiff;
+      return a.localeCompare(b);
+    });
     const colOf = n => {
       const c = `${n.track}${n.area ? "（" + n.area + "區段）" : ""}`;
       return colKeys.indexOf(c);
@@ -216,10 +303,12 @@ function init() {
     nodes.forEach(n => {
       const p2 = pos[n.recno];
       const label = `${n.recno} · ${n.date}${n.stage ? " " + n.stage : ""}`;
+      const badges = getNodeMilestoneBadges(n);
       s += `<g class="node ${n.is_current ? "current" : ""}" transform="translate(${p2.x},${p2.y})">
         <circle r="9"></circle>
         <text class="title" x="14" y="3">${escapeHtml(label)}</text>
         <text class="sub" x="14" y="15">${escapeHtml(n.track)}${n.area ? "（" + escapeHtml(n.area) + "區段）" : ""}</text>
+        ${badges ? `<foreignObject x="18" y="-12" width="32" height="16"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;gap:2px;">${badges}</div></foreignObject>` : ""}
       </g>`;
     });
     s += "</svg>";
@@ -231,7 +320,7 @@ function init() {
     }
 
     // Detail table with tiered columns (essential + full)
-    const essentialCols = ["recno", "date", "stage", "track", "is_current", "case_name", "land", "section", "implementer", "planner", "review_flags", "auto_fixes"];
+    const essentialCols = ["recno", "date", "stage", "track", "is_current", "case_name", "land", "section", "implementer", "planner", "review_flags", "auto_fixes", "milestones"];
     const fullCols = ["parcels", "aliases", "land_count", "orig_count", "named_anchor", "area_section"];
     const allCols = [...essentialCols, ...fullCols];
 
@@ -248,6 +337,8 @@ function init() {
           val = (rec.auto_fixes || []).join("、");
         } else if (col === "parcels" || col === "aliases") {
           val = JSON.stringify(rec[col] || []);
+        } else if (col === "milestones") {
+          val = getNodeMilestoneBadges(rec);
         } else {
           val = rec[col] !== undefined ? escapeHtml(String(rec[col])) : "";
         }
@@ -264,6 +355,7 @@ function init() {
         is_current: "現況", case_name: "案名", land: "地號", section: "區段",
         implementer: "實施者", planner: "更新規劃單位",
         review_flags: "審查標記", auto_fixes: "自動修正",
+        milestones: "里程碑",
         parcels: "地號清單", aliases: "地號別名", land_count: "地號數",
         orig_count: "原地號數", named_anchor: "命名錨點", area_section: "行政區段"
       }[col] || col;
@@ -289,6 +381,9 @@ function init() {
       s += `</ul></div>`;
     }
 
+    // Render milestone timelines
+    s += renderMilestones(p, nodes);
+
     detail.innerHTML = s;
 
     // Toggle for full columns
@@ -298,21 +393,22 @@ function init() {
         const expanded = toggleBtn.dataset.expanded === "true";
         toggleBtn.dataset.expanded = expanded ? "false" : "true";
         toggleBtn.textContent = expanded ? "展開全部" : "收起";
+        const displayValue = expanded ? "none" : "table-cell";
         detail.querySelectorAll("td[data-tier='full'], th[data-tier='full']").forEach(el => {
-          el.style.display = expanded ? "none" : "";
+          el.style.display = displayValue;
         });
       };
     }
   }
 
-  function escapeHtml(t) {
-    return String(t).replace(/[&<>"']/g, c => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-    }[c]));
-  }
-
   filter.addEventListener("input", renderList);
   renderList();
+}
+
+function escapeHtml(t) {
+  return String(t).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
 }
 
 document.addEventListener("DOMContentLoaded", init);

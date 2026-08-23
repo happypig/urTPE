@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Fixture helpers: a tiny sample PDF containing known records."""
 
 from __future__ import annotations

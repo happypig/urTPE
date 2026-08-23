@@ -39,6 +39,9 @@ def build_project_graph(project: Project, implementer: str, name: str, published
             "planner": r.planner,
             "review_flags": r.review_flags,
             "auto_fixes": r.auto_fixes,
+            # District fields for link discovery core building
+            "district": r.district,
+            "district_land": r.district_land,
         }
         # Include links if present on the member record
         if hasattr(r, 'links') and r.links:

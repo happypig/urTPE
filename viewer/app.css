@@ -186,7 +186,108 @@ table.recs tr.current td { background: #fef2f2; }
 }
 .expand-btn:hover { background: #f0f4ff; border-color: var(--accent); }
 
-/* Responsive: side-by-side on desktop */
+/* Milestone timeline cards */
+.milestone-card {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.milestone-card[open] > .milestone-summary {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+.milestone-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 4px 0;
+}
+.milestone-summary:hover { color: var(--accent); }
+.milestone-title { flex: 1; }
+.milestone-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.milestone-badge.national {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.milestone-badge.taipei {
+  background: #fef3c7;
+  color: #b45309;
+}
+.milestone-list {
+  margin: 8px 0 0;
+  padding: 0;
+}
+.milestone-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.milestone-row:last-child { border-bottom: none; }
+.milestone-label {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--ink);
+}
+.milestone-date {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.milestone-placeholder {
+  background: #fefce8;
+  border-color: #fde047;
+}
+.milestone-placeholder .milestone-summary { cursor: default; }
+.milestone-placeholder .milestone-title { color: var(--muted); }
+.milestone-placeholder-content {
+  margin-top: 8px;
+  padding: 8px;
+  background: #fffbeb;
+  border: 1px dashed #fde047;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.milestone-placeholder-content a { color: var(--accent); text-decoration: none; }
+.milestone-placeholder-content a:hover { text-decoration: underline; }
+
+/* Node milestone badges */
+.node-milestone-badge {
+  display: inline-block;
+  padding: 1px 4px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.node-milestone-badge.national {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.node-milestone-badge.taipei {
+  background: #fef3c7;
+  color: #b45309;
+}
 @media (min-width: 768px) {
   .cols { grid-template-columns: 30% 70%; }
   #list {

@@ -235,6 +235,73 @@ class TestAttachLinksToProjects:
 
         assert project.links == {"twur": "", "taipei": [], "milestones_national": {}, "milestones_taipei": {}}
 
+    def test_attach_per_node_links_by_approval_date(self):
+        """Regression (facts §16): positional linking attached the older case to
+        the newer node. Nodes must anchor by 核定日期 instead."""
+        from urtpe.models import Project
+        from urtpe.cleanse import cleanse
+        from urtpe.models import RawRecord
+
+        raw_old = RawRecord(1042, "115/8/11", "中正區", "擬訂中正河堤段四小段263-19地號等25筆都市更新計畫案",
+                            "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+        raw_new = RawRecord(772, "115/8/11", "中正區", "變更中正河堤段四小段263-19地號等25筆都市更新事業計畫案",
+                            "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+        project = Project(
+            project_id="中正區-河堤段四小段-263-19地號等25筆",
+            anchor_recno=772,
+            members=[cleanse(raw_old), cleanse(raw_new)],
+        )
+        # Node dates come from the PDF record; override to the known approval dates
+        for member in project.members:
+            if member.recno == 1042:
+                member.date = "2016-07-05"
+            elif member.recno == 772:
+                member.date = "2019-08-01"
+
+        disc_obj = type("Disc", (object,), {})()
+        disc_obj.project_id = "中正區-河堤段四小段-263-19地號等25筆"
+        disc_obj.twur_url = "https://twur.nlma.gov.tw/zh/urban/rebuild/view/262"
+        # NOTE: list order is (newest-first) — positional logic would mislink these
+        disc_obj.city_case_ids = ["10204032", "10707031"]
+        disc_obj.national_milestones = {}
+        disc_obj.taipei_milestones = {}
+        disc_obj.case_milestones = {
+            "10204032": {"核定日期": "2016/07/05", "建照核發日期": "2017/07/14"},
+            "10707031": {"核定日期": "2019/08/01"},
+        }
+
+        attach_links_to_projects([project], {"中正區-河堤段四小段-263-19地號等25筆": disc_obj})
+
+        by_recno = {m.recno: m for m in project.members}
+        assert by_recno[1042].links["taipei"] == ["10204032"]  # 核定 2016-07-05
+        assert by_recno[772].links["taipei"] == ["10707031"]   # 核定 2019-08-01
+
+    def test_date_match_falls_back_to_positional_without_case_milestones(self):
+        """Old caches carry no case_milestones: legacy positional behavior kept."""
+        from urtpe.models import Project
+        from urtpe.cleanse import cleanse
+        from urtpe.models import RawRecord
+
+        raw1 = RawRecord(1, "115/8/11", "中正區", "擬訂中正臨沂段一小段507地號等3筆事業計畫案",
+                         "中正區臨沂段一小段507等3筆", "東綺建設", "某規劃")
+        project = Project(
+            project_id="中正區-臨沂段一小段-507地號等3筆",
+            anchor_recno=1,
+            members=[cleanse(raw1)],
+        )
+
+        disc_obj = type("Disc", (object,), {})()
+        disc_obj.project_id = "中正區-臨沂段一小段-507地號等3筆"
+        disc_obj.twur_url = ""
+        disc_obj.city_case_ids = ["10110211"]
+        disc_obj.national_milestones = {}
+        disc_obj.taipei_milestones = {}
+        disc_obj.case_milestones = {}  # old cache
+
+        attach_links_to_projects([project], {"中正區-臨沂段一小段-507地號等3筆": disc_obj})
+
+        assert project.members[0].links["taipei"] == ["10110211"]
+
 
 class TestLinksDiscoveryIntegration:
     """Integration test for the full discovery flow (POC sample cases)."""

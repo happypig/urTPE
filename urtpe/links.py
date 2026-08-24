@@ -293,6 +293,9 @@ class DiscoveryResult:
     city_case_ids: list[str] = field(default_factory=list)
     national_milestones: dict[str, str] = field(default_factory=dict)
     taipei_milestones: dict[str, str] = field(default_factory=dict)
+    # Per-case milestone timelines: {case_id: {label: date}} — retained so node
+    # links can be anchored by 核定日期 instead of list position.
+    case_milestones: dict[str, dict[str, str]] = field(default_factory=dict)
     status: str = "unresolved"  # resolved, unresolved, multi-case, error
     error: str = ""
 
@@ -533,6 +536,7 @@ def discover_project_links(
         try:
             ms = fetch_taipei_milestones_api(cid)
             all_taipei_milestones.update(ms)
+            result.case_milestones[cid] = ms
             for e in city_entries:
                 if e["case_id"] == cid and e.get("case_name"):
                     case_names.append(e["case_name"])
@@ -756,6 +760,48 @@ def save_project_cache(cache_dir: Path, project_id: str, result: DiscoveryResult
     # Taipei case pages are cached by fetch_url automatically
 
 
+def _iso_date(s: str) -> str:
+    """Normalize '2016/07/05' or '2016-07-05' to '2016-07-05' ('' if empty)."""
+    return s.strip().replace("/", "-") if s else ""
+
+
+def _shift_iso_date(iso: str, days: int) -> str:
+    """Return iso shifted by N days ('' if unparseable)."""
+    try:
+        from datetime import date, timedelta
+        y, m, d = (int(x) for x in iso.split("-"))
+        return (date(y, m, d) + timedelta(days=days)).isoformat()
+    except (ValueError, AttributeError):
+        return ""
+
+
+def _match_case_by_date(member_date: str, disc) -> str:
+    """Find the city case whose 核定日期/權變核定日期 equals the node's date
+    (exact first, then ±1 day). Returns case_id or ''."""
+    if not member_date or not getattr(disc, "case_milestones", None):
+        return ""
+    target = _iso_date(member_date)
+    candidates: dict[str, set[str]] = {}
+    for cid, ms in disc.case_milestones.items():
+        dates: set[str] = set()
+        for label in ("核定日期", "權變核定日期"):
+            iso = _iso_date(ms.get(label, ""))
+            if iso:
+                dates.add(iso)
+        if dates:
+            candidates[cid] = dates
+    # exact match
+    hits = [cid for cid, dates in candidates.items() if target in dates]
+    if len(hits) == 1:
+        return hits[0]
+    # ±1 day tolerance (gazette vs committee date drift)
+    near = {target, _shift_iso_date(target, 1), _shift_iso_date(target, -1)}
+    hits = [cid for cid, dates in candidates.items() if dates & near]
+    if len(hits) == 1:
+        return hits[0]
+    return ""
+
+
 def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
     disc_by_pid = {}
     for k, v in discovered.items():
@@ -768,6 +814,7 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             obj.city_case_ids = v.get("taipei", [])
             obj.national_milestones = v.get("milestones_national", {})
             obj.taipei_milestones = v.get("milestones_taipei", {})
+            obj.case_milestones = v.get("case_milestones", {})
             disc_by_pid[k] = obj
 
     for project in projects:
@@ -792,7 +839,13 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             node_links = {"taipei": [], "milestones_national": {}, "milestones_taipei": {}}
             track = member.track
 
-            if "事業計畫" in track and disc.city_case_ids:
+            # Spec (official-link-discovery): per-stage city links land on the
+            # node whose 核定日期 matches the case's approval date. Fall back to
+            # the legacy positional heuristic only when dates cannot disambiguate.
+            matched = _match_case_by_date(member.date, disc)
+            if matched:
+                node_links["taipei"].append(matched)
+            elif "事業計畫" in track and disc.city_case_ids:
                 node_links["taipei"].append(disc.city_case_ids[0])
             elif "權利變換" in track and len(disc.city_case_ids) > 1:
                 node_links["taipei"].append(disc.city_case_ids[1])

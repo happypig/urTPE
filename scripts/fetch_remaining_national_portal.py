@@ -60,8 +60,8 @@ from urtpe.links import (
 # Constants
 # ──────────────────────────────────────────────────────────────────────────────
 
-DEADLINE_HOUR = 6
-DEADLINE_MINUTE = 30
+DEADLINE_HOUR = 17
+DEADLINE_MINUTE = 0
 SEARCH_URL = "https://twur.nlma.gov.tw/zh/urban/rebuild/0"
 VIEW_URL_BASE = "https://twur.nlma.gov.tw/zh/urban/rebuild/view/"
 ROOT = Path("data/.link_cache")
@@ -114,14 +114,18 @@ def load_candidates() -> list[dict]:
         # Extract section and first parcel from anchor node
         section = current_node.get("section", "")
         land = current_node.get("land", "")
-        # Extract first parcel from land string (e.g., "中山區中山段一小段254地號等13筆" -> "254")
+        # Extract first parcel and land count from land string
+        # (e.g., "中山區中山段一小段254地號等13筆" -> parcel "254", count "13")
         parcel = ""
+        count = ""
         if land:
             import re
-            # Extract first number sequence that looks like a parcel
             m = re.search(r"(\d+(?:-\d+)?)地號", land)
             if m:
                 parcel = m.group(1)
+            m2 = re.search(r"等(\d+)筆", land)
+            if m2:
+                count = m2.group(1)
 
         if not section or not parcel:
             continue
@@ -130,6 +134,7 @@ def load_candidates() -> list[dict]:
             "project_id": p["project_id"],
             "section": section,
             "parcel": parcel,
+            "count": count,
             "current_date": current_node.get("date", ""),
         })
 
@@ -174,7 +179,32 @@ def fetch_and_parse_view(view_id: str) -> tuple[dict[str, str], list[str]]:
     return milestones, city_ids
 
 
-def find_matching_view(section: str, parcel: str) -> tuple[str, dict[str, str], list[str]]:
+def view_page_matches(html: str, section: str, parcel: str, count: str = "") -> bool:
+    """Strict match: parcel must appear in 地號 context, and the page title must
+    carry the same section + parcel (+ land count when known).
+
+    Prevents substring collisions (263-19 vs 209-19) and same-parcel
+    different-project collisions (444等7筆 vs 444等17筆).
+    """
+    if f"{parcel}地號" not in html:
+        return False
+
+    import re
+    m = re.search(r"<title>([^<]+)</title>", html)
+    title = m.group(1) if m else ""
+    if not title:
+        return False
+
+    from urtpe.cleanse import parse_name_id
+    t_district, t_section, t_parcel, t_count = parse_name_id(title)
+    if t_section != section or t_parcel != parcel:
+        return False
+    if count and t_count and t_count != count:
+        return False
+    return True
+
+
+def find_matching_view(section: str, parcel: str, count: str = "") -> tuple[str, dict[str, str], list[str]]:
     """Search for view_id matching section, then filter by parcel."""
     vids = search_portal(section)
     if not vids:
@@ -185,12 +215,12 @@ def find_matching_view(section: str, parcel: str) -> tuple[str, dict[str, str], 
         try:
             url = f"https://twur.nlma.gov.tw/zh/urban/rebuild/view/{vid}"
             html = fetch_url(url, None, True)
-            # Check if parcel appears in the page
-            if parcel in html or parcel.replace("-", "、") in html:
+            if view_page_matches(html, section, parcel, count):
                 print(f"  Match found: view/{vid}")
                 milestones = extract_tuidui_history_from_view(html)
                 city_ids = extract_case_ids_from_view(html)
                 return vid, milestones, city_ids
+            print(f"  view/{vid} rejected (section/parcel/count mismatch)")
         except Exception as e:
             print(f"  Error checking view/{vid}: {e}")
             continue
@@ -320,12 +350,13 @@ def main():
         project_id = cand["project_id"]
         section = cand["section"]
         parcel = cand["parcel"]
+        count = cand.get("count", "")
         current_date = cand["current_date"]
 
         print(f"\n[{processed+1}/{len(candidates)}] {project_id} | {current_date} | {section}{parcel}")
 
-        # Search portal by section, then filter by parcel
-        chosen_vid, milestones, city_ids = find_matching_view(section, parcel)
+        # Search portal by section, then filter by parcel (+count)
+        chosen_vid, milestones, city_ids = find_matching_view(section, parcel, count)
         if not chosen_vid:
             print(f"  No matching view_id found for parcel {parcel}, skipping")
             continue

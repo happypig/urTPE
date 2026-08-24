@@ -14,7 +14,8 @@ Behavior:
 - Prioritizes by 現況 date descending (newest first)
 - For each: searches portal via ?title=, fetches view page, parses 推導歷程
 - Updates per-project cache with twur_view_id, twur_url, national_milestones
-- Waits 3-5 min between projects (random 180-300s)
+- Waits 1-3 min between projects (random 60-180s; calibrated from 3-5 min —
+  watch fetch_failures.json for WAF resets and revert to 180-300 if seen)
 - Retries failed fetches up to 3x with exponential backoff (2s, 4s, 8s)
 - Logs failures to data/.link_cache/fetch_failures.json (JSON Lines)
 - Stops at 06:30 local time, completes current fetch, then regenerates viewer
@@ -60,7 +61,7 @@ from urtpe.links import (
 # Constants
 # ──────────────────────────────────────────────────────────────────────────────
 
-DEADLINE_HOUR = 17
+DEADLINE_HOUR = 7
 DEADLINE_MINUTE = 0
 SEARCH_URL = "https://twur.nlma.gov.tw/zh/urban/rebuild/0"
 VIEW_URL_BASE = "https://twur.nlma.gov.tw/zh/urban/rebuild/view/"
@@ -204,11 +205,14 @@ def view_page_matches(html: str, section: str, parcel: str, count: str = "") -> 
     return True
 
 
-def find_matching_view(section: str, parcel: str, count: str = "") -> tuple[str, dict[str, str], list[str]]:
-    """Search for view_id matching section, then filter by parcel."""
+def find_matching_view(section: str, parcel: str, count: str = "") -> tuple[str, dict[str, str], list[str], str]:
+    """Search for view_id matching section, then filter by parcel.
+
+    Returns (view_id, milestones, city_ids, html); html is empty when no match.
+    """
     vids = search_portal(section)
     if not vids:
-        return "", {}, []
+        return "", {}, [], ""
 
     for vid in vids[:5]:  # Check first 5 results max
         print(f"  Checking view/{vid} for parcel {parcel}...")
@@ -219,16 +223,16 @@ def find_matching_view(section: str, parcel: str, count: str = "") -> tuple[str,
                 print(f"  Match found: view/{vid}")
                 milestones = extract_tuidui_history_from_view(html)
                 city_ids = extract_case_ids_from_view(html)
-                return vid, milestones, city_ids
+                return vid, milestones, city_ids, html
             print(f"  view/{vid} rejected (section/parcel/count mismatch)")
         except Exception as e:
             print(f"  Error checking view/{vid}: {e}")
             continue
-    return "", {}, []
+    return "", {}, [], ""
 
 
-def update_project_cache(project_id: str, view_id: str, milestones: dict[str, str]) -> bool:
-    """Update project cache with twur_view_id, twur_url, national_milestones."""
+def update_project_cache(project_id: str, view_id: str, milestones: dict[str, str], view_html: str = "") -> bool:
+    """Update project cache with twur_view_id, twur_url, national_milestones (and view.html when provided)."""
     from urtpe.links import _project_cache_dir
 
     cache_dir = _project_cache_dir(Path("data/.link_cache"), project_id)
@@ -256,6 +260,8 @@ def update_project_cache(project_id: str, view_id: str, milestones: dict[str, st
     # Write back
     try:
         result_file.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+        if view_html:
+            (cache_dir / "view.html").write_text(view_html, encoding="utf-8")
         return True
     except OSError as e:
         print(f"  ERROR writing cache {project_id}: {e}", file=sys.stderr)
@@ -278,7 +284,13 @@ def log_failure(project_id: str, view_id: str, error: str) -> None:
 
 
 def regenerate_viewer() -> bool:
-    """Regenerate viewer/projects.data.js via CLI."""
+    """Regenerate viewer/projects.data.js via CLI.
+
+    Child output goes to a log file instead of capture pipes: an orphaned
+    child can always finish writing and stays observable, and slow
+    regenerations don't hit the timeout into silent 'viewer not refreshed'
+    states (facts_2_portals.md §17 #1 correction, §12.9).
+    """
     import subprocess
     cmd = [
         sys.executable, "-m", "urtpe.cli",
@@ -287,17 +299,21 @@ def regenerate_viewer() -> bool:
         "--viewer", "viewer",
         "--links"
     ]
+    log_path = ROOT / "regen_log.txt"
     print("Regenerating viewer...")
     try:
-        result = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True, timeout=300)
+        with open(log_path, "ab") as log:
+            log.write(f"\n=== regen start {time.strftime('%Y-%m-%dT%H:%M:%S')} ===\n".encode("utf-8"))
+            log.flush()
+            result = subprocess.run(cmd, cwd=REPO_ROOT, stdout=log, stderr=log, timeout=1800)
         if result.returncode == 0:
             print("Viewer regenerated successfully")
             return True
         else:
-            print(f"Viewer regeneration failed: {result.stderr}", file=sys.stderr)
+            print(f"Viewer regeneration failed (see {log_path})", file=sys.stderr)
             return False
     except subprocess.TimeoutExpired:
-        print("Viewer regeneration timed out", file=sys.stderr)
+        print(f"Viewer regeneration timed out after 1800s (see {log_path})", file=sys.stderr)
         return False
     except Exception as e:
         print(f"Viewer regeneration error: {e}", file=sys.stderr)
@@ -356,25 +372,24 @@ def main():
         print(f"\n[{processed+1}/{len(candidates)}] {project_id} | {current_date} | {section}{parcel}")
 
         # Search portal by section, then filter by parcel (+count)
-        chosen_vid, milestones, city_ids = find_matching_view(section, parcel, count)
-        if not chosen_vid:
+        chosen_vid, milestones, city_ids, view_html = find_matching_view(section, parcel, count)
+        matched = bool(chosen_vid)
+        if not matched:
             print(f"  No matching view_id found for parcel {parcel}, skipping")
-            continue
-
-        print(f"  Matched view/{chosen_vid}")
-        print(f"  Milestones: {len(milestones)}")
-
-        print(f"  Milestones: {len(milestones)}")
-        for k, v in milestones.items():
-            print(f"    {k} = {v}")
-
-        # Update cache
-        success = update_project_cache(cand["project_id"], chosen_vid, milestones)
-        if success:
-            updated += 1
-            print(f"  Cache updated for {chosen_vid}")
         else:
-            failed += 1
+            print(f"  Matched view/{chosen_vid}")
+            print(f"  Milestones: {len(milestones)}")
+
+            for k, v in milestones.items():
+                print(f"    {k} = {v}")
+
+            # Update cache (also persists matched view.html for future re-parsing)
+            success = update_project_cache(cand["project_id"], chosen_vid, milestones, view_html)
+            if success:
+                updated += 1
+                print(f"  Cache updated for {chosen_vid}")
+            else:
+                failed += 1
 
         processed += 1
 
@@ -383,9 +398,10 @@ def main():
             print(f"\nDeadline reached after processing {project_id}. Stopping.")
             break
 
-        # Polite interval (not after last, and not in dry-run)
+        # Polite interval (not after last, not in dry-run) — applies to matches
+        # AND skips: a long no-match stretch must not run at bulk-crawl tempo.
         if i < len(candidates) - 1 and not is_past_deadline() and not args.dry_run:
-            wait = random.uniform(180, 300)
+            wait = random.uniform(60, 180) if matched else random.uniform(15, 45)
             print(f"  Sleeping {wait:.0f}s...")
             time.sleep(wait)
 

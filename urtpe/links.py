@@ -296,6 +296,9 @@ class DiscoveryResult:
     # Per-case milestone timelines: {case_id: {label: date}} — retained so node
     # links can be anchored by 核定日期 instead of list position.
     case_milestones: dict[str, dict[str, str]] = field(default_factory=dict)
+    # Per-case 執行階段 (third.ashx) / 獎勵資料 (fourth.ashx) payloads.
+    implementation: dict[str, dict[str, str]] = field(default_factory=dict)
+    rewards: dict[str, dict[str, str]] = field(default_factory=dict)
     status: str = "unresolved"  # resolved, unresolved, multi-case, error
     error: str = ""
 
@@ -543,6 +546,20 @@ def discover_project_links(
                     break
         except Exception as e:
             result.error = f"Taipei milestones {cid} failed: {e}"
+        # 執行階段 (third.ashx) — only the completed case carries values
+        time.sleep(delay)
+        try:
+            result.implementation[cid] = fetch_taipei_implementation_api(cid)
+        except Exception as e:
+            result.error = f"{result.error}; " if result.error else ""
+            result.error += f"Taipei implementation {cid} failed: {e}"
+        # 獎勵資料 (fourth.ashx)
+        time.sleep(delay)
+        try:
+            result.rewards[cid] = fetch_taipei_rewards_api(cid)
+        except Exception as e:
+            result.error = f"{result.error}; " if result.error else ""
+            result.error += f"Taipei rewards {cid} failed: {e}"
     result.taipei_milestones = all_taipei_milestones
 
     # ── Step 3 (supplementary): national portal for view URL + 推動歷程 ──────
@@ -599,6 +616,8 @@ def fetch_taipei_case(case_id: str, cache_dir: Optional[Path] = None, fresh: boo
 TAIPEI_SEARCH_API = "https://gis.uro.taipei/ashx/Get_updcase_list.ashx"
 TAIPEI_TOP_API = "https://gis.uro.taipei/ashx/get_project168_top.ashx"
 TAIPEI_STAGE_API = "https://gis.uro.taipei/ashx/Get_project168_second.ashx"
+TAIPEI_THIRD_API = "https://gis.uro.taipei/ashx/Get_project168_third.ashx"
+TAIPEI_FOURTH_API = "https://gis.uro.taipei/ashx/Get_project168_fourth.ashx"
 
 # Milestone field mapping from Get_project168_second.ashx JSON keys
 STAGE_FIELD_MAP = [
@@ -608,11 +627,14 @@ STAGE_FIELD_MAP = [
     ("Plan_App_Date", "申請計畫日期"),
     ("Plan_App_Date2", "申請權變日期"),
     ("outline_app_date", "申請概要日期"),
+    ("outline_ok_date", "概要核准日期"),
     ("Show_Bull_Date", "公告公展日期"),
     ("Show_Bull_Date2", "權變公告公展日期"),
     ("Show_Open_Date", "公展公聽會日期"),
     ("Show_Open_Date2", "權變公展公聽會日期"),
-    ("jud_ok_date", "概要審議會通過日期"),
+    ("jud_ok_date", "審議通過日期"),
+    ("jud_ok_date0", "概要審議會通過日期"),
+    ("jud_ok_date2", "權變審議通過日期"),
     ("Stew_App_Date", "申請幹事會日期"),
     ("Stew_App_Date2", "權變申請幹事會日期"),
     ("Stew_Hold_Date", "召開幹事會日期"),
@@ -625,8 +647,9 @@ STAGE_FIELD_MAP = [
     ("App_Hear_Date2", "權變申請聽證日期"),
     ("Hold_Hear_Date", "召開聽證日期"),
     ("Hold_Hear_Date2", "權變召開聽證日期"),
-    ("comm_hold_date", "審議會審議通過日期"),
-    ("comm_hold_date2", "權變審議會審議通過日期"),
+    ("comm_hold_date0", "概要召開審議會日期"),
+    ("comm_hold_date", "召開審議會日期"),
+    ("comm_hold_date2", "權變召開審議會日期"),
     ("App_Chk_Date", "申請核定日期"),
     ("App_Chk_Date2", "權變申請核定日期"),
     ("Uro_Chk_Date", "核定日期"),
@@ -729,6 +752,30 @@ def fetch_taipei_milestones_api(case_id: str) -> dict[str, str]:
     return milestones
 
 
+def fetch_taipei_payload_api(url: str, case_id: str) -> dict[str, str]:
+    """POST case_id to a payload endpoint (third/fourth.ashx) and return the row's
+    non-empty fields as a plain dict. Empty/malformed bodies yield {}."""
+    body = _post_taipei_api(url, {"case_id": case_id})
+    try:
+        rows = json.loads(body)
+    except json.JSONDecodeError:
+        return {}
+    row = rows[0] if isinstance(rows, list) and rows else (rows if isinstance(rows, dict) else {})
+    if not isinstance(row, dict):
+        return {}
+    return {k: str(v) for k, v in row.items() if v not in ("", None) and str(v).strip() != ""}
+
+
+def fetch_taipei_implementation_api(case_id: str) -> dict[str, str]:
+    """Fetch 執行階段 payload via Get_project168_third.ashx (non-empty fields only)."""
+    return fetch_taipei_payload_api(TAIPEI_THIRD_API, case_id)
+
+
+def fetch_taipei_rewards_api(case_id: str) -> dict[str, str]:
+    """Fetch 獎勵資料 payload via Get_project168_fourth.ashx (non-empty fields only)."""
+    return fetch_taipei_payload_api(TAIPEI_FOURTH_API, case_id)
+
+
 def _project_cache_dir(cache_dir: Path, project_id: str) -> Path:
     safe_id = re.sub(r"[^\w\-]", "_", project_id)
     return cache_dir / safe_id
@@ -775,6 +822,45 @@ def _shift_iso_date(iso: str, days: int) -> str:
         return ""
 
 
+# third.ashx date fields surfaced as project milestones (design D3)
+IMPLEMENTATION_MILESTONE_FIELDS = [
+    ("Eng_Start_Date", "開工日期"),
+    ("Ulic_Date", "使照核發日期"),
+    ("Report_Date", "成果報備日期"),
+]
+
+
+def select_best_payload(payloads: dict[str, dict]) -> tuple[str, dict, list[str]]:
+    """Pick the best-populated payload whole (never field-merged) per design D5.
+
+    Returns (case_id, payload, review_flags). Empty/absent payloads are ignored;
+    conflicting values across multiple carriers surface review flags.
+    """
+    candidates = {cid: p for cid, p in (payloads or {}).items() if p}
+    if not candidates:
+        return "", {}, []
+    best_cid = max(candidates, key=lambda cid: len(candidates[cid]))
+    flags: list[str] = []
+    if len(candidates) > 1:
+        others = [cid for cid in candidates if cid != best_cid]
+        for key, val in candidates[best_cid].items():
+            for other in others:
+                if key in candidates[other] and candidates[other][key] != val:
+                    flags.append(
+                        f"payload {key} conflicts across cases: {best_cid}={val} vs {other}={candidates[other][key]}"
+                    )
+    return best_cid, candidates[best_cid], flags
+
+
+def implementation_milestones(payload: dict) -> dict[str, str]:
+    """Extract the third.ashx date fields as labelled milestones (non-empty only)."""
+    return {
+        label: payload[field]
+        for field, label in IMPLEMENTATION_MILESTONE_FIELDS
+        if payload.get(field)
+    }
+
+
 def _match_case_by_date(member_date: str, disc) -> str:
     """Find the city case whose 核定日期/權變核定日期 equals the node's date
     (exact first, then ±1 day). Returns case_id or ''."""
@@ -815,6 +901,8 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             obj.national_milestones = v.get("milestones_national", {})
             obj.taipei_milestones = v.get("milestones_taipei", {})
             obj.case_milestones = v.get("case_milestones", {})
+            obj.implementation = v.get("implementation", {})
+            obj.rewards = v.get("rewards", {})
             disc_by_pid[k] = obj
 
     for project in projects:
@@ -834,6 +922,26 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             "milestones_national": disc.national_milestones.copy(),
             "milestones_taipei": disc.taipei_milestones.copy(),
         }
+
+        # Implementation (third.ashx) / rewards (fourth.ashx): project-level
+        # attachment with case provenance (design D2/D5). Date fields surface as
+        # milestones; the rest goes into the emitted objects.
+        impl_cid, impl_payload, impl_flags = select_best_payload(getattr(disc, "implementation", None) or {})
+        if impl_payload:
+            impl_out = dict(impl_payload)
+            impl_out["case_id"] = impl_cid
+            if impl_flags:
+                impl_out["review_flags"] = impl_flags
+            project.implementation = impl_out
+            for label, date in implementation_milestones(impl_payload).items():
+                project.links["milestones_taipei"][label] = date
+        rew_cid, rew_payload, rew_flags = select_best_payload(getattr(disc, "rewards", None) or {})
+        if rew_payload:
+            rew_out = dict(rew_payload)
+            rew_out["case_id"] = rew_cid
+            if rew_flags:
+                rew_out["review_flags"] = rew_flags
+            project.rewards = rew_out
 
         for member in project.members:
             node_links = {"taipei": [], "milestones_national": {}, "milestones_taipei": {}}

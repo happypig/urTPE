@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from urtpe.links import (
@@ -11,8 +13,13 @@ from urtpe.links import (
     extract_taipei_stage_process,
     build_land_core_key,
     attach_links_to_projects,
+    discover_project_links,
+    select_best_payload,
+    implementation_milestones,
     LinksDiscovery,
+    STAGE_FIELD_MAP,
 )
+from urtpe.graph import build_graph_document
 from tests.fixtures_links import (
     VIEW_771_HTML,
     VIEW_292_HTML,
@@ -22,12 +29,38 @@ from tests.fixtures_links import (
     SEARCH_UNIQUE_HIT_HTML,
     SEARCH_NO_HIT_HTML,
     SEARCH_MULTI_HIT_HTML,
+    THIRD_CASE_COMPLETED_JSON,
+    THIRD_CASE_EMPTY_JSON,
+    FOURTH_CASE_JSON,
+    FOURTH_CASE_EMPTY_JSON,
     TEST_CORES,
 )
 
 
 class TestSearchParsing:
     """Test parsing of national portal search results."""
+
+    def test_stage_field_map_jud_ok_labels(self):
+        """Regression (facts v2 §6.2): jud_ok_date was mislabeled 概要審議會通過日期;
+        the Taipei UI calls it 審議通過日期, and jud_ok_date2 was unmapped.
+        (概要審議會通過日期 is now the legitimate label of jud_ok_date0 — round 2.)"""
+        labels = dict(STAGE_FIELD_MAP)
+        assert labels["jud_ok_date"] == "審議通過日期"
+        assert labels["jud_ok_date2"] == "權變審議通過日期"
+        assert labels["jud_ok_date"] != "概要審議會通過日期"
+
+    def test_stage_field_map_round2_labels(self):
+        """Regression (facts v2 §6.2 round 2, DOM-verified): comm_hold family was
+        mislabeled as 審議通過 variants; the UI calls them 召開審議會 variants.
+        outline_ok_date / jud_ok_date0 / comm_hold_date0 were unmapped."""
+        labels = dict(STAGE_FIELD_MAP)
+        assert labels["comm_hold_date"] == "召開審議會日期"
+        assert labels["comm_hold_date2"] == "權變召開審議會日期"
+        assert labels["outline_ok_date"] == "概要核准日期"
+        assert labels["jud_ok_date0"] == "概要審議會通過日期"
+        assert labels["comm_hold_date0"] == "概要召開審議會日期"
+        assert "審議會審議通過日期" not in labels.values()
+        assert "權變審議會審議通過日期" not in labels.values()
 
     def test_unique_hit_returns_view_id(self):
         view_id = extract_view_id_from_search(SEARCH_UNIQUE_HIT_HTML)
@@ -314,3 +347,217 @@ class TestLinksDiscoveryIntegration:
     def test_sample_case_linyi_resolves(self):
         """POC: 臨沂段一小段507地號等3筆 should resolve to view/292 and case_ids 10110211, 10810271."""
         pass
+
+
+class TestSelectBestPayload:
+    """Pure selection logic (design D5): whole-payload pick, provenance, conflict flags."""
+
+    def test_empty_payloads_yield_no_selection(self):
+        cid, payload, flags = select_best_payload({"a": {}, "b": {}})
+        assert cid == ""
+        assert payload == {}
+        assert flags == []
+
+    def test_single_candidate_selected_with_provenance(self):
+        payloads = {"09811141": {"Eng_Start_Date": "2013/09/10", "Exe_Way": "權利變換"}}
+        cid, payload, flags = select_best_payload(payloads)
+        assert cid == "09811141"
+        assert payload == payloads["09811141"]
+        assert flags == []
+
+    def test_best_populated_payload_wins_whole(self):
+        payloads = {
+            "case_a": {"Exe_Way": "權利變換"},
+            "case_b": {"Exe_Way": "權利變換", "Base_Area": "1,604.00", "Old_Doors": "50"},
+        }
+        cid, payload, _ = select_best_payload(payloads)
+        assert cid == "case_b"
+        assert payload == payloads["case_b"]  # whole payload, never field-merged
+
+    def test_conflicting_values_flagged_for_review(self):
+        payloads = {
+            "case_a": {"Ulic_Date": "2016/08/29"},
+            "case_b": {"Ulic_Date": "2017/01/01"},
+        }
+        cid, _, flags = select_best_payload(payloads)
+        assert cid in ("case_a", "case_b")
+        assert flags and "Ulic_Date" in flags[0]
+
+    def test_implementation_milestones_extracts_only_non_empty_dates(self):
+        payload = {"Eng_Start_Date": "2013/09/10", "Ulic_Date": "2016/08/29", "Report_Date": ""}
+        assert implementation_milestones(payload) == {
+            "開工日期": "2013/09/10",
+            "使照核發日期": "2016/08/29",
+        }
+
+
+class TestImplementationEmission:
+    """Acceptance: implementation/rewards reach the emitted graph (user-visible)."""
+
+    def _make_project(self):
+        from urtpe.models import Project
+        from urtpe.cleanse import cleanse
+        from urtpe.models import RawRecord
+
+        raw = RawRecord(991, "115/8/11", "中山區", "擬訂中山中山段一小段254地號等13筆事業計畫案",
+                        "中山區中山段一小段254地號等13筆", "聖得福建設", "某規劃")
+        return Project(
+            project_id="中山區-中山段一小段-254地號等13筆",
+            anchor_recno=991,
+            members=[cleanse(raw)],
+        )
+
+    def _disc_obj(self, **overrides):
+        disc = type("Disc", (object,), {})()
+        disc.project_id = "中山區-中山段一小段-254地號等13筆"
+        disc.twur_url = ""
+        disc.city_case_ids = ["09811141"]
+        disc.national_milestones = {}
+        disc.taipei_milestones = {}
+        disc.case_milestones = {}
+        disc.implementation = {"09811141": {"Eng_Start_Date": "2013/09/10", "Ulic_Date": "2016/08/29", "Exe_Way": "權利變換"}}
+        disc.rewards = {"09811141": {"F0": "8,982.01", "F": "10,829.58"}}
+        for k, v in overrides.items():
+            setattr(disc, k, v)
+        return disc
+
+    def test_project_with_completed_case_emits_milestones_and_objects(self):
+        project = self._make_project()
+        attach_links_to_projects([project], {"中山區-中山段一小段-254地號等13筆": self._disc_obj()})
+        assert project.links["milestones_taipei"]["開工日期"] == "2013/09/10"
+        assert project.links["milestones_taipei"]["使照核發日期"] == "2016/08/29"
+        assert project.implementation["case_id"] == "09811141"
+        assert project.implementation["Exe_Way"] == "權利變換"
+        assert project.rewards["F0"] == "8,982.01"
+
+    def test_emitted_document_carries_objects_and_schema_version_2(self):
+        project = self._make_project()
+        attach_links_to_projects([project], {"中山區-中山段一小段-254地號等13筆": self._disc_obj()})
+        doc = build_graph_document([project], {"generated_at": "t", "source": "s", "published_date": ""})
+        assert doc["schema_version"] == 2
+        emitted = doc["projects"][0]
+        assert emitted["implementation"]["case_id"] == "09811141"
+        assert emitted["rewards"]["F0"] == "8,982.01"
+
+    def test_project_without_payloads_emits_none_and_stays_v1_consumer_valid(self):
+        project = self._make_project()
+        disc = self._disc_obj(implementation={}, rewards={})
+        attach_links_to_projects([project], {"中山區-中山段一小段-254地號等13筆": disc})
+        assert "開工日期" not in project.links["milestones_taipei"]
+        doc = build_graph_document([project], {"generated_at": "t", "source": "s", "published_date": ""})
+        emitted = doc["projects"][0]
+        assert "implementation" not in emitted
+        assert "rewards" not in emitted
+        # v1 consumer contract: existing fields unchanged in meaning
+        assert set(emitted["links"].keys()) == {"twur", "taipei", "milestones_national", "milestones_taipei"}
+
+    def test_conflicting_payloads_flagged_in_emitted_object(self):
+        project = self._make_project()
+        disc = self._disc_obj(implementation={
+            "09811141": {"Ulic_Date": "2016/08/29"},
+            "09811142": {"Ulic_Date": "2017/01/01"},
+        })
+        attach_links_to_projects([project], {"中山區-中山段一小段-254地號等13筆": disc})
+        assert project.implementation.get("review_flags"), "conflicting payloads must surface review flags"
+
+
+class TestViewerCards:
+    """Acceptance: viewer renders 執行階段/獎勵資料 cards when objects exist."""
+
+    def _app_js(self):
+        from pathlib import Path
+        return Path(__file__).resolve().parents[1].joinpath("viewer", "app.js").read_text(encoding="utf-8")
+
+    def test_app_js_renders_both_cards_with_labels(self):
+        js = self._app_js()
+        assert "執行階段" in js and "獎勵資料" in js
+        assert "implementation" in js and "rewards" in js
+        # portal label map present (DOM-captured) — non-date fields only; dates
+        # flow through milestones_taipei labels (design D3)
+        assert "實施方式" in js and "基地面積" in js
+
+    def test_app_js_guards_on_object_presence(self):
+        js = self._app_js()
+        # cards must be conditional on the emitted objects, not rendered unconditionally
+        assert re.search(r"implementation\s*(?:&&|\?)", js) or "hasImpl" in js
+        assert re.search(r"rewards\s*(?:&&|\?)", js) or "hasRew" in js
+
+
+class TestDiscoveryFetchesThirdFourth:
+    """End-to-end discovery (fixture-served): second+third+fourth per case → cache → attach."""
+
+    def _project(self):
+        from urtpe.models import Project
+        from urtpe.cleanse import cleanse
+        from urtpe.models import RawRecord
+
+        raw = RawRecord(991, "115/8/11", "中山區", "擬訂中山中山段一小段254地號等13筆事業計畫案",
+                        "中山區中山段一小段254地號等13筆", "聖得福建設", "某規劃")
+        return Project(
+            project_id="中山區-中山段一小段-254地號等13筆",
+            anchor_recno=991,
+            members=[cleanse(raw)],
+        )
+
+    def test_discovery_round_trip_with_third_fourth(self, tmp_path, monkeypatch):
+        import json as jsonlib
+        import urtpe.links as links
+
+        calls = []
+
+        def fake_post(url, params, max_retries=3):
+            calls.append((url, params["case_id"]))
+            if "second" in url:
+                return jsonlib.dumps([{"Uro_Chk_Date": "2012/08/27"}])
+            if "third" in url:
+                return THIRD_CASE_COMPLETED_JSON
+            if "fourth" in url:
+                return FOURTH_CASE_JSON
+            return "[]"
+
+        monkeypatch.setattr(links, "_post_taipei_api", fake_post)
+        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel: [
+            {"case_id": "09811141", "case_name": "x", "schedule": ""}])
+
+        project = self._project()
+        result = discover_project_links(project, tmp_path, fresh=True, delay=0)
+
+        third_calls = [c for c in calls if "third" in c[0]]
+        fourth_calls = [c for c in calls if "fourth" in c[0]]
+        assert third_calls and fourth_calls
+        assert result.implementation["09811141"]["Eng_Start_Date"] == "2013/09/10"
+        assert result.rewards["09811141"]["F0"] == "8,982.01"
+
+        # cache round-trip
+        cached = links.load_project_cache(tmp_path, project.project_id)
+        assert cached.implementation["09811141"]["Ulic_Date"] == "2016/08/29"
+        assert cached.rewards["09811141"]["F"] == "10,829.58"
+
+        # attach → milestones + objects
+        attach_links_to_projects([project], {project.project_id: cached})
+        assert project.links["milestones_taipei"]["開工日期"] == "2013/09/10"
+        assert project.implementation["case_id"] == "09811141"
+
+    def test_third_fetch_failure_recorded_without_aborting(self, tmp_path, monkeypatch):
+        import json as jsonlib
+        import urtpe.links as links
+
+        def fake_post(url, params, max_retries=3):
+            if "third" in url:
+                raise ConnectionResetError("boom")
+            if "second" in url:
+                return jsonlib.dumps([{"Uro_Chk_Date": "2012/08/27"}])
+            if "fourth" in url:
+                return FOURTH_CASE_JSON
+            return "[]"
+
+        monkeypatch.setattr(links, "_post_taipei_api", fake_post)
+        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel: [
+            {"case_id": "09811141", "case_name": "x", "schedule": ""}])
+
+        project = self._project()
+        result = discover_project_links(project, tmp_path, fresh=True, delay=0)
+
+        assert result.implementation.get("09811141", {}) in ({}, None) or "09811141" not in result.implementation
+        assert result.rewards["09811141"]["F0"] == "8,982.01"
+        assert "09811141" in result.error

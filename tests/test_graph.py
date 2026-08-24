@@ -20,7 +20,7 @@ def _projects():
 
 def test_graph_document_shape():
     doc = build_graph_document(_projects(), {"generated_at": "t", "source": "s"})
-    assert doc["schema_version"] == 1
+    assert doc["schema_version"] == 2
     assert doc["counts"]["projects"] == 1
     assert doc["counts"]["records"] == 3
     g = doc["projects"][0]

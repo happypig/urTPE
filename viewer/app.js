@@ -40,6 +40,101 @@ function getNodeMilestoneBadges(node) {
   return badges.join("");
 }
 
+// Portal field labels captured from r_progress_detail.aspx DOM (id="detail_<field>")
+const IMPL_LABELS = {
+  Exe_Way: "實施方式",
+  Base_Area: "基地面積",
+  Landkind1: "土地使用分區1",
+  Landkind2: "土地使用分區2",
+  Landkind3: "土地使用分區3",
+  Landkind1_Area: "使用分區1面積",
+  Landkind2_Area: "使用分區2面積",
+  Landkind3_Area: "使用分區3面積",
+  Old_Doors: "原戶數",
+  Settle_Old_Doors: "安置原住戶",
+  Settle_Doors: "安置違建戶",
+  New_Parkings: "更新後汽車停車位",
+  New_Parkings2: "更新後機車停車位",
+  Road_Length: "開闢道路長度",
+  Road_Area: "開闢道路面積",
+  Road_Eng_Fee: "開闢道路工程費用",
+  Sidewalk_Length: "開闢人行道長度",
+  Sidewalk_Area: "開闢人行道面積",
+  Urban_Renew_Fee: "實施都市更新費用",
+  Private_Area: "私有土地面積",
+  State_Area: "國有土地面積",
+  Muni_Area: "市有土地面積",
+  Land_Owners_Pir: "私有土地所有權人數",
+  StateLand1_Owner: "國有土地管理機關1所有人",
+  StateLand2_Owner: "國有土地管理機關2所有人",
+  StateLand3_Owner: "國有土地管理機關3所有人",
+  StateLand1_Area: "國有土地管理機關1面積",
+  StateLand2_Area: "國有土地管理機關2面積",
+  StateLand3_Area: "國有土地管理機關3面積",
+  StateLand4_Owner: "國有土地管理機關4所有人",
+  StateLand5_Owner: "公有土地管理機關1所有人",
+  StateLand6_Owner: "公有土地管理機關2所有人",
+  StateLand4_Area: "國有土地管理機關4面積",
+  StateLand5_Area: "公有土地管理機關1面積",
+  StateLand6_Area: "公有土地管理機關2面積",
+  VolumeTurn_Area: "容積移轉面積",
+  case_id: "資料來源案件",
+  review_flags: "審查標記",
+};
+const REWARD_LABELS = {
+  F0: "基準容積",
+  F: "允建容積",
+  F3: "都市更新獎勵",
+  F5: "其他容積獎勵",
+  F5_3: "人行步道面積",
+  Case_921_311_Area: "921.311震災案",
+  Old_Apartment_Area: "老舊公寓獎勵",
+  Radiation_Room_Area: "輻射屋獎勵",
+  High_Ion_Area: "高氯離子獎勵",
+  Others_Area: "其他獎勵",
+  House_Use_Area: "住宅使用容積",
+  Eng_Use_Area: "工業使用容積",
+  Busi_Use_Area: "商業使用容積",
+  Live_Houses: "住戶單元數",
+  Busi_Unit: "商業單元數",
+  Law_Car_Parking: "法定汽車停車位",
+  Law_Moto_Parking: "法定機車停車位",
+  Max_Flr_Num: "最大樓層數",
+  Under_Flr_Area: "地下層樓地板面積",
+  case_id: "資料來源案件",
+  review_flags: "審查標記",
+};
+
+function renderObjectCard(title, badgeClass, badgeText, obj, labels) {
+  const entries = Object.entries(obj || {}).filter(([, v]) => v !== "" && v !== null && v !== undefined);
+  if (entries.length === 0) return "";
+  let html = `<details class="milestone-card" open>
+    <summary class="milestone-summary">
+      <span class="milestone-title">${escapeHtml(title)}</span>
+      <span class="milestone-badge ${badgeClass}">${escapeHtml(badgeText)}</span>
+    </summary>
+    <dl class="milestone-list">`;
+  for (const [key, val] of entries) {
+    const label = labels[key] || key;
+    html += `<div class="milestone-row">
+      <dt class="milestone-label">${escapeHtml(label)}</dt>
+      <dd class="milestone-date">${escapeHtml(String(val))}</dd>
+    </div>`;
+  }
+  html += `</dl></details>`;
+  return html;
+}
+
+function renderImplementation(project) {
+  if (!project.implementation || Object.keys(project.implementation).length === 0) return "";
+  return renderObjectCard("執行階段", "taipei", "北", project.implementation, IMPL_LABELS);
+}
+
+function renderRewards(project) {
+  if (!project.rewards || Object.keys(project.rewards).length === 0) return "";
+  return renderObjectCard("獎勵資料", "taipei", "北", project.rewards, REWARD_LABELS);
+}
+
 function renderMilestones(project, nodes) {
   const links = project.links || {};
   const national = links.milestones_national || {};
@@ -383,6 +478,10 @@ function init() {
 
     // Render milestone timelines
     s += renderMilestones(p, nodes);
+
+    // Implementation (執行階段) / rewards (獎勵資料) cards — schema v2, render only when populated
+    s += p.implementation ? renderImplementation(p) : "";
+    s += p.rewards ? renderRewards(p) : "";
 
     detail.innerHTML = s;
 

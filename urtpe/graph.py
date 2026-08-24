@@ -87,7 +87,7 @@ def build_project_graph(project: Project, implementer: str, name: str, published
             add_edge(a.recno, b.recno, "section")
 
     project_links = getattr(project, 'links', {})
-    return {
+    graph = {
         "project_id": project.project_id,
         "anchor_recno": anchor_recno,
         "district": ordered[0].district,
@@ -100,6 +100,12 @@ def build_project_graph(project: Project, implementer: str, name: str, published
         "links": project_links,
         "published_date": published_date,
     }
+    # Optional schema-v2 objects (absent when discovery found no data)
+    if getattr(project, "implementation", None):
+        graph["implementation"] = project.implementation
+    if getattr(project, "rewards", None):
+        graph["rewards"] = project.rewards
+    return graph
 
 
 def build_graph_document(projects: list[Project], meta: dict, link_results: dict | None = None) -> dict:
@@ -113,7 +119,7 @@ def build_graph_document(projects: list[Project], meta: dict, link_results: dict
         anchor = next(r for r in p.members if r.recno == p.anchor_recno)
         graphs.append(build_project_graph(p, implementer=anchor.implementer, name=anchor.name, published_date=published_date))
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": meta.get("generated_at", ""),
         "source": meta.get("source", ""),
         "published_date": meta.get("published_date", ""),

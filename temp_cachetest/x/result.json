@@ -1,0 +1,49 @@
+{
+  "project_id": "x",
+  "land_core": "中山區中山段一小段254地號等13筆",
+  "twur_view_id": null,
+  "twur_url": "",
+  "city_case_ids": [
+    "09811141"
+  ],
+  "national_milestones": {},
+  "taipei_milestones": {
+    "核定日期": "2012/08/27"
+  },
+  "case_milestones": {
+    "09811141": {
+      "核定日期": "2012/08/27"
+    }
+  },
+  "implementation": {
+    "09811141": {
+      "Eng_Start_Date": "2013/09/10",
+      "Ulic_Date": "2016/08/29",
+      "Exe_Way": "權利變換",
+      "Base_Area": "1,604.00",
+      "Landkind1": "第四種商業區(特)(原商三)",
+      "Landkind1_Area": "1,604.00",
+      "Landkind2_Area": "0.00",
+      "Old_Doors": "50",
+      "Settle_Old_Doors": "0",
+      "Settle_Doors": "0",
+      "New_Parkings": "103",
+      "New_Parkings2": "85",
+      "Sidewalk_Length": "60",
+      "Sidewalk_Area": "230.81",
+      "Urban_Renew_Fee": "1242782140",
+      "Land_Owners_Pir": "54"
+    }
+  },
+  "rewards": {
+    "09811141": {
+      "F0": "8,982.01",
+      "F": "10,829.58",
+      "F3": "538.92",
+      "F5": "1,308.65",
+      "F5_3": "230.81"
+    }
+  },
+  "status": "resolved",
+  "error": ""
+}

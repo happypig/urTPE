@@ -215,6 +215,69 @@ TEST_CORES = {
     "linyi": "臨沂段一小段507地號等3筆",
 }
 
+# Sample Get_project168_third.ashx payload — completed case (facts §10.5, case 141 values)
+THIRD_CASE_COMPLETED_JSON = """
+[
+  {
+    "Eng_Start_Date": "2013/09/10",
+    "Ulic_Date": "2016/08/29",
+    "Report_Date": "",
+    "Exe_Way": "權利變換",
+    "Base_Area": "1,604.00",
+    "Landkind1": "第四種商業區(特)(原商三)",
+    "Landkind1_Area": "1,604.00",
+    "Landkind2": "",
+    "Landkind2_Area": "0.00",
+    "Old_Doors": "50",
+    "Settle_Old_Doors": "0",
+    "Settle_Doors": "0",
+    "New_Parkings": "103",
+    "New_Parkings2": "85",
+    "Sidewalk_Length": "60",
+    "Sidewalk_Area": "230.81",
+    "Urban_Renew_Fee": "1242782140",
+    "Land_Owners_Pir": "54"
+  }
+]
+"""
+
+# Sample Get_project168_third.ashx payload — revision case (all empty)
+THIRD_CASE_EMPTY_JSON = """
+[
+  {
+    "Eng_Start_Date": "",
+    "Ulic_Date": "",
+    "Report_Date": "",
+    "Exe_Way": "",
+    "Base_Area": ""
+  }
+]
+"""
+
+# Sample Get_project168_fourth.ashx payload — completed case (facts §10.5 values)
+FOURTH_CASE_JSON = """
+[
+  {
+    "F0": "8,982.01",
+    "F": "10,829.58",
+    "F3": "538.92",
+    "F5": "1,308.65",
+    "F5_3": "230.81"
+  }
+]
+"""
+
+# Sample Get_project168_fourth.ashx payload — all empty
+FOURTH_CASE_EMPTY_JSON = """
+[
+  {
+    "F0": "",
+    "F": "",
+    "F3": ""
+  }
+]
+"""
+
 # Sample national portal list page (page 1) with multiple cases
 LIST_PAGE_1_HTML = """
 <!DOCTYPE html>

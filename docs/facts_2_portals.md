@@ -11,15 +11,20 @@
 | Decision | Status |
 |---|---|
 | 推動歷程 parser silent-failure root cause | `[RESOLVED]` — applied, backfilled, verified in `viewer/projects.data.js` |
-| `jud_ok_date2` field | `[RESOLVED]` — label identified; **mapping still missing in code** (pending) |
+| `jud_ok_date2` field | `[RESOLVED]` — label identified; **mapping added to `STAGE_FIELD_MAP`** (2026-08-24, incl. `jud_ok_date` label fix; regression-tested) |
 | Join approach | Portal = gazette date; Taipei = committee date. **±1 day is a heuristic, not a rule** (Δ=0 observed). |
 | Do we need both sources? | Yes — they cover disjoint lifecycles (Taipei pre-approval depth; Portal post-approval breadth + revision rollup). |
 | 3 top forks (see §7) | Portal crawl recovery · `Report_Date` semantics · Phase-D confirmation |
 | Curated fallback wrong view (河堤段263-19 → 板橋 view/1042) | `[RESOLVED]` — mapping fixed to view/262; cache + view.html refreshed (see §6.6) |
 | Per-node case links (positional mislink / missing links) | `[RESOLVED]` — date-aligned anchoring in `attach_links_to_projects`, positional fallback kept (see §6.6) |
 | Fetch-script loose parcel match (`parcel in html`) | `[RESOLVED]` — strict parcel+地號 + title section/parcel/count match (see §6.6) |
-| third.ashx integration (開工/使用執照 into data model) | **Open — needs OpenSpec change** (no spec exists yet) |
+| third.ashx integration (開工/使用執照 into data model) | **`[RESOLVED]`** — OpenSpec change `add-taipei-implementation-data`: fetch/cache + emission + viewer all done (schema v2; bulk pass 2026-08-24: 691 caches with per-case payloads, 689 projects emit `implementation`, 254 family shows 開工 2013/09/10 / 使照 2016/08/29) |
 | Parcel-count mismatch in land-core join (portal 11筆 vs Taipei 13筆) | **Open — needs OpenSpec change** (touches land-identity semantics) |
+| Portal coverage for older projects | **Regressed — restore pending** — targeted fetch had reached 292/709 twur (41%), 58 使用核發; the 2026-08-25 bulk discovery refresh dropped it to 109/709, 1 使用核發 (see §18); full pre-refresh state preserved in `data/.link_cache_backup_20260824` |
+| Bulk refresh wiped targeted-fetch links (2026-08-25) | **`[RESOLVED]`** (2026-08-25 02:17) — `scripts/restore_national_links_2026_08_25.py` merged the 3 national fields back into the 183 regressed caches from the backup, viewer re-emitted: 292/292/58 verified; root cause + guard rules in §18 |
+| Portal discovery consolidation (CLI vs fetch script) | **Decided** — library-first: move targeted search into `urtpe/links.py`, opt-in `--links-targeted` CLI flag, script stays as overnight wrapper; full design in `docs/sync_architecture.md` §4; needs OpenSpec change |
+| PDF + portals sync model | **Decided** — event-cascade with PDF as heartbeat; liveness-based refresh (freeze phase-E, refresh C/D); `project_id`/land-core are the only cross-PDF keys (recno shifts every gazette); full design in `docs/sync_architecture.md`; needs OpenSpec change (`portal-sync`) |
+| Cache concurrency (2026-08-24 incident) | **`[RESOLVED]`** — 47 wiped caches repaired, poison URL-caches deleted; **single-writer rule** now in force (see §17) |
 
 ---
 
@@ -103,8 +108,8 @@ Aggregated revision table (all on one page):
 | Bug | Location | Impact | Status |
 |---|---|---|---|
 | **Chimera merge** | `links.py:535 all_taipei_milestones.update(ms)` *(doc v1 said :489 — corrected)* | Last-write-wins across cases; 141's 核定 2012/08/27 overwritten by 142's 2016/08/23 → viewer card shows wrong anchor date for node 1219 | **Open** — mechanism confirmed in code; fix = retain per-case timelines (see §6.1) |
-| **Missing `jud_ok_date2` mapping** | `STAGE_FIELD_MAP` (`links.py:600` starts; **no `jud_ok_date2` entry**) | `jud_ok_date2=2012/04/16` filled but unmapped → silently dropped | **Open** — label resolved (see §6.2), mapping not yet added |
-| **Wrong `jud_ok_date` label** | `links.py:611 ("jud_ok_date", "概要審議會通過日期")` | Mislabeled; UI calls it 審議通過日期 | **Open** — see §6.2 |
+| **Missing `jud_ok_date2` mapping** | `STAGE_FIELD_MAP` (`links.py:600` starts; **no `jud_ok_date2` entry**) | `jud_ok_date2=2012/04/16` filled but unmapped → silently dropped | **`[RESOLVED]`** — `jud_ok_date2 → 權變審議通過日期` added (see §6.2); old caches keep old labels until the bulk discovery refresh |
+| **Wrong `jud_ok_date` label** | `links.py:615 ("jud_ok_date", "概要審議會通過日期")` | Mislabeled; UI calls it 審議通過日期 | **`[RESOLVED]`** — relabeled `審議通過日期` (see §6.2); old caches keep the old label until the bulk discovery refresh |
 | **`uro_chk_date2` inconsistency** | `top.ashx` | Case 144 has approval in `second.ashx` (2017/04/13) but `top.ashx` leaves it empty | **Open** `[live-probed]` |
 | **No withdrawal date** | Both | 143 自行撤回 has only 申請權變 2016/09/22; withdrawal date nowhere published (see §6.3) | **Open** — best anchor = application date + 撤回 badge |
 | **Portal cross-link error** | view/136 | 縣市政府案件連結 points to `case_id=10202065` (辛亥段, 大安區) — wrong project | **Open** `[live-probed]` |
@@ -113,7 +118,9 @@ Aggregated revision table (all on one page):
 | **Per-node positional mislink** | `links.py` `attach_links_to_projects` (`city_case_ids[0]/[1]` by track keyword) | 10204032 (核定 2016/07/05) attached to recno 772 (2019-08-01) instead of recno 1042; 金華段513-3 cases attached to no node at all — violates official-link-discovery "Per-stage city links land on the right node" | **`[RESOLVED]`** — date-aligned anchoring (see §6.6) |
 | **Fetch-script loose parcel match** | `scripts/fetch_remaining_national_portal.py` `find_matching_view` (`parcel in html`) | Substring collisions (263-19 vs 209-19) and same-parcel different-project matches (444等7筆 vs view/264 444等**17**筆) | **`[RESOLVED]`** — strict parcel+地號 + title tuple match (see §6.6) |
 | **Parcel-count mismatch join miss** | land core includes `等N筆` count; portals disagree (金華段513-3: portal 11筆 vs Taipei 13筆, same case — 實施者 江陵 confirmed on view/265) | Project with an existing portal page gets no twur link | **Open — needs OpenSpec change** |
-| **third.ashx not integrated** | `Eng_Start_Date`/`Ulic_Date` fetched nowhere in pipeline | 開工日期/使用執照 absent from data model & viewer (probe: scripts/probe_third_6projects.py) | **Open — needs OpenSpec change** |
+| **third.ashx fetch/cache vs emission gap** | fetch+cache **done** (691 caches carry per-case `implementation`/`rewards` after the 2026-08-24 bulk pass); `graph.py` emits `implementation`/`rewards` + 開工日期/使照核發日期 milestones; `viewer/app.js` renders 執行階段/獎勵資料 cards | ~~開工/使用執照 absent from data model & viewer~~ | **`[RESOLVED]`** — `add-taipei-implementation-data` (schema v2) |
+| **Cache concurrency wipe (2026-08-24 ~21:23)** | 4 writers raced `data/.link_cache` (2 dry-run parents + 2 orphaned CLI children); torn reads → spurious cache misses → live re-discovery read 75/126 corrupt URL-caches (orphan mechanism corrected 2026-08-25 — see §17 #1) | 47 caches wiped to empty `national_milestones`; 62 `view.html` rewritten corrupt | **`[RESOLVED]`** — repaired 47/47, all 126 URL-caches deleted, **single-writer rule** in force (see §17) |
+| **Bulk refresh regression (2026-08-25 ~01:05)** | `links.py:565-585` resolves view_id from `portal_index.json` (110 entries, WAF-capped §9) + fallback JSON (3 entries); the targeted campaign's ~180 extra mappings lived only inside the deleted `result.json` | twur/`national_milestones` 292→109; 使用核發 58→**1**; viewer emitted regressed state | **`[RESOLVED]`** — restored 183 caches from `.link_cache_backup_20260824`, re-emitted, verified 292/292/58; guard rules in force (see §18) |
 
 ---
 
@@ -151,7 +158,7 @@ STEP 4: Merge post-approval
 caches (see §6.6). Portal-side revision/basic_data parsing (STEP 1 Portal half)
 and STEP 3 ghost nodes / STEP 4 merge remain open.
 
-### 6.2 `jud_ok_date2` Label — `[RESOLVED]` (mapping pending)
+### 6.2 `jud_ok_date2` Label — `[RESOLVED]` (mapping applied 2026-08-24)
 
 From live `#data2` tab (案件詳細 > 階段辦理過程) `[live-probed]`, case 141:
 
@@ -162,7 +169,7 @@ From live `#data2` tab (案件詳細 > 階段辦理過程) `[live-probed]`, case
 | `comm_hold_date` | 召開審議會日期 | 2011/04/25 |
 | `comm_hold_date2` | 權變召開審議會日期 | 2011/04/25 |
 
-**Changes needed in `STAGE_FIELD_MAP`** (verified current state): `jud_ok_date` is mapped to the wrong label `概要審議會通過日期`; should be `審議通過日期`, and add `jud_ok_date2 → 權變審議通過日期`. `概要審議會通過日期`/`概要核准日期` likely map to `outline_ok_date` variants.
+**Applied in `STAGE_FIELD_MAP`** (2026-08-24): `jud_ok_date` relabeled `概要審議會通過日期` → `審議通過日期`, and `jud_ok_date2 → 權變審議通過日期` added (regression test `test_stage_field_map_jud_ok_labels`). Note: labels are baked into caches at fetch time — existing caches keep the old label until the bulk discovery refresh. `概要審議會通過日期`/`概要核准日期` likely map to `outline_ok_date` variants — still **unverified field names, intentionally not added**.
 
 ### 6.3 Withdrawal Date — `[RESOLVED]`: Not Published
 
@@ -229,15 +236,17 @@ precedent as §8):
 | File | Role | Status |
 |---|---|---|
 | `urtpe/links.py` | Discovery flow, **merge bug fix (#535)**, per-case timeline retention, portal view parsing | per-case retention + date-aligned node linking **done** (§6.6); project-level chimera merge & portal revision parsing open |
-| `urtpe/links.py` `STAGE_FIELD_MAP` | Add `jud_ok_date2`, fix `jud_ok_date` label | **pending** |
+| `urtpe/links.py` `STAGE_FIELD_MAP` | Add `jud_ok_date2`, fix `jud_ok_date` label | **done** (2026-08-24, regression-tested) |
 | `urtpe/graph.py` | `build_project_graph` — attach merged events to nodes | open |
 | `viewer/app.js` | `renderDetail` — event layer rendering, ghost nodes, dual dates | open |
 | `tests/test_links.py` · `tests/fixtures_links.py` | Portal view parsing scenarios; **new fixture already added** (#89-108); +2 date-anchoring regression tests (§6.6) | fixture done |
 | `viewer/projects.data.js` | Runtime data (**note: lives in `viewer/`, not `content/`**); already carries `milestones_national` | data done |
 | `scripts/fetch_remaining_national_portal.py` | Targeted portal fetch — strict match added (§6.6) | done |
 | `scripts/repair_cache_2026_08_24.py` · `scripts/probe_third_6projects.py` | One-off cache repair / third.ashx probe (6 projects) | done |
+| `scripts/repair_wiped_caches.py` | §17 incident repair — re-fetched 47 wiped caches fresh | done |
+| `scripts/restore_national_links_2026_08_25.py` | §18 regression restore — merged national fields back into 183 caches from backup, offline | done |
 | `docs/final_results_json_api.md` | Update with portal merge findings | open |
-| `docs/facts_2_portals.md` (v1) | Superseded by this v2 | keðir |
+| `docs/facts_2_portals.md` (v1) | Superseded by this v2 | closed |
 
 ---
 
@@ -281,7 +290,7 @@ No OpenSpec delta required — `official-link-discovery/spec.md` already mandate
 
 ## 9. Portal Index Coverage Insight (110 entries)
 
-The 110 crawled entries span view_id 987–1252, approval dates 112.05.11–115.06.16 (2023-05 → 2026-06) `[live-probed]`: the crawl walks newest-first and died at the WAF after ~110 rows, so coverage is "recent ~3 years" — everything older (e.g. view/136, 核定 2012) is systematically absent. Design fork: resume/repair bulk crawl vs per-project targeted search via the list page's `?title=<keywords>` parameter (mirrors the Taipei parcel-search pattern).
+The 110 crawled entries span view_id 987–1252, approval dates 112.05.11–115.06.16 (2023-05 → 2026-06) `[live-probed]`: the crawl walks newest-first and died at the WAF after ~110 rows, so coverage is "recent ~3 years" — everything older (e.g. view/136, 核定 2012) is systematically absent. **Resolution in progress**: the per-project targeted-search path (§16) now covers older cohorts without touching the bulk crawl; the index itself remains as a fast-path cache.
 
 ---
 
@@ -335,16 +344,288 @@ Additional `third.ashx` settlement stats: `Old_Doors`=50, `Settle_Old_Doors`=0, 
 
 ## 12. Top Priorities (not "open questions")
 
-1. **Portal crawl recovery** *(highest value — unlocks older projects)* — resume/repair bulk crawl with retry/backoff *or* per-project `?title=<keywords>` targeted search. Recommend the targeted search first: it plates over the WAF and mirrors the working Taipei pattern.
-2. **`Report_Date` semantics** — empty for 141; confirm whether it ever fills as 成果報備日期.
-3. **Phase-D cases** — find a real phase-D project to confirm the 核定後/執行前 state (A/B/D are currently inferred).
-4. **`jud_ok_date2` mapping** (code change, not investigation) — add to `STAGE_FIELD_MAP` and fix the `jud_ok_date` label; this is ready to implement.
-5. **`fourth.ashx` reward flags** — map non-empty values to labels (site JS needed).
-6. **Withdrawal date source** — any external system (紙本? 內部系統?) publishes 撤回日. Likely a dead end; deprioritize.
-7. **Schema version** — confirm whether `schema_version` field actually exists in `viewer/projects.data.js` before bumping; no `schema_version` key was found this pass.
-8. **third.ashx integration** — needs an OpenSpec change (new capability, no spec): fetch 開工/使用執照 per case, extend data model + viewer milestones; `schema_version` → 2 candidate.
-9. **Parcel-count mismatch normalization** — needs an OpenSpec change: land-core join should tolerate portal-vs-Taipei count drift (金華段 11 vs 13 筆) without weakening uniqueness; touches land-identity-fallback / official-link-discovery semantics.
+1. **Portal coverage convergence** — `[OPERATIONAL]` restore done (§18, 2026-08-25 02:17: 292/292/58 verified in the emitted viewer); resume the targeted-fetch batches — ~373 candidates still queued, ~2-3 overnight windows at 06:30 deadline. No code work needed.
+2. ~~**third.ashx emission layer**~~ — **`[DONE]`** via OpenSpec change `add-taipei-implementation-data` (2026-08-24): `graph.py` emits `implementation`/`rewards` + 開工/使照 milestones, `viewer/app.js` renders 執行階段/獎勵資料 cards, `schema_version` → 2, bulk pass refreshed 691 caches (689 projects emit implementation; 18 unresolved = pre-existing Taipei-search misses).
+3. **Portal discovery consolidation** — library-first: move `search_portal`/`view_page_matches`/cache-write from the fetch script into `urtpe/links.py`; expose opt-in `--links-targeted`; script becomes the unattended overnight wrapper. Rationale: the loose-parcel-match bug (§6.6) is the precedent for dual-implementation drift. **Full design: `docs/sync_architecture.md` §4.** Needs OpenSpec change (modifies `official-link-discovery`).
+4. **PDF + portals sync model** — event-cascade with PDF as heartbeat: new/changed projects trigger per-project refresh; liveness policy (freeze phase-E/completed, refresh phase C/D, targeted queue for twur-less); `project_id`/land-core as the only cross-PDF keys (recno shifts every gazette — node anchoring must be re-derived per sync). **Full design: `docs/sync_architecture.md`.** Needs OpenSpec change (new `portal-sync` capability).
+5. **Parcel-count mismatch normalization** — land-core join should tolerate portal-vs-Taipei count drift (金華段 11 vs 13 筆) without weakening uniqueness; touches land-identity-fallback / official-link-discovery semantics.
+6. **`Report_Date` semantics** — empty for 141; confirm whether it ever fills as 成果報備日期.
+7. **Phase-D confirmation** — find a real phase-D case; hint: phase data may already sit in the cached `top.ashx`-derived structures — a local scan might confirm D without network.
+8. **`fourth.ashx` reward flags** — map non-empty values to labels (site JS needed); rewards now cached per case.
+9. ~~**`regenerate_viewer` hardening**~~ — **`[RESOLVED]`** (2026-08-25): child stdout/stderr → append-mode log file `data/.link_cache/regen_log.txt` (orphan can always write + stays observable), timeout 300 s → 1800 s, regen-start marker flushed before spawn. Verified live: regeneration succeeded, full child output captured in the log. No spec delta (emission contract unchanged).
+10. **Freshness-signal hygiene** — `viewer/projects.data.js` `generated_at` is preserved from the loaded file under `--from-js` (shows 2026-08-23 despite 8/24 writes) — not a reliable freshness signal; rely on file mtime or a sync manifest (§12.4's ledger).
+11. ~~**`jud_ok_date2` mapping**~~ — **done** (2026-08-24); removed from active list.
+12. **Withdrawal date source** — any external system (紙本? 內部系統?) publishes 撤回日. Likely a dead end; deprioritize.
 
 ---
 
-*Sources: interactive exploration (wmux browser + live API probes) 2026-08-23; code claims cross-checked against `urtpe/links.py`, `tests/fixtures_links.py`, `scripts/`, `viewer/projects.data.js` on 2026-08-24. §6.6 additions (wrong-match bugs, per-node date-aligned linking, fetch-script strict match, third.ashx 6-project probe) from the 2026-08-24 session.*
+## 16. Targeted Fetch Campaign — `fetch_remaining_national_portal.py` (2026-08-24)
+
+The OpenSpec change `fetch-remaining-national-portal` (archived
+`2026-08-24-fetch-remaining-national-portal`, spec synced to
+`openspec/specs/fetch-remaining-portal/spec.md`) produced a time-bounded,
+sequential fetcher. It replaced the dead bulk-crawl path (§9) with per-project
+targeted search: `?title=<section>&city_id=2` → candidate view_ids → fetch each
+→ strict parcel+地號/title match (`view_page_matches`, §6.6) → parse 推動歷程 →
+merge into `data/.link_cache/<project>/result.json` → auto-regenerate viewer.
+
+### Run log
+
+| Run | Window | Deadline | Processed | Updated | Failed | 使用核發 found |
+|---|---|---|---|---|---|---|
+| 06:30 run | ~4.5 h | 06:30 | 62 | 62 | 0 | 13 |
+| 17:00 run | ~10.5 h | 17:00 | 109 | 109 | 0 | +45 (→58) |
+
+Both runs: 100% success rate, 3-5 min random intervals (180-300 s), retries via
+`fetch_url` backoff, failures logged to `data/.link_cache/fetch_failures.json`
+(none triggered), viewer auto-regenerated at deadline.
+
+### Cumulative coverage
+
+| Metric | Pre-campaign | After 06:30 | After 17:00 | Coverage |
+|---|---|---|---|---|
+| Projects with `twur` | 118 | 183 | **292** | 41% of 709 |
+| Projects with `milestones_national` | 109 | 183 | **292** | 41% |
+| Projects with `使用核發日期` | 0 | 13 | **58** | 8% |
+
+`twur` ≡ `milestones_national` since the 06:30 run: the earlier 9-project gap
+(118 vs 109) was corrupted caches (gzip bodies saved as replacement-mangled
+text by the pre-gzip-fix code path, §8); the backfill re-fetched and repaired
+them.
+
+### Remaining work
+
+- **~373 candidates left** (482 at campaign start − 109 processed in 17:00 run).
+  At the observed ~10 projects/hour, roughly 2-3 more overnight batches.
+- **Campaign paused (2026-08-24 evening)** — blocked only by the single-writer
+  rule while the cache-healing CLI (§17.5) finishes; resume with deadline
+  flipped to 06:30.
+- **`update_project_cache` now also persists the matched `view.html`** — caches
+  are self-contained for future re-parses (parser fixes no longer require
+  re-fetching). The CLI's `save_project_cache` already had this behavior.
+- Expected no-match tail: projects predating the portal, renamed/re-parceled
+  units, and genuinely absent cases — the strict matcher correctly rejects
+  ambiguous hits (e.g. 桃源段四小段154, 長安段一小段721 in the 15-sample probe).
+- Script deadline is a constant pair (`DEADLINE_HOUR`/`DEADLINE_MINUTE`,
+  currently 17:00); flip to 06:30 for overnight runs.
+- Dry-run mode (`--dry-run`: first 3 candidates, no sleeps) and
+  `--max-projects N` available for sampling before a long batch.
+
+### Observations from live runs
+
+- 使用核發日期 yield concentrates in projects with 現況 ≤ ~2023 (construction
+  completed); the newest-first ordering front-loads 申請/核定/變更 milestones
+  and the occupancy dates arrive as the queue reaches older cohorts.
+- Multi-revision rollups are common on older cases (up to 第四次變更 observed,
+  e.g. view/327 with 12 milestones incl. 使用核發 112.05.31).
+- No WAF resets encountered at 3-5 min intervals across ~171 sequential
+  project fetches (each = 1 search + 1-5 view-page probes).
+
+---
+
+## 17. Cache Concurrency Incident (2026-08-24 ~21:23) — Root Cause, Repair, Rules
+
+### What happened
+
+Four processes wrote `data/.link_cache` concurrently: two `--dry-run` invocations
+of the fetch script and the two `urtpe.cli --from-js --links` regeneration
+subprocesses they spawned. Shell-timeout kills orphaned the CLI children (the
+parent dying does not kill the child on Windows), producing:
+
+1. **Orphaned children kept running** — `regenerate_viewer` spawns the CLI with
+   `subprocess.run(capture_output=True)`; when the shell timeout killed the
+   dry-run parents, the CLI children survived (Windows does not kill child
+   trees) and kept working. *Correction (2026-08-25):* the earlier "pipe
+   deadlock" read was wrong — the CLI's progress output is a few hundred bytes
+   and can never fill the 64 KB pipe. The observed "CPU 0, no sockets" state
+   was an orphan sitting in `time.sleep`/network waits during **live discovery
+   over ~283 cache misses** (~5-6 s each ≈ 25-30 min of legitimate work). One
+   orphan completed at 29 min and wrote the viewer correctly; the second was
+   killed prematurely under the wrong diagnosis. The real orphan hazards are
+   (a) it keeps writing caches with nobody supervising, and (b) under
+   concurrent writers it participates in the race — hence the kill-the-tree
+   and single-writer rules below.
+2. **Torn reads → spurious cache misses** — while siblings mid-write `result.json`,
+   `load_project_cache` hit partial JSON → `JSONDecodeError` → cache miss →
+   `discover_project_links` re-ran **live**.
+3. **Poisoned re-discovery** — the live path's `fetch_view_page` read the URL-cache
+   files in the cache root: **75 of 126 were gzip bodies saved as
+   replacement-mangled text** (pre-gzip-fix era, §8's sibling). The parser read
+   garbage → `{}` milestones → `save_project_cache` overwrote good caches.
+
+### Damage
+
+| Measure | Count |
+|---|---|
+| `<project>/{result.json, view.html}` pairs rewritten | 62 |
+| …wiped (`national_milestones` emptied) | **47** |
+| …survived with milestones intact | 19 |
+| Corrupt URL-cache files (removed) | 75 of 126 |
+
+Viewer `projects.data.js` (written 21:45 by the completing CLI, which had
+cache-hit the good state before the race) was **never damaged**: 292/292/58
+intact. `data/projects.json` went stale until the next clean emission.
+
+### Repair (verified)
+
+- `scripts/repair_wiped_caches.py`: re-fetched view pages fresh for all 47
+  twur'd-but-empty caches → **`repaired: 47 · still-empty: 0`**; post-check:
+  0 caches with `twur_view_id` + empty milestones.
+- Deleted all 126 URL-cache `*.html` files (poison source gone; fresh fetches
+  on any future cache miss parse correctly).
+
+### Silver lining — unplanned bulk refresh
+
+The surviving orphaned CLI (PID 315812, started 23:14) kept running live
+discovery over the ~283 unreadable caches with the **fixed parser and the new
+`STAGE_FIELD_MAP`** — an unplanned bulk refresh. Progress observed: 471 → 657/709
+cache hits (~190 caches/hr), 52 remaining at last check. Its eventual emission
+carries corrected `審議通過日期`/`權變審議通過日期` labels and freshened Taipei
+timelines for the re-discovered cohort. *(Caveat: this same run, relaunched after
+all 709 `result.json` were backed up + deleted, also produced the §18 regression —
+the Taipei-side gains are real, but national coverage collapsed. See §18.)*
+
+### Rules going forward
+
+1. **Single-writer rule**: never run the fetch script and any `urtpe.cli`
+   discovery concurrently — one writer on `data/.link_cache` at a time. The
+   fetch script's auto-regeneration at deadline is the sanctioned hand-off.
+2. **Kill order**: if a fetch/CLI process must be stopped, kill the whole tree
+   (parent + children); a killed parent with a live child is the worst state.
+3. **Hardening (§12.9) — `[RESOLVED]` (2026-08-25)**: `regenerate_viewer` now
+   redirects child stdout/stderr to `data/.link_cache/regen_log.txt` (append)
+   instead of `capture_output` pipes and raises the timeout 300 s → 1800 s.
+   Not deadlock-class (see corrected #1) — the point is that an orphaned child
+   can always finish writing, stays observable in the log, and legitimate slow
+   regenerations don't time out into silent "viewer not refreshed" states.
+4. **Corruption signature**: a cache/view file starting `\x1f\xef` (mangled gzip
+   magic) is unrecoverable text-mangled binary — delete and re-fetch, never parse.
+
+---
+
+## 18. Bulk Discovery Refresh Regression (2026-08-25 ~01:05) — Root Cause, Damage, Rules
+
+### What happened
+
+The cache-healing refresh (§17.5 continuation) went further than repairing the
+47 wiped caches: **all 709 `result.json` were backed up to
+`data/.link_cache_backup_20260824`, then deleted**, and discovery re-ran
+(`urtpe.cli --from-js viewer/projects.data.js -o data --viewer --links`) keeping
+only the URL page caches — intent: re-derive everything with the fixed parser
+and corrected `STAGE_FIELD_MAP` without re-hitting the network.
+
+Timeline: first attempt started 2026-08-24 21:21, died silently ~23:11 (no
+stderr; logs empty/truncated); relaunched 23:14 (PID 315812) over the full 709;
+completed ~01:05; `viewer/projects.data.js` regenerated 01:05:55 on the
+regressed state.
+
+### Root cause — a "cache" that was actually the source
+
+The Taipei path reconstructs fully from kept inputs (search API by
+section + parcel). The national path cannot:
+
+- `discover_project_links` (`urtpe/links.py:565-585`) resolves a view_id ONLY
+  via `portal_index.json` (**110 entries** — WAF-capped newest-first crawl,
+  §9) or the fallback JSON (**3 entries**).
+- The targeted-fetch campaign's ~180 additional land-core → view_id mappings
+  were written **directly into each project's `result.json`** and existed
+  nowhere else.
+- Page caches don't help: `fetch_view_page` needs the view_id to build the URL
+  before it can hit its cache. No mapping → no URL → cache miss that can never
+  resolve.
+
+Deleting the `result.json` files therefore didn't discard cheap derived data —
+it discarded the only copy of an expensive lookup table.
+
+### Damage
+
+| Measure | Pre (backup 20260824) | Post (regenerated) |
+|---|---|---|
+| Projects with `twur_url` / `national_milestones` | 292 | **109** |
+| Projects with `使用核發日期` | 58 | **1** |
+
+183 projects lost national links + milestones (57 of them carried 使用核發).
+The refresh's Taipei-side gains (corrected labels, freshened timelines) are
+real but ride on top of this loss.
+
+### Recovery (done 2026-08-25 02:17)
+
+`scripts/restore_national_links_2026_08_25.py`: for each backup cache with a
+twur link whose live counterpart lost it, merged back exactly
+`twur_view_id` / `twur_url` / `national_milestones` — preserving the refresh's
+Taipei-side gains (`case_milestones`, `implementation`, `rewards`, corrected
+labels). No network. Result: **restored 183 · already-ok 109 · missing 0**,
+live totals **709 scanned · twur 292 · national_milestones 292 · 使用核發 58**.
+Viewer re-emitted (`--from-js --viewer --links`, cache-only) and parsed back:
+292 / 292 / 58 across 709 projects — pre-refresh state fully recovered.
+Keep `.link_cache_backup_20260824` until the §12.3 consolidation makes the
+index self-sufficient (never delete as scratch).
+
+### Rules going forward
+
+1. **Reconstructibility precondition**: before deleting/regenerating a cache,
+   enumerate every field and prove it is reconstructible from the inputs being
+   kept. If not, the "cache" is a source — back it up *and* diff coverage after.
+2. **Fold campaign outputs into the index at write time**: targeted-fetch
+   mappings must land in `portal_index.json` (or a dedicated mapping store), so
+   the index reflects reality instead of lagging it — merges naturally into the
+   §12.3 library-first consolidation (`--links-targeted`).
+3. **Regression guard on destructive jobs**: snapshot coverage counters
+   (twur / national_milestones / 使用核發 / Taipei resolved) before and after;
+   any decrease aborts the job and alerts. A silent 292→109 drop ran unnoticed
+   for hours here.
+4. **Single-writer rule unchanged** (§17): one writer on `data/.link_cache` at
+   a time — this incident was single-writer yet still destructive; concurrency
+   is not the only hazard.
+
+---
+
+## 19. Bulk-Refresh Sequencing Decisions & Outcome (exploration 2026-08-24/25)
+
+The pre-change exploration for `add-taipei-implementation-data` produced a sequencing
+plan for the full discovery refresh. Decisions, rationale, and where each landed:
+
+| # | Suggestion | Rationale | Outcome |
+|---|---|---|---|
+| 1 | Fix `STAGE_FIELD_MAP` before any bulk pass | labels are baked into caches at fetch time; fix-then-fetch = one pass instead of two | ✅ round 1 + round 2 landed in the change (tasks 1.2/2.1) — round 2 (comm_hold relabel, `outline_ok_date`/`jud_ok_date0`/`comm_hold_date0`) came from the DOM label map |
+| 2 | Bundle third/fourth.ashx integration before the bulk pass | the detail-page DOM handed over the full 86-field label map for free; avoids a second ~1,400-case sweep | ✅ became `add-taipei-implementation-data` (21/21 tasks, schema v2) |
+| 3 | Discovery refresh BEFORE the `fetch_remaining` campaign | the fetch script is cache-first — twur-first would freeze positional node links in place | ⬜ pending — now safe to start: refreshed caches carry `case_milestones`, which `update_project_cache` preserves |
+| 4 | Count normalization before the campaign COMPLETES | strict matcher rejects count-drift pages (金華段 11 vs 13 筆); rejects are logged and retried, so the campaign may start early | ⬜ OpenSpec change pending |
+| 5 | Never run discovery and `fetch_remaining` concurrently | both write the same `result.json` (last-write-wins = lost updates) | ⬜ standing rule (reinforced by §17 single-writer) |
+| 6 | No 3–5 min interval for discovery; keep `delay=1.0s` | national exposure is 0–1 *cached* view fetch per project; WAF evidence is list-endpoint-only | ✅ recorded as design D8 of the change |
+| 7 | Back up caches before the refresh | a failed view fetch mid-run could blank previously-good national data | ✅ done — `data/.link_cache_backup_20260824` (709 files); this backup is what makes §18's recovery possible |
+| 8 | "National-side refresh risk is low — view pages are cached" | held for the **Taipei** path; wrong for the **national** path | ❌ superseded by §18 — see correction below |
+
+**Correction to #8**: the exploration assumed national view pages were reconstructible
+from the URL page cache. They are — but only *given the view_id*, and the targeted
+campaign's land-core→view_id mappings lived solely in the deleted `result.json`
+files: a **source mislabeled as a cache** (§18 root cause). Net effect of the refresh:
+Taipei-side gains are real (corrected labels, `case_milestones` in 691 caches,
+implementation/rewards payloads) but national coverage regressed 292→109 twur /
+58→1 使用核發. The lesson is generalized in §18 rule 1 (reconstructibility
+precondition) — read #8 together with §18, never alone.
+
+**Unblocked by the refresh**: the chimera-merge fix (§5, still open) can now be
+computed at emit time from `case_milestones` (691 caches carry it) — no network
+needed.
+
+### The sequence, current state
+
+```
+✅ map round 1+2 → ✅ third/fourth integration → ✅ bulk refresh (691 caches, schema v2)
+                                                          │
+                                                          ▼
+⬜ §18 recovery FIRST: merge the 183 lost national links from
+   .link_cache_backup_20260824 (no network) + regenerate + post-check 292/292/58
+                                                          │
+                                                          ▼
+⬜ fetch_remaining campaign (twur coverage, ~600 candidates, overnight windows)
+   │  may START anytime (single-writer §17; never concurrent with discovery)
+   ▼
+⬜ count-normalization OpenSpec change — must land before the campaign COMPLETES
+   (strict matcher rejects count-drift pages; rejects retry, so start ≠ finish)
+```
+
+---
+
+*Sources: interactive exploration (wmux browser + live API probes) 2026-08-23; code claims cross-checked against `urtpe/links.py`, `tests/fixtures_links.py`, `scripts/`, `viewer/projects.data.js` on 2026-08-24. §6.6 additions (wrong-match bugs, per-node date-aligned linking, fetch-script strict match, third.ashx 6-project probe) from the 2026-08-24 session. §16 fetch-campaign results (06:30 + 17:00 runs) from the 2026-08-24/25 targeted-fetch batches. §17 incident (concurrency wipe, repair, single-writer rule) and the third.ashx cache-layer discovery from the 2026-08-24/25 evening session. §18 regression (bulk refresh vs partial portal index; coverage counts re-measured live from `data/.link_cache_backup_20260824` vs `data/.link_cache`) discovered during the 2026-08-25 overnight refresh monitoring. §19 sequencing decisions from the pre-change exploration for `add-taipei-implementation-data` (2026-08-24/25).*

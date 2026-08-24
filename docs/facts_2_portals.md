@@ -1,6 +1,25 @@
-# Two Portals — Field Notes & Alignment Map
+# Two Portals — Field Notes & Alignment Map (v2)
 
 *Exploration summary: Taipei City ashx API vs National Portal (twur.nlma.gov.tw) for project 中山區-中山段一小段-254地號等13筆*
+
+> This is the consolidated, single-source-of-truth version. All findings and the §14 parser fix are folded in; resolved items are marked `[RESOLVED]`, code claims carry the verified file:line, and empirical API values are tagged `[live-probed]` (not re-verified this pass).
+
+---
+
+## 0. Decision Summary
+
+| Decision | Status |
+|---|---|
+| 推動歷程 parser silent-failure root cause | `[RESOLVED]` — applied, backfilled, verified in `viewer/projects.data.js` |
+| `jud_ok_date2` field | `[RESOLVED]` — label identified; **mapping still missing in code** (pending) |
+| Join approach | Portal = gazette date; Taipei = committee date. **±1 day is a heuristic, not a rule** (Δ=0 observed). |
+| Do we need both sources? | Yes — they cover disjoint lifecycles (Taipei pre-approval depth; Portal post-approval breadth + revision rollup). |
+| 3 top forks (see §7) | Portal crawl recovery · `Report_Date` semantics · Phase-D confirmation |
+| Curated fallback wrong view (河堤段263-19 → 板橋 view/1042) | `[RESOLVED]` — mapping fixed to view/262; cache + view.html refreshed (see §6.6) |
+| Per-node case links (positional mislink / missing links) | `[RESOLVED]` — date-aligned anchoring in `attach_links_to_projects`, positional fallback kept (see §6.6) |
+| Fetch-script loose parcel match (`parcel in html`) | `[RESOLVED]` — strict parcel+地號 + title section/parcel/count match (see §6.6) |
+| third.ashx integration (開工/使用執照 into data model) | **Open — needs OpenSpec change** (no spec exists yet) |
+| Parcel-count mismatch in land-core join (portal 11筆 vs Taipei 13筆) | **Open — needs OpenSpec change** (touches land-identity semantics) |
 
 ---
 
@@ -28,24 +47,24 @@ Taipei cases (ashx)                    National portal (view/136)
 09811144 變更二 權變  核定 2017/04/13    │
 ```
 
-- **143 & 144 are name-twins**: identical case name → same application resubmitted after withdrawal
-- Portal shows **one row per revision ordinal** (1st, 2nd…) with paired 事業/權變 dates
-- Taipei splits by **application attempt** (each gets own case_id + full process trace)
+- **143 & 144 are name-twins**: identical case name → same application resubmitted after withdrawal. Note **both** carry `變更二` — 143 is the withdrawn attempt, 144 the approved one.
+- Portal shows **one row per revision ordinal** (1st, 2nd…) with paired 事業/權變 dates.
+- Taipei splits by **application attempt** (each gets own case_id + full process trace).
 
 ---
 
-## 3. Date Alignment — The 1-Day Offset
+## 3. Date Alignment — The 1-Day Offset *(heuristic, not a rule)*
 
 | Milestone | Portal (gazette) | Taipei (ashx) | Delta | Meaning |
 |---|---|---|---|---|
-| 事業計畫核定 | 101.08.28 (2012-08-28) | 2012/08/27 | +1 day | gazette 公告日 vs 會議核定日 |
-| 權變核定 (原案) | 101.08.28 | 2012/08/27 | +1 day | same |
-| 1st變更 事業 | 105.08.24 | 2016/08/23 | +1 day | same |
-| 1st變更 權變 | 105.08.24 | 2016/08/23 | +1 day | same |
-| 2nd變更 事業 | 106.04.14 | 2017-04-13 | +1 day | same |
-| 2nd變更 權變 | 106.04.13 | 2017/04/13 | 0 | coincidence / same day |
+| 事業計畫核定 | 101.08.28 (2012-08-28) | 2012/08/27 | +1 day | gazette 公告日 vs 會議核定日 `[live-probed]` |
+| 權變核定 (原案) | 101.08.28 | 2012/08/27 | +1 day | same `[live-probed]` |
+| 1st變更 事業 | 105.08.24 | 2016/08/23 | +1 day | same `[live-probed]` |
+| 1st變更 權變 | 105.08.24 | 2016/08/23 | +1 day | same `[live-probed]` |
+| 2nd變更 事業 | 106.04.14 | 2017-04-13 | +1 day | same `[live-probed]` |
+| 2nd變更 權變 | 106.04.13 | 2017/04/13 | 0 | **observed same-day** `[live-probed]` |
 
-**Rule**: portal date = gazette publication date (next business day after committee approval). Taipei date = committee approval date. Store both; they are semantically different.
+**Assessment**: portal date = gazette publication date (next business day after committee approval). Taipei date = committee approval date. Store both — they are semantically different. **But** the "+1 day" generalizes from 5 samples, 1 of which has Δ=0. Treat as an *observed trend*, and match on **±1 day with a same-day fast-path**, not a strict "+1". Do not build an invariant on it.
 
 ---
 
@@ -75,30 +94,39 @@ Aggregated revision table (all on one page):
   區段規格 (容積獎勵, 允建容積, 樓層14F/5B, 用途)
 資料更新日期: 112.03.17 (last refresh)
 ```
+*Values `[live-probed]` for view/136.*
 
 ---
 
-## 5. Known Data Bugs & Quirks
+## 5. Known Data Bugs & Quirks *(with status)*
 
-| Bug | Location | Impact |
-|---|---|---|
-| **Chimera merge** | `links.py:489 all_taipei_milestones.update(ms)` | Last-write-wins across cases; 141's 核定 2012/08/27 overwritten by 142's 2016/08/23 → viewer card shows wrong anchor date for node 1219 |
-| **Missing `jud_ok_date2` mapping** | `STAGE_FIELD_MAP` | `jud_ok_date2=2012/04/16` filled but unmapped → silently dropped |
-| **`uro_chk_date2` inconsistency** | `top.ashx` | Case 144 has approval in `second.ashx` (2017/04/13) but `top.ashx` leaves it empty |
-| **No withdrawal date** | Both | 143 自行撤回 has only 申請權變 2016/09/22; withdrawal date nowhere published |
-| **Portal cross-link error** | view/136 | 縣市政府案件連結 points to `case_id=10202065` (辛亥段, 大安區) — wrong project |
-| **Partial portal crawl** | `build_portal_index` | WAF resets → only 110/709 projects indexed; this project missing → no `twur` link |
+| Bug | Location | Impact | Status |
+|---|---|---|---|
+| **Chimera merge** | `links.py:535 all_taipei_milestones.update(ms)` *(doc v1 said :489 — corrected)* | Last-write-wins across cases; 141's 核定 2012/08/27 overwritten by 142's 2016/08/23 → viewer card shows wrong anchor date for node 1219 | **Open** — mechanism confirmed in code; fix = retain per-case timelines (see §6.1) |
+| **Missing `jud_ok_date2` mapping** | `STAGE_FIELD_MAP` (`links.py:600` starts; **no `jud_ok_date2` entry**) | `jud_ok_date2=2012/04/16` filled but unmapped → silently dropped | **Open** — label resolved (see §6.2), mapping not yet added |
+| **Wrong `jud_ok_date` label** | `links.py:611 ("jud_ok_date", "概要審議會通過日期")` | Mislabeled; UI calls it 審議通過日期 | **Open** — see §6.2 |
+| **`uro_chk_date2` inconsistency** | `top.ashx` | Case 144 has approval in `second.ashx` (2017/04/13) but `top.ashx` leaves it empty | **Open** `[live-probed]` |
+| **No withdrawal date** | Both | 143 自行撤回 has only 申請權變 2016/09/22; withdrawal date nowhere published (see §6.3) | **Open** — best anchor = application date + 撤回 badge |
+| **Portal cross-link error** | view/136 | 縣市政府案件連結 points to `case_id=10202065` (辛亥段, 大安區) — wrong project | **Open** `[live-probed]` |
+| **推動歷程 parser failure** | `links.py` `ViewPageParser` (old hidden-div-only path) | `milestones_national={}` for all projects | **`[RESOLVED]`** — see §8, verified fixed |
+| **Curated fallback wrong view** | `data/taipei_case_ids.json` (河堤段263-19 → view/1042 = 新北市板橋區 project, bogus case_id "10421234") | Wrong twur link + wrong national milestones cached/emitted for the project | **`[RESOLVED]`** — mapping → view/262, cache/view.html refreshed (see §6.6) |
+| **Per-node positional mislink** | `links.py` `attach_links_to_projects` (`city_case_ids[0]/[1]` by track keyword) | 10204032 (核定 2016/07/05) attached to recno 772 (2019-08-01) instead of recno 1042; 金華段513-3 cases attached to no node at all — violates official-link-discovery "Per-stage city links land on the right node" | **`[RESOLVED]`** — date-aligned anchoring (see §6.6) |
+| **Fetch-script loose parcel match** | `scripts/fetch_remaining_national_portal.py` `find_matching_view` (`parcel in html`) | Substring collisions (263-19 vs 209-19) and same-parcel different-project matches (444等7筆 vs view/264 444等**17**筆) | **`[RESOLVED]`** — strict parcel+地號 + title tuple match (see §6.6) |
+| **Parcel-count mismatch join miss** | land core includes `等N筆` count; portals disagree (金華段513-3: portal 11筆 vs Taipei 13筆, same case — 實施者 江陵 confirmed on view/265) | Project with an existing portal page gets no twur link | **Open — needs OpenSpec change** |
+| **third.ashx not integrated** | `Eng_Start_Date`/`Ulic_Date` fetched nowhere in pipeline | 開工日期/使用執照 absent from data model & viewer (probe: scripts/probe_third_6projects.py) | **Open — needs OpenSpec change** |
 
 ---
 
-## 6. Join Strategy (Design Sketch)
+## 6. Resolved Findings & Implementation Notes
+
+### 6.1 Provenance & Join *(replaces v1 §6 + §12 — single strategy)*
 
 ```
 STEP 1: Fix provenance (per-case timelines)
   Taipei: retain [{case_id, name, schedule, milestones: [{label, date}]}]
   Portal: parse view page → {view_id, revisions: [{ordinal, biz_date, land_date}], occupancy_date, basic_data}
 
-STEP 2: Anchor by date (±1 day, track-compatible)
+STEP 2: Anchor by date (match ±1 day, same-day fast-path)
   141 ↔ node 1219 (核定 2012-08-27 vs 101.08.28)
   142 ↔ node 1037 (核定 2016-08-23 vs 105.08.24)
   144 ↔ node 991  (核定 2017-04-13 vs 106.04.13)
@@ -109,107 +137,38 @@ STEP 3: Leftover cases → name-twin fallback
 
 STEP 4: Merge post-approval
   Portal 使用核發 2016/08/29 → attach to 1st-revision chain (after 142's 核定)
-  Portal 基本資料 → project-level enrichment
-  Portal `資料更新日期` → freshness signal
+  Case 141 implementation (third.ashx): Eng_Start_Date 2013/09/10 → node 1219 chain (post-核定)
+    Ulic_Date 2016/08/29 → matches portal 使用核發, attach after 1st revision
+    Base_Area/Landkind* → project-level metadata enrichment
+  Cases 142/144: implementation fields empty (tracking on final case only)
+  Portal 基本資料 → project-level enrichment | Portal `資料更新日期` → freshness signal
 ```
 
----
+**Implementation status (2026-08-24)**: STEP 1 (Taipei half) + STEP 2 are now implemented —
+`DiscoveryResult.case_milestones` retains per-case timelines, and
+`attach_links_to_projects` anchors each node's case by 核定日期/權變核定日期
+(exact, then ±1 day), falling back to the legacy positional heuristic for old
+caches (see §6.6). Portal-side revision/basic_data parsing (STEP 1 Portal half)
+and STEP 3 ghost nodes / STEP 4 merge remain open.
 
-## 7. Current Viewer State (projects.data.js)
+### 6.2 `jud_ok_date2` Label — `[RESOLVED]` (mapping pending)
 
-```json
-"links": {
-  "taipei": ["09811141","09811142","09811143","09811144"],
-  "milestones_taipei": { "核定日期": "2016/08/23", ... },  // CHIMERA
-  "twur": ""
-}
-```
-- Per-node links assigned positionally (wrong for revisions: 1037 gets 141, 991 gets 142)
-- No portal data at all
-- No 建照核發 on node 1219 (was overwritten)
+From live `#data2` tab (案件詳細 > 階段辦理過程) `[live-probed]`, case 141:
 
----
-
-## 8. Open Questions / Next Investigations
-
-1. **Portal crawl recovery** — re-run with retry/backoff (design.md §D3) or use browser automation for missing projects?
-2. **`jud_ok_date2` label** — what does the Taipei UI call it? Need to check site JS for label mapping.
-3. **Phase taxonomy** — what do `phase` A/B/C/D/E mean? Only saw C (審議中) and E (執行). Map all.
-4. **Withdrawal date** — does any other endpoint (施工階段? R_build?) carry 撤回日期?
-5. **Occupancy permit in Taipei** — is there an API for `使用核發日期` on the Taipei side?
-6. **Cross-project name normalization** — portal names match gazette exactly here; but `build_portal_index` normalizes (strips 擬訂/臺北市). Define canonical comparison.
-7. **Schema version** — any merge changes `projects.data.js` schema_version → bump to 2.
-
----
-
-## 9. Files Touched / To Change
-
-| File | Role |
-|---|---|
-| `urtpe/links.py` | Discovery flow, merge bug fix, per-case timeline retention, portal view parsing |
-| `urtpe/graph.py` | `build_project_graph` — attach merged events to nodes |
-| `viewer/app.js` | `renderDetail` — event layer rendering, ghost nodes, dual dates |
-| `tests/test_links.py` | Add scenarios for `search_taipei_cases_api`, `fetch_taipei_milestones_api`, portal view parsing |
-| `docs/final_results_json_api.md` | Update with portal merge findings |
-
----
-
-*Generated from interactive exploration (wmux browser + live API probes) — 2026-08-23*
-
----
-
-## 10. Resolved Open Questions (Follow-up Probes)
-
-### 10.1 `jud_ok_date2` Label — **Taipei UI: "權變審議通過日期"**
-
-From live `#data2` tab (案件詳細 > 階段辦理過程):
-
-| API field | UI label | Case 141 value |
+| API field | UI label | Value |
 |---|---|---|
 | `jud_ok_date` | **審議通過日期** | 2012/04/16 |
 | `jud_ok_date2` | **權變審議通過日期** | 2012/04/16 |
 | `comm_hold_date` | 召開審議會日期 | 2011/04/25 |
 | `comm_hold_date2` | 權變召開審議會日期 | 2011/04/25 |
 
-**STAGE_FIELD_MAP bug**: 
-- Current: `("jud_ok_date", "概要審議會通過日期")` → **wrong label**
-- Should be: `("jud_ok_date", "審議通過日期")` + add `("jud_ok_date2", "權變審議通過日期")`
-- Also `"概要審議會通過日期"` / `"概要核准日期"` appear in UI (empty for this case) — likely map to `outline_ok_date` variants.
+**Changes needed in `STAGE_FIELD_MAP`** (verified current state): `jud_ok_date` is mapped to the wrong label `概要審議會通過日期`; should be `審議通過日期`, and add `jud_ok_date2 → 權變審議通過日期`. `概要審議會通過日期`/`概要核准日期` likely map to `outline_ok_date` variants.
 
----
+### 6.3 Withdrawal Date — `[RESOLVED]`: Not Published
 
-### 10.2 Phase Taxonomy — **A/B/C/D/E = Top-level Stage Gates**
+Checked all 4 ashx endpoints for case 09811143 `[live-probed]`: `second.ashx` (36 timeline fields → only `Plan_App_Date2`=2016/09/22), `top.ashx` (`phase='C'`, NAME 自行撤回, no date), `third.ashx` & `fourth.ashx` (all empty / no date). Platform records *that* it was withdrawn, never *when*. Best anchor: application date 2016/09/22 + 撤回 badge.
 
-From `top.ashx` `phase` + `NAME` for all 4 cases:
-
-| Phase | NAME example | Meaning | Corresponds to UI tab |
-|---|---|---|---|
-| **A** | (not seen) | 單元劃定 | "單元劃定" |
-| **B** | (not seen) | 事業概要 | "事業概要" |
-| **C** | 權利變換計畫階段─實施者自行撤回 | 計畫審議中 (含撤回) | "事業計畫" / "權變計畫" |
-| **D** | (not seen) | 核定後、執行前 (公告/備查) | — |
-| **E** | 執行階段_更新案完成成果備查 | 施工/實施階段 | "執行" |
-
-Only C (143) and E (141,142,144) observed. A/B/D would appear for cases in earlier/later lifecycle.
-
----
-
-### 10.3 Withdrawal Date — **NOT Published in Any Endpoint**
-
-Checked all 4 ashx endpoints for case 09811143 (自行撤回):
-
-| Endpoint | Fields checked | 143 values |
-|---|---|---|
-| `second.ashx` | 36 timeline fields | Only `Plan_App_Date2` = 2016/09/22 |
-| `top.ashx` | `phase='C'`, `NAME='權利變換計畫階段─實施者自行撤回'` | No date |
-| `third.ashx` | `Eng_Start_Date`, `Ulic_Date`, `Report_Date` | All empty |
-| `fourth.ashx` | Reward/容積 data | No date |
-
-**Conclusion**: Platform records *that* it was withdrawn (`schedule`/`NAME`/`phase`), but **never *when***. Best anchor: application date 2016/09/22 + 撤回 badge.
-
----
-
-### 10.4 Occupancy Permit in Taipei — **YES, in `Get_project168_third.ashx`**
+### 6.4 Occupancy Permit — Taipei side exists, in `third.ashx` `[live-probed]`
 
 | Field | Label | Case 141 value | Matches |
 |---|---|---|---|
@@ -218,56 +177,126 @@ Checked all 4 ashx endpoints for case 09811143 (自行撤回):
 | `Report_Date` | (成果報備日期?) | empty | — |
 | `Exe_Way` | 實施方式 | **權利變換** | ✓ |
 
-Only the *completed* case (141) has these filled; revision cases (142, 144) empty because implementation tracking belongs to the final approved case.
+Only the *completed* case (141) has these; revision cases (142, 144) empty because implementation tracking belongs to the final approved case.
+
+### 6.5 Phase Taxonomy — `[RESOLVED]` model, partial validation
+
+`top.ashx` `phase` + `NAME` `[live-probed]`. A/B/D **observed values are inferred, not confirmed** — only C and E were seen. Treat A/B/D labels as hypotheses pending a real case.
+
+| Phase | NAME example | Meaning | UI tab | Confidence |
+|---|---|---|---|---|
+| A | (not seen) | 單元劃定 | 單元劃定 | inferred |
+| B | (not seen) | 事業概要 | 事業概要 | inferred |
+| C | 權利變換計畫階段─實施者自行撤回 | 計畫審議中 (含撤回) | 事業計畫 / 權變計畫 | seen |
+| D | (not seen) | 核定後、執行前 (公告/備查) | — | inferred |
+| E | 執行階段_更新案完成成果備查 | 施工/實施階段 | 執行 | seen |
+
+### 6.6 Session 2026-08-24 — Wrong-Match Bugs + Per-Node Link Fix `[RESOLVED]`
+
+Probing 6 projects for 建築執照/開工/使用執照 across both portals surfaced five bugs
+(root causes traced and fixed same day; full inventory in v1 §16).
+
+**Definitive national 推動歷程 vocabulary** (109 cached view pages + live view/136):
+only 事業計畫/權利變換計畫 申請·核定日期, 第一次變更…核定日期, **使用核發日期**
+(completed cases only), 備註. The national portal **never** publishes 建築執照 or
+開工日期 — "all three dates on both portals" is unsatisfiable by design; the only
+cross-portal overlap is 使用執照 ↔ 使用核發日期 (dates matched exactly on the two
+projects where both sides have them: 河堤段263-19 2021/10/25, 金華段513-3 2019/09/10).
+
+**Fixes applied** (all conformance repairs — no OpenSpec delta needed, same
+precedent as §8):
+
+- `data/taipei_case_ids.json`: 河堤段263-19 → view_id 262 + real case_ids.
+- `scripts/repair_cache_2026_08_24.py`: 河堤段263-19 result.json corrected
+  (view/262, true milestones incl. 使用核發 110.10.25, refreshed view.html —
+  parser output on the live page matches exactly); both 河堤段 and 金華段 caches
+  gained `case_milestones` (per-case 核定日期) for date anchoring.
+- `urtpe/links.py`: `DiscoveryResult.case_milestones` retained in discovery;
+  `attach_links_to_projects` date-aligned anchoring (positional fallback for
+  old caches without `case_milestones`).
+- `scripts/fetch_remaining_national_portal.py`: strict `view_page_matches()`
+  (`<parcel>地號` context + `parse_name_id` title section/parcel/count);
+  candidates now carry land count.
+- Tests: 2 regression tests (date-aligned attach; positional fallback). Suite
+  121 passed. Viewer regenerated: 697 resolved / 12 unresolved; verified in
+  `data/projects.json` — 河堤段 twur → view/262, recno 1042→10204032 /
+  772→10707031; 金華段 recno 1040→10011041 / 797→10011042.
 
 ---
 
-### 10.5 Project Metadata — **All Available in `third.ashx` + `fourth.ashx`**
+## 7. Files Touched / To Change *(tracked against actual repo layout)*
 
-User's requested fields **all present** for case 141:
-
-| Requested field | API source | Field | Value |
-|---|---|---|---|
-| 開工日期 | `third.ashx` | `Eng_Start_Date` | 2013/09/10 |
-| 使用執照核發日期 | `third.ashx` | `Ulic_Date` | 2016/08/29 |
-| 成果報備日期 | `third.ashx` | `Report_Date` | (empty for 141) |
-| 實施方式 | `third.ashx` | `Exe_Way` | 權利變換 |
-| 基地面積 | `third.ashx` | `Base_Area` | 1,604.00 |
-| 土地使用分區1 | `third.ashx` | `Landkind1` | 第四種商業區(特)(原商三) |
-| 土地使用分區2 | `third.ashx` | `Landkind2` | (empty) |
-| 土地使用分區3 | `third.ashx` | `Landkind3` | (empty) |
-| 使用分區1面積 | `third.ashx` | `Landkind1_Area` | 1,604.00 |
-| 使用分區2面積 | `third.ashx` | `Landkind2_Area` | 0.00 |
-| 使用分區3面積 | `third.ashx` | `Landkind3_Area` | 0.00 |
-
-**Additional rich fields in `third.ashx`** (settlement stats):
-- `Old_Doors`=50, `Settle_Old_Doors`=0, `Settle_Doors`=0
-- `New_Parkings`=103, `New_Parkings2`=85
-- `Sidewalk_Length`=60, `Sidewalk_Area`=230.81
-- `Urban_Renew_Fee`=1,242,782,140
-- `pc_afterUpdTotalValue`=2,761,323,189
-- `Land_Owners_Pir`=54, `Bui_Owners_Legal`=54
-
-**In `fourth.ashx`** (rewards/容積):
-- `F0`=8,982.01 (基準容積), `F`=10,829.58 (允建容積)
-- `F3`=538.92 (都市更新獎勵), `F5`=1,308.65
-- `F5_3`=230.81 (人行步道面積)
-- Reward flags: `GREENBUILD_DESIGN`, `SEISMIC_DESIGN`, etc. (all empty here)
+| File | Role | Status |
+|---|---|---|
+| `urtpe/links.py` | Discovery flow, **merge bug fix (#535)**, per-case timeline retention, portal view parsing | per-case retention + date-aligned node linking **done** (§6.6); project-level chimera merge & portal revision parsing open |
+| `urtpe/links.py` `STAGE_FIELD_MAP` | Add `jud_ok_date2`, fix `jud_ok_date` label | **pending** |
+| `urtpe/graph.py` | `build_project_graph` — attach merged events to nodes | open |
+| `viewer/app.js` | `renderDetail` — event layer rendering, ghost nodes, dual dates | open |
+| `tests/test_links.py` · `tests/fixtures_links.py` | Portal view parsing scenarios; **new fixture already added** (#89-108); +2 date-anchoring regression tests (§6.6) | fixture done |
+| `viewer/projects.data.js` | Runtime data (**note: lives in `viewer/`, not `content/`**); already carries `milestones_national` | data done |
+| `scripts/fetch_remaining_national_portal.py` | Targeted portal fetch — strict match added (§6.6) | done |
+| `scripts/repair_cache_2026_08_24.py` · `scripts/probe_third_6projects.py` | One-off cache repair / third.ashx probe (6 projects) | done |
+| `docs/final_results_json_api.md` | Update with portal merge findings | open |
+| `docs/facts_2_portals.md` (v1) | Superseded by this v2 | keðir |
 
 ---
 
-### 10.6 Cross-Project Name Normalization — **Canonical Tuple Comparison**
+## 8. 推動歷程 Parser — Root Cause Found & Applied
+
+**Symptom**: emitted dataset had `milestones_national = {}` for ALL 709 projects, despite 109 projects carrying a resolved `twur` URL and the portal index matching 78/110 cores exactly.
+
+### Causal chain
+
+```
+portal index crawl ──▶ 110 entries                 ✅
+core lookup        ──▶ 78/110 exact matches        ✅
+twur_url assigned  ──▶ 109 projects               ✅
+fetch view page    ──▶ 50KB HTML                  ✅
+case_id extraction ──▶ works                       ✅
+推動歷程 extraction ──▶ {} EVERY TIME              ❌ ROOT CAUSE
+```
+
+### The bug (verified live `[live-probed]`)
+
+`ViewPageParser` only extracted milestones from tables inside `data_table_box` divs whose style contained `display:none` (`links.py` `_in_hidden_table` → `_process_tuidui_table`, #176/#219). That assumption came from an older portal design. Current portal serves the milestone table as **visible static HTML** — a live probe of view/1249 found `data_table_box` ×13 but `display:none` ×**0**, so `_process_tuidui_table()` never fired.
+
+### Why it stayed invisible — three masking layers
+
+1. **Status masking** — empty national milestones doesn't change status ("resolved" comes from the Taipei path); no error logged.
+2. **Viewer masking** — the 推動歷程 card renders only when non-empty; absence mocked as "no data".
+3. **Test masking** — `tests/fixtures_links.py` fixtures were built on the OLD markup (`display:none`) → tests passed green while production yielded nothing.
+
+### Spec conformance
+
+No OpenSpec delta required — `official-link-discovery/spec.md` already mandates attaching "the twur URL and 推動歷程". Broken parser violated existing spec; fixing + refreshing fixtures is an implementation bug fix.
+
+### Fix shape (verified applied)
+
+- Parser now reads visible `項目`/`日期`-headed rows (`_process_row`, `links.py:203-217`), independent of hidden-div detection; legacy hidden path retained (#176).
+- New fixture reproducing live `type4_table` markup (`tests/fixtures_links.py:89-108`) with negative assertions (empty 備註 dropped, 資料更新日期 not mistaken for a milestone).
+- `scripts/backfill_national_milestones.py` backfills from cached `view.html` (no network) and re-emits viewer data.
+- **Confirmation**: `viewer/projects.data.js` now carries populated `milestones_national` (e.g. view/997 `事業計畫核定日期 112.06.08`, view/1212 `事業計畫核定日期 115.01.20`).
+
+---
+
+## 9. Portal Index Coverage Insight (110 entries)
+
+The 110 crawled entries span view_id 987–1252, approval dates 112.05.11–115.06.16 (2023-05 → 2026-06) `[live-probed]`: the crawl walks newest-first and died at the WAF after ~110 rows, so coverage is "recent ~3 years" — everything older (e.g. view/136, 核定 2012) is systematically absent. Design fork: resume/repair bulk crawl vs per-project targeted search via the list page's `?title=<keywords>` parameter (mirrors the Taipei parcel-search pattern).
+
+---
+
+## 10. Target Canonical Join Key *(cross-project name normalization)*
 
 | System | Method | Fallback |
 |---|---|---|
 | **Taipei** | `build_land_core_key(CleanRecord)` → `{district}{section}{parcel}地號等{count}筆` | — |
 | **Portal** | `parse_name_id(title)` → same tuple; if regex fails → strip common suffixes | `title.replace("擬訂","").replace("臺北市","")...` |
 
-**Canonical join key**: normalized tuple `(district, section, parcel, count)` from `parse_name_id` on both sides. Avoids string-stripping ambiguity. Store in both indexes for reliable matching.
+**Canonical issue**: normalized tuple `(district, section, parcel, count)` from `parse_name_id` on both sides. Avoids string-stripping ambiguity. Store in both indexes for reliable matching.
 
 ---
 
-## 11. Complete Taipei Endpoint Map (Updated)
+## 11. Complete Taipei Endpoint Map
 
 | Endpoint | Purpose | Key Fields |
 |---|---|---|
@@ -285,94 +314,37 @@ second.ashx (17 pre-approval events)
     → fourth.ashx (容積獎勵/綠建築/耐震等獎勵指標)
 ```
 
----
+### Project metadata field map (case 141, 開工/使用執照/面積/分區) `[live-probed]`
 
-## 12. Updated Join Strategy — Implementation Layer
+| Requested field | Source | Field | Value |
+|---|---|---|---|
+| 開工日期 | `third.ashx` | `Eng_Start_Date` | 2013/09/10 |
+| 使用執照核發日期 | `third.ashx` | `Ulic_Date` | 2016/08/29 |
+| 成果報備日期 | `third.ashx` | `Report_Date` | (empty for 141) |
+| 實施方式 | `third.ashx` | `Exe_Way` | 權利變換 |
+| 基地面積 | `third.ashx` | `Base_Area` | 1,604.00 |
+| 土地使用分區1 | `third.ashx` | `Landkind1` | 第四種商業區(特)(原商三) |
+| 土地使用分區2/3 | `third.ashx` | `Landkind2/3` | (empty) |
+| 使用分區1-3面積 | `third.ashx` | `Landkind*_Area` | 1,604.00 / 0.00 / 0.00 |
 
-```
-STEP 4 extended: Merge implementation data (third.ashx)
-  Case 141: Eng_Start_Date 2013/09/10 → attach to node 1219 chain (post-核定)
-            Ulic_Date 2016/08/29 → matches portal 使用核發, attach after 1st revision
-            Base_Area/Landkind* → project-level metadata enrichment
-  Cases 142/144: implementation fields empty (tracking on final case only)
-```
+Additional `third.ashx` settlement stats: `Old_Doors`=50, `Settle_Old_Doors`=0, `Settle_Doors`=0, `New_Parkings`=103, `New_Parkings2`=85, `Sidewalk_Length`=60, `Sidewalk_Area`=230.81, `Urban_Renew_Fee`=1,242,782,140, `pc_afterUpdTotalValue`=2,761,323,189, `Land_Owners_Pir`=54, `Bui_Owners_Legal`=54.
 
----
-
-## 13. Updated Open Questions
-
-1. **Portal crawl recovery** — re-run with retry/backoff or browser automation?
-2. **`Report_Date` meaning** — empty here; does it ever fill as 成果報備日期?
-3. **Phase D cases** — find a project in phase D to confirm 核定後/執行前 state.
-4. **`fourth.ashx` reward flags** — map non-empty ones to labels (site JS needed).
-5. **Schema version bump** — `projects.data.js` → version 2 for merged event layer.
-6. **Withdrawal date source** — any other system (紙本? 內部系統?) publishes 撤回日?
+`fourth.ashx` rewards: `F0`=8,982.01 (基準容積), `F`=10,829.58 (允建容積), `F3`=538.92 (都市更新獎勵), `F5`=1,308.65, `F5_3`=230.81 (人行步道面積); reward flags (GREENBUILD_DESIGN, SEISMIC_DESIGN…) all empty here.
 
 ---
 
-*Updated 2026-08-23 with live endpoint probes (third.ashx, fourth.ashx, UI label extraction)*
+## 12. Top Priorities (not "open questions")
+
+1. **Portal crawl recovery** *(highest value — unlocks older projects)* — resume/repair bulk crawl with retry/backoff *or* per-project `?title=<keywords>` targeted search. Recommend the targeted search first: it plates over the WAF and mirrors the working Taipei pattern.
+2. **`Report_Date` semantics** — empty for 141; confirm whether it ever fills as 成果報備日期.
+3. **Phase-D cases** — find a real phase-D project to confirm the 核定後/執行前 state (A/B/D are currently inferred).
+4. **`jud_ok_date2` mapping** (code change, not investigation) — add to `STAGE_FIELD_MAP` and fix the `jud_ok_date` label; this is ready to implement.
+5. **`fourth.ashx` reward flags** — map non-empty values to labels (site JS needed).
+6. **Withdrawal date source** — any external system (紙本? 內部系統?) publishes 撤回日. Likely a dead end; deprioritize.
+7. **Schema version** — confirm whether `schema_version` field actually exists in `viewer/projects.data.js` before bumping; no `schema_version` key was found this pass.
+8. **third.ashx integration** — needs an OpenSpec change (new capability, no spec): fetch 開工/使用執照 per case, extend data model + viewer milestones; `schema_version` → 2 candidate.
+9. **Parcel-count mismatch normalization** — needs an OpenSpec change: land-core join should tolerate portal-vs-Taipei count drift (金華段 11 vs 13 筆) without weakening uniqueness; touches land-identity-fallback / official-link-discovery semantics.
 
 ---
 
-## 14. 推動歷程 Parser Silent Failure — Root Cause Found
-
-**Symptom**: emitted dataset has `milestones_national = {}` for ALL 709 projects, despite
-109 projects carrying a resolved `twur` URL and the portal index matching 78/110 cores exactly.
-
-### Causal chain
-
-```
-portal index crawl ──▶ 110 entries                 ✅
-core lookup        ──▶ 78/110 exact matches        ✅
-twur_url assigned  ──▶ 109 projects               ✅
-fetch view page    ──▶ 50KB HTML                  ✅
-case_id extraction ──▶ works                       ✅
-推動歷程 extraction ──▶ {} EVERY TIME              ❌ ROOT CAUSE
-```
-
-### The bug
-
-`ViewPageParser` only extracts milestones from tables inside `data_table_box` divs whose
-style contains `display:none` (`links.py` `_in_hidden_table` → `_process_tuidui_table()`).
-That assumption came from an older portal design (hidden div, JS-populated). The current
-portal serves the milestone table as **visible static HTML**:
-
-```html
-<div class='..._box'>
-  <table class='type4_table'>          ← visible; display:none count on page: 0
-    <tr><th>項目</th><th>日期</th></tr>
-    <tr><td>事業計畫申請日期</td><td>113.05.03</td></tr>
-```
-
-Live probe of view/1249: labels present ✓ · `data_table_box` ×13 ✓ · `display:none` ×**0**
-→ `_process_tuidui_table()` never fires → `{}`.
-
-### Why it stayed invisible — three masking layers
-
-1. **Status masking**: empty national milestones doesn't change status ("resolved" comes from the Taipei path); no error logged.
-2. **Viewer masking**: the 推動歷程 card renders only when non-empty — absence looks like "no data", not breakage.
-3. **Test masking**: `tests/fixtures_links.py` fixtures are built on the OLD markup
-   (`<div class="data_table_box" style="display:none">`) → tests pass green while production yields nothing.
-
-### Spec conformance
-
-No OpenSpec delta required: `official-link-discovery/spec.md` already mandates attaching
-"the twur URL and 推動歷程" from the view page. The broken parser violates the existing spec;
-fixing it + refreshing fixtures is a pure implementation bug fix.
-
-### Fix shape (applied)
-
-- Parse visible 項目/日期-headed rows (label `<td>` + ROC-date `<td>` pairs), independent of hidden-div detection; legacy hidden path kept for old cached pages.
-- New fixture reproducing live `type4_table` markup + negative assertions (empty 備註 cell dropped, 資料更新日期 row not mistaken for a milestone).
-- Backfill `national_milestones` into per-project caches (view.html already cached locally → no network) and re-emit viewer data.
-
----
-
-## 15. Portal Index Coverage Insight (110 entries)
-
-The 110 crawled entries span view_id 987–1252, approval dates 112.05.11–115.06.16
-(2023-05 → 2026-06): the crawl walks newest-first pages and died at the WAF after ~110
-rows, so coverage is "recent ~3 years" — everything older (e.g. view/136, 核定 2012) is
-systematically absent. Design fork for later: resume/repair bulk crawl vs per-project
-targeted search via the list page's `?title=<keywords>` parameter (mirrors the Taipei
-parcel-search pattern).
+*Sources: interactive exploration (wmux browser + live API probes) 2026-08-23; code claims cross-checked against `urtpe/links.py`, `tests/fixtures_links.py`, `scripts/`, `viewer/projects.data.js` on 2026-08-24. §6.6 additions (wrong-match bugs, per-node date-aligned linking, fetch-script strict match, third.ashx 6-project probe) from the 2026-08-24 session.*

@@ -962,6 +962,18 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
 
             member.links = node_links
 
+            # Per-record implementation snapshot (additive, optional): the case
+            # this record anchors to may carry its own third.ashx payload, so
+            # per-record callouts can show plan-revision drift. Records whose
+            # case has an empty/absent payload carry nothing.
+            for cid in node_links["taipei"]:
+                payload = (getattr(disc, "implementation", None) or {}).get(cid)
+                if payload:
+                    snapshot = dict(payload)
+                    snapshot["case_id"] = cid
+                    member.implementation = snapshot
+                    break
+
 
 class LinksDiscovery:
     """High-level discovery orchestrator with CLI-friendly interface."""

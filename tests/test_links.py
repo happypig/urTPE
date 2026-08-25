@@ -268,6 +268,45 @@ class TestAttachLinksToProjects:
 
         assert project.links == {"twur": "", "taipei": [], "milestones_national": {}, "milestones_taipei": {}}
 
+    def test_attach_per_node_implementation_snapshot(self):
+        """Per-record implementation snapshots (additive): a record whose
+        anchored case carries a third.ashx payload rides on that record."""
+        from urtpe.models import Project
+        from urtpe.cleanse import cleanse
+        from urtpe.models import RawRecord
+
+        raw1 = RawRecord(1042, "115/8/11", "中正區", "擬訂中正河堤段四小段263-19地號等25筆事業計畫案",
+                         "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+        raw2 = RawRecord(772, "115/8/11", "中正區", "變更中正河堤段四小段263-19地號等25筆權利變換計畫案",
+                         "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+        project = Project(
+            project_id="中正區-河堤段四小段-263-19地號等25筆",
+            anchor_recno=1042,
+            members=[cleanse(raw1), cleanse(raw2)],
+        )
+        discovered = {project.project_id: {
+            "twur": "",
+            "taipei": ["10204032", "10707031"],
+            "milestones_national": {},
+            "milestones_taipei": {},
+            "case_milestones": {},
+            "implementation": {
+                "10204032": {"Exe_Way": "協議合建", "Base_Area": "1233.0",
+                             "Eng_Start_Date": "2017/10/31"},
+                "10707031": {},
+            },
+            "rewards": {},
+        }}
+        attach_links_to_projects([project], discovered)
+
+        carriers = [m for m in project.members if getattr(m, "implementation", None)]
+        assert len(carriers) == 1, "exactly one record carries the payload case"
+        assert carriers[0].implementation["case_id"] == "10204032"
+        assert carriers[0].implementation["Exe_Way"] == "協議合建"
+        for m in project.members:
+            if m not in carriers:
+                assert not hasattr(m, "implementation") or not m.implementation
+
     def test_attach_per_node_links_by_approval_date(self):
         """Regression (facts §16): positional linking attached the older case to
         the newer node. Nodes must anchor by 核定日期 instead."""

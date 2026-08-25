@@ -288,6 +288,46 @@ table.recs tr.current td { background: #fef2f2; }
   background: #fef3c7;
   color: #b45309;
 }
+
+/* Construction events (E) 執行階段 column) — colour = source portal */
+.event-edge.taipei { stroke: #ec4899; stroke-width: 1; }
+.event-edge.national { stroke: #16a34a; stroke-width: 1; }
+.event-link.taipei { stroke: #ec4899; stroke-width: 1.5; }
+.event-link.national { stroke: #16a34a; stroke-width: 1.5; }
+.event-node circle { fill: #111827; }
+.event-node .event-label { font-size: 11px; }
+.event-node .event-label.taipei { fill: #db2777; }
+.event-node .event-label.national { fill: #15803d; }
+.event-node a { cursor: pointer; }
+.event-node a text { text-decoration: underline; }
+.chain-prov { font-size: 9px; fill: #64748b; }
+.node.ghost circle { stroke-dasharray: 4 3; }
+.impl-callout-row b.callout-diff { color: #dc2626; }
+.badge-link { cursor: pointer; }
+.callout-tail { fill: #e2c93b; }
+
+/* 相關連結 debug toggle (default off) */
+.links-debug { margin-top: 10px; }
+.links-debug-toggle { font-size: 12px; color: #64748b; cursor: pointer; }
+.links-debug-toggle input { vertical-align: middle; margin-right: 4px; }
+#links-section[hidden] { display: none; }
+
+/* Implementation summary callout on the anchor record */
+.impl-callout {
+  background: #fefce8;
+  border: 1px solid #e2c93b;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 10px;
+  color: #1f2937;
+}
+.impl-callout-row { display: flex; gap: 6px; line-height: 14px; }
+.impl-callout-row span { color: #57534e; }
+.impl-callout-row b { font-weight: 600; margin-inline-start: auto; }
+
+/* 案名 suffix in the 相關連結 section */
+.link-case-name { color: #52525b; font-size: 12px; }
 @media (min-width: 768px) {
   .cols { grid-template-columns: 30% 70%; }
   #list {

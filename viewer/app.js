@@ -6,6 +6,18 @@ const KIND_LABEL = { revision: "版本", track: "事業種類", section: "區段
 
 const TRACK_ORDER = ["事業計畫", "權利變換", "事業計畫、權利變換", "事業概要", "都市更新計畫", "其他"];
 
+// Construction-phase chain slots drawn beside the anchor record (facts §6.4/§12.1)
+const CONSTRUCTION_CHAIN_SLOTS = ["建照核發日期", "開工日期", "使照核發日期"];
+// Slot -> national-portal milestone label; a hit supplies the 國 badge (and the
+// fallback value for the 使照 slot when 使照核發日期 is absent).
+const NATIONAL_MAPPED_LABELS = { "使照核發日期": "使用核發日期" };
+// Implementation summary callout on the anchor record.
+const IMPLEMENTATION_CALLOUT_FIELDS = {
+  Exe_Way: "實施方式",
+  Base_Area: "基地面積",
+  Old_Doors: "原戶數",
+};
+
 // Track column positions: left, middle, right
 function trackPosition(track) {
   if (track.includes("事業計畫") && !track.includes("權利變換")) return 0; // 事業計畫, 事業概要, 都市更新計畫 -> left
@@ -30,18 +42,26 @@ function byDateNodes(nodes) {
   });
 }
 
-function getNodeMilestoneBadges(node) {
-  const links = node.links || {};
-  const national = links.milestones_national || {};
-  const taipei = links.milestones_taipei || {};
+function getNodeMilestoneBadges(node, project) {
+  // Portal links live on the nodes (相關連結 section retired): 北 → anchored
+  // Taipei case page; 國 (現況 node only) → national view page.
   const badges = [];
-  if (Object.keys(national).length > 0) badges.push('<span class="node-milestone-badge national" title="國土署里程碑">國</span>');
-  if (Object.keys(taipei).length > 0) badges.push('<span class="node-milestone-badge taipei" title="台北市里程碑">北</span>');
+  const cases = (node.links || {}).taipei || [];
+  if (cases.length) {
+    badges.push(`<a class="node-milestone-badge taipei badge-link" href="https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cases[0]}" target="_blank" rel="noopener" title="臺北市平台案件頁">北</a>`);
+  }
+  const twur = project && project.links && project.links.twur;
+  if (node.is_current && twur) {
+    badges.push(`<a class="node-milestone-badge national badge-link" href="${escapeHtml(twur)}" target="_blank" rel="noopener" title="國土署入口網">國</a>`);
+  }
   return badges.join("");
 }
 
 // Portal field labels captured from r_progress_detail.aspx DOM (id="detail_<field>")
 const IMPL_LABELS = {
+  Eng_Start_Date: "開工日期",
+  Ulic_Date: "使照核發日期",
+  Report_Date: "成果報備日期",
   Exe_Way: "實施方式",
   Base_Area: "基地面積",
   Landkind1: "土地使用分區1",
@@ -77,6 +97,12 @@ const IMPL_LABELS = {
   StateLand4_Area: "國有土地管理機關4面積",
   StateLand5_Area: "公有土地管理機關1面積",
   StateLand6_Area: "公有土地管理機關2面積",
+  Bui_Owners_Legal: "合法建物所有權人數",
+  Land_Owners_Pub: "公有土地所有權人數",
+  STATELAND2_OWNER: "國有土地管理機關2所有人",
+  pc_afterUpdTotalValue: "總銷售金額",
+  Welfare_Area: "公益設施面積",
+  Road_Cost: "捐贈道路成本",
   VolumeTurn_Area: "容積移轉面積",
   case_id: "資料來源案件",
   review_flags: "審查標記",
@@ -87,6 +113,42 @@ const REWARD_LABELS = {
   F3: "都市更新獎勵",
   F5: "其他容積獎勵",
   F5_3: "人行步道面積",
+  F1: "△F1(㎡)",
+  F2: "△F2(㎡)",
+  F4: "△F4(㎡)",
+  F6: "△F6(㎡)",
+  F4_1: "△F4-1(㎡)",
+  F4_2: "△F4-2(㎡)",
+  F4_3: "△F4-3(㎡)",
+  F5_1: "△F5-1(㎡)",
+  F5_2: "△F5-2(㎡)",
+  F5_4: "△F5-4(㎡)",
+  F5_5: "△F5-5(㎡)",
+  F5_6: "△F5-6(㎡)",
+  Park_Area: "停車獎勵(㎡)",
+  Park_Cars: "停車獎勵部數",
+  TIME_REWARD: "時程獎勵",
+  SCALE_REWARD: "規模獎勵",
+  GREENBUILD_DESIGN: "綠建築標章之建築設計",
+  SEISMIC_DESIGN: "耐震設計",
+  WISDOMBUILD_DESIGN: "智慧建築標章之建築設計",
+  ACCESSIBLE_DESIGN: "無障礙環境設計",
+  NEWTECH: "新技術之應用",
+  IMENVIRON: "改善都市環境",
+  BUILDPLANDES1: "建築規劃設計(一)",
+  BUILDPLANDES2: "建築規劃設計(二)",
+  BUILDPLANDES3: "建築規劃設計(三)",
+  BUILDPLANDES4: "建築規劃設計(四)",
+  BUILDSAFE_CONDITION: "建築物結構安全條件",
+  CHARITY_BUILD: "公益設施",
+  CULTURAL_MAINTAIN: "文資保存及維護",
+  DEVELOP_PUBFACILITY: "協助開闢公共設施用地",
+  AGREEMENT_CONSTRUCTION: "全體同意採協議合建實施",
+  PROREGENERAT1: "促進都市更新(一)",
+  PROREGENERAT2: "促進都市更新(二)",
+  VOLUME_HIGHER_REWARD: "高於法定容積部份核計之獎勵",
+  ILLEGAL_FLOORAREA_REWARD: "處理違建戶之樓地板面積獎勵",
+  name_reward_no: "獎勵上限規定",
   Case_921_311_Area: "921.311震災案",
   Old_Apartment_Area: "老舊公寓獎勵",
   Radiation_Room_Area: "輻射屋獎勵",
@@ -128,6 +190,77 @@ function renderObjectCard(title, badgeClass, badgeText, obj, labels) {
 function renderImplementation(project) {
   if (!project.implementation || Object.keys(project.implementation).length === 0) return "";
   return renderObjectCard("執行階段", "taipei", "北", project.implementation, IMPL_LABELS);
+}
+
+// Construction-phase chain items beside the anchor record: 建照→開工→使照,
+// rendered only for events that exist. 使照 falls back to the national portal's
+// 使用核發日期; any national hit flags the node with the 國 badge. Construction
+// events often belong to a sibling case rather than the anchor approval —
+// when a slot's value exactly equals the emitted implementation payload's
+// date, that payload's case_id rides along as provenance.
+function buildConstructionChain(p) {
+  const links = p.links || {};
+  const taipei = links.milestones_taipei || {};
+  const national = links.milestones_national || {};
+  const impl = p.implementation || {};
+  const implCase = impl.case_id || "";
+  const IMPL_SOURCE_FIELDS = { "開工日期": "Eng_Start_Date", "使照核發日期": "Ulic_Date" };
+  // carrying-case provenance: the case owning the implementation payload often
+  // anchors to its own record (核定日期±1d linkage) — name that 編號 too.
+  let ownerTag = "";
+  if (implCase) {
+    const owner = (p.nodes || []).find(n =>
+      ((n.links || {}).taipei || []).includes(implCase));
+    ownerTag = owner ? `·編號${owner.recno}` : "";
+  }
+  const out = [];
+  for (const slot of CONSTRUCTION_CHAIN_SLOTS) {
+    let value = taipei[slot] || "";
+    const natLabel = NATIONAL_MAPPED_LABELS[slot];
+    const nationalHit = !!(natLabel && national[natLabel]);
+    if (!value && nationalHit) value = national[natLabel];
+    if (!value) continue;
+    // national portal dates arrive in 民國 (110.10.25) — render western
+    // (115 → 2026) so display and chronological sorting stay consistent.
+    let dateStr = String(value);
+    if (nationalHit) {
+      const roc = dateStr.match(/^(\d{2,3})\.(\d{1,2})\.(\d{1,2})$/);
+      if (roc) {
+        dateStr = `${1911 + Number(roc[1])}/${roc[2].padStart(2, "0")}/${roc[3].padStart(2, "0")}`;
+      }
+    }
+    let prov = "";
+    const implField = IMPL_SOURCE_FIELDS[slot];
+    if (implCase && implField && !nationalHit && impl[implField] === value) {
+      prov = `案${implCase}${ownerTag}`;
+    }
+    out.push({ label: slot, date: dateStr, national: nationalHit, prov, case: prov ? implCase : "" });
+  }
+  return out;
+}
+
+// Implementation summary rows for a record's callout (only populated fields).
+function buildImplCallout(impl) {
+  const rows = [];
+  for (const [key, label] of Object.entries(IMPLEMENTATION_CALLOUT_FIELDS)) {
+    const v = (impl || {})[key];
+    if (v !== undefined && v !== null && v !== "") rows.push({ label, value: String(v) });
+  }
+  return rows;
+}
+
+// 相關連結 (debug toggle, default off): each city case_id joins to its
+// anchored record's 案名 via nodes[].links.taipei; the national link shows
+// the anchor (現況) record's 案名. Primary link surface is the graph itself.
+function buildRelatedLinkLabels(p) {
+  const nodes = p.nodes || [];
+  const byCase = {};
+  for (const n of nodes) {
+    const anchored = (n.links || {}).taipei || [];
+    for (const cid of anchored) byCase[cid] = n.case_name || "";
+  }
+  const anchor = nodes.find(n => n.is_current) || nodes[nodes.length - 1] || {};
+  return { byCase, anchorName: anchor.case_name || "" };
 }
 
 function renderRewards(project) {
@@ -323,12 +456,12 @@ function init() {
   }
 
   function renderList() {
-    const shown = projects.filter(matches).sort((a, b) => {
-      // Sort by earliest date (ascending)
-      const dateA = a.nodes.reduce((min, n) => n.date < min ? n.date : min, "9999-12-31");
-      const dateB = b.nodes.reduce((min, n) => n.date < min ? n.date : min, "9999-12-31");
-      return dateA.localeCompare(dateB);
-    });
+    // Sort by the 現況 record's recno, ascending.
+    const curRecno = p => {
+      const cur = p.nodes.find(n => n.is_current);
+      return cur ? cur.recno : Number.MAX_SAFE_INTEGER;
+    };
+    const shown = projects.filter(matches).sort((a, b) => curRecno(a) - curRecno(b));
     rcount.textContent = `顯示 ${shown.length} / ${total}`;
     list.innerHTML = "";
     if (!shown.length) {
@@ -369,15 +502,50 @@ function init() {
       return colKeys.indexOf(c);
     };
 
-    // Stable layout: row = ordinal in date order; column = track/area lane.
-    const svgW = Math.max(W, colKeys.length * COL_W + PAD * 2);
-    const svgH = nodes.length * 64 + PAD * 2;
+    // Timeline rows: approvals + construction events share the date order.
+    // Events sit in a dedicated E) 執行階段 column (rightmost); attribution
+    // edges color by source portal (pink Taipei / green national).
+    const events = buildConstructionChain(p);
+    const timeline = nodes.map(n => ({ kind: "approval", date: n.date, n }));
+    events.forEach(e => timeline.push({
+      kind: "event", date: String(e.date).replace(/\//g, "-"), e,
+    }));
+    timeline.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 :
+      (a.kind === "approval" ? -1 : 1)));
+
+    const hasEvents = events.length > 0;
+    const eventColX = PAD + colKeys.length * COL_W + COL_W / 2;
+
     const pos = {};
-    nodes.forEach((n, i) => {
-      pos[n.recno] = {
-        x: PAD + colOf(n) * COL_W + COL_W / 2,
-        y: PAD + i * 64,
-      };
+    const evPos = {};
+    timeline.forEach((t, i) => {
+      if (t.kind === "approval") {
+        pos[t.n.recno] = { x: PAD + colOf(t.n) * COL_W + COL_W / 2, y: PAD + i * 64 };
+      } else {
+        evPos[t.e.label] = { x: eventColX, y: PAD + i * 64 };
+      }
+    });
+
+    // Per-record callouts: carrying records + red diff vs nearest earlier carrier.
+    const callouts = [];
+    let prevVals = null;
+    nodes.forEach(n => {
+      if (!n.implementation) return;
+      const rows = buildImplCallout(n.implementation).map(r => ({
+        label: r.label,
+        value: r.value,
+        changed: !!(prevVals && prevVals[r.label] !== undefined && prevVals[r.label] !== r.value),
+      }));
+      callouts.push({ n, rows });
+      prevVals = {};
+      rows.forEach(r => { prevVals[r.label] = r.value; });
+    });
+
+    let svgW = Math.max(W, (colKeys.length + (hasEvents ? 1 : 0)) * COL_W + PAD * 2);
+    if (hasEvents) svgW = Math.max(svgW, eventColX + 250);
+    let svgH = PAD * 2 + timeline.length * 64;
+    callouts.forEach(c => {
+      svgH = Math.max(svgH, pos[c.n.recno].y + 84);
     });
 
     let s = `<h2><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}</h2>
@@ -395,16 +563,105 @@ function init() {
       s += `<line class="edge ${e.kind}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
     });
 
+    // Construction events: thin attribution edge to the plan in force (the
+    // latest approval dated on or before the event), colored by source portal.
+    if (hasEvents) {
+      events.forEach(e => {
+        const evDate = String(e.date).replace(/\//g, "-");
+        let owner = null;
+        for (const n of nodes) {          // date-ascending
+          if (n.date <= evDate) owner = n; else break;
+        }
+        if (!owner) owner = nodes[0];
+        const a = pos[owner.recno], b = evPos[e.label];
+        if (!a || !b) return;
+        s += `<line class="event-edge ${e.national ? "national" : "taipei"}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+      });
+      const kai = evPos["開工日期"], shi = evPos["使照核發日期"];
+      if (kai && shi) {
+        const shiEv = events.find(e => e.label === "使照核發日期");
+        s += `<line class="event-link ${shiEv && shiEv.national ? "national" : "taipei"}" x1="${kai.x}" y1="${kai.y}" x2="${shi.x}" y2="${shi.y}"></line>`;
+      }
+    }
+
     nodes.forEach(n => {
       const p2 = pos[n.recno];
       const label = `${n.recno} · ${n.date}${n.stage ? " " + n.stage : ""}`;
-      const badges = getNodeMilestoneBadges(n);
-      s += `<g class="node ${n.is_current ? "current" : ""}" transform="translate(${p2.x},${p2.y})">
+      const badges = getNodeMilestoneBadges(n, p);
+      const ghost = n.track === "事業概要" ? " ghost" : "";
+      // badges sit ABOVE the first line, aligned to its left edge — never
+      // covering the label or the track line beneath.
+      s += `<g class="node${ghost} ${n.is_current ? "current" : ""}" transform="translate(${p2.x},${p2.y})">
         <circle r="9"></circle>
         <text class="title" x="14" y="3">${escapeHtml(label)}</text>
         <text class="sub" x="14" y="15">${escapeHtml(n.track)}${n.area ? "（" + escapeHtml(n.area) + "區段）" : ""}</text>
-        ${badges ? `<foreignObject x="18" y="-12" width="32" height="16"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;gap:2px;">${badges}</div></foreignObject>` : ""}
+        ${badges ? `<foreignObject x="14" y="-27" width="34" height="15"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;gap:2px;">${badges}</div></foreignObject>` : ""}
       </g>`;
+    });
+
+    // Construction event nodes (black dots; label hyperlinks to its portal).
+    if (hasEvents) {
+      events.forEach(e => {
+        const b = evPos[e.label];
+        const colorCls = e.national ? "national" : "taipei";
+        const href = e.national
+          ? ((p.links || {}).twur || "")
+          : (e.case ? `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${e.case}` : "");
+        const inner = `<circle r="6"></circle>
+          <text class="event-label ${colorCls}" x="11" y="3">${escapeHtml(e.label)}：${escapeHtml(e.date)}</text>
+          ${e.prov ? `<text class="chain-prov" x="11" y="14">${escapeHtml(e.prov)}</text>` : ""}
+          ${e.national ? `<foreignObject x="-5" y="-24" width="18" height="14"><div xmlns="http://www.w3.org/1999/xhtml"><span class="node-milestone-badge national" title="國土署里程碑">國</span></div></foreignObject>` : ""}`;
+        s += `<g class="event-node" transform="translate(${b.x},${b.y})">` +
+          (href ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${inner}</a>` : inner) +
+          `</g>`;
+      });
+    }
+
+    // Per-record implementation callouts: compact, tail pointing at the
+    // carrying record, placed in the first spot that covers nothing.
+    const nodeRects = nodes.map(n => {
+      const q = pos[n.recno];
+      const headLen = (`${n.recno} · ${n.date}${n.stage ? " " + n.stage : ""}`).length;
+      return { x: q.x - 10, y: q.y - 14, w: 14 + headLen * 6.5 + 40, h: 38 };
+    });
+    const evRects = events.map(e => {
+      const q = evPos[e.label];
+      return { x: q.x - 8, y: q.y - 12, w: 240, h: 26 };
+    });
+    const placedBoxes = [];
+    const hitsAny = (r, list) => list.some(o =>
+      r.x < o.x + o.w && o.x < r.x + r.w && r.y < o.y + o.h && o.y < r.y + r.h);
+    callouts.forEach(c => {
+      const p2 = pos[c.n.recno];
+      const w = 150, h = c.rows.length * 14 + 6;
+      const spots = [
+        { x: p2.x - 16 - w, y: p2.y + 20 },          // below-left
+        { x: p2.x + 16,     y: p2.y + 20 },          // below-right
+        { x: p2.x - 16 - w, y: p2.y - 10 - h },      // above-left
+        { x: p2.x + 16,     y: p2.y - 10 - h },      // above-right
+        { x: p2.x - 16 - w, y: p2.y + 46 },          // further below-left
+        { x: p2.x + 16,     y: p2.y + 46 },          // further below-right
+      ];
+      const spot = spots.find(s => {
+        const r = { x: s.x, y: s.y, w, h };
+        return !hitsAny(r, nodeRects) && !hitsAny(r, evRects) && !hitsAny(r, placedBoxes);
+      }) || spots[0];
+      spot.w = w; spot.h = h;
+      placedBoxes.push(spot);
+      const rowsHtml = c.rows.map(r =>
+        `<div class="impl-callout-row"><span>${escapeHtml(r.label)}</span><b class="${r.changed ? "callout-diff" : ""}">${escapeHtml(r.value)}</b></div>`
+      ).join("");
+      // tail: from the box edge nearest the node, apex on the node circle
+      const apex = { x: p2.x - 7, y: p2.y + 9 };
+      let tail;
+      if (spot.x + w <= p2.x) {                       // box left of node
+        tail = `${spot.x + w},${spot.y + 4} ${apex.x},${apex.y} ${spot.x + w},${spot.y + h - 4}`;
+      } else {                                        // box right of node
+        tail = `${spot.x},${spot.y + 4} ${apex.x + 14},${apex.y} ${spot.x},${spot.y + h - 4}`;
+      }
+      s += `<polygon class="callout-tail" points="${tail}"></polygon>`;
+      s += `<foreignObject x="${spot.x}" y="${spot.y}" width="${w}" height="${h}"><div xmlns="http://www.w3.org/1999/xhtml" class="impl-callout">${rowsHtml}</div></foreignObject>`;
+      svgH = Math.max(svgH, spot.y + h + 16);
     });
     s += "</svg>";
 
@@ -433,7 +690,7 @@ function init() {
         } else if (col === "parcels" || col === "aliases") {
           val = JSON.stringify(rec[col] || []);
         } else if (col === "milestones") {
-          val = getNodeMilestoneBadges(rec);
+          val = getNodeMilestoneBadges(rec, p);
         } else {
           val = rec[col] !== undefined ? escapeHtml(String(rec[col])) : "";
         }
@@ -460,20 +717,26 @@ function init() {
     s += `<div class="table-wrap"><table class="recs"><thead><tr>${headerCells}</tr></thead><tbody>${rows}</tbody></table></div>
     <button id="expand-toggle" class="expand-btn" data-expanded="false">展開全部</button>`;
 
-    // Render 相關連結 section
+    // 相關連結 (debug, default OFF): portal links live on the graph nodes;
+    // this section stays available behind an explicit toggle.
     const links = p.links || {};
     if (links.twur || (links.taipei && links.taipei.length)) {
-      s += `<div class="related-links"><h3>相關連結</h3><ul>`;
+      const linkLabels = buildRelatedLinkLabels(p);
+      s += `<div class="links-debug">
+        <label class="links-debug-toggle"><input type="checkbox" id="links-toggle"> 相關連結（除錯）</label>
+        <div id="links-section" hidden><h3>相關連結</h3><ul>`;
       if (links.twur) {
-        s += `<li><a href="${escapeHtml(links.twur)}" target="_blank" rel="noopener">都市更新入口網 (twur.nlma.gov.tw)</a></li>`;
+        const nm = linkLabels.anchorName;
+        s += `<li><a href="${escapeHtml(links.twur)}" target="_blank" rel="noopener">都市更新入口網 (twur.nlma.gov.tw)</a>${nm ? ` — <span class="link-case-name">${escapeHtml(nm)}</span>` : ""}</li>`;
       }
       if (links.taipei && links.taipei.length) {
         links.taipei.forEach(cid => {
           const url = `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cid}`;
-          s += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">臺北市都市更新審議服務平台 (case_id: ${cid})</a></li>`;
+          const nm = linkLabels.byCase[cid] || "";
+          s += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">臺北市都市更新審議服務平台 (case_id: ${cid})</a>${nm ? ` — <span class="link-case-name">${escapeHtml(nm)}</span>` : ""}</li>`;
         });
       }
-      s += `</ul></div>`;
+      s += `</ul></div></div>`;
     }
 
     // Render milestone timelines
@@ -484,6 +747,13 @@ function init() {
     s += p.rewards ? renderRewards(p) : "";
 
     detail.innerHTML = s;
+
+    // 相關連結 debug toggle (default off)
+    const linksToggle = detail.querySelector("#links-toggle");
+    const linksSection = detail.querySelector("#links-section");
+    if (linksToggle && linksSection) {
+      linksToggle.onchange = () => { linksSection.hidden = !linksToggle.checked; };
+    }
 
     // Toggle for full columns
     const toggleBtn = detail.querySelector("#expand-toggle");

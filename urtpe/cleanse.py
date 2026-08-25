@@ -190,6 +190,11 @@ def cleanse(rec: RawRecord) -> CleanRecord:
 
     name_raw = re.sub(r"\s+", "", rec.name)
     name = normalize_name(name_raw)
+    # 事業換計畫 is a scrambled 事業計畫 (recno 621 大業段三小段184-1): the
+    # 換/計 transposition otherwise drops the record into track 其他.
+    if "事業換計畫" in name:
+        fixes.append("案名錯字→事業計畫")
+        name = name.replace("事業換計畫", "事業計畫")
 
     land_clean = re.sub(r"\s+", "", rec.land)
     land_district = _land_district(land_clean)

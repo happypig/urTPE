@@ -6,7 +6,7 @@ fetch_remaining_national_portal.py
 Time-bounded script to fetch missing national portal data for projects lacking twur links.
 
 Usage:
-    python scripts/fetch_remaining_national_portal.py [--dry-run] [--max-projects N]
+    python scripts/fetch_remaining_national_portal.py [--dry-run] [--max-projects N] [--max-probe N]
 
 Behavior:
 - Loads viewer/projects.data.js
@@ -70,6 +70,7 @@ ROOT = Path("data/.link_cache")
 FAILURES_LOG = ROOT / "fetch_failures.json"
 LEDGER_PATH = ROOT / "no_match_ledger.json"
 DEFAULT_REPROBE_DAYS = 14
+DEFAULT_MAX_PROBE = 8
 
 # ──────────────────────────────────────────────────────────────────────────────
 # No-Match Ledger (design D1/D3/D5)
@@ -165,17 +166,34 @@ def sweep_matched_entries(ledger: dict, cache_root: Path = ROOT) -> list[str]:
 # Core Functions
 # ──────────────────────────────────────────────────────────────────────────────
 
+# Captured at import so is_past_deadline can resolve an HH:MM deadline that
+# has already passed today into tomorrow instead of stopping instantly.
+_PROCESS_START = datetime.now()
+
+
+def _next_deadline(now: datetime, start: datetime,
+                   hour: int, minute: int) -> datetime:
+    """Resolve an HH:MM wall-clock deadline to the first occurrence after `start`.
+
+    A deadline at-or-before the launch moment means tomorrow: launching at
+    22:32 with deadline 06:00 targets tomorrow 06:00, not the already-past
+    06:00 (which previously stopped the run instantly).
+    """
+    target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if target <= start:
+        target += timedelta(days=1)
+    return target
+
+
 def is_past_deadline() -> bool:
-    """Check if current time is past 06:30."""
-    now = time.localtime()
-    current = dtime(now.tm_hour, now.tm_min)
-    deadline = dtime(DEADLINE_HOUR, DEADLINE_MINUTE)
-    return current >= deadline
+    """True once now passes the deadline resolved by _next_deadline."""
+    return datetime.now() >= _next_deadline(
+        datetime.now(), _PROCESS_START, DEADLINE_HOUR, DEADLINE_MINUTE)
 
 
-def load_candidates() -> list[dict]:
+def load_candidates(js_path: Optional[Path] = None) -> list[dict]:
     """Load projects from viewer/projects.data.js and return candidates missing twur."""
-    js_path = REPO_ROOT / "viewer" / "projects.data.js"
+    js_path = js_path or (REPO_ROOT / "viewer" / "projects.data.js")
     if not js_path.exists():
         raise FileNotFoundError(f"Viewer data not found: {js_path}")
 
@@ -205,21 +223,22 @@ def load_candidates() -> list[dict]:
         if not current_node:
             continue
 
-        # Extract section and first parcel from anchor node
         section = current_node.get("section", "")
         land = current_node.get("land", "")
-        # Extract first parcel and land count from land string
-        # (e.g., "中山區中山段一小段254地號等13筆" -> parcel "254", count "13")
-        parcel = ""
+        # Parcel keyword = the anchor record's NAMED first parcel — the parcel the
+        # case name is titled after. Never derive it positionally from an
+        # enumerated land string ("599、599-1、…、623地號" must yield 599, not 623).
+        parcel = current_node.get("first_parcel") or ""
         count = ""
         if land:
-            import re
-            m = re.search(r"(\d+(?:-\d+)?)地號", land)
-            if m:
-                parcel = m.group(1)
             m2 = re.search(r"等(\d+)筆", land)
             if m2:
                 count = m2.group(1)
+            if not parcel:
+                # Fallback: first parcel token appearing in the land string.
+                m = re.search(r"(\d+(?:-\d+)?)", land)
+                if m:
+                    parcel = m.group(1)
 
         if not section or not parcel:
             continue
@@ -273,14 +292,34 @@ def fetch_and_parse_view(view_id: str) -> tuple[dict[str, str], list[str]]:
     return milestones, city_ids
 
 
-def view_page_matches(html: str, section: str, parcel: str, count: str = "") -> bool:
-    """Strict match: parcel must appear in 地號 context, and the page title must
-    carry the same section + parcel (+ land count when known).
+_FULLWIDTH_DIGITS = str.maketrans("０１２３４５６７８９", "0123456789")
 
-    Prevents substring collisions (263-19 vs 209-19) and same-parcel
-    different-project collisions (444等7筆 vs 444等17筆).
+
+def normalize_land_token(token: str) -> str:
+    """Normalize a parcel/count token: full-width→ASCII digits, 之→- (design D2).
+
+    Notation equivalence only — never changes numeric values.
     """
-    if f"{parcel}地號" not in html:
+    return (token or "").translate(_FULLWIDTH_DIGITS).replace("之", "-")
+
+
+def view_page_matches(html: str, section: str, parcel: str, count: str = "") -> bool:
+    """Strict match: the page title must carry the same section + named first
+    parcel (+ equal land count when both sides carry one).
+
+    Comparisons are type-safe and notation-normalized so text '27' equals
+    parsed count 27 and 263之19 equals 263-19. Prevents substring collisions
+    (263-19 vs 209-19) and same-parcel different-project collisions
+    (444等7筆 vs 444等17筆).
+    """
+    parcel_n = normalize_land_token(parcel)
+    count_n = normalize_land_token(count)
+    if not section or not parcel_n:
+        return False
+
+    # Body check accepts both hyphen and 之 spellings of the sub-parcel.
+    body_variants = (f"{parcel_n}地號", f"{parcel_n.replace('-', '之')}地號")
+    if not any(v in html for v in body_variants):
         return False
 
     import re
@@ -289,17 +328,29 @@ def view_page_matches(html: str, section: str, parcel: str, count: str = "") -> 
     if not title:
         return False
 
+    # parse_name_id only reads ASCII digits and hyphen sub-parcels — normalize
+    # the title's 地號 notation before parsing.
+    title_norm = title.translate(_FULLWIDTH_DIGITS)
+    title_norm = re.sub(r"(\d+)之(\d+)", r"\1-\2", title_norm)
+
     from urtpe.cleanse import parse_name_id
-    t_district, t_section, t_parcel, t_count = parse_name_id(title)
-    if t_section != section or t_parcel != parcel:
+    t_district, t_section, t_parcel, t_count = parse_name_id(title_norm)
+    if t_section != section:
         return False
-    if count and t_count and t_count != count:
+    if normalize_land_token(t_parcel) != parcel_n:
+        return False
+    if count_n and t_count is not None and str(t_count) != count_n:
         return False
     return True
 
 
-def find_matching_view(section: str, parcel: str, count: str = "") -> tuple[str, dict[str, str], list[str], str, list[str]]:
-    """Search for view_id matching section, then filter by parcel.
+def find_matching_view(section: str, parcel: str, count: str = "",
+                       max_probe: int = DEFAULT_MAX_PROBE) -> tuple[str, dict[str, str], list[str], str, list[str]]:
+    """Search for view_id matching section, then filter by strict identity match.
+
+    Probes at most max_probe results (default 8) in returned order; stops at
+    the first match. When the limit truncates unprobed results without a
+    match, a note with the unprobed count is printed.
 
     Returns (view_id, milestones, city_ids, html, view_ids_checked); html is
     empty when no match. view_ids_checked lists every probed view_id (match,
@@ -309,8 +360,9 @@ def find_matching_view(section: str, parcel: str, count: str = "") -> tuple[str,
     if not vids:
         return "", {}, [], "", []
 
+    limit = max(1, int(max_probe))
     checked: list[str] = []
-    for vid in vids[:5]:  # Check first 5 results max
+    for vid in vids[:limit]:
         print(f"  Checking view/{vid} for parcel {parcel}...")
         checked.append(vid)
         try:
@@ -325,6 +377,10 @@ def find_matching_view(section: str, parcel: str, count: str = "") -> tuple[str,
         except Exception as e:
             print(f"  Error checking view/{vid}: {e}")
             continue
+
+    remaining = len(vids) - len(checked)
+    if remaining > 0:
+        print(f"  No match within {limit} probes ({remaining} unprobed results remain)")
     return "", {}, [], "", checked
 
 
@@ -434,6 +490,8 @@ def main():
     parser.add_argument("--max-projects", type=int, default=0, help="Maximum projects to process (0 = all)")
     parser.add_argument("--reprobe-days", type=int, default=DEFAULT_REPROBE_DAYS,
                         help=f"Re-probe no-match candidates after N days (default {DEFAULT_REPROBE_DAYS}; 0 disables skipping)")
+    parser.add_argument("--max-probe", type=int, default=DEFAULT_MAX_PROBE,
+                        help=f"Max view pages to probe per project (default {DEFAULT_MAX_PROBE})")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -493,8 +551,9 @@ def main():
 
         print(f"\n[{processed+1}/{len(candidates)}] {project_id} | {current_date} | {section}{parcel}")
 
-        # Search portal by section, then filter by parcel (+count)
-        chosen_vid, milestones, city_ids, view_html, checked_vids = find_matching_view(section, parcel, count)
+        # Search portal by section, then filter by strict identity match
+        chosen_vid, milestones, city_ids, view_html, checked_vids = find_matching_view(
+            section, parcel, count, max_probe=args.max_probe)
         matched = bool(chosen_vid)
         if not matched:
             print(f"  No matching view_id found for parcel {parcel}, skipping")

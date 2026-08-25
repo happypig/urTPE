@@ -364,6 +364,30 @@ class TestDeadlineLogic:
         """Returns True after 06:30."""
         pass
 
+    def test_next_deadline_same_day(self):
+        """Deadline later today resolves to today."""
+        from datetime import datetime
+        from scripts.fetch_remaining_national_portal import _next_deadline
+        start = datetime(2026, 8, 25, 12, 59)
+        now = datetime(2026, 8, 25, 13, 0)
+        assert _next_deadline(now, start, 22, 30) == datetime(2026, 8, 25, 22, 30)
+
+    def test_next_deadline_crosses_midnight(self):
+        """Deadline already passed at launch rolls to tomorrow (run_sweep_until 6 0 at 22:32)."""
+        from datetime import datetime
+        from scripts.fetch_remaining_national_portal import _next_deadline
+        start = datetime(2026, 8, 25, 22, 32)
+        now = datetime(2026, 8, 25, 23, 0)
+        assert _next_deadline(now, start, 6, 0) == datetime(2026, 8, 26, 6, 0)
+
+    def test_next_deadline_at_launch_rolls_forward(self):
+        """Deadline equal to the launch moment also rolls to tomorrow."""
+        from datetime import datetime
+        from scripts.fetch_remaining_national_portal import _next_deadline
+        start = datetime(2026, 8, 25, 7, 0)
+        now = datetime(2026, 8, 25, 7, 0)
+        assert _next_deadline(now, start, 7, 0) == datetime(2026, 8, 26, 7, 0)
+
     def test_loop_stops_at_deadline(self):
         """Loop stops at 06:30 and triggers regeneration."""
         pass
@@ -592,6 +616,192 @@ class TestClearOnMatchAndSweep:
         assert removed == ["has-twur"]
         assert "has-twur" not in ledger
         assert "still-missing" in ledger
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Test Group: Matcher fixes (fix-targeted-portal-matcher)
+# ──────────────────────────────────────────────────────────────────────────────
+
+import re as _re
+
+from scripts.fetch_remaining_national_portal import (
+    DEFAULT_MAX_PROBE,
+    find_matching_view,
+    load_candidates,
+    normalize_land_token,
+    view_page_matches,
+)
+
+
+def _title_html(title: str, body_parcel: str = "") -> str:
+    """Build a minimal view page whose <title> carries the given case title."""
+    body = ""
+    if body_parcel:
+        body = f"<div>臺北市松山區寶清段四小段{body_parcel}地號等27筆土地</div>"
+    return f"<html><head><title>{title}-都更查詢-內政部國土管理署都市更新入口網</title></head><body>{body}</body></html>"
+
+
+VIEW30_TITLE = "擬訂臺北市松山區寶清段四小段599地號等27筆土地都市更新事業計畫案"
+VIEW30_LAND = "臺北市松山區寶清段四小段599、599-1、601、601-1、603、603-1、605、605-1、607、607-1、609、609-1、611、611-1、613、613-1、615、615-1、616、616-1、617、618、619、620、621、622、623地號等27筆土地"
+
+
+class TestNormalizeLandToken:
+    """Notation normalization helper (design D2)."""
+
+    def test_hyphen_subparcel_unchanged(self):
+        assert normalize_land_token("263-19") == "263-19"
+
+    def test_zhi_becomes_hyphen(self):
+        assert normalize_land_token("263之19") == "263-19"
+
+    def test_fullwidth_digits_to_ascii(self):
+        assert normalize_land_token("５９９") == "599"
+
+    def test_combined(self):
+        assert normalize_land_token("２６３之１９") == "263-19"
+
+
+class TestStrictIdentityMatch:
+    """1.2 + 1.3 — type-safe counts and notation-drift tolerance."""
+
+    def test_counted_candidate_matches_own_page(self):
+        """Text count '27' vs parsed numeric count 27 must accept (the §view/30 bug)."""
+        html = _title_html(VIEW30_TITLE, body_parcel="623")
+        assert view_page_matches(html, "寶清段四小段", "599", "27") is True
+
+    def test_differing_counts_rejected(self):
+        html = _title_html(VIEW30_TITLE, body_parcel="623")
+        assert view_page_matches(html, "寶清段四小段", "599", "17") is False
+
+    def test_absent_candidate_count_skips_count_check(self):
+        html = _title_html(VIEW30_TITLE, body_parcel="623")
+        assert view_page_matches(html, "寶清段四小段", "599", "") is True
+
+    def test_absent_title_count_skips_count_check(self):
+        title = "擬訂臺北市松山區寶清段四小段599地號1筆土地都市更新事業計畫案"  # no 等N筆 → count None
+        m = _re.search(r"(臺北市.{1,4}?區.{1,10}?地號(?:等)?\d*筆)", title)
+        assert m, "fixture title must be regex-shaped for this test"
+        html = f"<html><head><title>{title}</title></head><body>x</body></html>"
+        assert view_page_matches(html, "寶清段四小段", "599", "27") is False  # 1 vs 27 differ
+        assert view_page_matches(html, "寶清段四小段", "599", "") is True
+
+    def test_zhi_notation_title_accepted_for_hyphen_parcel(self):
+        title = "變更臺北市松山區寶清段四小段２６３之１９地號等2筆土地都市更新事業計畫案"
+        html = f"<html><head><title>{title}</title></head><body><div>263之19地號</div></body></html>"
+        assert view_page_matches(html, "寶清段四小段", "263-19", "2") is True
+
+    def test_wrong_parcel_rejected_even_if_in_body(self):
+        """The 623-extraction bug signature: candidate says 623, title says 599."""
+        html = _title_html(VIEW30_TITLE, body_parcel="623")
+        assert view_page_matches(html, "寶清段四小段", "623", "27") is False
+
+    def test_wrong_section_rejected(self):
+        html = _title_html(VIEW30_TITLE, body_parcel="623")
+        assert view_page_matches(html, "寶清段三小段", "599", "27") is False
+
+    def test_unparseable_title_rejected(self):
+        html = "<html><head><title>都更查詢</title></head><body>599地號</body></html>"
+        assert view_page_matches(html, "寶清段四小段", "599", "") is False
+
+    def test_offline_acceptance_replay_view30_cached(self):
+        """1.5 replay hook — cached view/30 page must match its own project tuple."""
+        cache_file = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "view30.html"
+        if not cache_file.exists():
+            pytest.skip("tests/fixtures/view30.html not present")
+        html = cache_file.read_text(encoding="utf-8")
+        assert view_page_matches(html, "寶清段四小段", "599", "27") is True
+
+
+def _write_projects_js(tmp_path: Path, projects: list[dict]) -> Path:
+    data = {
+        "schema_version": 2, "generated_at": "2026-08-25T00:00:00", "source": "test",
+        "published_date": "2026-08-25", "counts": {}, "projects": projects,
+    }
+    p = tmp_path / "projects.data.js"
+    p.write_text(f"window.PROJECTS = {json.dumps(data, ensure_ascii=False)};\n", encoding="utf-8")
+    return p
+
+
+def _project(pid: str, section: str, land: str, first_parcel: str = "", twur: str = "",
+             date: str = "2007-10-30") -> dict:
+    node = {"recno": 1, "date": date, "stage": "變更", "is_current": True,
+            "section": section, "land": land}
+    if first_parcel:
+        node["first_parcel"] = first_parcel
+    return {"project_id": pid, "section": section, "nodes": [node],
+            "links": {"twur": twur, "taipei": []}}
+
+
+class TestCandidateParcelDerivation:
+    """1.1 — anchor named first parcel wins over positional extraction (design D1)."""
+
+    def test_enumerated_land_uses_named_first_parcel(self, tmp_path):
+        pid = "松山區-寶清段四小段-599地號等27筆"
+        p = _project(pid, "寶清段四小段", VIEW30_LAND, first_parcel="599")
+        cands = load_candidates(_write_projects_js(tmp_path, [p]))
+        assert len(cands) == 1
+        assert cands[0]["parcel"] == "599"
+        assert cands[0]["count"] == "27"
+
+    def test_fallback_first_enumeration_token_when_first_parcel_missing(self, tmp_path):
+        pid = "松山區-寶清段四小段-599地號等27筆"
+        p = _project(pid, "寶清段四小段", VIEW30_LAND, first_parcel="")
+        cands = load_candidates(_write_projects_js(tmp_path, [p]))
+        assert cands[0]["parcel"] == "599"  # never the last token 623
+
+    def test_compact_land_without_first_parcel(self, tmp_path):
+        pid = "中山區-中山段一小段-254地號等13筆"
+        p = _project(pid, "中山段一小段", "中山區中山段一小段254地號等13筆", first_parcel="")
+        cands = load_candidates(_write_projects_js(tmp_path, [p]))
+        assert cands[0]["parcel"] == "254"
+
+
+class TestProbeBreadth:
+    """1.4 — configurable probe limit replacing hardcoded first-5 (design D3)."""
+
+    def test_default_limit_is_eight(self):
+        assert DEFAULT_MAX_PROBE == 8
+
+    def _run_find(self, monkeypatch, capsys, n_vids: int, max_probe, match_at=None):
+        import scripts.fetch_remaining_national_portal as mod
+
+        vids = [str(100 + i) for i in range(n_vids)]
+        monkeypatch.setattr(mod, "search_portal", lambda section: vids)
+        calls = {"n": 0}
+
+        def fake_fetch(url, *a, **k):
+            calls["n"] += 1
+            vid = url.rsplit("/", 1)[-1]
+            if match_at is not None and vid == str(100 + match_at):
+                return _title_html(VIEW30_TITLE, body_parcel="623")
+            return "<html><head><title>無關案件</title></head><body></body></html>"
+        monkeypatch.setattr(mod, "fetch_url", fake_fetch)
+
+        kwargs = {} if max_probe is None else {"max_probe": max_probe}
+        result = find_matching_view("寶清段四小段", "599", "27", **kwargs)
+        out = capsys.readouterr().out
+        return result, calls["n"], out, vids
+
+    def test_no_match_probes_at_most_default_limit(self, monkeypatch, capsys):
+        result, calls, out, vids = self._run_find(monkeypatch, capsys, 12, None)
+        assert calls == DEFAULT_MAX_PROBE
+        assert result[0] == ""  # no match
+        assert len(result[4]) == DEFAULT_MAX_PROBE  # checked list feeds the ledger
+        assert "4 unprobed" in out  # truncation note: 12 - 8
+
+    def test_override_limits_probes(self, monkeypatch, capsys):
+        _, calls, _, _ = self._run_find(monkeypatch, capsys, 12, 3)
+        assert calls == 3
+
+    def test_match_stops_probing_before_limit(self, monkeypatch, capsys):
+        result, calls, out, _ = self._run_find(monkeypatch, capsys, 12, None, match_at=2)
+        assert calls == 3
+        assert result[0] == "102"
+        assert "unprobed" not in out  # matched → no truncation note
+
+    def test_truncation_note_counts_unprobed(self, monkeypatch, capsys):
+        _, _, out, vids = self._run_find(monkeypatch, capsys, 9, None)
+        assert "1 unprobed" in out
 
 
 # ──────────────────────────────────────────────────────────────────────────────

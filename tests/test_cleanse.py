@@ -34,6 +34,15 @@ def test_normalize_common_typos():
     assert c.orig_count == 9
 
 
+def test_shiye_huan_jihua_typo_treated_as_shiye_jihua():
+    """Recno 621 (facts): 事業換計畫 is a scrambled 事業計畫 — track must be
+    事業計畫, not 其他, and the fix is recorded."""
+    c = cleanse(_raw(name="擬訂臺北市北投區大業段三小段184-1地號等10筆土地都市更新事業換計畫案"))
+    assert c.track == "事業計畫"
+    assert "事業換計畫" not in c.name
+    assert any("事業計畫" in f for f in c.auto_fixes)
+
+
 def test_parcel_parse():
     c = cleanse(_raw())
     assert c.section == "X段一小段"

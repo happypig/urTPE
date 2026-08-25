@@ -20,7 +20,7 @@
 | Fetch-script loose parcel match (`parcel in html`) | `[RESOLVED]` — strict parcel+地號 + title section/parcel/count match (see §6.6) |
 | third.ashx integration (開工/使用執照 into data model) | **`[RESOLVED]`** — OpenSpec change `add-taipei-implementation-data`: fetch/cache + emission + viewer all done (schema v2; bulk pass 2026-08-24: 691 caches with per-case payloads, 689 projects emit `implementation`, 254 family shows 開工 2013/09/10 / 使照 2016/08/29) |
 | Parcel-count mismatch in land-core join (portal 11筆 vs Taipei 13筆) | **Open — needs OpenSpec change** (touches land-identity semantics) |
-| Portal coverage for older projects | **Regressed — restore pending** — targeted fetch had reached 292/709 twur (41%), 58 使用核發; the 2026-08-25 bulk discovery refresh dropped it to 109/709, 1 使用核發 (see §18); full pre-refresh state preserved in `data/.link_cache_backup_20260824` |
+| Portal coverage for older projects | **`[CONVERGED]`** (2026-08-25) — §18 restore + final targeted run consumed the queue: **302/709 twur (43%), 302 milestones, 63 使用核發 (9%)**. The ceiling is the portal's own bimodal Taipei coverage (2002-03 back-fill + 2022+ live feed; **2004-2021 registry hole ≈ 250-290 projects** — see §16) |
 | Bulk refresh wiped targeted-fetch links (2026-08-25) | **`[RESOLVED]`** (2026-08-25 02:17) — `scripts/restore_national_links_2026_08_25.py` merged the 3 national fields back into the 183 regressed caches from the backup, viewer re-emitted: 292/292/58 verified; root cause + guard rules in §18 |
 | Portal discovery consolidation (CLI vs fetch script) | **Decided** — library-first: move targeted search into `urtpe/links.py`, opt-in `--links-targeted` CLI flag, script stays as overnight wrapper; full design in `docs/sync_architecture.md` §4; needs OpenSpec change |
 | PDF + portals sync model | **Decided** — event-cascade with PDF as heartbeat; liveness-based refresh (freeze phase-E, refresh C/D); `project_id`/land-core are the only cross-PDF keys (recno shifts every gazette); full design in `docs/sync_architecture.md`; needs OpenSpec change (`portal-sync`) |
@@ -114,10 +114,11 @@ Aggregated revision table (all on one page):
 | **No withdrawal date** | Both | 143 自行撤回 has only 申請權變 2016/09/22; withdrawal date nowhere published (see §6.3) | **Open** — best anchor = application date + 撤回 badge |
 | **Portal cross-link error** | view/136 | 縣市政府案件連結 points to `case_id=10202065` (辛亥段, 大安區) — wrong project | **Open** `[live-probed]` |
 | **推動歷程 parser failure** | `links.py` `ViewPageParser` (old hidden-div-only path) | `milestones_national={}` for all projects | **`[RESOLVED]`** — see §8, verified fixed |
-| **Curated fallback wrong view** | `data/taipei_case_ids.json` (河堤段263-19 → view/1042 = 新北市板橋區 project, bogus case_id "10421234") | Wrong twur link + wrong national milestones cached/emitted for the project | **`[RESOLVED]`** — mapping → view/262, cache/view.html refreshed (see §6.6) |
+| **Curated fallback wrong view** | `data/taipei_case_ids.json` (河堤段263-19 → view/1042 = 新北市板橋區 project, bogus case_id "10421234") | Wrong twur link + wrong national milestones cached/emitted for the project | **`[RESOLVED]`** — mapping → view/262, cache/view.html refreshed (see §6.6). Provenance of the bad entry: unknown (POC-era hand entry, no audit trail — see §17 addendum) |
 | **Per-node positional mislink** | `links.py` `attach_links_to_projects` (`city_case_ids[0]/[1]` by track keyword) | 10204032 (核定 2016/07/05) attached to recno 772 (2019-08-01) instead of recno 1042; 金華段513-3 cases attached to no node at all — violates official-link-discovery "Per-stage city links land on the right node" | **`[RESOLVED]`** — date-aligned anchoring (see §6.6) |
 | **Fetch-script loose parcel match** | `scripts/fetch_remaining_national_portal.py` `find_matching_view` (`parcel in html`) | Substring collisions (263-19 vs 209-19) and same-parcel different-project matches (444等7筆 vs view/264 444等**17**筆) | **`[RESOLVED]`** — strict parcel+地號 + title tuple match (see §6.6) |
 | **Parcel-count mismatch join miss** | land core includes `等N筆` count; portals disagree (金華段513-3: portal 11筆 vs Taipei 13筆, same case — 實施者 江陵 confirmed on view/265) | Project with an existing portal page gets no twur link | **Open — needs OpenSpec change** |
+| **Taipei parcel search over-return** | `search_taipei_cases_api` keeps every `r_progress_detail` case from the search response; the platform matches at **renewal-unit/district level** (R13 街廓), not strict parcel | 南港段一小段520-2等18筆: 7 links for 2 approvals — 4 are sibling R13 cases on different land (522等45筆/467等41筆/403-2等28筆/561等5筆 概要s; 地號清單 verified zero overlap, see §6.7) | **Open** — Taipei twin of §6.6; fix = `case_name` parcel guard (fold into §12 consolidation) |
 | **third.ashx fetch/cache vs emission gap** | fetch+cache **done** (691 caches carry per-case `implementation`/`rewards` after the 2026-08-24 bulk pass); `graph.py` emits `implementation`/`rewards` + 開工日期/使照核發日期 milestones; `viewer/app.js` renders 執行階段/獎勵資料 cards | ~~開工/使用執照 absent from data model & viewer~~ | **`[RESOLVED]`** — `add-taipei-implementation-data` (schema v2) |
 | **Cache concurrency wipe (2026-08-24 ~21:23)** | 4 writers raced `data/.link_cache` (2 dry-run parents + 2 orphaned CLI children); torn reads → spurious cache misses → live re-discovery read 75/126 corrupt URL-caches (orphan mechanism corrected 2026-08-25 — see §17 #1) | 47 caches wiped to empty `national_milestones`; 62 `view.html` rewritten corrupt | **`[RESOLVED]`** — repaired 47/47, all 126 URL-caches deleted, **single-writer rule** in force (see §17) |
 | **Bulk refresh regression (2026-08-25 ~01:05)** | `links.py:565-585` resolves view_id from `portal_index.json` (110 entries, WAF-capped §9) + fallback JSON (3 entries); the targeted campaign's ~180 extra mappings lived only inside the deleted `result.json` | twur/`national_milestones` 292→109; 使用核發 58→**1**; viewer emitted regressed state | **`[RESOLVED]`** — restored 183 caches from `.link_cache_backup_20260824`, re-emitted, verified 292/292/58; guard rules in force (see §18) |
@@ -169,7 +170,7 @@ From live `#data2` tab (案件詳細 > 階段辦理過程) `[live-probed]`, case
 | `comm_hold_date` | 召開審議會日期 | 2011/04/25 |
 | `comm_hold_date2` | 權變召開審議會日期 | 2011/04/25 |
 
-**Applied in `STAGE_FIELD_MAP`** (2026-08-24): `jud_ok_date` relabeled `概要審議會通過日期` → `審議通過日期`, and `jud_ok_date2 → 權變審議通過日期` added (regression test `test_stage_field_map_jud_ok_labels`). Note: labels are baked into caches at fetch time — existing caches keep the old label until the bulk discovery refresh. `概要審議會通過日期`/`概要核准日期` likely map to `outline_ok_date` variants — still **unverified field names, intentionally not added**.
+**Applied in `STAGE_FIELD_MAP`** (2026-08-24): `jud_ok_date` relabeled `概要審議會通過日期` → `審議通過日期`, and `jud_ok_date2 → 權變審議通過日期` added (regression test `test_stage_field_map_jud_ok_labels`). Note: labels are baked into caches at fetch time — existing caches keep the old label until the bulk discovery refresh. `概要核准日期` mapping candidate `outline_ok_date` is now **evidence-backed** (filled 2001/01/11 on lapsed 概要 case 08909160, live-probed 2026-08-25) — still intentionally not added pending a UI-label confirmation on a 概要-track case detail page.
 
 ### 6.3 Withdrawal Date — `[RESOLVED]`: Not Published
 
@@ -186,17 +187,25 @@ Checked all 4 ashx endpoints for case 09811143 `[live-probed]`: `second.ashx` (3
 
 Only the *completed* case (141) has these; revision cases (142, 144) empty because implementation tracking belongs to the final approved case.
 
-### 6.5 Phase Taxonomy — `[RESOLVED]` model, partial validation
+### 6.5 Phase Taxonomy — `[RESOLVED]` model, A confirmed 2026-08-25
 
-`top.ashx` `phase` + `NAME` `[live-probed]`. A/B/D **observed values are inferred, not confirmed** — only C and E were seen. Treat A/B/D labels as hypotheses pending a real case.
+`top.ashx` `phase` + `NAME` `[live-probed]`. **Correction (2026-08-25):** case
+08909160 (大安區龍泉段一小段712 事業概要案, lapsed) carries `phase='A'` with
+`NAME="事業概要階段─事業概要業已失效"` → **A = 事業概要階段** (the earlier
+inference "A = 單元劃定" was wrong; B/C/D shift accordingly). A/B/D now:
 
 | Phase | NAME example | Meaning | UI tab | Confidence |
 |---|---|---|---|---|
-| A | (not seen) | 單元劃定 | 單元劃定 | inferred |
-| B | (not seen) | 事業概要 | 事業概要 | inferred |
-| C | 權利變換計畫階段─實施者自行撤回 | 計畫審議中 (含撤回) | 事業計畫 / 權變計畫 | seen |
+| **A** | 事業概要階段─事業概要業已失效 | 事業概要階段 (含失效) | 事業概要 | **seen** (08909160) |
+| B | (not seen) | 事業計畫階段 (inferred from ladder A→C) | 事業計畫 | inferred |
+| C | 權利變換計畫階段─實施者自行撤回 | 權變計畫階段 (含撤回) | 權變計畫 | seen |
 | D | (not seen) | 核定後、執行前 (公告/備查) | — | inferred |
 | E | 執行階段_更新案完成成果備查 | 施工/實施階段 | 執行 | seen |
+
+單元劃定 appears to have no phase code (or is pre-A). Bonus from the same probe:
+the lapsed 概要 was itself **approved** (`outline_ok_date = 2001/01/11`) before
+being superseded by the approved 事業計畫 — and `outline_ok_date` is a real,
+filled timeline field, evidence for the §6.2 withheld `概要核准日期` mapping.
 
 ### 6.6 Session 2026-08-24 — Wrong-Match Bugs + Per-Node Link Fix `[RESOLVED]`
 
@@ -229,6 +238,59 @@ precedent as §8):
   `data/projects.json` — 河堤段 twur → view/262, recno 1042→10204032 /
   772→10707031; 金華段 recno 1040→10011041 / 797→10011042.
 
+### 6.7 Session 2026-08-25 — Taipei Search Over-Return (unit-level matching) — Evidence & Fix Shape
+
+The Taipei twin of §6.6: the national portal's loose match was fixed, but the
+**Taipei parcel search has the same class of problem one layer earlier** —
+`search_taipei_cases_api` keeps every `r_progress_detail` case from the search
+response without verifying the case's land matches the project's parcel.
+
+**Case study** (user-spotted): 南港區-南港段一小段-520-2地號等18筆 —
+**2 recnos but 7 Taipei links**.
+
+| case_id | case (from `Get_updcase_list.ashx`) | land | schedule | verdict |
+|---|---|---|---|---|
+| 09407070 | 擬訂…**520-2等18筆**…事業**概要**案 (R13) | own | 已核准 | ✅ own 概要 — no gazette node (概要核准 isn't in this gazette family) |
+| 09407071 | 擬訂…**520-2等18筆**…事業計畫及權利變換計畫案 (R13) | own | 完成成果備查 | ✅ → recno 1349 (2008 擬訂) |
+| 09407073 | 變更…**520-2等18筆**…事業計畫及權利變換計畫案 (R13) | own | 完成成果備查 | ✅ → recno 1303 (2009 變更) |
+| 09407110 | 擬訂…**522等45筆**…事業概要案 (R13) | **other** | 已核准 | ⚠️ sibling land group |
+| 09407113 | 擬訂…**467等41筆**…事業概要案 (R13) | **other** | 已駁回 | ⚠️ sibling |
+| 09509071 | 擬訂…**403-2等28筆**…事業概要案 | **other** | 已失效 | ⚠️ sibling |
+| 09607130 | 擬訂…**561等5筆**…事業概要案 | **other** | 已核准 | ⚠️ sibling |
+
+**地號清單 verification** (viewer `parcels`, parsed from the gazette PDF — the
+platform's detail page publishes no parcel list; JS-shell confirmed): both
+recnos carry the identical 18-parcel list `508-2…521-3` (508-2, 509, 509-1,
+510, 511, 512, 513, 518, 518-1, 519, 519-1, 519-2, 520-1, 520-2, 520-3, 520-6,
+521-2, 521-3). **Zero overlap** with 522 / 467 / 403-2 / 561.
+
+**Root cause**: the platform's parcel search matches at the **renewal-unit /
+district level** — the four siblings share the **R13 街廓** designation (南港
+經貿園區特定專用區; detail page: 本府公告劃定 2002/07/12, 區位 R13-3 西側街廓),
+a large designated district containing multiple distinct renewal cases. One
+searched parcel drags in every sibling case in the district.
+
+**What saved the nodes**: date-aligned anchoring (§6.6) placed only 09407071/73
+on their recnos; the contamination is project-level `links.taipei` only — and
+symmetric: the sibling projects' own searches cross-contaminate in reverse.
+
+**Fix shape** (small, no spec delta — same category as §6.6): a `case_name`
+parcel guard in `search_taipei_cases_api` — keep only entries whose
+`case_name` contains `<parcel>地號` (here: keeps exactly 09407070/71/73, drops
+the 4 siblings). Caveat: must tolerate notation drift (520-2 vs 520之2) or it
+becomes its own false-reject source. Fold into the §12 consolidation library-first
+consolidation, where the function moves into `urtpe/links.py`.
+
+**General rule**: project-level `links.taipei` is the **raw search output** and
+can legitimately exceed the recno count — the parcel search returns
+*application attempts* (概要/lapsed/withdrawn) that never reached the gazette
+(e.g. 龍泉段712: 2 recnos, 3 links — lapsed 概要 08909160; this project: own
+概要 09407070 已核准). Node-level anchored links are the authoritative
+project↔case binding; expect `len(links.taipei) ≥ len(recnos)` as normal.
+
+**Bonus (§6.5 correction)**: probing this family confirmed **phase A = 事業概要
+階段** (08909160 on 龍泉段712, live-probed) — see §6.5.
+
 ---
 
 ## 7. Files Touched / To Change *(tracked against actual repo layout)*
@@ -241,10 +303,12 @@ precedent as §8):
 | `viewer/app.js` | `renderDetail` — event layer rendering, ghost nodes, dual dates | open |
 | `tests/test_links.py` · `tests/fixtures_links.py` | Portal view parsing scenarios; **new fixture already added** (#89-108); +2 date-anchoring regression tests (§6.6) | fixture done |
 | `viewer/projects.data.js` | Runtime data (**note: lives in `viewer/`, not `content/`**); already carries `milestones_national` | data done |
-| `scripts/fetch_remaining_national_portal.py` | Targeted portal fetch — strict match added (§6.6) | done |
+| `scripts/fetch_remaining_national_portal.py` | Targeted portal fetch — strict match added (§6.6); **no-match ledger** (§16, `add-no-match-ledger`) | done |
+| `tests/test_fetch_remaining_portal.py` | +13 no-match-ledger tests (round-trip/quarantine, TTL filtering, clear-on-match/sweep) | done |
 | `scripts/repair_cache_2026_08_24.py` · `scripts/probe_third_6projects.py` | One-off cache repair / third.ashx probe (6 projects) | done |
 | `scripts/repair_wiped_caches.py` | §17 incident repair — re-fetched 47 wiped caches fresh | done |
 | `scripts/restore_national_links_2026_08_25.py` | §18 regression restore — merged national fields back into 183 caches from backup, offline | done |
+| `scripts/check_520_parcels.py` | §6.7 one-off probe — 南港段一小段520-2 neighbor parcel/case linkage (evidence for the Taipei over-return bug) | done |
 | `docs/final_results_json_api.md` | Update with portal merge findings | open |
 | `docs/facts_2_portals.md` (v1) | Superseded by this v2 | closed |
 
@@ -342,20 +406,39 @@ Additional `third.ashx` settlement stats: `Old_Doors`=50, `Settle_Old_Doors`=0, 
 
 ---
 
-## 12. Top Priorities (not "open questions")
+## 12. Top Priorities *(ordered by dependency — execute top-down)*
 
-1. **Portal coverage convergence** — `[OPERATIONAL]` restore done (§18, 2026-08-25 02:17: 292/292/58 verified in the emitted viewer); resume the targeted-fetch batches — ~373 candidates still queued, ~2-3 overnight windows at 06:30 deadline. No code work needed.
-2. ~~**third.ashx emission layer**~~ — **`[DONE]`** via OpenSpec change `add-taipei-implementation-data` (2026-08-24): `graph.py` emits `implementation`/`rewards` + 開工/使照 milestones, `viewer/app.js` renders 執行階段/獎勵資料 cards, `schema_version` → 2, bulk pass refreshed 691 caches (689 projects emit implementation; 18 unresolved = pre-existing Taipei-search misses).
-3. **Portal discovery consolidation** — library-first: move `search_portal`/`view_page_matches`/cache-write from the fetch script into `urtpe/links.py`; expose opt-in `--links-targeted`; script becomes the unattended overnight wrapper. Rationale: the loose-parcel-match bug (§6.6) is the precedent for dual-implementation drift. **Full design: `docs/sync_architecture.md` §4.** Needs OpenSpec change (modifies `official-link-discovery`).
-4. **PDF + portals sync model** — event-cascade with PDF as heartbeat: new/changed projects trigger per-project refresh; liveness policy (freeze phase-E/completed, refresh phase C/D, targeted queue for twur-less); `project_id`/land-core as the only cross-PDF keys (recno shifts every gazette — node anchoring must be re-derived per sync). **Full design: `docs/sync_architecture.md`.** Needs OpenSpec change (new `portal-sync` capability).
-5. **Parcel-count mismatch normalization** — land-core join should tolerate portal-vs-Taipei count drift (金華段 11 vs 13 筆) without weakening uniqueness; touches land-identity-fallback / official-link-discovery semantics.
-6. **`Report_Date` semantics** — empty for 141; confirm whether it ever fills as 成果報備日期.
-7. **Phase-D confirmation** — find a real phase-D case; hint: phase data may already sit in the cached `top.ashx`-derived structures — a local scan might confirm D without network.
-8. **`fourth.ashx` reward flags** — map non-empty values to labels (site JS needed); rewards now cached per case.
-9. ~~**`regenerate_viewer` hardening**~~ — **`[RESOLVED]`** (2026-08-25): child stdout/stderr → append-mode log file `data/.link_cache/regen_log.txt` (orphan can always write + stays observable), timeout 300 s → 1800 s, regen-start marker flushed before spawn. Verified live: regeneration succeeded, full child output captured in the log. No spec delta (emission contract unchanged).
-10. **Freshness-signal hygiene** — `viewer/projects.data.js` `generated_at` is preserved from the loaded file under `--from-js` (shows 2026-08-23 despite 8/24 writes) — not a reliable freshness signal; rely on file mtime or a sync manifest (§12.4's ledger).
-11. ~~**`jud_ok_date2` mapping**~~ — **done** (2026-08-24); removed from active list.
-12. **Withdrawal date source** — any external system (紙本? 內部系統?) publishes 撤回日. Likely a dead end; deprioritize.
+> **Dependency graph** (edges explained in each entry):
+> ```
+> [1] coverage guard ──────▶ protects every destructive cache job
+> [2] chimera emit-fix      ── independent, ready (no network)
+> [3] consolidation ──┬───▶ [4] count normalization ──▶ re-sweep run
+>                     │       (same matcher code moves into links.py)
+>                     └───▶ [5] sync model ──▶ absorbs [6] freshness hygiene
+> [7-9] investigations     ── standalone, any time
+> ```
+> Name-based references ("§12 consolidation", "§12 count normalization", …)
+> survive this ordering.
+
+1. **Coverage regression guard (§18 rule 3)** — snapshot coverage counters (twur / national_milestones / 使用核發 / Taipei resolved) before and after any destructive cache job; any decrease aborts the job and alerts. The §18 drop (292→109) ran unnoticed for hours. Small wrapper, no spec delta. **Do first — protects every future destructive job, including the consolidation's bulk passes.**
+2. **Chimera-merge emit-time fix** — `[READY, no network]` the project-level merged `milestones_taipei` is a last-write-wins chimera across cases (§5); `case_milestones` (per-case timelines) now exists in 691 caches, so the merged dict can be **computed correctly at emit time** (graph.py/links.py) instead of carrying the corrupted accumulation — fixes wrong anchor dates in viewer cards (e.g. 141's 核定 2012/08/27 shown as 2016/08/23). Unblocked by the §18-19 refresh; flagged in §19 as the top post-refresh code item.
+3. **Portal discovery consolidation** — library-first: move `search_portal`/`view_page_matches`/cache-write from the fetch script into `urtpe/links.py`; expose opt-in `--links-targeted`; script becomes the unattended overnight wrapper. **Includes the Taipei parcel guard (§6.7)**: `search_taipei_cases_api` must verify `<parcel>地號` in the case name (unit-level search over-return). **Includes §18 rule 2 — durable mapping store**: targeted-fetch land-core→view_id mappings must land in `portal_index.json` (or a dedicated store) at write time, so a cache regeneration can never again discard the only copy (the §18 regression mechanism). Rationale: the loose-parcel-match bug (§6.6) and its Taipei twin (§6.7) are the precedent for dual-implementation drift. **Full design: `docs/sync_architecture.md` §4.** Needs OpenSpec change (modifies `official-link-discovery`).
+4. **Parcel-count mismatch normalization** — land-core join should tolerate portal-vs-Taipei count drift (金華段 11 vs 13 筆) without weakening uniqueness; touches land-identity-fallback / official-link-discovery semantics. **Ride with/after [3]** (the matcher code moves into links.py); enables the post-normalization **re-sweep run** (no-match ledger `--reprobe-days` re-probes the recovered rejects automatically).
+5. **PDF + portals sync model** — event-cascade with PDF as heartbeat: new/changed projects trigger per-project refresh; liveness policy (freeze phase-E/completed, refresh phase C/D, targeted queue for twur-less); `project_id`/land-core as the only cross-PDF keys (recno shifts every gazette — node anchoring must be re-derived per sync). **Depends on [3]'s `--links-targeted`** for the orchestrator's portal lane. **Full design: `docs/sync_architecture.md`.** Needs OpenSpec change (new `portal-sync` capability).
+6. **Freshness-signal hygiene** — `viewer/projects.data.js` `generated_at` is preserved from the loaded file under `--from-js` (shows 2026-08-23 despite 8/24 writes) — not a reliable freshness signal. **Fully absorbed by [5]'s sync manifest**; standalone work unnecessary.
+7. **`Report_Date` semantics** — empty for 141; confirm whether it ever fills as 成果報備日期.
+8. **Phase-D confirmation** — find a real phase-D case; hint: phase data may already sit in the cached `top.ashx`-derived structures — a local scan might confirm D without network.
+9. **`fourth.ashx` reward flags** — map non-empty values to labels (site JS needed); rewards now cached per case.
+10. **Withdrawal date source** — any external system (紙本? 內部系統?) publishes 撤回日. Likely a dead end; deprioritize.
+
+Converged / done (frozen record, kept for reference):
+
+11. ~~**Portal coverage convergence**~~ — **`[CONVERGED]`** (2026-08-25): restore done (§18, 292/292/58) + final targeted-fetch run consumed the full queue (373 processed, +10 matches → **302/302/63**, 43%/9%; 0 WAF resets at 1-3 min intervals). Remaining coverage lever: §12 count normalization over the ~1,108 strict-rejects.
+12. ~~**third.ashx emission layer**~~ — **`[DONE]`** via OpenSpec change `add-taipei-implementation-data` (2026-08-24): `graph.py` emits `implementation`/`rewards` + 開工/使照 milestones, `viewer/app.js` renders 執行階段/獎勵資料 cards, `schema_version` → 2, bulk pass refreshed 691 caches (689 projects emit implementation; 18 unresolved = pre-existing Taipei-search misses).
+13. ~~**`regenerate_viewer` hardening**~~ — **`[RESOLVED]`** (2026-08-25): child stdout/stderr → append-mode log file `data/.link_cache/regen_log.txt` (orphan can always write + stays observable), timeout 300 s → 1800 s, regen-start marker flushed before spawn. Verified live: regeneration succeeded, full child output captured in the log. No spec delta (emission contract unchanged).
+14. ~~**`jud_ok_date2` mapping**~~ — **done** (2026-08-24); removed from active list.
+
+> *Section numbering note: §13-15 were consumed by the v1→v2 consolidation (their content lives in §8, §9, §12); appendices continue at §16 to keep historical v1 references unambiguous.*
 
 ---
 
@@ -375,18 +458,26 @@ merge into `data/.link_cache/<project>/result.json` → auto-regenerate viewer.
 |---|---|---|---|---|---|---|
 | 06:30 run | ~4.5 h | 06:30 | 62 | 62 | 0 | 13 |
 | 17:00 run | ~10.5 h | 17:00 | 109 | 109 | 0 | +45 (→58) |
+| Final run (2026-08-25, post-§18-restore) | ~5-7 h | 07:00 | 373 (full queue) | 10 | 0 | +5 (→63) |
 
-Both runs: 100% success rate, 3-5 min random intervals (180-300 s), retries via
-`fetch_url` backoff, failures logged to `data/.link_cache/fetch_failures.json`
-(none triggered), viewer auto-regenerated at deadline.
+Intervals: 06:30/17:00 runs at 3-5 min; final run **calibrated down to 1-3 min
+(matches) / 15-45 s (skips)** after a 10-project probe — ~1,491 requests in the
+final run with **zero WAF resets**, so the shorter intervals are now standing.
+Skips also sleep now (earlier versions bypassed the interval on no-match, a
+bulk-crawl-tempo gap). `processed` counts all candidates from the final run on
+(earlier runs counted matches only).
 
 ### Cumulative coverage
 
-| Metric | Pre-campaign | After 06:30 | After 17:00 | Coverage |
-|---|---|---|---|---|
-| Projects with `twur` | 118 | 183 | **292** | 41% of 709 |
-| Projects with `milestones_national` | 109 | 183 | **292** | 41% |
-| Projects with `使用核發日期` | 0 | 13 | **58** | 8% |
+| Metric | Pre-campaign | After 06:30 | After 17:00 | Final (2026-08-25) | Coverage |
+|---|---|---|---|---|---|
+| Projects with `twur` | 118 | 183 | **292** | **302** | 43% of 709 |
+| Projects with `milestones_national` | 109 | 183 | **292** | **302** | 43% |
+| Projects with `使用核發日期` | 0 | 13 | **58** | **63** | 9% |
+
+*(The §18 regression briefly dropped these to 109/109/1 between the 17:00 run
+and the final run; the §18 restore brought them back to 292/292/58 before the
+final run added +10/+10/+5.)*
 
 `twur` ≡ `milestones_national` since the 06:30 run: the earlier 9-project gap
 (118 vs 109) was corrupted caches (gzip bodies saved as replacement-mangled
@@ -395,19 +486,58 @@ them.
 
 ### Remaining work
 
-- **~373 candidates left** (482 at campaign start − 109 processed in 17:00 run).
-  At the observed ~10 projects/hour, roughly 2-3 more overnight batches.
-- **Campaign paused (2026-08-24 evening)** — blocked only by the single-writer
-  rule while the cache-healing CLI (§17.5) finishes; resume with deadline
-  flipped to 06:30.
+- **Campaign converged (2026-08-25)** — the full queue was consumed: 373
+  candidates processed, 10 new matches, 0 failures. Re-runs are now cheap and
+  idempotent (queue ≈ 0; the no-match ledger suppresses re-probing) — useful
+  after any matcher improvement to sweep the reject population.
+
+#### Why the ceiling is 302, not 709 — the portal's bimodal Taipei coverage
+
+Year histogram of matched vs unmatched (by 現況 year, final state):
+
+```
+            matched  unmatched
+2002-03        7      0     ◀ back-filled anchors (view/1-8…)
+2004-21      ~10    ~290    ◀ REGISTRY HOLE — approvals never entered
+                            into the national registry
+2022-26      285     93     ◀ live-feed era (2026 tail = gazette lag)
+──────────────────────────
+TOTAL        302    407
+```
+
+- The 2004-2021 hole (~250-290 projects) is the **portal's genuine boundary**:
+  twur.nlma.gov.tw is a separate registry Taipei reports into, not a mirror of
+  the city's approved-cases list. Those projects keep complete **Taipei-side**
+  data (697/709 have full 階段辦理過程), so the analytical loss is minimal.
+- 2026 tail (~15) = gazette lag; a re-run months later picks them up
+  (the no-match ledger's `--reprobe-days` makes this automatic).
+- Recoverable remainder: §12 count normalization over the strict-reject
+  population. Everything else is the portal's recorded boundary.
+- **§12 count normalization** — the main remaining coverage lever: a
+  recoverable fraction of the ~1,108 strict-rejects in the final run are
+  count-drift false rejects (金華段 11 vs 13 筆 pattern).
 - **`update_project_cache` now also persists the matched `view.html`** — caches
   are self-contained for future re-parses (parser fixes no longer require
   re-fetching). The CLI's `save_project_cache` already had this behavior.
 - Expected no-match tail: projects predating the portal, renamed/re-parceled
   units, and genuinely absent cases — the strict matcher correctly rejects
   ambiguous hits (e.g. 桃源段四小段154, 長安段一小段721 in the 15-sample probe).
+  Live-probed 2026-08-25 ~03:15 (通化段六小段218-1, 康寧段三小段821): rejections are
+  genuine absences — searched pages contain no trace of the target parcel in
+  any notation; no hyphen/之 normalization gap.
+- **No-match ledger** (`add-no-match-ledger`, implemented + archived
+  2026-08-25 as `2026-08-25-add-no-match-ledger`, spec synced to
+  `openspec/specs/fetch-remaining-portal/spec.md`): every
+  no-match is recorded to `data/.link_cache/no_match_ledger.json` (atomic
+  write, corrupt-file quarantine) and candidates probed within `--reprobe-days`
+  (default 14; `0` disables skipping) are excluded at candidate-load time;
+  entries clear on match and a run-start sweep drops projects that gained twur
+  elsewhere; summary reports processed / updated / skipped. Ledger writes obey
+  the single-writer rule like everything else on `.link_cache`. This ends the
+  churn where each batch re-probed the same dead heads before reaching untried
+  candidates.
 - Script deadline is a constant pair (`DEADLINE_HOUR`/`DEADLINE_MINUTE`,
-  currently 17:00); flip to 06:30 for overnight runs.
+  currently 07:00).
 - Dry-run mode (`--dry-run`: first 3 candidates, no sleeps) and
   `--max-projects N` available for sampling before a long batch.
 
@@ -492,7 +622,7 @@ the Taipei-side gains are real, but national coverage collapsed. See §18.)*
    fetch script's auto-regeneration at deadline is the sanctioned hand-off.
 2. **Kill order**: if a fetch/CLI process must be stopped, kill the whole tree
    (parent + children); a killed parent with a live child is the worst state.
-3. **Hardening (§12.9) — `[RESOLVED]` (2026-08-25)**: `regenerate_viewer` now
+3. **Hardening (§12 hardening item) — `[RESOLVED]` (2026-08-25)**: `regenerate_viewer` now
    redirects child stdout/stderr to `data/.link_cache/regen_log.txt` (append)
    instead of `capture_output` pipes and raises the timeout 300 s → 1800 s.
    Not deadlock-class (see corrected #1) — the point is that an orphaned child
@@ -500,6 +630,39 @@ the Taipei-side gains are real, but national coverage collapsed. See §18.)*
    regenerations don't time out into silent "viewer not refreshed" states.
 4. **Corruption signature**: a cache/view file starting `\x1f\xef` (mangled gzip
    magic) is unrecoverable text-mangled binary — delete and re-fetch, never parse.
+
+### Addendum — curated-mapping direct edits (`data/taipei_case_ids.json`)
+
+Raised during the 2026-08-24 session: "is it OK to edit the fallback mapping
+directly, without root-causing first, while `fetch_remaining_national_portal.py`
+was running until 22:00?" Answer, now on record:
+
+1. **Race safety**: the fetch script NEVER reads `taipei_case_ids.json` — its
+   candidates come from `viewer/projects.data.js`. The only reader is discovery
+   (`load_fallback_mapping`), which runs inside the script's final
+   `regenerate_viewer`. So a mid-run edit cannot race the campaign's writes.
+2. **But it is not consequence-free**: the final regenerate re-runs discovery,
+   which reads the mapping — a mid-run edit deliberately changes what
+   not-yet-cached projects resolve to. In this case that was the point: the
+   corrected entry (view/262) stopped the regenerate from re-poisoning the cache
+   with view/1042.
+3. **Root cause WAS established before editing** — the edit followed the trace
+   (wrong twur → `land_core` fallback lookup → stale hand-written entry), it was
+   not a blind data patch. The fix order was: trace → fix mapping → repair cache
+   (§6.6).
+4. **Open provenance gap**: nobody knows where the bad entry came from
+   (view/1042 + case_id "10421234" reads like a hand-typed view_id with a
+   placeholder; POC-era manual curation, no audit trail — the file has no
+   generator or validation).
+
+**Rules for curated-mapping edits**:
+- Verify the replacement view_id against the live view page (title + parcel +
+  count) before writing — done for view/262 via `view_page_matches`-equivalent checks.
+- Record before/after in this doc (§6.6/§16 do).
+- The file is hand-curated with no validation: treat every entry as
+  guilty-until-verified; the long-term fix is the §12 consolidation library-first
+  consolidation (single lookup implementation) so curated entries carry
+  provenance comments.
 
 ---
 
@@ -558,7 +721,7 @@ labels). No network. Result: **restored 183 · already-ok 109 · missing 0**,
 live totals **709 scanned · twur 292 · national_milestones 292 · 使用核發 58**.
 Viewer re-emitted (`--from-js --viewer --links`, cache-only) and parsed back:
 292 / 292 / 58 across 709 projects — pre-refresh state fully recovered.
-Keep `.link_cache_backup_20260824` until the §12.3 consolidation makes the
+Keep `.link_cache_backup_20260824` until the §12 consolidation consolidation makes the
 index self-sufficient (never delete as scratch).
 
 ### Rules going forward
@@ -569,7 +732,7 @@ index self-sufficient (never delete as scratch).
 2. **Fold campaign outputs into the index at write time**: targeted-fetch
    mappings must land in `portal_index.json` (or a dedicated mapping store), so
    the index reflects reality instead of lagging it — merges naturally into the
-   §12.3 library-first consolidation (`--links-targeted`).
+   §12 consolidation library-first consolidation (`--links-targeted`).
 3. **Regression guard on destructive jobs**: snapshot coverage counters
    (twur / national_milestones / 使用核發 / Taipei resolved) before and after;
    any decrease aborts the job and alerts. A silent 292→109 drop ran unnoticed
@@ -613,19 +776,22 @@ needed.
 
 ```
 ✅ map round 1+2 → ✅ third/fourth integration → ✅ bulk refresh (691 caches, schema v2)
-                                                          │
-                                                          ▼
-⬜ §18 recovery FIRST: merge the 183 lost national links from
-   .link_cache_backup_20260824 (no network) + regenerate + post-check 292/292/58
-                                                          │
-                                                          ▼
-⬜ fetch_remaining campaign (twur coverage, ~600 candidates, overnight windows)
-   │  may START anytime (single-writer §17; never concurrent with discovery)
-   ▼
-⬜ count-normalization OpenSpec change — must land before the campaign COMPLETES
-   (strict matcher rejects count-drift pages; rejects retry, so start ≠ finish)
+                                                      │
+                                                      ▼
+✅ ~~§18 recovery FIRST~~ done (2026-08-25 02:17): 183 national links merged
+   from .link_cache_backup_20260824; post-check 292/292/58 reached (§18)
+                                                      │
+                                                      ▼
+✅ fetch_remaining campaign — [CONVERGED] 2026-08-25 (§0/§12-converged/§16): full queue
+   consumed (373 processed), final state 302 twur / 302 milestones / 63 使用核發;
+   no-match ledger suppresses re-probing (re-runs are cheap + idempotent)
+                                                      │
+                                                      ▼
+⬜ count-normalization OpenSpec change — remaining coverage lever over the
+   strict-reject population (§16 ceiling analysis); strict matcher rejects
+   count-drift pages; rejects retry, so start ≠ finish
 ```
 
 ---
 
-*Sources: interactive exploration (wmux browser + live API probes) 2026-08-23; code claims cross-checked against `urtpe/links.py`, `tests/fixtures_links.py`, `scripts/`, `viewer/projects.data.js` on 2026-08-24. §6.6 additions (wrong-match bugs, per-node date-aligned linking, fetch-script strict match, third.ashx 6-project probe) from the 2026-08-24 session. §16 fetch-campaign results (06:30 + 17:00 runs) from the 2026-08-24/25 targeted-fetch batches. §17 incident (concurrency wipe, repair, single-writer rule) and the third.ashx cache-layer discovery from the 2026-08-24/25 evening session. §18 regression (bulk refresh vs partial portal index; coverage counts re-measured live from `data/.link_cache_backup_20260824` vs `data/.link_cache`) discovered during the 2026-08-25 overnight refresh monitoring. §19 sequencing decisions from the pre-change exploration for `add-taipei-implementation-data` (2026-08-24/25).*
+*Sources: interactive exploration (wmux browser + live API probes) 2026-08-23; code claims cross-checked against `urtpe/links.py`, `tests/fixtures_links.py`, `scripts/`, `viewer/projects.data.js` on 2026-08-24. §6.6 additions (wrong-match bugs, per-node date-aligned linking, fetch-script strict match, third.ashx 6-project probe) from the 2026-08-24 session. §16 fetch-campaign results (06:30 + 17:00 runs) from the 2026-08-24/25 targeted-fetch batches. §17 incident (concurrency wipe, repair, single-writer rule) and the third.ashx cache-layer discovery from the 2026-08-24/25 evening session; its addendum (curated-mapping direct edits) from the 2026-08-25 session. §18 regression (bulk refresh vs partial portal index; coverage counts re-measured live from `data/.link_cache_backup_20260824` vs `data/.link_cache`) discovered during the 2026-08-25 overnight refresh monitoring. §19 sequencing decisions from the pre-change exploration for `add-taipei-implementation-data` (2026-08-24/25). §6.7 Taipei search over-return + phase-A correction + campaign convergence/no-match-ledger rollout (`add-no-match-ledger`, acceptance-verified 2026-08-25 09:03) from the 2026-08-25 sessions.*

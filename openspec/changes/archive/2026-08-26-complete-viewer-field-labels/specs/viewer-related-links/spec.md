@@ -1,11 +1,27 @@
-# viewer-related-links Specification
+# viewer-related-links — Delta: links migrate onto the graph
 
-## Purpose
+## REMOVED Requirements
 
-Shows the discovered official links in the browser viewer's detail pane so an
-analyst can jump from a project's history graph to the authoritative case
-record on the national portal and the Taipei City platform.
-## Requirements
+### Requirement: Render a 相關連結 section in the detail pane
+
+**Reason**: the standalone link list is superseded by outbound links living
+directly on the graph — every portal-sourced node labels with a hyperlink to
+its source (Taipei case detail page / national view page), which removes the
+extra section while keeping every destination reachable where the data sits.
+
+**Migration**: readers find case links on the approval nodes' 北 badge and on
+the construction-event labels; the national view link sits on the 現況 node's
+國 badge. No data loss — the same URLs, attached to the nodes they describe.
+
+### Requirement: Embed milestone timelines inline
+
+**Reason**: milestone timeline cards render independently of the removed link
+section (unchanged behavior, see `viewer-milestone-timeline`); only their
+co-location with the link list is dissolved.
+
+**Migration**: none — the cards keep rendering in the detail pane as before.
+
+## ADDED Requirements
 
 ### Requirement: Graph nodes carry outbound portal links
 

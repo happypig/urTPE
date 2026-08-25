@@ -20,11 +20,12 @@
 | Fetch-script loose parcel match (`parcel in html`) | `[RESOLVED]` — strict parcel+地號 + title section/parcel/count match (see §6.6) |
 | third.ashx integration (開工/使用執照 into data model) | **`[RESOLVED]`** — OpenSpec change `add-taipei-implementation-data`: fetch/cache + emission + viewer all done (schema v2; bulk pass 2026-08-24: 691 caches with per-case payloads, 689 projects emit `implementation`, 254 family shows 開工 2013/09/10 / 使照 2016/08/29) |
 | Parcel-count mismatch in land-core join (portal 11筆 vs Taipei 13筆) | **Open — needs OpenSpec change** (touches land-identity semantics) |
-| Portal coverage for older projects | **`[CONVERGED]`** (2026-08-25) — §18 restore + final targeted run consumed the queue: **302/709 twur (43%), 302 milestones, 63 使用核發 (9%)**. The ceiling is the portal's own bimodal Taipei coverage (2002-03 back-fill + 2022+ live feed; **2004-2021 registry hole ≈ 250-290 projects** — see §16) |
+| Portal coverage for older projects | **`[CONVERGED]`** (2026-08-25) — §18 restore + final targeted run consumed the queue: **302/709 twur (43%), 302 milestones, 63 使用核發 (9%)**. The ceiling is the portal's own bimodal Taipei coverage (2002-03 back-fill + 2022+ live feed; **2004-2021 registry hole ≈ 250-290 projects** — see §16). **Superseded same night** by `fix-targeted-portal-matcher`: the "hole" was mostly matcher false-rejects → **581/709 (82%), 581 milestones, 248 使用核發 (33%)** — see §0 last row + §16.1 |
 | Bulk refresh wiped targeted-fetch links (2026-08-25) | **`[RESOLVED]`** (2026-08-25 02:17) — `scripts/restore_national_links_2026_08_25.py` merged the 3 national fields back into the 183 regressed caches from the backup, viewer re-emitted: 292/292/58 verified; root cause + guard rules in §18 |
 | Portal discovery consolidation (CLI vs fetch script) | **Decided** — library-first: move targeted search into `urtpe/links.py`, opt-in `--links-targeted` CLI flag, script stays as overnight wrapper; full design in `docs/sync_architecture.md` §4; needs OpenSpec change |
 | PDF + portals sync model | **Decided** — event-cascade with PDF as heartbeat; liveness-based refresh (freeze phase-E, refresh C/D); `project_id`/land-core are the only cross-PDF keys (recno shifts every gazette); full design in `docs/sync_architecture.md`; needs OpenSpec change (`portal-sync`) |
 | Cache concurrency (2026-08-24 incident) | **`[RESOLVED]`** — 47 wiped caches repaired, poison URL-caches deleted; **single-writer rule** now in force (see §17) |
+| Strict-matcher false rejects in targeted fetch (parcel extraction + int-vs-str count) | **`[RESOLVED]`** (2026-08-25, change `fix-targeted-portal-matcher`) — sweep recovered **+252 links (302→554, 78% of 709)**, 使用核發 63→223; the "2004–21 registry hole" was mostly self-inflicted rejection (§16.1) |
 
 ---
 
@@ -446,7 +447,7 @@ Additional `third.ashx` settlement stats: `Old_Doors`=50, `Settle_Old_Doors`=0, 
 6. **Freshness-signal hygiene** — `viewer/projects.data.js` `generated_at` is preserved from the loaded file under `--from-js` (shows 2026-08-23 despite 8/24 writes) — not a reliable freshness signal. **Fully absorbed by [5]'s sync manifest**; standalone work unnecessary.
 7. ~~**`Report_Date` semantics**~~ — **`[RESOLVED]`** (2026-08-25): the site's own DOM labels it 成果報備日期 (`id="detail_Report_Date"`, r_progress_detail.aspx). Empirics agree: fills in 65/2,951 cached third.ashx payloads, and in all 62 co-occurrences postdates 使照核發. Mapping was already correct in `IMPLEMENTATION_MILESTONE_FIELDS` (links.py) — nothing to do.
 8. ~~**Phase-D confirmation**~~ — **`[RESOLVED]`** (2026-08-25): live probe hit `phase='D'` on cases 11010082/11008281 (`NAME=事業計畫及權利變換計畫階段─業經本府核定`). The "cached top.ashx-derived structures" hint was wrong in mechanism but right in spirit — no phase survives into caches (top.ashx is never fetched by the pipeline), but milestones predict it: 核定+權變核定 coexistence ⇒ D-shaped (56 of 142 approved-without-開工 projects; 86 B-shaped). Taxonomy corrected in §6.5: D is the combined 事業+權變 track, not "核定後、執行前"; approval does not advance the phase.
-9. ~~**`fourth.ashx` reward flags**~~ — **`[RESOLVED]`** (2026-08-25): the flags are numeric 容積 contributions (㎡), not booleans (GREENBUILD_DESIGN×587, TIME_REWARD×590, SCALE_REWARD×547 … across the caches). Full official label map captured from the detail-page DOM — same `id="detail_<field>"` trick that produced IMPL_LABELS, so the archived change's "site JS needed" assumption is dead. All 41 cache keys labeled (map in §12.1); viewer `REWARD_LABELS` completion pending a small OpenSpec change.
+9. ~~**`fourth.ashx` reward flags**~~ — **`[RESOLVED]`** (2026-08-25): the flags are numeric 容積 contributions (㎡), not booleans (GREENBUILD_DESIGN×587, TIME_REWARD×590, SCALE_REWARD×547 … across the caches). Full official label map captured from the detail-page DOM — same `id="detail_<field>"` trick that produced IMPL_LABELS, so the archived change's "site JS needed" assumption is dead. All 41 cache keys labeled (map in §12.1); viewer `REWARD_LABELS` completion landed via OpenSpec change `complete-viewer-field-labels` (2026-08-25) — corpus sweep after implementation: 0 unmapped reward rows and 0 unmapped implementation rows across 709 caches (sweep also surfaced 6 unlabeled impl-stat keys, now labeled from the same DOM, incl. the `STATELAND2_OWNER` all-caps variant of `StateLand2_Owner`; national badge label verified as 使用核發日期, 71 projects). Source-position audit (same change, 2026-08-25): the case carrying 開工/使照 anchors to the **first** record in 349/689 (50.7%), to 現況 in only 12 (1.7%), unanchored 122 (17.7%); 建照 winner likewise first-heavy (331/543, 61.0%, vs 現況 4) with merge-rule replication 543/543 — construction data lives on the original 擬訂-era case in half the corpus, which is why viewer provenance labels (`案<id>·編號<n>`) matter and why [2] must not assume final-case ownership.
 10. **Withdrawal date source** — any external system (紙本? 內部系統?) publishes 撤回日. Likely a dead end; deprioritize.
 
 Converged / done (frozen record, kept for reference):
@@ -476,12 +477,12 @@ PROREGENERAT1/2=促進都市更新(一)/(二)      VOLUME_HIGHER_REWARD=高於�
 ILLEGAL_FLOORAREA_REWARD=處理違建戶之樓地板面積獎勵  name_reward_no=獎勵上限規定
 ```
 
-Open naming choice for the viewer change: keep the existing semantic labels
-(`F3`=都市更新獎勵, `F5`=其他容積獎勵, `F5_3`=人行步道面積) or switch to the
-official △F notation. Also unmapped today: `Eng_Start_Date`/`Ulic_Date`/
-`Report_Date` in IMPL_LABELS (they render as raw keys inside the 執行階段
-card; official labels 開工日期/使照核發日期/成果報備日期 confirmed from the
-same DOM).
+Naming resolution (viewer change `complete-viewer-field-labels`, 2026-08-25):
+hybrid — `F`=允建容積, `F0`=基準容積, `F3`=都市更新獎勵, `F5`=其他容積獎勵,
+`F5_3`=人行步道面積 keep semantic labels; all other keys use the official
+labels above. IMPL_LABELS also gained 開工日期/使照核發日期/成果報備日期 and
+six statistic labels (合法建物所有權人數, 公有土地所有權人數, 總銷售金額,
+公益設施面積, 捐贈道路成本, 國有土地管理機關2所有人[STATELAND2_OWNER]).
 
 > *Section numbering note: §13-15 were consumed by the v1→v2 consolidation (their content lives in §8, §9, §12); appendices continue at §16 to keep historical v1 references unambiguous.*
 
@@ -504,6 +505,11 @@ merge into `data/.link_cache/<project>/result.json` → auto-regenerate viewer.
 | 06:30 run | ~4.5 h | 06:30 | 62 | 62 | 0 | 13 |
 | 17:00 run | ~10.5 h | 17:00 | 109 | 109 | 0 | +45 (→58) |
 | Final run (2026-08-25, post-§18-restore) | ~5-7 h | 07:00 | 373 (full queue) | 10 | 0 | +5 (→63) |
+| Matcher-fix W1 (2026-08-25, post `fix-targeted-portal-matcher`) | ~13:00→22:30 | 22:30* | 353 | 252 | 0 | +160 (→223) |
+| Matcher-fix W2 (2026-08-25 night, killed early, **no log redirect**) | ~17 min | — | n/a (ledger shows negatives only) | ~1 | 0 | (folded into W3 count) |
+| Matcher-fix W3 (2026-08-25/26) | ~23:15→00:19 | queue exhausted | 38 (115 ledger-skipped) | 26 | 0 | (→248) |
+
+\* daytime launch — deadline overridden via `scripts/run_sweep_until.py HH MM`; everything else identical to an overnight run.
 
 Intervals: 06:30/17:00 runs at 3-5 min; final run **calibrated down to 1-3 min
 (matches) / 15-45 s (skips)** after a 10-project probe — ~1,491 requests in the
@@ -514,11 +520,11 @@ bulk-crawl-tempo gap). `processed` counts all candidates from the final run on
 
 ### Cumulative coverage
 
-| Metric | Pre-campaign | After 06:30 | After 17:00 | Final (2026-08-25) | Coverage |
-|---|---|---|---|---|---|
-| Projects with `twur` | 118 | 183 | **292** | **302** | 43% of 709 |
-| Projects with `milestones_national` | 109 | 183 | **292** | **302** | 43% |
-| Projects with `使用核發日期` | 0 | 13 | **58** | **63** | 9% |
+| Metric | Pre-campaign | After 06:30 | After 17:00 | Final (2026-08-25) | Post matcher-fix (2026-08-26) | Coverage |
+|---|---|---|---|---|---|---|
+| Projects with `twur` | 118 | 183 | **292** | **302** | **581** | 82% of 709 |
+| Projects with `milestones_national` | 109 | 183 | **292** | **302** | **581** | 82% |
+| Projects with `使用核發日期` | 0 | 13 | **58** | **63** | **248** | 33% |
 
 *(The §18 regression briefly dropped these to 109/109/1 between the 17:00 run
 and the final run; the §18 restore brought them back to 292/292/58 before the
@@ -585,6 +591,65 @@ TOTAL        302    407
   currently 07:00).
 - Dry-run mode (`--dry-run`: first 3 candidates, no sleeps) and
   `--max-projects N` available for sampling before a long batch.
+
+#### §16.1 CORRECTION (2026-08-25/26, post `fix-targeted-portal-matcher`) — the hole was mostly matcher rejects
+
+The ceiling analysis above was **wrong**: it attributed unmatched projects to
+portal absence without testing whether the strict matcher could have matched
+them. It couldn't — two latent defects rejected nearly everything:
+
+1. **Parcel extraction** read the *last* enumerated parcel from land strings
+   ("599、599-1、…、623地號" → `623`), guaranteeing title mismatch; the anchor's
+   named first parcel (`599`) is what pages are titled after.
+2. **Count comparison** pitted text `'27'` against parsed int `27` — always
+   unequal, rejecting every counted candidate even with the right parcel.
+
+Only ~8 of 363 candidates could pass as written. Failures printed as ordinary
+no-matches, so the rejection looked like absence. Motivating case:
+松山區-寶清段四小段-599地號等27筆 — searchable at view/30, first result, yet
+unlinked (§0 row).
+
+Post-fix sweeps across three windows (see run log above; single writer
+throughout, 0 failures, viewer regenerated per window — final emit
+2026-08-26 00:19):
+
+| Metric | Pre | Post | Δ |
+|---|---|---|---|
+| Projects with `twur` / milestones | 302 (43%) | **581 (82%)** | +279 |
+| 使用核發日期 | 63 | **248** | +185 |
+
+New links by anchor era: **2004–21: 230 · 2022+: 49 · 2002–03: 0** — the
+"registry hole" cohort supplied 82% of recoveries. Revised boundary statement:
+
+- 2002–03 back-fill anchors: fully matched since the original campaign.
+- 2004–21: partially covered all along; the *genuine* remainder is only what
+  post-fix probing still rejects — **127 ledger negatives** recorded tonight.
+- 2022+ live feed: near-saturated; residual tail is gazette lag re-picked
+  automatically via `--reprobe-days`.
+
+State after W3: **128 projects without twur**, nearly all ledger-suppressed
+recent negatives rather than unprobed work; they re-enter after the 14-day TTL
+or a forced `--reprobe-days 0` pass. Truncation notes fired on 6 searches where
+>8 results existed (W1, `--max-probe` default 8). 寶清段599 was linked via the
+production path right after W1's deadline to close this section's motivating
+case. Next levers: §12 #4 count normalization over remaining strict-rejects;
+§12 #3 consolidation moves this matcher library-first.
+
+#### Post-W3 residue census (2026-08-26 00:19 emit)
+
+The 128 twur-less projects by anchor era (census over `viewer/projects.data.js`):
+**2004–21: 95 · 2022+: 33** — even post-fix, the hole cohort dominates the
+remainder; these are ledger negatives re-probed once per TTL window, and the
+2022+ tail is largely gazette lag rather than absence.
+
+Separately, the **18 Taipei-unresolved** projects (§12 #12; no `links.taipei`
+at all) break down by cause: **parcel-count drift** between case name and
+gazette (臨沂段三小段412等**12筆(原11筆)** · 復興段一小段3等**2筆(原5筆)** ·
+玉成段三小段711-3等**27筆(原24筆)**), and **unparseable land-core keys**
+(內湖區東湖段一小段「地號等?筆」; 萬華區崇仁新村 village-style naming → the
+literal `未解析-1354` row). 9 of the 18 are *also* twur-less. The same
+count-tolerance logic that recovered the portal side (§16.1) applies here —
+this census is the evidence base for the §12 #4 / §5 open row.
 
 ### Observations from live runs
 

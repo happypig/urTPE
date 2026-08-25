@@ -442,6 +442,159 @@ class TestAdapter:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Test Group: No-Match Ledger (add-no-match-ledger change)
+# ──────────────────────────────────────────────────────────────────────────────
+
+from datetime import datetime, timedelta
+
+from scripts.fetch_remaining_national_portal import (
+    clear_entry,
+    filter_candidates,
+    load_ledger,
+    record_no_match,
+    save_ledger,
+    sweep_matched_entries,
+    update_project_cache,
+)
+
+
+def _cand(pid: str, date: str = "2026-01-01") -> dict:
+    return {"project_id": pid, "section": "測試段", "parcel": "1", "count": "", "current_date": date}
+
+
+class TestLedgerLoadSave:
+    """1.1 — ledger load/save round-trip and corruption handling."""
+
+    def test_round_trip_new_entry(self, tmp_path):
+        ledger_path = tmp_path / "no_match_ledger.json"
+        ledger = load_ledger(ledger_path)
+        assert ledger == {}
+        record_no_match(ledger, "pid-A", ["123", "456"], now=datetime(2026, 8, 25, 3, 0, 0))
+        save_ledger(ledger, ledger_path)
+        assert load_ledger(ledger_path) == {
+            "pid-A": {"last_probed": "2026-08-25T03:00:00", "view_ids_checked": ["123", "456"]}
+        }
+
+    def test_update_existing_entry_last_wins(self):
+        ledger = {}
+        record_no_match(ledger, "pid-A", ["123"], now=datetime(2026, 8, 1))
+        record_no_match(ledger, "pid-A", ["999"], now=datetime(2026, 8, 20))
+        assert len(ledger) == 1
+        assert ledger["pid-A"]["last_probed"] == "2026-08-20T00:00:00"
+        assert ledger["pid-A"]["view_ids_checked"] == ["999"]
+
+    def test_atomic_replace_leaves_no_temp_files(self, tmp_path):
+        ledger_path = tmp_path / "no_match_ledger.json"
+        ledger = {}
+        record_no_match(ledger, "pid-A", ["123"])
+        save_ledger(ledger, ledger_path)
+        save_ledger(ledger, ledger_path)
+        assert ledger_path.exists()
+        assert list(tmp_path.iterdir()) == [ledger_path]
+
+    def test_corrupt_json_quarantined_and_empty(self, tmp_path):
+        ledger_path = tmp_path / "no_match_ledger.json"
+        ledger_path.write_text("{not json", encoding="utf-8")
+        ledger = load_ledger(ledger_path)
+        assert ledger == {}
+        assert not ledger_path.exists()
+        corrupt = ledger_path.with_suffix(ledger_path.suffix + ".corrupt")
+        assert corrupt.exists()
+
+
+class TestCandidateFiltering:
+    """1.2 — TTL-based candidate exclusion (pure logic)."""
+
+    NOW = datetime(2026, 8, 25, 3, 0, 0)
+
+    def _three_candidates(self):
+        return [_cand("fresh"), _cand("stale"), _cand("never-probed")]
+
+    def _ledger_fresh_and_stale(self):
+        ledger = {}
+        record_no_match(ledger, "fresh", ["1"], now=self.NOW - timedelta(days=1))
+        record_no_match(ledger, "stale", ["2"], now=self.NOW - timedelta(days=15))
+        return ledger
+
+    def test_recent_entry_excluded(self):
+        kept, skipped = filter_candidates(self._three_candidates(), self._ledger_fresh_and_stale(),
+                                          reprobe_days=14, now=self.NOW)
+        pids = [c["project_id"] for c in kept]
+        assert "fresh" not in pids
+        assert len(skipped) == 1 and skipped[0]["project_id"] == "fresh"
+
+    def test_stale_entry_included(self):
+        kept, _ = filter_candidates(self._three_candidates(), self._ledger_fresh_and_stale(),
+                                    reprobe_days=14, now=self.NOW)
+        assert "stale" in [c["project_id"] for c in kept]
+
+    def test_missing_entry_included(self):
+        kept, _ = filter_candidates(self._three_candidates(), self._ledger_fresh_and_stale(),
+                                    reprobe_days=14, now=self.NOW)
+        assert "never-probed" in [c["project_id"] for c in kept]
+
+    def test_zero_reprobe_days_includes_everything(self):
+        kept, skipped = filter_candidates(self._three_candidates(), self._ledger_fresh_and_stale(),
+                                          reprobe_days=0, now=self.NOW)
+        assert len(kept) == 3
+        assert skipped == []
+
+    def test_skipped_count_equals_difference(self):
+        all_c = self._three_candidates()
+        kept, skipped = filter_candidates(all_c, self._ledger_fresh_and_stale(),
+                                          reprobe_days=14, now=self.NOW)
+        assert len(all_c) - len(kept) == len(skipped)
+
+    def test_malformed_timestamp_treated_as_unprobed(self):
+        ledger = {"broken": {"last_probed": "not-a-date", "view_ids_checked": []}}
+        kept, skipped = filter_candidates([_cand("broken")], ledger, reprobe_days=14, now=self.NOW)
+        assert len(kept) == 1 and skipped == []
+
+
+class TestClearOnMatchAndSweep:
+    """1.3 — ledger cleared when project gains twur (direct + run-start sweep)."""
+
+    PID = "中山區-中山段一小段-254地號等13筆"
+
+    def _seed_cache(self, cache_root: Path, pid: str, twur_url: str) -> Path:
+        from urtpe.links import _project_cache_dir
+
+        d = _project_cache_dir(cache_root, pid)
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "result.json").write_text(
+            json.dumps({"project_id": pid, "twur_url": twur_url}), encoding="utf-8"
+        )
+        return d
+
+    def test_update_success_clears_entry(self, tmp_path):
+        self._seed_cache(tmp_path, self.PID, "")
+        ledger_path = tmp_path / "ledger.json"
+        ledger = {}
+        record_no_match(ledger, self.PID, ["123"])
+        save_ledger(ledger, ledger_path)
+
+        ok = update_project_cache(self.PID, "789", {"使用核發日期": "112.05.31"},
+                                  view_html="", ledger=ledger, ledger_path=ledger_path,
+                                  cache_root=tmp_path)
+        assert ok is True
+        assert self.PID not in ledger
+        assert load_ledger(ledger_path) == {}
+
+    def test_sweep_drops_only_twured_entries(self, tmp_path):
+        self._seed_cache(tmp_path, "has-twur", "https://twur.nlma.gov.tw/zh/urban/rebuild/view/1")
+        self._seed_cache(tmp_path, "still-missing", "")
+        ledger = {}
+        record_no_match(ledger, "has-twur", ["1"])
+        record_no_match(ledger, "still-missing", ["2"])
+
+        removed = sweep_matched_entries(ledger, cache_root=tmp_path)
+
+        assert removed == ["has-twur"]
+        assert "has-twur" not in ledger
+        assert "still-missing" in ledger
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Entry point for running tests
 # ──────────────────────────────────────────────────────────────────────────────
 

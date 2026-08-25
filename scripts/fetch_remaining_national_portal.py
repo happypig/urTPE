@@ -31,10 +31,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import sys
 import time
-from datetime import time as dtime
+from datetime import datetime, time as dtime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -67,6 +68,98 @@ SEARCH_URL = "https://twur.nlma.gov.tw/zh/urban/rebuild/0"
 VIEW_URL_BASE = "https://twur.nlma.gov.tw/zh/urban/rebuild/view/"
 ROOT = Path("data/.link_cache")
 FAILURES_LOG = ROOT / "fetch_failures.json"
+LEDGER_PATH = ROOT / "no_match_ledger.json"
+DEFAULT_REPROBE_DAYS = 14
+
+# ──────────────────────────────────────────────────────────────────────────────
+# No-Match Ledger (design D1/D3/D5)
+# ──────────────────────────────────────────────────────────────────────────────
+
+def load_ledger(path: Path = LEDGER_PATH) -> dict:
+    """Load the no-match ledger; a corrupt file is quarantined and run starts fresh."""
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, OSError) as e:
+        corrupt = path.with_suffix(path.suffix + ".corrupt")
+        print(f"WARNING: unreadable no-match ledger {path} ({e}); quarantining to {corrupt}",
+              file=sys.stderr)
+        try:
+            os.replace(path, corrupt)
+        except OSError:
+            pass
+        return {}
+
+
+def save_ledger(ledger: dict, path: Path = LEDGER_PATH) -> None:
+    """Persist ledger atomically (write temp, then os.replace)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(ledger, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def record_no_match(ledger: dict, project_id: str, view_ids_checked: list[str],
+                    now: Optional[datetime] = None) -> None:
+    """Record/update a project's no-match probe result (mutates ledger in place)."""
+    ledger[project_id] = {
+        "last_probed": (now or datetime.now()).isoformat(timespec="seconds"),
+        "view_ids_checked": list(view_ids_checked),
+    }
+
+
+def clear_entry(ledger: dict, project_id: str) -> None:
+    """Remove a project's ledger entry (no-op when absent)."""
+    ledger.pop(project_id, None)
+
+
+def filter_candidates(candidates: list[dict], ledger: dict, reprobe_days: float = DEFAULT_REPROBE_DAYS,
+                      now: Optional[datetime] = None) -> tuple[list[dict], list[dict]]:
+    """Split candidates into (kept, skipped-as-recently-probed).
+
+    Pure logic over in-memory entries — no filesystem access. A project is
+    skipped only when its ledger entry has a parseable last_probed newer than
+    now - reprobe_days. Malformed or missing entries never exclude.
+    """
+    now = now or datetime.now()
+    cutoff = now - timedelta(days=reprobe_days)
+    kept: list[dict] = []
+    skipped: list[dict] = []
+    for cand in candidates:
+        entry = ledger.get(cand["project_id"]) or {}
+        probed = None
+        raw = entry.get("last_probed")
+        if isinstance(raw, str):
+            try:
+                probed = datetime.fromisoformat(raw)
+            except ValueError:
+                probed = None
+        if probed is not None and probed > cutoff:
+            skipped.append(cand)
+        else:
+            kept.append(cand)
+    return kept, skipped
+
+
+def sweep_matched_entries(ledger: dict, cache_root: Path = ROOT) -> list[str]:
+    """Drop ledger entries for projects whose cache already carries a twur link.
+
+    Self-heals entries left behind when a match came from another writer.
+    Returns the removed project_ids; caller persists the mutated ledger.
+    """
+    removed: list[str] = []
+    for pid in list(ledger):
+        result_file = _project_cache_dir(cache_root, pid) / "result.json"
+        try:
+            result = json.loads(result_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        if result.get("twur_url"):
+            clear_entry(ledger, pid)
+            removed.append(pid)
+    return removed
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Core Functions
@@ -205,17 +298,21 @@ def view_page_matches(html: str, section: str, parcel: str, count: str = "") -> 
     return True
 
 
-def find_matching_view(section: str, parcel: str, count: str = "") -> tuple[str, dict[str, str], list[str], str]:
+def find_matching_view(section: str, parcel: str, count: str = "") -> tuple[str, dict[str, str], list[str], str, list[str]]:
     """Search for view_id matching section, then filter by parcel.
 
-    Returns (view_id, milestones, city_ids, html); html is empty when no match.
+    Returns (view_id, milestones, city_ids, html, view_ids_checked); html is
+    empty when no match. view_ids_checked lists every probed view_id (match,
+    reject, or error) so no-match probes can be recorded in the ledger.
     """
     vids = search_portal(section)
     if not vids:
-        return "", {}, [], ""
+        return "", {}, [], "", []
 
+    checked: list[str] = []
     for vid in vids[:5]:  # Check first 5 results max
         print(f"  Checking view/{vid} for parcel {parcel}...")
+        checked.append(vid)
         try:
             url = f"https://twur.nlma.gov.tw/zh/urban/rebuild/view/{vid}"
             html = fetch_url(url, None, True)
@@ -223,19 +320,25 @@ def find_matching_view(section: str, parcel: str, count: str = "") -> tuple[str,
                 print(f"  Match found: view/{vid}")
                 milestones = extract_tuidui_history_from_view(html)
                 city_ids = extract_case_ids_from_view(html)
-                return vid, milestones, city_ids, html
+                return vid, milestones, city_ids, html, checked
             print(f"  view/{vid} rejected (section/parcel/count mismatch)")
         except Exception as e:
             print(f"  Error checking view/{vid}: {e}")
             continue
-    return "", {}, [], ""
+    return "", {}, [], "", checked
 
 
-def update_project_cache(project_id: str, view_id: str, milestones: dict[str, str], view_html: str = "") -> bool:
-    """Update project cache with twur_view_id, twur_url, national_milestones (and view.html when provided)."""
+def update_project_cache(project_id: str, view_id: str, milestones: dict[str, str], view_html: str = "",
+                         ledger: Optional[dict] = None, ledger_path: Path = LEDGER_PATH,
+                         cache_root: Path = Path("data/.link_cache")) -> bool:
+    """Update project cache with twur_view_id, twur_url, national_milestones (and view.html when provided).
+
+    When a ledger dict is supplied, a successful update also clears the
+    project's no-match entry and persists the ledger (design D4).
+    """
     from urtpe.links import _project_cache_dir
 
-    cache_dir = _project_cache_dir(Path("data/.link_cache"), project_id)
+    cache_dir = _project_cache_dir(cache_root, project_id)
     result_file = cache_dir / "result.json"
     if not result_file.exists():
         print(f"  SKIP (no cache): {project_id}", file=sys.stderr)
@@ -262,10 +365,15 @@ def update_project_cache(project_id: str, view_id: str, milestones: dict[str, st
         result_file.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         if view_html:
             (cache_dir / "view.html").write_text(view_html, encoding="utf-8")
-        return True
     except OSError as e:
         print(f"  ERROR writing cache {project_id}: {e}", file=sys.stderr)
         return False
+
+    if ledger is not None and project_id in ledger:
+        clear_entry(ledger, project_id)
+        save_ledger(ledger, ledger_path)
+
+    return True
 
 
 def log_failure(project_id: str, view_id: str, error: str) -> None:
@@ -324,6 +432,8 @@ def main():
     parser = argparse.ArgumentParser(description="Fetch missing national portal data for projects.")
     parser.add_argument("--dry-run", action="store_true", help="Process only first 3 candidates")
     parser.add_argument("--max-projects", type=int, default=0, help="Maximum projects to process (0 = all)")
+    parser.add_argument("--reprobe-days", type=int, default=DEFAULT_REPROBE_DAYS,
+                        help=f"Re-probe no-match candidates after N days (default {DEFAULT_REPROBE_DAYS}; 0 disables skipping)")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -331,10 +441,22 @@ def main():
     print(f"Deadline: {DEADLINE_HOUR:02d}:{DEADLINE_MINUTE:02d}")
     print("=" * 60)
 
-    # Load candidates
+    # Load ledger + self-heal entries for projects that gained twur elsewhere
+    ledger = load_ledger()
+    removed = sweep_matched_entries(ledger)
+    if removed:
+        save_ledger(ledger)
+        print(f"Ledger sweep: cleared {len(removed)} entries (projects now have twur)")
+
+    # Load candidates, then exclude recently-probed no-matches (design D2)
     print("Loading candidates from viewer/projects.data.js...")
-    candidates = load_candidates()
-    print(f"Found {len(candidates)} projects missing twur links")
+    all_candidates = load_candidates()
+    candidates, skipped_list = filter_candidates(all_candidates, ledger, reprobe_days=args.reprobe_days)
+    skipped_count = len(skipped_list)
+    print(f"Found {len(all_candidates)} projects missing twur links")
+    if skipped_count:
+        print(f"Ledger: skipping {skipped_count} probed within {args.reprobe_days} days "
+              f"— {len(candidates)} to process this run")
 
     if not candidates:
         print("No candidates to process.")
@@ -372,10 +494,13 @@ def main():
         print(f"\n[{processed+1}/{len(candidates)}] {project_id} | {current_date} | {section}{parcel}")
 
         # Search portal by section, then filter by parcel (+count)
-        chosen_vid, milestones, city_ids, view_html = find_matching_view(section, parcel, count)
+        chosen_vid, milestones, city_ids, view_html, checked_vids = find_matching_view(section, parcel, count)
         matched = bool(chosen_vid)
         if not matched:
             print(f"  No matching view_id found for parcel {parcel}, skipping")
+            # Record immediately (design D3): a deadline kill must not lose tonight's negatives
+            record_no_match(ledger, project_id, checked_vids)
+            save_ledger(ledger)
         else:
             print(f"  Matched view/{chosen_vid}")
             print(f"  Milestones: {len(milestones)}")
@@ -383,13 +508,17 @@ def main():
             for k, v in milestones.items():
                 print(f"    {k} = {v}")
 
-            # Update cache (also persists matched view.html for future re-parsing)
-            success = update_project_cache(cand["project_id"], chosen_vid, milestones, view_html)
+            # Update cache (also persists matched view.html for future re-parsing);
+            # success clears the project's ledger entry (design D4)
+            success = update_project_cache(cand["project_id"], chosen_vid, milestones, view_html,
+                                           ledger=ledger)
             if success:
                 updated += 1
                 print(f"  Cache updated for {chosen_vid}")
             else:
                 failed += 1
+                record_no_match(ledger, project_id, checked_vids)
+                save_ledger(ledger)
 
         processed += 1
 
@@ -406,6 +535,7 @@ def main():
             time.sleep(wait)
 
     print(f"\n{'='*60}")
+    print(f"Candidates: {len(all_candidates)} total · {skipped_count} skipped as recently probed")
     print(f"Processed: {processed}")
     print(f"Updated:   {updated}")
     print(f"Failed:    {failed}")

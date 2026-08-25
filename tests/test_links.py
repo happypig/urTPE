@@ -499,6 +499,14 @@ class TestImplementationEmission:
         attach_links_to_projects([project], {"中山區-中山段一小段-254地號等13筆": disc})
         assert project.implementation.get("review_flags"), "conflicting payloads must surface review flags"
 
+    def test_emitted_nodes_carry_per_record_implementation_snapshots(self):
+        project = self._make_project()
+        attach_links_to_projects([project], {"中山區-中山段一小段-254地號等13筆": self._disc_obj()})
+        doc = build_graph_document([project], {"generated_at": "t", "source": "s", "published_date": ""})
+        nodes = {n["recno"]: n for n in doc["projects"][0]["nodes"]}
+        assert nodes[991]["implementation"]["case_id"] == "09811141"
+        assert nodes[991]["implementation"]["Exe_Way"] == "權利變換"
+
 
 class TestViewerCards:
     """Acceptance: viewer renders 執行階段/獎勵資料 cards when objects exist."""

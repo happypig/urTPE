@@ -46,6 +46,10 @@ def build_project_graph(project: Project, implementer: str, name: str, published
         # Include links if present on the member record
         if hasattr(r, 'links') and r.links:
             node["links"] = r.links
+        # Per-record implementation snapshot (additive optional)
+        impl_snapshot = getattr(r, "implementation", None)
+        if impl_snapshot:
+            node["implementation"] = impl_snapshot
         nodes.append(node)
 
     edges: list[dict] = []

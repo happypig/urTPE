@@ -103,12 +103,20 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
                 auto_fixes=node.get("auto_fixes", []),
                 review_flags=node.get("review_flags", []),
             )
+            # Restore optional emitted state so --from-js round-trips are
+            # lossless even without --links (attach overwrites when it runs)
+            if node.get("implementation"):
+                rec.implementation = dict(node["implementation"])
             members.append(rec)
         project = Project(
             project_id=pg["project_id"],
             anchor_recno=pg["anchor_recno"],
             members=members,
         )
+        if pg.get("implementation"):
+            project.implementation = dict(pg["implementation"])
+        if pg.get("rewards"):
+            project.rewards = dict(pg["rewards"])
         projects.append(project)
 
     meta = {

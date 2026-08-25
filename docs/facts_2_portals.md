@@ -14,7 +14,7 @@
 | `jud_ok_date2` field | `[RESOLVED]` — label identified; **mapping added to `STAGE_FIELD_MAP`** (2026-08-24, incl. `jud_ok_date` label fix; regression-tested) |
 | Join approach | Portal = gazette date; Taipei = committee date. **±1 day is a heuristic, not a rule** (Δ=0 observed). |
 | Do we need both sources? | Yes — they cover disjoint lifecycles (Taipei pre-approval depth; Portal post-approval breadth + revision rollup). |
-| 3 top forks (see §7) | Portal crawl recovery · `Report_Date` semantics · Phase-D confirmation |
+| 3 top forks | Portal crawl recovery **`[CONVERGED]`** (§16) · `Report_Date` semantics **`[RESOLVED]`** (2026-08-25) — 成果報備日期 confirmed (§12 #7) · Phase-D **`[RESOLVED]`** (2026-08-25) — `phase='D'` seen, taxonomy corrected (§6.5) |
 | Curated fallback wrong view (河堤段263-19 → 板橋 view/1042) | `[RESOLVED]` — mapping fixed to view/262; cache + view.html refreshed (see §6.6) |
 | Per-node case links (positional mislink / missing links) | `[RESOLVED]` — date-aligned anchoring in `attach_links_to_projects`, positional fallback kept (see §6.6) |
 | Fetch-script loose parcel match (`parcel in html`) | `[RESOLVED]` — strict parcel+地號 + title section/parcel/count match (see §6.6) |
@@ -182,30 +182,49 @@ Checked all 4 ashx endpoints for case 09811143 `[live-probed]`: `second.ashx` (3
 |---|---|---|---|
 | `Eng_Start_Date` | 開工日期 | **2013/09/10** | — |
 | `Ulic_Date` | 使用執照日期 | **2016/08/29** | Portal `使用核發` 105.08.29 ✓ |
-| `Report_Date` | (成果報備日期?) | empty | — |
+| `Report_Date` | 成果報備日期 — **confirmed** 2026-08-25 via site DOM (`id="detail_Report_Date"`); fills in 65/2,951 cached payloads, always after 使照核發 | empty | ✓ label official (§12 #7) |
 | `Exe_Way` | 實施方式 | **權利變換** | ✓ |
 
 Only the *completed* case (141) has these; revision cases (142, 144) empty because implementation tracking belongs to the final approved case.
 
-### 6.5 Phase Taxonomy — `[RESOLVED]` model, A confirmed 2026-08-25
+### 6.5 Phase Taxonomy — `[RESOLVED]`: all five phases seen (2026-08-25)
 
-`top.ashx` `phase` + `NAME` `[live-probed]`. **Correction (2026-08-25):** case
-08909160 (大安區龍泉段一小段712 事業概要案, lapsed) carries `phase='A'` with
-`NAME="事業概要階段─事業概要業已失效"` → **A = 事業概要階段** (the earlier
-inference "A = 單元劃定" was wrong; B/C/D shift accordingly). A/B/D now:
+`top.ashx` returns `phase` + `NAME`; NAME decomposes as `<階段名>─<outcome>`
+`[live-probed]`.
 
-| Phase | NAME example | Meaning | UI tab | Confidence |
-|---|---|---|---|---|
-| **A** | 事業概要階段─事業概要業已失效 | 事業概要階段 (含失效) | 事業概要 | **seen** (08909160) |
-| B | (not seen) | 事業計畫階段 (inferred from ladder A→C) | 事業計畫 | inferred |
-| C | 權利變換計畫階段─實施者自行撤回 | 權變計畫階段 (含撤回) | 權變計畫 | seen |
-| D | (not seen) | 核定後、執行前 (公告/備查) | — | inferred |
-| E | 執行階段_更新案完成成果備查 | 施工/實施階段 | 執行 | seen |
+| Phase | Stage (= NAME prefix) | Example NAME (case) | Confidence |
+|---|---|---|---|
+| A | 事業概要階段 | 事業概要業已失效 (08909160) | seen |
+| B | 事業計畫階段 | 業經本府核定 (11408005); 本府駁回 (09712201) | **seen 2026-08-25** |
+| C | 權利變換計畫階段 | 實施者自行撤回 (09811143) | seen |
+| D | 事業計畫【及】權利變換計畫階段 (combined track) | 業經本府核定 (11010082, 11008281); 實施者自行撤回 (11010081) | **seen 2026-08-25** |
+| E | 執行階段 | 更新案完成成果備查 | seen |
 
-單元劃定 appears to have no phase code (or is pre-A). Bonus from the same probe:
-the lapsed 概要 was itself **approved** (`outline_ok_date = 2001/01/11`) before
-being superseded by the approved 事業計畫 — and `outline_ok_date` is a real,
-filled timeline field, evidence for the §6.2 withheld `概要核准日期` mapping.
+Outcome suffixes observed: 業經本府核定 · 本府駁回 · 實施者自行撤回 · 業已失效.
+單元劃定 appears to have no phase code (or is pre-A).
+
+Corrections to the earlier ladder inference (2026-08-25):
+
+- **D ≠ "核定後、執行前"** — D is the *combined* 事業+權變 reporting track;
+  both D confirmations carry `uro_chk_date` AND `uro_chk_date2`.
+- **Approval does not advance the phase**: case 11408005 has
+  `uro_chk_date=2025/08/14` yet stays `phase='B'`; only entering 執行 moves
+  the case to E.
+- The tracks are plan-stage labels, not a strict temporal ladder (B and C are
+  single-track submissions; D is their combined submission).
+
+Local phase predictor (no network, from cached milestones): 核定日期 +
+權變核定日期 both present and no 開工 anywhere ⇒ D-shaped; 核定 only ⇒
+B-shaped. Corpus scan (2026-08-25): 142 approved-without-開工 projects split
+**56 D-shaped / 86 B-shaped**. Milestone shape is not authoritative (a
+B-approved case matches the shape minus 權變核定); the real phase costs one
+`top.ashx` call per case — relevant to whether `phase` enters the emitted
+graph (defer to [5] sync-model design).
+
+Bonus from the original A-probe: the lapsed 概要 was itself **approved**
+(`outline_ok_date = 2001/01/11`) before being superseded by the approved
+事業計畫 — and `outline_ok_date` is a real, filled timeline field, evidence
+for the §6.2 withheld `概要核准日期` mapping.
 
 ### 6.6 Session 2026-08-24 — Wrong-Match Bugs + Per-Node Link Fix `[RESOLVED]`
 
@@ -393,7 +412,7 @@ second.ashx (17 pre-approval events)
 |---|---|---|---|
 | 開工日期 | `third.ashx` | `Eng_Start_Date` | 2013/09/10 |
 | 使用執照核發日期 | `third.ashx` | `Ulic_Date` | 2016/08/29 |
-| 成果報備日期 | `third.ashx` | `Report_Date` | (empty for 141) |
+| 成果報備日期 | `third.ashx` | `Report_Date` | (empty for 141; label confirmed via site DOM — §12 #7) |
 | 實施方式 | `third.ashx` | `Exe_Way` | 權利變換 |
 | 基地面積 | `third.ashx` | `Base_Area` | 1,604.00 |
 | 土地使用分區1 | `third.ashx` | `Landkind1` | 第四種商業區(特)(原商三) |
@@ -402,7 +421,7 @@ second.ashx (17 pre-approval events)
 
 Additional `third.ashx` settlement stats: `Old_Doors`=50, `Settle_Old_Doors`=0, `Settle_Doors`=0, `New_Parkings`=103, `New_Parkings2`=85, `Sidewalk_Length`=60, `Sidewalk_Area`=230.81, `Urban_Renew_Fee`=1,242,782,140, `pc_afterUpdTotalValue`=2,761,323,189, `Land_Owners_Pir`=54, `Bui_Owners_Legal`=54.
 
-`fourth.ashx` rewards: `F0`=8,982.01 (基準容積), `F`=10,829.58 (允建容積), `F3`=538.92 (都市更新獎勵), `F5`=1,308.65, `F5_3`=230.81 (人行步道面積); reward flags (GREENBUILD_DESIGN, SEISMIC_DESIGN…) all empty here.
+`fourth.ashx` rewards: `F0`=8,982.01 (基準容積), `F`=10,829.58 (允建容積), `F3`=538.92 (都市更新獎勵), `F5`=1,308.65, `F5_3`=230.81 (人行步道面積); reward flags (GREENBUILD_DESIGN, SEISMIC_DESIGN…) all empty here. *(Flags populate widely across the corpus — numeric 容積 areas in ㎡, not booleans; official labels captured in §12 #9 / §12.1.)* *(Flags populate widely across the corpus — numeric 容積 areas in ㎡, not booleans; official labels captured in §12 #9.)*
 
 ---
 
@@ -415,7 +434,6 @@ Additional `third.ashx` settlement stats: `Old_Doors`=50, `Settle_Old_Doors`=0, 
 > [3] consolidation ──┬───▶ [4] count normalization ──▶ re-sweep run
 >                     │       (same matcher code moves into links.py)
 >                     └───▶ [5] sync model ──▶ absorbs [6] freshness hygiene
-> [7-9] investigations     ── standalone, any time
 > ```
 > Name-based references ("§12 consolidation", "§12 count normalization", …)
 > survive this ordering.
@@ -426,9 +444,9 @@ Additional `third.ashx` settlement stats: `Old_Doors`=50, `Settle_Old_Doors`=0, 
 4. **Parcel-count mismatch normalization** — land-core join should tolerate portal-vs-Taipei count drift (金華段 11 vs 13 筆) without weakening uniqueness; touches land-identity-fallback / official-link-discovery semantics. **Ride with/after [3]** (the matcher code moves into links.py); enables the post-normalization **re-sweep run** (no-match ledger `--reprobe-days` re-probes the recovered rejects automatically).
 5. **PDF + portals sync model** — event-cascade with PDF as heartbeat: new/changed projects trigger per-project refresh; liveness policy (freeze phase-E/completed, refresh phase C/D, targeted queue for twur-less); `project_id`/land-core as the only cross-PDF keys (recno shifts every gazette — node anchoring must be re-derived per sync). **Depends on [3]'s `--links-targeted`** for the orchestrator's portal lane. **Full design: `docs/sync_architecture.md`.** Needs OpenSpec change (new `portal-sync` capability).
 6. **Freshness-signal hygiene** — `viewer/projects.data.js` `generated_at` is preserved from the loaded file under `--from-js` (shows 2026-08-23 despite 8/24 writes) — not a reliable freshness signal. **Fully absorbed by [5]'s sync manifest**; standalone work unnecessary.
-7. **`Report_Date` semantics** — empty for 141; confirm whether it ever fills as 成果報備日期.
-8. **Phase-D confirmation** — find a real phase-D case; hint: phase data may already sit in the cached `top.ashx`-derived structures — a local scan might confirm D without network.
-9. **`fourth.ashx` reward flags** — map non-empty values to labels (site JS needed); rewards now cached per case.
+7. ~~**`Report_Date` semantics**~~ — **`[RESOLVED]`** (2026-08-25): the site's own DOM labels it 成果報備日期 (`id="detail_Report_Date"`, r_progress_detail.aspx). Empirics agree: fills in 65/2,951 cached third.ashx payloads, and in all 62 co-occurrences postdates 使照核發. Mapping was already correct in `IMPLEMENTATION_MILESTONE_FIELDS` (links.py) — nothing to do.
+8. ~~**Phase-D confirmation**~~ — **`[RESOLVED]`** (2026-08-25): live probe hit `phase='D'` on cases 11010082/11008281 (`NAME=事業計畫及權利變換計畫階段─業經本府核定`). The "cached top.ashx-derived structures" hint was wrong in mechanism but right in spirit — no phase survives into caches (top.ashx is never fetched by the pipeline), but milestones predict it: 核定+權變核定 coexistence ⇒ D-shaped (56 of 142 approved-without-開工 projects; 86 B-shaped). Taxonomy corrected in §6.5: D is the combined 事業+權變 track, not "核定後、執行前"; approval does not advance the phase.
+9. ~~**`fourth.ashx` reward flags**~~ — **`[RESOLVED]`** (2026-08-25): the flags are numeric 容積 contributions (㎡), not booleans (GREENBUILD_DESIGN×587, TIME_REWARD×590, SCALE_REWARD×547 … across the caches). Full official label map captured from the detail-page DOM — same `id="detail_<field>"` trick that produced IMPL_LABELS, so the archived change's "site JS needed" assumption is dead. All 41 cache keys labeled (map in §12.1); viewer `REWARD_LABELS` completion pending a small OpenSpec change.
 10. **Withdrawal date source** — any external system (紙本? 內部系統?) publishes 撤回日. Likely a dead end; deprioritize.
 
 Converged / done (frozen record, kept for reference):
@@ -437,6 +455,33 @@ Converged / done (frozen record, kept for reference):
 12. ~~**third.ashx emission layer**~~ — **`[DONE]`** via OpenSpec change `add-taipei-implementation-data` (2026-08-24): `graph.py` emits `implementation`/`rewards` + 開工/使照 milestones, `viewer/app.js` renders 執行階段/獎勵資料 cards, `schema_version` → 2, bulk pass refreshed 691 caches (689 projects emit implementation; 18 unresolved = pre-existing Taipei-search misses).
 13. ~~**`regenerate_viewer` hardening**~~ — **`[RESOLVED]`** (2026-08-25): child stdout/stderr → append-mode log file `data/.link_cache/regen_log.txt` (orphan can always write + stays observable), timeout 300 s → 1800 s, regen-start marker flushed before spawn. Verified live: regeneration succeeded, full child output captured in the log. No spec delta (emission contract unchanged).
 14. ~~**`jud_ok_date2` mapping**~~ — **done** (2026-08-24); removed from active list.
+
+### 12.1 Official reward-field labels (captured 2026-08-25, r_progress_detail.aspx DOM)
+
+Volume fields use accounting notation; incentive keys are per-incentive 容積
+areas (㎡). Complete — covers every key observed in the 691 caches:
+
+```
+F=F(㎡)  F0=F0(㎡)  F1..F6=△F1..△F6(㎡)  F4_1..F4_3=△F4-1..△F4-3(㎡)
+F5_1..F5_6=△F5-1..△F5-6(㎡)  Park_Area=停車獎勵(㎡)  Park_Cars=停車獎勵部數
+
+TIME_REWARD=時程獎勵                    SCALE_REWARD=規模獎勵
+GREENBUILD_DESIGN=綠建築標章之建築設計      SEISMIC_DESIGN=耐震設計
+WISDOMBUILD_DESIGN=智慧建築標章之建築設計   ACCESSIBLE_DESIGN=無障礙環境設計
+NEWTECH=新技術之應用                    IMENVIRON=改善都市環境
+BUILDPLANDES1..4=建築規劃設計(一)..(四)    BUILDSAFE_CONDITION=建築物結構安全條件
+CHARITY_BUILD=公益設施                  CULTURAL_MAINTAIN=文資保存及維護
+DEVELOP_PUBFACILITY=協助開闢公共設施用地    AGREEMENT_CONSTRUCTION=全體同意採協議合建實施
+PROREGENERAT1/2=促進都市更新(一)/(二)      VOLUME_HIGHER_REWARD=高於法定容積部份核計之獎勵
+ILLEGAL_FLOORAREA_REWARD=處理違建戶之樓地板面積獎勵  name_reward_no=獎勵上限規定
+```
+
+Open naming choice for the viewer change: keep the existing semantic labels
+(`F3`=都市更新獎勵, `F5`=其他容積獎勵, `F5_3`=人行步道面積) or switch to the
+official △F notation. Also unmapped today: `Eng_Start_Date`/`Ulic_Date`/
+`Report_Date` in IMPL_LABELS (they render as raw keys inside the 執行階段
+card; official labels 開工日期/使照核發日期/成果報備日期 confirmed from the
+same DOM).
 
 > *Section numbering note: §13-15 were consumed by the v1→v2 consolidation (their content lives in §8, §9, §12); appendices continue at §16 to keep historical v1 references unambiguous.*
 

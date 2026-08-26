@@ -309,6 +309,19 @@ table.recs tr.current td { background: #fef2f2; }
 /* 相關連結 debug toggle (default off) */
 .links-debug { margin-top: 10px; }
 .links-debug-toggle { font-size: 12px; color: #64748b; cursor: pointer; }
+
+/* Left-list construction stage chip */
+.stage-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  vertical-align: middle;
+}
 .links-debug-toggle input { vertical-align: middle; margin-right: 4px; }
 #links-section[hidden] { display: none; }
 

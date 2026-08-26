@@ -268,6 +268,49 @@ class TestAttachLinksToProjects:
 
         assert project.links == {"twur": "", "taipei": [], "milestones_national": {}, "milestones_taipei": {}}
 
+    def test_merge_records_winning_case_per_label(self):
+        from urtpe.links import merge_stage_milestones
+
+        all_ms, source = {}, {}
+        merge_stage_milestones(all_ms, source, "10011041", {"建照核發日期": "2017/02/07"})
+        merge_stage_milestones(all_ms, source, "10011042", {"核定日期": "2019/05/14"})
+        merge_stage_milestones(all_ms, source, "10011042", {"建照核發日期": "2019/06/19"})
+        assert all_ms["建照核發日期"] == "2019/06/19"
+        assert source["建照核發日期"] == "10011042", "overwritten label must name the winner"
+        assert source["核定日期"] == "10011042"
+
+    def test_attach_passes_source_map_and_impl_dates_name_case(self):
+        from urtpe.models import Project
+        from urtpe.cleanse import cleanse
+        from urtpe.models import RawRecord
+
+        raw1 = RawRecord(1042, "115/8/11", "中正區", "擬訂中正河堤段四小段263-19地號等25筆事業計畫案",
+                         "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+        raw2 = RawRecord(772, "115/8/11", "中正區", "變更中正河堤段四小段263-19地號等25筆權利變換計畫案",
+                         "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+        project = Project(
+            project_id="中正區-河堤段四小段-263-19地號等25筆",
+            anchor_recno=1042,
+            members=[cleanse(raw1), cleanse(raw2)],
+        )
+        discovered = {project.project_id: {
+            "twur": "",
+            "taipei": ["10204032", "10707031"],
+            "milestones_national": {},
+            "milestones_taipei": {"建照核發日期": "2017/07/14"},
+            "milestones_source": {"建照核發日期": "10204032"},
+            "case_milestones": {},
+            "implementation": {
+                "10204032": {"Exe_Way": "協議合建", "Eng_Start_Date": "2017/10/31"},
+            },
+            "rewards": {},
+        }}
+        attach_links_to_projects([project], discovered)
+
+        src = project.links["milestones_source"]
+        assert src["建照核發日期"] == "10204032", "stage label keeps its merged winner"
+        assert src["開工日期"] == "10204032", "implementation-derived dates name the payload case"
+
     def test_attach_per_node_implementation_snapshot(self):
         """Per-record implementation snapshots (additive): a record whose
         anchored case carries a third.ashx payload rides on that record."""

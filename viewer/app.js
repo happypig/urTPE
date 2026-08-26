@@ -18,6 +18,29 @@ const IMPLEMENTATION_CALLOUT_FIELDS = {
   Old_Doors: "原戶數",
 };
 
+// Left-list stage chip: the latest of 建照/開工/使照 (使照 falls back to the
+// national 使用核發日期). Colours: 建照 orange, 開工 red, 使照 green.
+function constructionStage(p) {
+  const STAGE_SLOTS = [
+    { label: "建照核發日期", short: "建照", color: "#f59e0b" },
+    { label: "開工日期", short: "開工", color: "#dc2626" },
+    { label: "使照核發日期", short: "使照", color: "#16a34a", natKey: "使用核發日期" },
+  ];
+  const mt = (p.links || {}).milestones_taipei || {};
+  const mn = (p.links || {}).milestones_national || {};
+  let best = null;
+  for (const s of STAGE_SLOTS) {
+    let v = mt[s.label] || "";
+    if (!v && s.natKey) v = mn[s.natKey] || "";
+    if (!v) continue;
+    let iso = String(v).replace(/\//g, "-");
+    const roc = iso.match(/^(\d{2,3})\.(\d{1,2})\.(\d{1,2})$/);
+    if (roc) iso = `${1911 + Number(roc[1])}-${roc[2]}-${roc[3]}`;
+    if (!best || iso > best.iso) best = { short: s.short, color: s.color, iso };
+  }
+  return best;
+}
+
 // Track column positions: left, middle, right
 function trackPosition(track) {
   if (track.includes("事業計畫") && !track.includes("權利變換")) return 0; // 事業計畫, 事業概要, 都市更新計畫 -> left
@@ -44,15 +67,18 @@ function byDateNodes(nodes) {
 
 function getNodeMilestoneBadges(node, project) {
   // Portal links live on the nodes (相關連結 section retired): 北 → anchored
-  // Taipei case page; 國 (現況 node only) → national view page.
+  // Taipei case page; 國 (現況 node only) → national view page. Tooltips name
+  // the destination (案<case_id> / view/<id>).
   const badges = [];
   const cases = (node.links || {}).taipei || [];
   if (cases.length) {
-    badges.push(`<a class="node-milestone-badge taipei badge-link" href="https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cases[0]}" target="_blank" rel="noopener" title="臺北市平台案件頁">北</a>`);
+    badges.push(`<a class="node-milestone-badge taipei badge-link" href="https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cases[0]}" target="_blank" rel="noopener" title="案${cases[0]}">北</a>`);
   }
   const twur = project && project.links && project.links.twur;
   if (node.is_current && twur) {
-    badges.push(`<a class="node-milestone-badge national badge-link" href="${escapeHtml(twur)}" target="_blank" rel="noopener" title="國土署入口網">國</a>`);
+    const vm = twur.match(/view\/(\d+)/);
+    const label = vm ? `view/${vm[1]}` : "國土署入口網";
+    badges.push(`<a class="node-milestone-badge national badge-link" href="${escapeHtml(twur)}" target="_blank" rel="noopener" title="${escapeHtml(label)}">國</a>`);
   }
   return badges.join("");
 }
@@ -202,16 +228,14 @@ function buildConstructionChain(p) {
   const links = p.links || {};
   const taipei = links.milestones_taipei || {};
   const national = links.milestones_national || {};
+  const sourceMap = links.milestones_source || {};
   const impl = p.implementation || {};
   const implCase = impl.case_id || "";
   const IMPL_SOURCE_FIELDS = { "開工日期": "Eng_Start_Date", "使照核發日期": "Ulic_Date" };
-  // carrying-case provenance: the case owning the implementation payload often
-  // anchors to its own record (核定日期±1d linkage) — name that 編號 too.
-  let ownerTag = "";
-  if (implCase) {
-    const owner = (p.nodes || []).find(n =>
-      ((n.links || {}).taipei || []).includes(implCase));
-    ownerTag = owner ? `·編號${owner.recno}` : "";
+  const nodes = p.nodes || [];
+  const anchoredByCase = {};
+  for (const n of nodes) {
+    for (const cid of ((n.links || {}).taipei || [])) anchoredByCase[cid] = n.recno;
   }
   const out = [];
   for (const slot of CONSTRUCTION_CHAIN_SLOTS) {
@@ -229,24 +253,62 @@ function buildConstructionChain(p) {
         dateStr = `${1911 + Number(roc[1])}/${roc[2].padStart(2, "0")}/${roc[3].padStart(2, "0")}`;
       }
     }
-    let prov = "";
-    const implField = IMPL_SOURCE_FIELDS[slot];
-    if (implCase && implField && !nationalHit && impl[implField] === value) {
-      prov = `案${implCase}${ownerTag}`;
+    // provenance: implementation exact-match > milestones_source map >
+    // national-only; anchored slots name their owning record.
+    let provCase = "";
+    if (!nationalHit) {
+      const implField = IMPL_SOURCE_FIELDS[slot];
+      if (implCase && implField && impl[implField] === value) provCase = implCase;
+      else if (sourceMap[slot] && taipei[slot] === value) provCase = sourceMap[slot];
     }
-    out.push({ label: slot, date: dateStr, national: nationalHit, prov, case: prov ? implCase : "" });
+    const ownerRecno = provCase !== "" && anchoredByCase[provCase] !== undefined
+      ? anchoredByCase[provCase] : null;
+    const anchored = ownerRecno !== null;
+    const prov = provCase ? `案${provCase}${anchored ? `·編號${ownerRecno}` : ""}` : "";
+    out.push({
+      label: slot, date: dateStr, national: nationalHit, prov,
+      case: provCase, anchored, ownerRecno,
+    });
   }
   return out;
 }
 
 // Implementation summary rows for a record's callout (only populated fields).
+// 4th row: non-empty 土地使用分區 values abbreviated and "/"-joined.
 function buildImplCallout(impl) {
+  impl = impl || {};
   const rows = [];
   for (const [key, label] of Object.entries(IMPLEMENTATION_CALLOUT_FIELDS)) {
-    const v = (impl || {})[key];
+    const v = impl[key];
     if (v !== undefined && v !== null && v !== "") rows.push({ label, value: String(v) });
   }
+  const zones = [...new Set([impl.Landkind1, impl.Landkind2, impl.Landkind3]
+    .filter(v => v !== undefined && v !== null && v !== "")
+    .map(v => abbreviateZone(v)))];
+  if (zones.length) rows.push({ label: "使用分區", value: zones.join("/") });
   return rows;
+}
+
+// Zone abbreviation: 第三種住宅區 → 住三, 第三之一種住宅區 → 住三之一,
+// 第三種特定商業區 → 特商三, 住宅區(特) → 住特, 商三特(…) → 商三特,
+// 道路用地 → 道路; unknown forms render verbatim.
+function abbreviateZone(z) {
+  let s = String(z).trim();
+  const special = /\(特\)\s*$/.test(s);
+  s = s.replace(/\([^)]*\)/g, "").trim();
+  let m = s.match(/^第(.+?)種特定(.+?)$/);
+  if (m) return "特" + zoneBase(m[2]) + m[1];
+  m = s.match(/^第(.+?)種(.+?)$/);
+  if (m) return zoneBase(m[2]) + m[1];
+  m = s.match(/^(.+?)區$/);
+  if (m) return zoneBase(m[1]) + (special ? "特" : "");
+  if (s.endsWith("用地")) return s.slice(0, -2);
+  return s;
+}
+
+function zoneBase(x) {
+  x = String(x).replace(/區$/, "");
+  return { "住宅": "住", "商業": "商", "工業": "工" }[x] || x;
 }
 
 // 相關連結 (debug toggle, default off): each city case_id joins to its
@@ -343,7 +405,7 @@ function init() {
     `${window.PROJECTS.counts.projects} 個專案 / ${window.PROJECTS.counts.records} 筆記錄` +
     ` · ${window.PROJECTS.published_date || window.PROJECTS.generated_at || ""}`;
 
-  const sel = { district: new Set(), year: new Set(), track: new Set() };
+  const sel = { district: new Set(), year: new Set(), track: new Set(), stage: new Set() };
   const districts = [...new Set(projects.map(p => p.district))].sort();
   const years = [...new Set(projects.flatMap(p => p.nodes.map(n => n.date.slice(0, 4))))]
     .sort((a, b) => (a < b ? 1 : -1));
@@ -351,6 +413,7 @@ function init() {
     { key: "district", label: "地區", options: districts },
     { key: "year", label: "年度", options: years },
     { key: "track", label: "事業種類", options: TRACK_ORDER },
+    { key: "stage", label: "施工階段", options: ["建照", "開工", "使照"] },
   ];
 
   const dropdowns = [];
@@ -447,6 +510,10 @@ function init() {
       sel.track.forEach(t => { if (trs.has(t)) hit = true; });
       if (!hit) return false;
     }
+    if (sel.stage.size) {
+      const st = constructionStage(p);
+      if (!st || !sel.stage.has(st.short)) return false;
+    }
     const q = filter.value.trim();
     if (q) {
       const hay = `${p.project_id} ${p.district} ${p.section} ${p.implementer} ${p.name} ${p.member_recnos.join(" ")}`;
@@ -462,6 +529,12 @@ function init() {
       return cur ? cur.recno : Number.MAX_SAFE_INTEGER;
     };
     const shown = projects.filter(matches).sort((a, b) => curRecno(a) - curRecno(b));
+    // ... each item carries a 2-char construction stage chip: the latest of
+    // 建照/開工/使照 (使照 falls back to the national 使用核發日期).
+    const stageChip = p => {
+      const st = constructionStage(p);
+      return st ? `<span class="stage-badge" style="color:${st.color}">${st.short}</span>` : "";
+    };
     rcount.textContent = `顯示 ${shown.length} / ${total}`;
     list.innerHTML = "";
     if (!shown.length) {
@@ -474,7 +547,7 @@ function init() {
     shown.forEach(p => {
       const el = document.createElement("div");
       el.className = "item" + (p.project_id === activePid ? " active" : "");
-      el.innerHTML = `<div class="pid"><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}</div>
+      el.innerHTML = `<div class="pid"><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}${stageChip(p)}</div>
         <div class="cnt">${p.member_recnos.length} 筆 · ${escapeHtml(p.implementer)}</div>`;
       el.onclick = () => { activePid = p.project_id; renderList(); renderDetail(p); };
       list.appendChild(el);
@@ -526,17 +599,24 @@ function init() {
       }
     });
 
-    // Per-record callouts: carrying records + red diff vs nearest earlier carrier.
+    // Callout selection: first carrying record + diff-triggered records only.
+    // 使用分區 diffs compare as a SET (order-insensitive, post-dedupe).
+    const normForCompare = (label, value) =>
+      label === "使用分區" ? value.split("/").sort().join("/") : value;
     const callouts = [];
     let prevVals = null;
+    let firstCarrier = true;
     nodes.forEach(n => {
       if (!n.implementation) return;
       const rows = buildImplCallout(n.implementation).map(r => ({
         label: r.label,
         value: r.value,
-        changed: !!(prevVals && prevVals[r.label] !== undefined && prevVals[r.label] !== r.value),
+        changed: !!(prevVals && prevVals[r.label] !== undefined &&
+                    normForCompare(r.label, prevVals[r.label]) !== normForCompare(r.label, r.value)),
       }));
-      callouts.push({ n, rows });
+      const anyChanged = rows.some(r => r.changed);
+      if (firstCarrier || anyChanged) callouts.push({ n, rows });
+      firstCarrier = false;
       prevVals = {};
       rows.forEach(r => { prevVals[r.label] = r.value; });
     });
@@ -546,6 +626,48 @@ function init() {
     let svgH = PAD * 2 + timeline.length * 64;
     callouts.forEach(c => {
       svgH = Math.max(svgH, pos[c.n.recno].y + 84);
+    });
+
+    // Callout placement: collision-dodging spots, clamped into the viewBox.
+    // Runs BEFORE the svg string is built so viewBox extensions take effect.
+    const evRects = events.map(e => {
+      const q = evPos[e.label];
+      return { x: q.x - 8, y: q.y - 12, w: 240, h: 26 };
+    });
+    const placedBoxes = [];
+    const hitsAny = (r, list) => list.some(o =>
+      r.x < o.x + o.w && o.x < r.x + r.w && r.y < o.y + o.h && o.y < r.y + r.h);
+    callouts.forEach(c => {
+      const ownRecno = c.n.recno;
+      const p2 = pos[ownRecno];
+      const w = 150, h = c.rows.length * 14 + 6;
+      const nodeRects = nodes
+        .filter(n => n.recno !== ownRecno)
+        .map(n => {
+          const q = pos[n.recno];
+          const headLen = (`${n.recno} · ${n.date}${n.stage ? " " + n.stage : ""}`).length;
+          return { x: q.x - 10, y: q.y - 14, w: 14 + headLen * 6.5 + 40, h: 34 };
+        });
+      const spots = [
+        { x: p2.x - 16 - w, y: p2.y + 20 },          // below-left
+        { x: p2.x + 16,     y: p2.y + 20 },          // below-right
+        { x: p2.x - 16 - w, y: p2.y - 10 - h },      // above-left
+        { x: p2.x + 16,     y: p2.y - 10 - h },      // above-right
+        { x: p2.x - 16 - w, y: p2.y + 46 },          // further below-left
+        { x: p2.x + 16,     y: p2.y + 46 },          // further below-right
+      ].map(s => ({
+        x: Math.min(Math.max(s.x, 4), Math.max(4, svgW - w - 4)),
+        y: Math.min(Math.max(s.y, 4), Math.max(4, svgH - h - 4)),
+      }));
+      const spot = spots.find(s => {
+        const r = { x: s.x, y: s.y, w, h };
+        return !hitsAny(r, nodeRects) && !hitsAny(r, evRects) && !hitsAny(r, placedBoxes);
+      }) || spots[spots.length - 1];
+      spot.w = w; spot.h = h;
+      placedBoxes.push(spot);
+      c.rect = spot;
+      svgH = Math.max(svgH, spot.y + h + 16);
+      svgW = Math.max(svgW, spot.x + w + 8);
     });
 
     let s = `<h2><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}</h2>
@@ -563,25 +685,38 @@ function init() {
       s += `<line class="edge ${e.kind}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
     });
 
-    // Construction events: thin attribution edge to the plan in force (the
-    // latest approval dated on or before the event), colored by source portal.
+    // Source-group edges: events group by provenance (Taipei carrying case /
+    // national-only). Solid edge from each group's source node to the group's
+    // first event; solid chain within a group; dashed between adjacent groups
+    // colored by the incoming group. No edges to non-source records.
+    const sameSource = (a, b) =>
+      (a.national ? "national" : "case:" + (a.case || "")) ===
+      (b.national ? "national" : "case:" + (b.case || ""));
     if (hasEvents) {
-      events.forEach(e => {
-        const evDate = String(e.date).replace(/\//g, "-");
-        let owner = null;
-        for (const n of nodes) {          // date-ascending
-          if (n.date <= evDate) owner = n; else break;
+      events.forEach((e, i) => {
+        const b = evPos[e.label];
+        const colorCls = e.national ? "national" : "taipei";
+        const groupStart = i === 0 || !sameSource(e, events[i - 1]);
+        if (groupStart) {
+          if (!e.national && e.anchored) {
+            const a = pos[e.ownerRecno];
+            if (a) s += `<line class="event-edge ${colorCls}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+          } else if (e.national) {
+            const cur = nodes.find(n => n.is_current) || nodes[nodes.length - 1];
+            const a = pos[cur.recno];
+            s += `<line class="event-edge national" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+          }
+          if (i > 0) {
+            // dashed transition into the new group (incoming group's colour)
+            const a = evPos[events[i - 1].label];
+            s += `<line class="event-link ${colorCls} dashed" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+          }
+        } else {
+          const a = evPos[events[i - 1].label];
+          const dashed = sameSource(e, events[i - 1]) ? "" : " dashed";
+          s += `<line class="event-link ${colorCls}${dashed}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
         }
-        if (!owner) owner = nodes[0];
-        const a = pos[owner.recno], b = evPos[e.label];
-        if (!a || !b) return;
-        s += `<line class="event-edge ${e.national ? "national" : "taipei"}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
       });
-      const kai = evPos["開工日期"], shi = evPos["使照核發日期"];
-      if (kai && shi) {
-        const shiEv = events.find(e => e.label === "使照核發日期");
-        s += `<line class="event-link ${shiEv && shiEv.national ? "national" : "taipei"}" x1="${kai.x}" y1="${kai.y}" x2="${shi.x}" y2="${shi.y}"></line>`;
-      }
     }
 
     nodes.forEach(n => {
@@ -604,9 +739,9 @@ function init() {
       events.forEach(e => {
         const b = evPos[e.label];
         const colorCls = e.national ? "national" : "taipei";
-        const href = e.national
-          ? ((p.links || {}).twur || "")
-          : (e.case ? `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${e.case}` : "");
+        const href = (!e.national && !e.anchored && e.case)
+          ? `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${e.case}`
+          : "";
         const inner = `<circle r="6"></circle>
           <text class="event-label ${colorCls}" x="11" y="3">${escapeHtml(e.label)}：${escapeHtml(e.date)}</text>
           ${e.prov ? `<text class="chain-prov" x="11" y="14">${escapeHtml(e.prov)}</text>` : ""}
@@ -617,51 +752,22 @@ function init() {
       });
     }
 
-    // Per-record implementation callouts: compact, tail pointing at the
-    // carrying record, placed in the first spot that covers nothing.
-    const nodeRects = nodes.map(n => {
-      const q = pos[n.recno];
-      const headLen = (`${n.recno} · ${n.date}${n.stage ? " " + n.stage : ""}`).length;
-      return { x: q.x - 10, y: q.y - 14, w: 14 + headLen * 6.5 + 40, h: 38 };
-    });
-    const evRects = events.map(e => {
-      const q = evPos[e.label];
-      return { x: q.x - 8, y: q.y - 12, w: 240, h: 26 };
-    });
-    const placedBoxes = [];
-    const hitsAny = (r, list) => list.some(o =>
-      r.x < o.x + o.w && o.x < r.x + r.w && r.y < o.y + o.h && o.y < r.y + r.h);
+    // Per-record implementation callouts: render the pre-placed rects.
     callouts.forEach(c => {
-      const p2 = pos[c.n.recno];
-      const w = 150, h = c.rows.length * 14 + 6;
-      const spots = [
-        { x: p2.x - 16 - w, y: p2.y + 20 },          // below-left
-        { x: p2.x + 16,     y: p2.y + 20 },          // below-right
-        { x: p2.x - 16 - w, y: p2.y - 10 - h },      // above-left
-        { x: p2.x + 16,     y: p2.y - 10 - h },      // above-right
-        { x: p2.x - 16 - w, y: p2.y + 46 },          // further below-left
-        { x: p2.x + 16,     y: p2.y + 46 },          // further below-right
-      ];
-      const spot = spots.find(s => {
-        const r = { x: s.x, y: s.y, w, h };
-        return !hitsAny(r, nodeRects) && !hitsAny(r, evRects) && !hitsAny(r, placedBoxes);
-      }) || spots[0];
-      spot.w = w; spot.h = h;
-      placedBoxes.push(spot);
-      const rowsHtml = c.rows.map(r =>
-        `<div class="impl-callout-row"><span>${escapeHtml(r.label)}</span><b class="${r.changed ? "callout-diff" : ""}">${escapeHtml(r.value)}</b></div>`
+      const r = c.rect;
+      const np = pos[c.n.recno];
+      const rowsHtml = c.rows.map(row =>
+        `<div class="impl-callout-row"><span>${escapeHtml(row.label)}</span><b class="${row.changed ? "callout-diff" : ""}">${escapeHtml(row.value)}</b></div>`
       ).join("");
-      // tail: from the box edge nearest the node, apex on the node circle
-      const apex = { x: p2.x - 7, y: p2.y + 9 };
+      const apex = { x: np.x - 7, y: np.y + 9 };
       let tail;
-      if (spot.x + w <= p2.x) {                       // box left of node
-        tail = `${spot.x + w},${spot.y + 4} ${apex.x},${apex.y} ${spot.x + w},${spot.y + h - 4}`;
-      } else {                                        // box right of node
-        tail = `${spot.x},${spot.y + 4} ${apex.x + 14},${apex.y} ${spot.x},${spot.y + h - 4}`;
+      if (r.x + r.w <= np.x) {          // box left of node → tail on right edge
+        tail = `${r.x + r.w},${r.y + 4} ${apex.x},${apex.y} ${r.x + r.w},${r.y + r.h - 4}`;
+      } else {                          // box right of node → tail on left edge
+        tail = `${r.x},${r.y + 4} ${apex.x + 14},${apex.y} ${r.x},${r.y + r.h - 4}`;
       }
       s += `<polygon class="callout-tail" points="${tail}"></polygon>`;
-      s += `<foreignObject x="${spot.x}" y="${spot.y}" width="${w}" height="${h}"><div xmlns="http://www.w3.org/1999/xhtml" class="impl-callout">${rowsHtml}</div></foreignObject>`;
-      svgH = Math.max(svgH, spot.y + h + 16);
+      s += `<foreignObject x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"><div xmlns="http://www.w3.org/1999/xhtml" class="impl-callout">${rowsHtml}</div></foreignObject>`;
     });
     s += "</svg>";
 

@@ -213,6 +213,76 @@ def test_national_dates_converted_to_western():
     )
 
 
+def test_source_group_edges_and_hyperlink_rule():
+    js = _js()
+    body = re.search(
+        r"function buildConstructionChain\s*\([^)]*\)\s*\{[\s\S]*?\n\}", js
+    ).group(0)
+    assert "milestones_source" in body, (
+        "builder must resolve stage slots (建照) via the milestones_source map"
+    )
+    assert "anchored" in body, (
+        "builder must mark whether each slot's carrying case anchors to a record"
+    )
+    assert "event-link" in js and "dashed" in js, (
+        "group transitions must render dashed connectors"
+    )
+    assert "event-edge" in js, "group source attachment must use event-edge"
+    assert re.search(r"e\.anchored", js), (
+        "event hyperlinks must be dropped when the carrying case anchors"
+    )
+
+
+def test_badge_tooltips_carry_ids():
+    m = re.search(r"function getNodeMilestoneBadges\s*\([^)]*\)\s*\{[\s\S]*?\n\}", _js())
+    assert m, "getNodeMilestoneBadges not found"
+    body = m.group(0)
+    assert "案" in body, "北 tooltip must name the case (案<case_id>)"
+    assert "view/" in body, "國 tooltip must name the view id"
+
+
+def test_callout_zone_row_and_selection():
+    js = _js()
+    m = re.search(r"function buildImplCallout\s*\([^)]*\)\s*\{[\s\S]*?\n\}", js)
+    assert m, "buildImplCallout not found"
+    assert "Landkind" in m.group(0), "callout must include the 使用分區 row"
+    assert "abbreviateZone" in js, "zone abbreviator must exist"
+    assert "firstCarrier" in js, "callout selection must keep the first carrier"
+    assert "ownRecno" in js, "collision set must exclude the callout's own record"
+    assert "Math.min" in js, "candidate rects must clamp into the viewBox"
+
+
+def test_list_stage_badge():
+    js = _js()
+    m = re.search(r"function constructionStage\s*\([^)]*\)\s*\{[\s\S]*?\n\}", js)
+    assert m, "constructionStage derivation not found in viewer/app.js"
+    body = m.group(0)
+    for slot in ("建照核發日期", "開工日期", "使照核發日期"):
+        assert slot in body, f"stage derivation must consider {slot}"
+    assert "使用核發日期" in body, "使照 must fall back to the national 使用核發日期"
+    assert "stage-badge" in js, "list items must render the stage-badge chip"
+    # colours: 建照 orange, 開工 red, 使照 green
+    for color in ("#f59e0b", "#dc2626", "#16a34a"):
+        assert color in js, f"badge colour {color} missing"
+
+
+def test_stage_filter_dimension():
+    js = _js()
+    m = re.search(r"const DIMS = \[[\s\S]*?\];", js)
+    assert m, "DIMS not found in viewer/app.js"
+    assert 'key: "stage"' in m.group(0), "DIMS must include the stage dimension"
+    assert 'label: "施工階段"' in m.group(0), "stage dimension labelled 施工階段"
+    for opt in ("建照", "開工", "使照"):
+        assert f'"{opt}"' in m.group(0), f"stage option {opt} missing"
+    i = js.find("function matches(p)")
+    assert i >= 0, "matches() not found"
+    seg = js[i:js.find("\n  }", i) + 3]
+    assert "sel.stage" in seg, "matches() must apply the stage dimension"
+    assert "constructionStage(p)" in seg, (
+        "stage filter must derive via constructionStage (same as the badge)"
+    )
+
+
 def test_app_js_parses():
     import shutil
     import subprocess

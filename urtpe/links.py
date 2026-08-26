@@ -296,6 +296,9 @@ class DiscoveryResult:
     # Per-case milestone timelines: {case_id: {label: date}} — retained so node
     # links can be anchored by 核定日期 instead of list position.
     case_milestones: dict[str, dict[str, str]] = field(default_factory=dict)
+    # Label → winning case_id from the last-write-wins stage merge, so slot
+    # provenance (建照核發日期 included) is provable at the viewer.
+    milestones_source: dict[str, str] = field(default_factory=dict)
     # Per-case 執行階段 (third.ashx) / 獎勵資料 (fourth.ashx) payloads.
     implementation: dict[str, dict[str, str]] = field(default_factory=dict)
     rewards: dict[str, dict[str, str]] = field(default_factory=dict)
@@ -533,12 +536,13 @@ def discover_project_links(
 
     # ── Step 2: milestones per case_id via JSON API ─────────────────────────
     all_taipei_milestones: dict[str, str] = {}
+    milestones_source: dict[str, str] = {}
     case_names: list[str] = []
     for cid in city_ids:
         time.sleep(delay)
         try:
             ms = fetch_taipei_milestones_api(cid)
-            all_taipei_milestones.update(ms)
+            merge_stage_milestones(all_taipei_milestones, milestones_source, cid, ms)
             result.case_milestones[cid] = ms
             for e in city_entries:
                 if e["case_id"] == cid and e.get("case_name"):
@@ -561,6 +565,7 @@ def discover_project_links(
             result.error = f"{result.error}; " if result.error else ""
             result.error += f"Taipei rewards {cid} failed: {e}"
     result.taipei_milestones = all_taipei_milestones
+    result.milestones_source = milestones_source
 
     # ── Step 3 (supplementary): national portal for view URL + 推動歷程 ──────
     national_milestones = {}
@@ -861,6 +866,16 @@ def implementation_milestones(payload: dict) -> dict[str, str]:
     }
 
 
+def merge_stage_milestones(
+    all_ms: dict[str, str], source: dict[str, str], cid: str, ms: dict[str, str]
+) -> None:
+    """Last-write-wins merge of one case's stage milestones, recording which
+    case won each label so slot provenance stays provable at the viewer."""
+    for label, v in ms.items():
+        all_ms[label] = v
+        source[label] = cid
+
+
 def _match_case_by_date(member_date: str, disc) -> str:
     """Find the city case whose 核定日期/權變核定日期 equals the node's date
     (exact first, then ±1 day). Returns case_id or ''."""
@@ -901,6 +916,7 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             obj.national_milestones = v.get("milestones_national", {})
             obj.taipei_milestones = v.get("milestones_taipei", {})
             obj.case_milestones = v.get("case_milestones", {})
+            obj.milestones_source = v.get("milestones_source", {})
             obj.implementation = v.get("implementation", {})
             obj.rewards = v.get("rewards", {})
             disc_by_pid[k] = obj
@@ -922,6 +938,9 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             "milestones_national": disc.national_milestones.copy(),
             "milestones_taipei": disc.taipei_milestones.copy(),
         }
+        source_map = getattr(disc, "milestones_source", None) or {}
+        if source_map:
+            project.links["milestones_source"] = dict(source_map)
 
         # Implementation (third.ashx) / rewards (fourth.ashx): project-level
         # attachment with case provenance (design D2/D5). Date fields surface as
@@ -935,6 +954,7 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             project.implementation = impl_out
             for label, date in implementation_milestones(impl_payload).items():
                 project.links["milestones_taipei"][label] = date
+                project.links.setdefault("milestones_source", {})[label] = impl_cid
         rew_cid, rew_payload, rew_flags = select_best_payload(getattr(disc, "rewards", None) or {})
         if rew_payload:
             rew_out = dict(rew_payload)

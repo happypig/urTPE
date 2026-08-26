@@ -14,6 +14,7 @@ from urtpe.links import (
     build_land_core_key,
     attach_links_to_projects,
     discover_project_links,
+    search_taipei_cases_api,
     select_best_payload,
     implementation_milestones,
     LinksDiscovery,
@@ -129,6 +130,109 @@ class TestTaipeiCaseParsing:
         assert stages["審議通過日期"] == "2016/03/14"
         assert stages["核定日期"] == "2017/03/21"
         assert stages["建照核發日期"] == "2022/08/25"
+
+
+def _taipei_entry(case_id: str, case_name: str, schedule: str = "已核准") -> dict:
+    """One Get_updcase_list.ashx row shaped like the live API."""
+    return {
+        "details": f"https://gis.uro.taipei/r_progress_detail.aspx?case_id={case_id}",
+        "case_name": case_name,
+        "schedule": schedule,
+    }
+
+
+class TestTaipeiSearchParcelGuard:
+    """§6.7/§6.8 guard: search keeps only cases whose own case_name carries the
+    searched parcel (notation-drift tolerant). Cross-family pollution must not
+    enter city_case_ids."""
+
+    def _search(self, monkeypatch, entries, section: str, parcel: str):
+        import json as jsonlib
+        import urtpe.links as links
+
+        monkeypatch.setattr(
+            links, "_post_taipei_api",
+            lambda url, params, max_retries=3: jsonlib.dumps(entries),
+        )
+        dropped_out: dict[str, str] = {}
+        kept = search_taipei_cases_api(section, parcel, dropped_out=dropped_out)
+        return [e["case_id"] for e in kept], dropped_out
+
+    def test_own_family_cases_survive_the_guard(self, monkeypatch):
+        """Spec scenario: 寶清段一小段(四小段) 57-13 — all four own approvals stay."""
+        names = [
+            ("10212211", "擬訂臺北市中山區寶清段四小段57-13地號等1筆土地都市更新事業計畫案"),
+            ("10212212", "變更臺北市中山區寶清段四小段57-13地號等1筆土地都市更新事業計畫案"),
+            ("10212214", "變更(第二次)臺北市中山區寶清段四小段57-13地號等1筆土地都市更新事業計畫案"),
+            ("11412018", "變更臺北市中山區寶清段四小段57-13等1筆土地都市更新權利變換計畫案"),
+        ]
+        kept, dropped = self._search(
+            monkeypatch, [_taipei_entry(cid, n) for cid, n in names],
+            "寶清段四小段", "57-13",
+        )
+        assert kept == [cid for cid, _ in names]
+        assert dropped == {}
+
+    def test_foreign_same_section_case_rejected(self, monkeypatch):
+        """Spec scenario: 正義段四小段 115 — 11102211 (133地號1筆) is dropped."""
+        entries = [
+            _taipei_entry("11102210", "擬訂臺北市中山區正義段四小段115地號等4筆土地都市更新事業計畫及權利變換計畫案"),
+            _taipei_entry("11102211", "擬訂臺北市中山區正義段四小段133地號1筆土地都市更新事業計畫案"),
+        ]
+        kept, dropped = self._search(monkeypatch, entries, "正義段四小段", "115")
+        assert kept == ["11102210"]
+        assert set(dropped) == {"11102211"}
+        assert "133地號" in dropped["11102211"]
+
+    def test_sibling_r13_gaiyao_cases_rejected(self, monkeypatch):
+        """Spec scenario (§6.7): 南港段一小段 520-2 — the four sibling 概要 cases on
+        other land are dropped; 09407070/71/73 (520-2等18筆) remain."""
+        entries = [
+            _taipei_entry("09407070", "擬訂臺北市南港區南港段一小段520-2等18筆土地(R13)都市更新事業概要案"),
+            _taipei_entry("09407071", "擬訂臺北市南港區南港段一小段520-2等18筆土地(R13)都市更新事業計畫及權利變換計畫案"),
+            _taipei_entry("09407073", "變更臺北市南港區南港段一小段520-2等18筆土地(R13)都市更新事業計畫及權利變換計畫案"),
+            _taipei_entry("09407110", "擬訂臺北市南港區南港段一小段522等45筆土地(R13)都市更新事業概要案"),
+            _taipei_entry("09407113", "擬訂臺北市南港區南港段一小段467等41筆土地(R13)都市更新事業概要案"),
+            _taipei_entry("09509071", "擬訂臺北市南港區南港段一小段403-2等28筆土地都市更新事業概要案"),
+            _taipei_entry("09607130", "擬訂臺北市南港區南港段一小段561等5筆土地都市更新事業概要案"),
+        ]
+        kept, dropped = self._search(monkeypatch, entries, "南港段一小段", "520-2")
+        assert kept == ["09407070", "09407071", "09407073"]
+        assert set(dropped) == {"09407110", "09407113", "09509071", "09607130"}
+
+    def test_notation_drift_tolerated(self, monkeypatch):
+        """Spec scenario: searched 263-19 keeps 263之19 / full-width spellings;
+        look-alike parcels (209-19, 1263-19) stay rejected."""
+        entries = [
+            _taipei_entry("10204032", "擬訂臺北市中正區河堤段四小段263之19地號等25筆土地都市更新事業計畫案"),
+            _taipei_entry("10707031", "變更臺北市中正區河堤段四小段２６３之１９地號等25筆土地都市更新權利變換計畫案"),
+            _taipei_entry("10601001", "擬訂臺北市中正區河堤段四小段209-19地號等1筆土地都市更新事業計畫案"),
+            _taipei_entry("10601002", "擬訂臺北市中正區河堤段四小段1263-19地號等1筆土地都市更新事業計畫案"),
+            _taipei_entry("10601003", "擬訂臺北市中正區河堤段四小段263-191地號等1筆土地都市更新事業計畫案"),
+        ]
+        kept, dropped = self._search(monkeypatch, entries, "河堤段四小段", "263-19")
+        assert kept == ["10204032", "10707031"]
+        assert set(dropped) == {"10601001", "10601002", "10601003"}
+
+    def test_mono_legacy_name_form_kept(self, monkeypatch):
+        """The mono-part clause: an older approval naming the pre-subdivision
+        form (<mono>地號…) survives a sub-parcel search (57-13 → 57地號…)."""
+        entries = [
+            _taipei_entry("10212211", "擬訂臺北市中山區寶清段四小段57-13地號等1筆土地都市更新事業計畫案"),
+            _taipei_entry("09901001", "擬訂臺北市中山區寶清段四小段57地號等29筆土地都市更新事業計畫案"),
+        ]
+        kept, _ = self._search(monkeypatch, entries, "寶清段四小段", "57-13")
+        # exact-parcel hit kept; legacy mono form of the same stem kept too
+        assert kept == ["10212211", "09901001"]
+
+    def test_missing_or_foreign_stem_names_dropped(self, monkeypatch):
+        entries = [
+            _taipei_entry("11100001", ""),
+            _taipei_entry("11100002", "擬訂臺北市中山區寶清段四小段99地號等2筆土地都市更新事業計畫案"),
+        ]
+        kept, dropped = self._search(monkeypatch, entries, "寶清段四小段", "57-13")
+        assert kept == []
+        assert set(dropped) == {"11100001", "11100002"}
 
 
 class TestLandCoreKey:
@@ -418,6 +522,153 @@ class TestAttachLinksToProjects:
         assert project.members[0].links["taipei"] == ["10110211"]
 
 
+class TestFragmentFamilyDetection:
+    """§6.8 fragment families: a family whose discovered cases ALL surface in
+    exactly one other family's platform search (kept or guard-rejected) is a
+    merge candidate — review-flagged 臨界對-style on its anchor record.
+    Mixed or nowhere anchoring stays unflagged; no family mutation."""
+
+    def _project(self, project_id, recno, name, land):
+        from urtpe.models import Project
+        from urtpe.cleanse import cleanse
+        from urtpe.models import RawRecord
+
+        district = project_id.split("-")[0]
+        raw = RawRecord(recno, "115/8/11", district, name, land, "某建設", "某規劃")
+        return Project(project_id=project_id, anchor_recno=recno, members=[cleanse(raw)])
+
+    def _disc(self, kept, rejected=None):
+        return {
+            "twur": "",
+            "taipei": list(kept),
+            "milestones_national": {},
+            "milestones_taipei": {},
+            "search_rejected": dict(rejected or {}),
+        }
+
+    FF_PID = "南港區-南港段一小段-101地號等41筆"
+    MAIN_PID = "南港區-南港段一小段-19-1地號等34筆"
+    FF_NAME = "擬訂臺北市南港區南港段一小段101地號等41筆土地更新事業計畫及權利變換計畫案"
+    MAIN_NAME = "擬訂臺北市南港區南港段一小段19-1地號等34筆土地都市更新事業計畫及權利變換計畫案"
+
+    def test_single_case_fragment_inside_main_family_is_flagged(self):
+        """Spec scenario: 10809251 (101地號等41筆) surfaced (guard-rejected) only
+        inside 19-1地號等34筆's search → fragment flagged naming that family."""
+        ff = self._project(self.FF_PID, 411, self.FF_NAME, "臺北市南港區南港段一小段101、105、106地號等41筆")
+        main = self._project(self.MAIN_PID, 767, self.MAIN_NAME, "臺北市南港區南港段一小段19-1、20-1、21地號等34筆")
+        discovered = {
+            self.FF_PID: self._disc(["10809251"]),
+            self.MAIN_PID: self._disc(
+                ["10700001"],
+                {"10809251": self.FF_NAME},
+            ),
+        }
+
+        attach_links_to_projects([ff, main], discovered)
+
+        ff_anchor = next(m for m in ff.members if m.recno == 411)
+        flags = [f for f in ff_anchor.review_flags if f.startswith("片段家族合併候選")]
+        assert len(flags) == 1, ff_anchor.review_flags
+        assert self.MAIN_PID in flags[0], flags[0]
+        # the flag carries the overlapping case count (spec: family + count)
+        assert "1 筆案例" in flags[0], flags[0]
+        main_anchor = next(m for m in main.members if m.recno == 767)
+        assert not [f for f in main_anchor.review_flags if f.startswith("片段家族合併候選")]
+        # no family mutation: membership unchanged, case ids stay put
+        assert len(ff.members) == 1 and len(main.members) == 1
+        assert main.links["taipei"] == ["10700001"]
+
+    def test_shared_kept_cases_flag_pair_a_fragments(self):
+        """懷生段249 shape: both spellings of the unit keep the same cases —
+        the mis-districted fragment is a merge candidate of the 大安區 family."""
+        ff = self._project("中正區-懷生段三小段-249地號等26筆", 650,
+                           "擬訂臺北市大安區懷生段三小段249地號等26筆土地都市更新事業計畫案",
+                           "臺北市大安區懷生段三小段249、250地號等26筆")
+        main = self._project("大安區-懷生段三小段-249地號等26筆", 489,
+                             "擬訂臺北市大安區懷生段三小段249地號等26筆土地都市更新權利變換計畫案",
+                             "臺北市大安區懷生段三小段249、250地號等26筆")
+        discovered = {
+            "中正區-懷生段三小段-249地號等26筆": self._disc(["11100001", "11500002"]),
+            "大安區-懷生段三小段-249地號等26筆": self._disc(["11100001", "11500002"]),
+        }
+
+        attach_links_to_projects([ff, main], discovered)
+
+        # Pair-A shapes are mutual merge candidates: each side names the other.
+        ff_anchor = next(m for m in ff.members if m.recno == 650)
+        ff_flag = next(f for f in ff_anchor.review_flags if f.startswith("片段家族合併候選"))
+        assert "大安區-懷生段三小段-249地號等26筆" in ff_flag
+        main_anchor = next(m for m in main.members if m.recno == 489)
+        main_flag = next(f for f in main_anchor.review_flags if f.startswith("片段家族合併候選"))
+        assert "中正區-懷生段三小段-249地號等26筆" in main_flag
+
+    def test_mixed_anchoring_is_not_flagged(self):
+        """Cases surfacing across two different families → ambiguous → unflagged."""
+        ff = self._project("甲區-某段-10地號等2筆", 1,
+                           "擬訂臺北市甲區某段10地號等2筆土地都市更新事業計畫案", "臺北市甲區某段10地號等2筆")
+        g1 = self._project("甲區-某段-20地號等3筆", 2,
+                           "擬訂臺北市甲區某段20地號等3筆土地都市更新事業計畫案", "臺北市甲區某段20地號等3筆")
+        g2 = self._project("甲區-某段-30地號等4筆", 3,
+                           "擬訂臺北市甲區某段30地號等4筆土地都市更新事業計畫案", "臺北市甲區某段30地號等4筆")
+        discovered = {
+            "甲區-某段-10地號等2筆": self._disc(["c1", "c2"]),
+            "甲區-某段-20地號等3筆": self._disc(["d1"], {"c1": "…10地號…"}),
+            "甲區-某段-30地號等4筆": self._disc(["d2"], {"c2": "…10地號…"}),
+        }
+
+        attach_links_to_projects([ff, g1, g2], discovered)
+
+        anchor = ff.members[0]
+        assert not [f for f in anchor.review_flags if f.startswith("片段家族合併候選")]
+
+    def test_nowhere_anchoring_is_not_flagged(self):
+        """A normal family whose cases surface nowhere else stays unflagged."""
+        solo = self._project("乙區-某段-50地號等5筆", 9,
+                             "擬訂臺北市乙區某段50地號等5筆土地都市更新事業計畫案", "臺北市乙區某段50地號等5筆")
+        other = self._project("乙區-某段-60地號等6筆", 10,
+                              "擬訂臺北市乙區某段60地號等6筆土地都市更新事業計畫案", "臺北市乙區某段60地號等6筆")
+        discovered = {
+            "乙區-某段-50地號等5筆": self._disc(["s1"]),
+            "乙區-某段-60地號等6筆": self._disc(["t1"]),
+        }
+
+        attach_links_to_projects([solo, other], discovered)
+
+        assert not [f for f in solo.members[0].review_flags if f.startswith("片段家族合併候選")]
+        assert not [f for f in other.members[0].review_flags if f.startswith("片段家族合併候選")]
+
+    def test_partly_nowhere_anchoring_is_not_flagged(self):
+        """One unanimous case + one nowhere case → spec says unflagged."""
+        ff = self._project("丙區-某段-70地號等7筆", 11,
+                           "擬訂臺北市丙區某段70地號等7筆土地都市更新事業計畫案", "臺北市丙區某段70地號等7筆")
+        g = self._project("丙區-某段-80地號等8筆", 12,
+                          "擬訂臺北市丙區某段80地號等8筆土地都市更新事業計畫案", "臺北市丙區某段80地號等8筆")
+        discovered = {
+            "丙區-某段-70地號等7筆": self._disc(["k1", "k2"]),
+            "丙區-某段-80地號等8筆": self._disc(["m1"], {"k1": "…70地號…"}),
+        }
+
+        attach_links_to_projects([ff, g], discovered)
+
+        assert not [f for f in ff.members[0].review_flags if f.startswith("片段家族合併候選")]
+
+    def test_flag_is_idempotent_across_attach_runs(self):
+        ff = self._project(self.FF_PID, 411, self.FF_NAME, "臺北市南港區南港段一小段101、105、106地號等41筆")
+        main = self._project(self.MAIN_PID, 767, self.MAIN_NAME, "臺北市南港區南港段一小段19-1、20-1、21地號等34筆")
+        discovered = {
+            self.FF_PID: self._disc(["10809251"]),
+            self.MAIN_PID: self._disc(["10700001"], {"10809251": self.FF_NAME}),
+        }
+        projects = [ff, main]
+
+        attach_links_to_projects(projects, dict(discovered))
+        attach_links_to_projects(projects, dict(discovered))
+
+        ff_anchor = next(m for m in ff.members if m.recno == 411)
+        flags = [f for f in ff_anchor.review_flags if f.startswith("片段家族合併候選")]
+        assert len(flags) == 1
+
+
 class TestLinksDiscoveryIntegration:
     """Integration test for the full discovery flow (POC sample cases)."""
 
@@ -606,7 +857,7 @@ class TestDiscoveryFetchesThirdFourth:
             return "[]"
 
         monkeypatch.setattr(links, "_post_taipei_api", fake_post)
-        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel: [
+        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel, dropped_out=None: [
             {"case_id": "09811141", "case_name": "x", "schedule": ""}])
 
         project = self._project()
@@ -642,7 +893,7 @@ class TestDiscoveryFetchesThirdFourth:
             return "[]"
 
         monkeypatch.setattr(links, "_post_taipei_api", fake_post)
-        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel: [
+        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel, dropped_out=None: [
             {"case_id": "09811141", "case_name": "x", "schedule": ""}])
 
         project = self._project()

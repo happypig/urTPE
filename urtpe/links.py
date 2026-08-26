@@ -302,6 +302,9 @@ class DiscoveryResult:
     # Per-case 執行階段 (third.ashx) / 獎勵資料 (fourth.ashx) payloads.
     implementation: dict[str, dict[str, str]] = field(default_factory=dict)
     rewards: dict[str, dict[str, str]] = field(default_factory=dict)
+    # §6.8 fragment evidence: {case_id: case_name} — cases the platform
+    # returned for this family's parcel search but the name guard rejected.
+    search_rejected: dict[str, str] = field(default_factory=dict)
     status: str = "unresolved"  # resolved, unresolved, multi-case, error
     error: str = ""
 
@@ -524,12 +527,16 @@ def discover_project_links(
 
     # ── Step 1: Taipei platform search by section + parcel ──────────────────
     city_entries: list[dict] = []
+    dropped_by_guard: dict[str, str] = {}
     if anchor.section and anchor.first_parcel:
         try:
             time.sleep(delay)
-            city_entries = search_taipei_cases_api(anchor.section, anchor.first_parcel)
+            city_entries = search_taipei_cases_api(
+                anchor.section, anchor.first_parcel, dropped_out=dropped_by_guard
+            )
         except Exception as e:
             result.error = f"Taipei search failed: {e}"
+    result.search_rejected = dropped_by_guard
 
     city_ids = [e["case_id"] for e in city_entries]
     result.city_case_ids = city_ids
@@ -686,14 +693,18 @@ def _post_taipei_api(url: str, params: dict, max_retries: int = 3) -> str:
     raise last_exception
 
 
-def search_taipei_cases_api(section: str, parcel: str) -> list[dict]:
+def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dict] = None) -> list[dict]:
     """Search Taipei platform cases by land section + parcel.
 
     Args:
         section: 地段小段 name (e.g. 玉泉段二小段).
         parcel: first parcel number, may contain '-' (e.g. '263-19' or '40').
+        dropped_out: optional dict filled with the guard-rejected entries
+            ({case_id: case_name}) — cross-family pollution kept out of the
+            result but retained as fragment-detection evidence (§6.8).
 
-    Returns list of {case_id, case_name, schedule} dicts.
+    Returns list of {case_id, case_name, schedule} dicts whose case_name
+    carries the searched parcel (§6.7 guard shape).
     """
     if "-" in parcel:
         mono, _, suno = parcel.partition("-")
@@ -714,7 +725,11 @@ def search_taipei_cases_api(section: str, parcel: str) -> list[dict]:
     # Keep only r_progress_detail cases (those carry milestone timelines).
     # The numeric detail case_id lives in the details URL, not the case_id
     # field (which may hold internal codes like 'R091306-02').
+    # §6.7/§6.8 parcel guard: the platform matches at renewal-unit/R13 street-
+    # block level, so sibling and foreign same-section cases ride along; keep
+    # only cases whose own case_name carries the searched parcel.
     results = []
+    dropped: dict[str, str] = {}
     seen: set[str] = set()
     for e in entries:
         details = e.get("details", "")
@@ -725,12 +740,54 @@ def search_taipei_cases_api(section: str, parcel: str) -> list[dict]:
         if cid in seen:
             continue
         seen.add(cid)
+        case_name = e.get("case_name", "")
+        if not _case_name_carries_parcel(case_name, parcel):
+            dropped[cid] = case_name
+            continue
         results.append({
             "case_id": cid,
-            "case_name": e.get("case_name", ""),
+            "case_name": case_name,
             "schedule": e.get("schedule", ""),
         })
+    if dropped_out is not None:
+        dropped_out.update(dropped)
     return results
+
+
+# Full-width → ASCII digit folding for parcel notation drift (§16.1 rule)
+_FULLWIDTH_DIGITS = str.maketrans("０１２３４５６７８９", "0123456789")
+
+
+def normalize_parcel_token(token: str) -> str:
+    """Normalize parcel notation only: full-width→ASCII digits, 之→-."""
+    return (token or "").translate(_FULLWIDTH_DIGITS).replace("之", "-")
+
+
+def _case_name_carries_parcel(case_name: str, parcel: str) -> bool:
+    """True when the case's own name declares the searched parcel.
+
+    The name is the platform's per-case unit declaration (§6.7 evidence), so a
+    name lacking the parcel marks a foreign/sibling case. Comparisons are
+    notation-normalized (之 ↔ -, full-width ↔ ASCII):
+    - exact form: the full parcel as a standalone token (115 keeps 115地號 /
+      115等18筆 / 115、… lists; rejects 115-3, 2115, 1151);
+    - legacy mono form: when searching <mono>-<suno>, an older approval naming
+      the pre-subdivision stem (<mono>地號/<mono>等…) still counts.
+    """
+    name = normalize_parcel_token(case_name)
+    parcel_n = normalize_parcel_token(str(parcel or ""))
+    if not name or not parcel_n:
+        return False
+
+    def _token_hit(token: str, declared_only: bool) -> bool:
+        pattern = rf"(?<![0-9.\-]){re.escape(token)}"
+        pattern += r"[地等]" if declared_only else r"(?![0-9\-])"
+        return re.search(pattern, name) is not None
+
+    if _token_hit(parcel_n, declared_only=False):
+        return True
+    mono = parcel_n.partition("-")[0]
+    return mono != parcel_n and bool(mono) and _token_hit(mono, declared_only=True)
 
 
 def fetch_taipei_milestones_api(case_id: str) -> dict[str, str]:
@@ -903,6 +960,87 @@ def _match_case_by_date(member_date: str, disc) -> str:
     return ""
 
 
+def detect_fragment_families(
+    projects: list[Project], discovered: dict
+) -> dict[str, tuple[str, int]]:
+    """Detect §6.8 fragment families after node anchoring.
+
+    A family is a merge candidate iff EVERY discovered case it keeps surfaces
+    in exactly ONE other family's platform search — either kept there (shared
+    first-parcel shapes: count drift 懷生段249 中正區↔大安區) or guard-rejected
+    there (anchor-parcel changed: 南港段一小段101地號等41筆 → 19-1). The search
+    scope is the corpus-wide evidence the per-node case linkage draws from;
+    families whose cases surface across multiple other families (R13 street-
+    block noise) or nowhere stay unflagged, per spec.
+
+    Returns {fragment_project_id: (target_project_id, case_count)}.
+    """
+    surfaced_by_case: dict[str, set[str]] = {}
+    kept_by_pid: dict[str, set[str]] = {}
+
+    def _kept_and_rejected(disc) -> tuple[set, set]:
+        if isinstance(disc, dict):
+            # Same shape the attach shim accepts: {"taipei": [...], ...}
+            return set(disc.get("taipei") or []), set((disc.get("search_rejected") or {}).keys())
+        return (
+            set(getattr(disc, "city_case_ids", None) or []),
+            set((getattr(disc, "search_rejected", None) or {}).keys()),
+        )
+
+    for project in projects:
+        disc = discovered.get(project.project_id)
+        if disc is None:
+            continue
+        kept, rejected = _kept_and_rejected(disc)
+        kept_by_pid[project.project_id] = kept
+        for cid in kept | rejected:
+            surfaced_by_case.setdefault(cid, set()).add(project.project_id)
+
+    candidates: dict[str, tuple[str, int]] = {}
+    for project in projects:
+        kept = kept_by_pid.get(project.project_id) or set()
+        if not kept:
+            continue
+        assocs = [
+            surfaced_by_case.get(cid, set()) - {project.project_id}
+            for cid in kept
+        ]
+        if not all(len(a) == 1 for a in assocs):
+            continue
+        targets = {next(iter(a)) for a in assocs}
+        if len(targets) != 1:
+            continue
+        candidates[project.project_id] = (targets.pop(), len(kept))
+    return candidates
+
+
+_FRAGMENT_FLAG_PREFIX = "片段家族合併候選"
+
+
+def _flag_fragment_families(projects: list[Project], candidates: dict[str, tuple[str, int]]) -> None:
+    """Append 臨界對-style review flags on each fragment's anchor record.
+    Review output only — no family membership or record structure changes."""
+    by_pid = {p.project_id: p for p in projects}
+    for frag_pid, (target_pid, n_cases) in candidates.items():
+        project = by_pid.get(frag_pid)
+        if project is None:
+            continue
+        anchor_record = next(
+            (m for m in project.members if m.recno == project.anchor_recno),
+            project.members[0] if project.members else None,
+        )
+        if anchor_record is None:
+            continue
+        flag = (
+            f"{_FRAGMENT_FLAG_PREFIX}: 全部 {n_cases} 筆案例錨定於 "
+            f"{target_pid}（合併候選，需人工確認）"
+        )
+        existing = anchor_record.review_flags
+        if any(f.startswith(_FRAGMENT_FLAG_PREFIX) and target_pid in f for f in existing):
+            continue
+        existing.append(flag)
+
+
 def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
     disc_by_pid = {}
     for k, v in discovered.items():
@@ -919,6 +1057,7 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             obj.milestones_source = v.get("milestones_source", {})
             obj.implementation = v.get("implementation", {})
             obj.rewards = v.get("rewards", {})
+            obj.search_rejected = v.get("search_rejected", {})
             disc_by_pid[k] = obj
 
     for project in projects:
@@ -993,6 +1132,10 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
                     snapshot["case_id"] = cid
                     member.implementation = snapshot
                     break
+
+    # §6.8: after node anchoring, surface fragment families as merge
+    # candidates (review flags on anchor records; no family mutation).
+    _flag_fragment_families(projects, detect_fragment_families(projects, discovered))
 
 
 class LinksDiscovery:

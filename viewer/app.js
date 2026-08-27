@@ -58,6 +58,19 @@ function districtColor(d) {
   return DISTRICT_COLORS[h % DISTRICT_COLORS.length];
 }
 
+// 基本面積 color/style helper: returns {color, fontWeight} or null
+function getBaseAreaStyle(areaStr) {
+  if (!areaStr) return null;
+  const cleaned = areaStr.replace(/,/g, "");
+  const val = parseFloat(cleaned);
+  if (isNaN(val) || val < 0) return null;
+  if (val < 500) return { color: "#8b5cf6", fontWeight: "normal" };          // purple
+  if (val < 1000) return null;                                                // default
+  if (val < 2000) return { color: "#f59e0b", fontWeight: "normal" };          // orange
+  if (val < 3000) return { color: "#f59e0b", fontWeight: "bold" };            // orange bold
+  return { color: "#ef4444", fontWeight: "bold" };                            // red bold (>=3000)
+}
+
 function byDateNodes(nodes) {
   return nodes.slice().sort((a, b) => {
     if (a.date !== b.date) return a.date < b.date ? -1 : 1;
@@ -547,8 +560,13 @@ function init() {
     shown.forEach(p => {
       const el = document.createElement("div");
       el.className = "item" + (p.project_id === activePid ? " active" : "");
+      const area = p.implementation?.Base_Area;
+      const areaStyle = area ? getBaseAreaStyle(area) : null;
+      const areaHtml = area && areaStyle
+        ? ` · 基本面積 <span style="color:${areaStyle.color};font-weight:${areaStyle.fontWeight}">${escapeHtml(area)}</span>`
+        : area ? ` · 基本面積 ${escapeHtml(area)}` : "";
       el.innerHTML = `<div class="pid"><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}${stageChip(p)}</div>
-        <div class="cnt">${p.member_recnos.length} 筆 · ${escapeHtml(p.implementer)}</div>`;
+        <div class="cnt">${p.member_recnos.length} 筆 · ${escapeHtml(p.implementer)}${areaHtml}</div>`;
       el.onclick = () => { activePid = p.project_id; renderList(); renderDetail(p); };
       list.appendChild(el);
     });

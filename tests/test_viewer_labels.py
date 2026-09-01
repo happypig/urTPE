@@ -171,6 +171,36 @@ def test_annotation_leader_and_tail_present():
     )
     assert "links-toggle" in js, "a toggle must control the link section"
     assert "buildRelatedLinkLabels" in js, "debug section keeps its 案名 builder"
+    # fallback precedence: candidate_names (harvested) and orphan_nodes real names
+    # must be consulted BEFORE the synthetic case_milestones label (里程碑 N 筆)
+    i_ghost = js.index("links.orphan_nodes || []")
+    i_miles = js.index("links.case_milestones && links.case_milestones[cid]")
+    i_cand = js.index("links.candidate_names && links.candidate_names[cid]")
+    assert i_ghost < i_miles, (
+        "orphan_nodes real case names must take precedence over the "
+        "case_milestones fallback label in buildRelatedLinkLabels"
+    )
+    assert i_cand < i_miles, (
+        "candidate_names must take precedence over the case_milestones "
+        "fallback label in buildRelatedLinkLabels"
+    )
+    # 7.2.3: schedule badge + never-approved reason (§6.14 E2)
+    assert "case_schedules" in js, "相關連結 must read links.case_schedules"
+    assert "link-schedule" in js, "schedule badge must render in 相關連結"
+    assert "no-twur-reason" in js, "never-approved reason must surface when every case is 駁回/撤回/失效"
+    assert "virtual" in js and "schedule:" in js, "virtual nodes must carry the schedule into the graph"
+    # 7.2.5/7.2.6: real-node badge + left-list 未核定 chip
+    assert "neverApproved" in js, "list/detail must classify never-approved projects"
+    assert "never-badge" in js, "left-list cards must show the 未核定 chip"
+    # D12 (add-virtual-node-ordering-and-chain): effective-case_id comparator
+    # precedes the 區段 tie-break; chain edges only for virtual-involved pairs
+    i_key = js.index("effectiveCaseKey(a)")
+    i_sec = js.index("localeCompare(_secTokenOf(b)")
+    assert i_key < i_sec, "case_id ordering must precede the 區段 tie-break"
+    assert "virtualChainPairs(clusters).forEach" in js, "chain edges render from the pure helper"
+    assert 'class="edge virtual"' in js, "virtual chain edges use the dashed virtual style"
+    # 7.2.8: 已核准 is the default focus — its schedule badge is skipped
+    assert 's === "已核准"' in js, "schedule badge must skip the default 已核准 state"
     # mockup-only annotation aids stay unrendered
     assert "phase-header" not in js, "grey grid/phase headers are mockup aids only"
 
@@ -293,3 +323,119 @@ def test_app_js_parses():
         pytest.skip("node not available")
     r = subprocess.run([node, "--check", str(APP_JS)], capture_output=True, text=True)
     assert r.returncode == 0, f"viewer/app.js has a syntax error: {r.stderr[:400]}"
+class TestConstructionEdgeSemantics:
+    """Final edge model (design D3 third amendment, 2026-08-27):
+    R1 slanted solid pink/green source edge from record OR ghost anchor to the
+       group's earliest event (national-fallback groups attach to 現況);
+    R2 vertical solid connector between adjacent same-source events;
+    R3 vertical dashed connector between different-source events (incoming color);
+    single-render: ghost columns hold anchor nodes only — execution dates never
+    duplicate; compact ROW pitch (32px); dotted chain styling retired."""
+
+    def _js(self):
+        return APP_JS.read_text(encoding="utf-8")
+
+    def test_rule1_source_edge_slants_from_record_to_first_event(self):
+        js = self._js()
+        assert 'line class="event-edge ${colorCls}"' in js
+        assert 'line class="event-edge national"' in js
+        assert "pos[e.ownerRecno]" in js
+        assert "nodes.find(n => n.is_current)" in js
+
+    def test_rule1b_orphan_ghost_acts_as_source(self):
+        js = self._js()
+        assert "orphanSources" in js, (
+            "ghost anchors must be wired as slanted solid sources for their events")
+        assert "orphanSources[e.case]" in js
+
+    def test_rule2_same_source_connects_solid(self):
+        js = self._js()
+        assert re.search(
+            r"else \{\s*s \+= `<line class=\"event-link \$\{colorCls\}\" x1", js), (
+            "same-source neighbors must fall through to a solid event-link")
+
+    def test_rule3_cross_source_transition_dashed(self):
+        js = self._js()
+        assert 'class="event-link ${colorCls} dashed"' in js
+
+    def test_dashed_has_css_rule(self):
+        css = (APP_JS.parent / "app.css").read_text(encoding="utf-8")
+        assert ".event-link.dashed" in css, (
+            "cross-source dashed transitions need an actual dash pattern")
+
+    def test_dotted_chain_styling_retired(self):
+        js = self._js()
+        assert "event-link ${colorCls} dotted" not in js
+        css = (APP_JS.parent / "app.css").read_text(encoding="utf-8")
+        assert ".event-link.dotted" not in css
+
+    def test_execution_dates_render_once_no_ghost_events(self):
+        js = self._js()
+        assert "orphan-event" not in js, (
+            "ghost columns hold anchor nodes only; events must not duplicate")
+        assert "ghostChains" not in js
+
+    def test_content_addressed_pitch(self):
+        js = self._js()
+        assert "NODE_ROW = 64" in js and "EVENT_ROW = 32" in js
+        assert "t.kind === \"approval\" ? NODE_ROW : EVENT_ROW" in js
+        assert "* 64" not in js, "row math must use NODE_ROW/EVENT_ROW, not literal 64"
+
+    def test_four_column_grid_mapping(self):
+        js = self._js()
+        assert '"事業概要", "事業計畫", "都市更新計畫"' in js
+        assert '"事業計畫、權利變換", "都市計畫、權利變換"' in js
+
+    def test_virtual_nodes_present(self):
+        js = self._js()
+        assert "virtualNodes" in js
+        assert "node virtual" in js or 'virtualCls' in js
+        css = (APP_JS.parent / "app.css").read_text(encoding="utf-8")
+        assert ".node.virtual circle" in css
+
+    def test_graph_viewport_zoom_pan(self):
+        js = self._js()
+        assert "graph-viewport" in js and "attachGraphViewport" in js
+        assert "pointerdown" in js and "ctrlKey" in js
+        css = (APP_JS.parent / "app.css").read_text(encoding="utf-8")
+        assert ".graph-viewport" in css
+
+    def test_rwd_list_cap(self):
+        css = (APP_JS.parent / "app.css").read_text(encoding="utf-8")
+        assert "max-width: 767px" in css and "max-height: 32vh" in css
+
+    def test_callout_canvas_extension_fallback(self):
+        js = self._js()
+        assert "canvas-extension fallback" in js
+        assert re.search(r"y: q\.y - 30", js), "node boxes must cover the badge strip"
+
+
+def test_list_shows_orphan_count_after_records():
+    js = APP_JS.read_text(encoding="utf-8")
+    assert re.search(r"\(\+\$\{orphanCount\}\)", js), (
+        "left list must append (+N) after the record count when orphan nodes exist")
+    assert "orphan_nodes" in js
+
+
+def test_section_token_extraction_wiring():
+    js = APP_JS.read_text(encoding="utf-8")
+    assert "function areaTokenFromName" in js
+    assert "areaTokenFromName(n.case_name)" in js
+    assert "（西區）" not in js  # label is built from the token, not hard-coded
+
+
+def test_stage_key_cluster_bands():
+    js = APP_JS.read_text(encoding="utf-8")
+    assert "stageClusters" in js
+    assert "clusterDate" in js
+    assert "stage-band" in js
+    assert "未核定" in js
+    css = (APP_JS.parent / "app.css").read_text(encoding="utf-8")
+    assert ".stage-band" in css
+
+
+def test_per_track_stage_helpers_present():
+    """§10: per-track stage text + combined-track append (viewer change specs)."""
+    js = (APP_JS.parent / "app.js").read_text(encoding="utf-8")
+    assert "perTrackStageText" in js, "chain/filter helpers present"
+    assert "scheduleBadgeText" in js, "已核准 default-state filter present"

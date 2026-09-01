@@ -167,3 +167,92 @@ def test_name_fallback_keeps_missing_list_flag():
                      land="臺北市中山區中山段二小段1251筆土地"))
     assert c.parcels == ["125"]
     assert any("缺少地號清單" in f for f in c.review_flags)
+
+def test_land_recovered_from_name_tail_when_land_cell_empty():
+    """recno 1354 崇仁新村: PDF glued the 地號 cell onto 案名, land cell empty.
+    The cleanser must recover the trailing land fragment so the record gets a
+    land core and clusters with its 擬訂 family instead of becoming 未解析."""
+    rec = RawRecord(
+        1354, "97/1/2", "萬華區",
+        "變更臺北市萬華區崇仁新村都市更新事業計畫及權利變換計畫案臺北市萬華區崇仁新村青年段一小段711-3、青年段二小段18地號土地",
+        "", "國防部", "某規劃",
+    )
+    r = cleanse(rec)
+    assert r.section == "崇仁新村青年段一小段"
+    assert r.first_parcel == "711-3"
+    # cross-section second parcel (青年段二小段18) stays in `land`, consistent with
+    # how recno 1399 parses the identical string
+    assert r.parcels == ["711-3"]
+    assert r.land_count == 2
+    assert r.land == "臺北市萬華區崇仁新村青年段一小段711-3、青年段二小段18地號土地"
+    assert r.name == "變更臺北市萬華區崇仁新村都市更新事業計畫及權利變換計畫案"
+    assert any("地號自案名尾端復原" in f for f in r.auto_fixes)
+    from urtpe.links import build_land_core_key
+    assert build_land_core_key(r) == "萬華區崇仁新村青年段一小段711-3地號等2筆"
+
+
+
+
+class TestPlanAbbreviationNormalization:
+    """normalize-plan-abbreviation: 案名 土地都市更新計畫案 is a PDF-era
+    abbreviation of 土地都市更新事業計畫案 (platform cross-ref 18/18 spells
+    事業計畫案) — normalize + flag, track derives 事業計畫."""
+
+    def test_abbreviated_name_gains_shiye_and_flag(self):
+        rec = RawRecord(1041, "98/5/20", "中山區",
+                        "擬訂臺北市中山區長春段二小段775地號等3筆土地都市更新計畫案",
+                        "臺北市中山區長春段二小段775地號等3筆", "華潤建設", "某規劃")
+        r = cleanse(rec)
+        assert r.name == "擬訂臺北市中山區長春段二小段775地號等3筆土地都市更新事業計畫案"
+        assert any("案名補事業" in f for f in r.auto_fixes)
+        assert r.track == "事業計畫"
+
+    def test_full_name_untouched(self):
+        rec = RawRecord(810, "99/3/15", "北投區",
+                        "變更臺北市北投區奇岩段五小段444地號等7筆土地都市更新事業計畫及擬訂權利變換計畫案",
+                        "臺北市北投區奇岩段五小段444地號等7筆", "君岳開發", "某規劃")
+        r = cleanse(rec)
+        assert "都市更新事業計畫" in r.name
+        assert not any("案名補事業" in f for f in r.auto_fixes)
+
+    def test_no_node_derives_gengxin_plan_track_after_fix(self):
+        rec = RawRecord(500, "100/6/30", "中正區",
+                        "擬訂臺北市中正區南海段二小段41-4地號等55筆土地都市更新計畫案",
+                        "臺北市中正區南海段二小段41-4地號等55筆", "全陽建設", "某規劃")
+        r = cleanse(rec)
+        assert r.track != "都市更新計畫"
+        assert r.track == "事業計畫"
+
+
+class TestPerTrackStageDerivation:
+    """normalize/split-track-stage (viewer change §10): combined-track nodes
+    carry TWO stage ordinals when the tracks progressed independently.
+    507 anchor: 案名 變更…事業計畫及變更(第二次)權利變換計畫案 → 變更 / 變更(第二次)."""
+
+    def test_split_stage_pair_derived(self):
+        rec = RawRecord(1, "115/8/11", "中正區",
+                        "變更臺北市中正區臨沂段一小段507地號等3筆土地都市更新事業計畫及變更(第二次)權利變換計畫案",
+                        "臺北市中正區臨沂段一小段507地號等3筆", "東綺建設", "某規劃")
+        r = cleanse(rec)
+        assert r.stage == "變更"  # single field unchanged (案名 prefix)
+        assert r.track == "事業計畫、權利變換"
+        # additive per-track fields on the record
+        assert getattr(r, "stage_事業計畫", None) == "變更"
+        assert getattr(r, "stage_權利變換", None) == "變更(第二次)"
+
+    def test_uniform_ordinal_keeps_shared_stage(self):
+        rec = RawRecord(801, "99/3/1", "中正區",
+                        "變更(第四次)臺北市中正區某段1地號等1筆土地都市更新事業計畫及權利變換計畫案",
+                        "臺北市中正區某段1地號等1筆", "某建設", "某規劃")
+        r = cleanse(rec)
+        assert getattr(r, "stage_事業計畫", None) == "變更(第四次)"
+        assert getattr(r, "stage_權利變換", None) == "變更(第四次)"
+
+    def test_single_track_record_emits_no_pair(self):
+        rec = RawRecord(5, "101/8/27", "中山區",
+                        "擬訂臺北市中山區中山段一小段254地號等13筆土地都市更新事業計畫案",
+                        "臺北市中山區中山段一小段254地號等13筆", "某建設", "某規劃")
+        r = cleanse(rec)
+        assert r.track == "事業計畫"
+        assert getattr(r, "stage_事業計畫", None) is None
+        assert getattr(r, "stage_權利變換", None) is None

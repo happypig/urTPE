@@ -42,6 +42,9 @@ def build_project_graph(project: Project, implementer: str, name: str, published
             # District fields for link discovery core building
             "district": r.district,
             "district_land": r.district_land,
+            # §10 per-track stages for combined-track nodes (additive)
+            "stage_事業計畫": getattr(r, "stage_事業計畫", None),
+            "stage_權利變換": getattr(r, "stage_權利變換", None),
         }
         # Include links if present on the member record
         if hasattr(r, 'links') and r.links:

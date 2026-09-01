@@ -574,6 +574,35 @@ class TestCandidateFiltering:
         kept, skipped = filter_candidates([_cand("broken")], ledger, reprobe_days=14, now=self.NOW)
         assert len(kept) == 1 and skipped == []
 
+    def test_never_approved_excluded_beyond_ttl(self):
+        """E3 7.3.2: a ledger entry annotated never-approved is excluded even
+        after the 14-day TTL — the portal will never list the unit."""
+        ledger = {"pid-A": {"last_probed": "2026-06-01T00:00:00", "twur_class": "never-approved"}}
+        kept, skipped = filter_candidates([_cand("pid-A")], ledger, reprobe_days=14, now=self.NOW)
+        assert kept == [] and len(skipped) == 1
+
+    def test_recoverable_reenters_after_ttl(self):
+        ledger = {"pid-A": {"last_probed": "2026-06-01T00:00:00", "twur_class": "recoverable"}}
+        kept, skipped = filter_candidates([_cand("pid-A")], ledger, reprobe_days=14, now=self.NOW)
+        assert len(kept) == 1 and skipped == []
+
+
+class TestLedgerClassAnnotation:
+    def test_annotate_merges_class(self):
+        from scripts.fetch_remaining_national_portal import annotate_class
+
+        ledger = {"pid-A": {"last_probed": "2026-08-25T03:00:00", "view_ids_checked": ["1"]}}
+        annotate_class(ledger, "pid-A", "never-approved")
+        assert ledger["pid-A"]["twur_class"] == "never-approved"
+        assert ledger["pid-A"]["view_ids_checked"] == ["1"]  # probe history preserved
+
+    def test_annotate_unknown_pid_is_noop(self):
+        from scripts.fetch_remaining_national_portal import annotate_class
+
+        ledger = {"pid-A": {"last_probed": "x"}}
+        annotate_class(ledger, "pid-Z", "recoverable")
+        assert "pid-Z" not in ledger
+
 
 class TestClearOnMatchAndSweep:
     """1.3 — ledger cleared when project gains twur (direct + run-start sweep)."""

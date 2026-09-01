@@ -1,6 +1,6 @@
 "use strict";
 
-const W = 960, PAD = 60, COL_W = 130;
+const W = 960, PAD = 60, COL_W = 130, NODE_ROW = 64, EVENT_ROW = 32;
 const KIND_COLOR = { revision: "#1d4ed8", track: "#0f766e", section: "#b45309" };
 const KIND_LABEL = { revision: "版本", track: "事業種類", section: "區段" };
 
@@ -42,10 +42,27 @@ function constructionStage(p) {
 }
 
 // Track column positions: left, middle, right
+// §5.2.5 區段 token from the case_name tail: -東區/-西區/-北區/-南區, bare
+// directionals (案-北), and 甲/乙區段. Empty when the name is a base case.
+function areaTokenFromName(name) {
+  const s = String(name || "");
+  let m = s.match(/[-(（]\s*([東西南北中])區\s*[）)]?\s*$/);
+  if (m) return m[1] + "區";
+  m = s.match(/[-(（]\s*([東西南北中])\s*[）)]?\s*$/);
+  if (m) return m[1] + "區";
+  m = s.match(/([甲乙丙丁戊])區段\s*[）)]?\s*$/);
+  if (m) return m[1] + "區段";
+  return "";
+}
+
+// §5.3.2 four-column grid: exact track → column mapping.
+const TRACK_COL1 = ["事業概要", "事業計畫", "都市更新計畫"];
+const TRACK_COL2 = ["事業計畫、權利變換", "都市計畫、權利變換"];
 function trackPosition(track) {
-  if (track.includes("事業計畫") && !track.includes("權利變換")) return 0; // 事業計畫, 事業概要, 都市更新計畫 -> left
-  if (track.includes("事業計畫") && track.includes("權利變換")) return 1; // 事業計畫、權利變換 -> middle
-  return 2; // 權利變換, 其他 -> right
+  const t = String(track).trim();
+  if (TRACK_COL2.includes(t)) return 1;
+  if (TRACK_COL1.includes(t)) return 0;
+  return 2; // 權利變換, 其他
 }
 const DISTRICT_COLORS = [
   "#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6", "#06b6d4",
@@ -58,7 +75,7 @@ function districtColor(d) {
   return DISTRICT_COLORS[h % DISTRICT_COLORS.length];
 }
 
-// 基本面積 color/style helper: returns {color, fontWeight} or null
+// 基地面積 color/style helper: returns {color, fontWeight} or null
 function getBaseAreaStyle(areaStr) {
   if (!areaStr) return null;
   const cleaned = areaStr.replace(/,/g, "");
@@ -281,6 +298,7 @@ function buildConstructionChain(p) {
     out.push({
       label: slot, date: dateStr, national: nationalHit, prov,
       case: provCase, anchored, ownerRecno,
+      slot_idx: CONSTRUCTION_CHAIN_SLOTS.indexOf(slot),
     });
   }
   return out;
@@ -324,15 +342,118 @@ function zoneBase(x) {
   return { "住宅": "住", "商業": "商", "工業": "工" }[x] || x;
 }
 
-// 相關連結 (debug toggle, default off): each city case_id joins to its
-// anchored record's 案名 via nodes[].links.taipei; the national link shows
-// the anchor (現況) record's 案名. Primary link surface is the graph itself.
+// 相關連結 (debug toggle, default off): each city case_id resolves its display
+// name via the fallback chain — anchored node's 案名 → links.case_milestones
+// context ("里程碑 N 筆") → links.search_rejected stored case_name → ghost
+// node case_name → raw case_id. The national link shows the anchor record's
+// 案名. Primary link surface is the graph itself.
+// never-approved classification: every harvested case schedule is
+// 駁回/撤回/失效 and there is no national page — the unit will never appear
+// on the portal (§6.14 E2/E3).
+function neverApproved(p) {
+  const scheds = Object.values((p.links || {}).case_schedules || {});
+  return scheds.length > 0
+    && scheds.every(v => v === "已駁回" || v === "自行撤回" || v === "已失效")
+    && !(p.links || {}).twur;
+}
+const caseScheduleOf = (p, cid) => ((p.links || {}).case_schedules || {})[cid] || "";
+// §10 per-track stage text: combined-track nodes whose 事業計畫/權利變換
+// ordinals differ render "stage1/stage2" (事業計畫 first); uniform keeps the
+// single form.
+function perTrackStageText(n) {
+  if ((n.track || "") !== "事業計畫、權利變換") return n.stage ? " " + n.stage : "";
+  const s1 = n.stage_事業計畫 || n.stage || "";
+  const s2 = n.stage_權利變換 || "";
+  if (!s1 && !s2) return "";
+  if (!s2 || s2 === s1) return s1 ? " " + s1 : "";
+  return ` ${s1}/${s2}`;
+}
+// 已核准 is the default focus state — only exceptional schedules (已駁回/
+// 施工中/自行撤回/已失效/審查中) render as badges.
+const scheduleBadgeText = s => (!s || s === "已核准") ? "" : ` [${s}]`;
+
+// D12-BEGIN (add-virtual-node-ordering-and-chain — pure helpers, node-tested)
+// Effective comparison key: real nodes use their ANCHORED case_id
+// (links.taipei[0]); virtual nodes their own case_id; case-less real nodes
+// yield "" (sorts first — "" < any case_id keeps the order strictly ascending).
+// Ascending case_id == application-attempt order (YY序號), load-independent.
+function effectiveCaseKey(n) {
+  if (n.virtual) return n.case_id || "";
+  const c = (n.links || {}).taipei || [];
+  return c[0] || "";
+}
+function _secTokenOf(m) {
+  return areaTokenFromName(m.case_name) || m.area || "";
+}
+function compareClusterMembers(a, b) {
+  if (!!a.date !== !!b.date) return a.date ? -1 : 1;   // dated members first
+  const ka = effectiveCaseKey(a), kb = effectiveCaseKey(b);
+  if (ka !== kb) return ka < kb ? -1 : 1;              // D12: attempt order
+  return _secTokenOf(a).localeCompare(_secTokenOf(b), "zh-Hant");  // 區段 tie only
+}
+// Attempt-succession chain pairs: consecutive members inside one cluster where
+// at least one is virtual AND the 事業種類 matches (概要 vs 計畫 same-day pairs
+// are parallel applications, not revisions — 吉林段676 09601260/09601262 stay
+// unchained). real↔real pairs keep graph.py's revision edges; cross-cluster
+// pairs are parallel tracks, never chained.
+function virtualChainPairs(clusters) {
+  const pairs = [];
+  (clusters || []).forEach(c => {
+    const ms = c.members || [];
+    for (let i = 1; i < ms.length; i++) {
+      const a = ms[i - 1], b = ms[i];
+      if (!a.virtual && !b.virtual) continue;
+      if ((a.track || "") !== (b.track || "")) continue;
+      pairs.push([a, b, c.stage]);
+    }
+  });
+  return pairs;
+}
+function runScenarios(fx) {
+  const out = { ordered: [], chainPairs: [] };
+  (fx.clusters || []).forEach(c => out.chainPairs.push(...virtualChainPairs([c]).map(p => [{ case_id: p[0].case_id, virtual: p[0].virtual }, { case_id: p[1].case_id, virtual: p[1].virtual }, p[2]])));
+  const single = fx.cluster ? [fx.cluster] : (fx.clusters || []);
+  single.forEach(c => {
+    const ms = (c.members || []).slice().sort(compareClusterMembers);
+    out.ordered.push(ms.map(m => (m.virtual ? { case_id: m.case_id, virtual: true } : { recno: m.recno, virtual: false })));
+  });
+  if (!fx.clusters && fx.cluster) {
+    out.chainPairs = virtualChainPairs([fx.cluster]).map(p => [{ case_id: p[0].case_id, virtual: p[0].virtual }, { case_id: p[1].case_id, virtual: p[1].virtual }, p[2]]);
+  }
+  return out;
+}
+// D12-END
+
 function buildRelatedLinkLabels(p) {
-  const nodes = p.nodes || [];
-  const byCase = {};
+  const links = p.links || {};
+  const nodes = p.nodes || [];  const byCase = {};
   for (const n of nodes) {
     const anchored = (n.links || {}).taipei || [];
     for (const cid of anchored) byCase[cid] = n.case_name || "";
+  }
+  // Ghost/virtual payloads carry the harvested real case names — they must be
+  // consulted before the synthetic case_milestones label (里程碑 N 筆), or the
+  // generic label wins and the real name never shows.
+  for (const g of (links.orphan_nodes || [])) {
+    if (!byCase[g.case_id] && g.case_name) byCase[g.case_id] = g.case_name;
+  }
+  for (const cid of (links.taipei || [])) {
+    if (byCase[cid]) continue;
+    const cn = links.candidate_names && links.candidate_names[cid];
+    if (cn) {
+      byCase[cid] = cn;
+      continue;
+    }
+    const cm = links.case_milestones && links.case_milestones[cid];
+    if (cm) {
+      byCase[cid] = `里程碑 ${Object.keys(cm).length} 筆`;
+      continue;
+    }
+    const sr = links.search_rejected && links.search_rejected[cid];
+    if (sr) {
+      byCase[cid] = sr;
+      continue;
+    }
   }
   const anchor = nodes.find(n => n.is_current) || nodes[nodes.length - 1] || {};
   return { byCase, anchorName: anchor.case_name || "" };
@@ -548,6 +669,7 @@ function init() {
       const st = constructionStage(p);
       return st ? `<span class="stage-badge" style="color:${st.color}">${st.short}</span>` : "";
     };
+    const neverChip = p => neverApproved(p) ? `<span class="never-badge">未核定</span>` : "";
     rcount.textContent = `顯示 ${shown.length} / ${total}`;
     list.innerHTML = "";
     if (!shown.length) {
@@ -563,10 +685,11 @@ function init() {
       const area = p.implementation?.Base_Area;
       const areaStyle = area ? getBaseAreaStyle(area) : null;
       const areaHtml = area && areaStyle
-        ? ` · 基本面積 <span style="color:${areaStyle.color};font-weight:${areaStyle.fontWeight}">${escapeHtml(area)}</span>`
-        : area ? ` · 基本面積 ${escapeHtml(area)}` : "";
-      el.innerHTML = `<div class="pid"><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}${stageChip(p)}</div>
-        <div class="cnt">${p.member_recnos.length} 筆 · ${escapeHtml(p.implementer)}${areaHtml}</div>`;
+        ? ` · 基地面積 <span style="color:${areaStyle.color};font-weight:${areaStyle.fontWeight}">${escapeHtml(area)}</span>`
+        : area ? ` · 基地面積 ${escapeHtml(area)}` : "";
+      const orphanCount = ((p.links || {}).orphan_nodes || []).length;
+      el.innerHTML = `<div class="pid"><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}${stageChip(p)}${neverChip(p)}</div>
+        <div class="cnt">${p.member_recnos.length}${orphanCount ? `(+${orphanCount})` : ""} 筆 · ${escapeHtml(p.implementer)}${areaHtml}</div>`;
       el.onclick = () => { activePid = p.project_id; renderList(); renderDetail(p); };
       list.appendChild(el);
     });
@@ -575,9 +698,35 @@ function init() {
   function renderDetail(p) {
     const detail = document.getElementById("detail");
     const nodes = byDateNodes(p.nodes);
+    // §5.2 virtual orphan nodes: harvested name → stage/track (+node_date when
+    // the platform records an approval date). Undated named orphans join their
+    // stage cluster tagged (未核定) instead of the interim column.
+    const orphans = (p.links || {}).orphan_nodes || [];
+    const virtualNodes = orphans
+      .filter(g => g.case_name && g.stage && g.track)
+      .map(g => ({
+        recno: "v" + g.case_id,
+        date: g.node_date || "",
+        undated: !g.node_date,
+        stage: g.stage,
+        track: g.track,
+        area: "",
+        is_current: false,
+        virtual: true,
+        case_id: g.case_id,
+        case_name: g.case_name,
+        schedule: g.schedule || "",
+        links: { taipei: [g.case_id], milestones_national: {}, milestones_taipei: {} },
+      }));
+    // Interim column holds nameless orphans only (corpus: 0 post-harvest).
+    const interimOrphans = orphans.filter(g => !g.case_name);
     const columns = {};
     nodes.forEach(n => {
       const col = `${n.track}${n.area ? "（" + n.area + "區段）" : ""}`;
+      columns[col] = (columns[col] || 0) + 1;
+    });
+    virtualNodes.forEach(v => {
+      const col = v.track;
       columns[col] = (columns[col] || 0) + 1;
     });
     // Sort columns by track position (left -> middle -> right), then by area
@@ -593,28 +742,93 @@ function init() {
       return colKeys.indexOf(c);
     };
 
-    // Timeline rows: approvals + construction events share the date order.
-    // Events sit in a dedicated E) 執行階段 column (rightmost); attribution
-    // edges color by source portal (pink Taipei / green national).
+    // Timeline rows: §5.2.6 stage-key clusters — approvals group by 第N次
+    // within the family (base real node first, splits by 區段, undated last);
+    // execution events interleave by date. Cluster date = real member's date,
+    // else min(dated); undated-only clusters sort to the end.
     const events = buildConstructionChain(p);
-    const timeline = nodes.map(n => ({ kind: "approval", date: n.date, n }));
-    events.forEach(e => timeline.push({
-      kind: "event", date: String(e.date).replace(/\//g, "-"), e,
-    }));
-    timeline.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 :
-      (a.kind === "approval" ? -1 : 1)));
+    const stageClusters = {};
+    const clusterOfStage = stage => stageClusters[stage] ||
+      (stageClusters[stage] = { stage, members: [] });
+    nodes.forEach(n => clusterOfStage(n.stage).members.push(n));
+    virtualNodes.forEach(v => clusterOfStage(v.stage).members.push(v));
+    const secOf = m => areaTokenFromName(m.case_name) || m.area || "";
+    const clusters = Object.values(stageClusters).map(c => {
+      c.members.sort(compareClusterMembers);  // D12: case_id attempt order
+      const real = c.members.find(m => !m.virtual && m.date);
+      const dated = c.members.map(m => m.date).filter(Boolean).sort();
+      c.clusterDate = real ? real.date : (dated[0] || "(未核定)");
+      c.effDate = c.clusterDate === "(未核定)" ? "9999-12-31" : c.clusterDate;
+      c.undatedCount = c.members.filter(m => !m.date).length;
+      return c;
+    }).sort((a, b) => (a.effDate < b.effDate ? -1 : a.effDate > b.effDate ? 1 : 0));
+    // D12 Amendment 3 (603 exploration): family-wide case_id interleave —
+    // all members (real + virtual) flatten into ONE row sequence by effective
+    // case_id ascending, reproducing the 相關連結 order; cluster bands/chips
+    // still render around each member via its stage cluster membership.
+    const rowKeyOf = m => effectiveCaseKey(m) || "\uffff" + String(m.recno);
+    const allMembers = [...nodes, ...virtualNodes]
+      .slice()
+      .sort((a, b) => {
+        const ka = effectiveCaseKey(a), kb = effectiveCaseKey(b);
+        if (ka !== kb) return ka < kb ? -1 : 1;
+        return String(a.recno).localeCompare(String(b.recno));
+      });
+    const clusterOfRecno = {};
+    clusters.forEach(c => c.members.forEach(m => { clusterOfRecno[m.recno] = c; }));
+    const sortedEvents = events
+      .map(e => ({ kind: "event", date: String(e.date).replace(/\//g, "-"), e }))
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    const timeline = [];
+    let ei = 0;
+    for (const m of allMembers) {
+      const mDate = m.date || (clusterOfRecno[m.recno] || {}).effDate || "";
+      while (ei < sortedEvents.length && sortedEvents[ei].date < mDate) {
+        timeline.push(sortedEvents[ei++]);
+      }
+      timeline.push({ kind: "approval", date: mDate, n: m, undated: !m.date });
+    }
+    while (ei < sortedEvents.length) timeline.push(sortedEvents[ei++]);
+
+    // §5.3.1 content-addressed pitch: node rows 64px, execution-event rows 32px.
+    const rowYs = [];
+    let rowAcc = PAD;
+    timeline.forEach((t, i) => {
+      rowYs[i] = rowAcc;
+      rowAcc += t.kind === "approval" ? NODE_ROW : EVENT_ROW;
+    });
+    const contentH = rowAcc - PAD;
 
     const hasEvents = events.length > 0;
     const eventColX = PAD + colKeys.length * COL_W + COL_W / 2;
+
+    // Interim orphan anchors: rightmost column, nameless orphans only. Named
+    // orphans became virtual nodes above; their source edges come from the
+    // virtual node's own grid position.
+    const hasGhosts = interimOrphans.length > 0;
+    const ghostColX = eventColX + COL_W;
+    const ghostPos = {};
+    interimOrphans.forEach((g, i) => {
+      ghostPos[`${g.case_id}::__node__`] = { x: ghostColX, y: PAD + i * NODE_ROW };
+    });
+    const ghostRows = interimOrphans.length;
+    const orphanSources = {};
+    interimOrphans.forEach(g => {
+      const q = ghostPos[`${g.case_id}::__node__`];
+      if (q) orphanSources[g.case_id] = q;
+    });
 
     const pos = {};
     const evPos = {};
     timeline.forEach((t, i) => {
       if (t.kind === "approval") {
-        pos[t.n.recno] = { x: PAD + colOf(t.n) * COL_W + COL_W / 2, y: PAD + i * 64 };
+        pos[t.n.recno] = { x: PAD + colOf(t.n) * COL_W + COL_W / 2, y: rowYs[i] };
       } else {
-        evPos[t.e.label] = { x: eventColX, y: PAD + i * 64 };
+        evPos[t.e.label] = { x: eventColX, y: rowYs[i] };
       }
+    });
+    virtualNodes.forEach(v => {
+      if (pos[v.recno]) orphanSources[v.case_id] = pos[v.recno];
     });
 
     // Callout selection: first carrying record + diff-triggered records only.
@@ -641,7 +855,11 @@ function init() {
 
     let svgW = Math.max(W, (colKeys.length + (hasEvents ? 1 : 0)) * COL_W + PAD * 2);
     if (hasEvents) svgW = Math.max(svgW, eventColX + 250);
-    let svgH = PAD * 2 + timeline.length * 64;
+    let svgH = PAD * 2 + contentH;
+    if (hasGhosts) {
+      svgW = Math.max(svgW, ghostColX + 250);
+      svgH = Math.max(svgH, PAD * 2 + Math.max(0, ghostRows - 1) * NODE_ROW + 80);
+    }
     callouts.forEach(c => {
       svgH = Math.max(svgH, pos[c.n.recno].y + 84);
     });
@@ -652,6 +870,12 @@ function init() {
       const q = evPos[e.label];
       return { x: q.x - 8, y: q.y - 12, w: 240, h: 26 };
     });
+    if (hasGhosts) {
+      orphans.forEach(g => {
+        const q = ghostPos[`${g.case_id}::__node__`];
+        if (q) evRects.push({ x: q.x - 10, y: q.y - 16, w: 240, h: 32 });
+      });
+    }
     const placedBoxes = [];
     const hitsAny = (r, list) => list.some(o =>
       r.x < o.x + o.w && o.x < r.x + r.w && r.y < o.y + o.h && o.y < r.y + r.h);
@@ -659,12 +883,14 @@ function init() {
       const ownRecno = c.n.recno;
       const p2 = pos[ownRecno];
       const w = 150, h = c.rows.length * 14 + 6;
-      const nodeRects = nodes
-        .filter(n => n.recno !== ownRecno)
+      // §5.3.6 collision boxes cover the node's full visual footprint
+      // (badge strip above the label + the two text lines).
+      const nodeRects = [...nodes, ...virtualNodes]
+        .filter(n => n.recno !== ownRecno && pos[n.recno])
         .map(n => {
           const q = pos[n.recno];
-          const headLen = (`${n.recno} · ${n.date}${n.stage ? " " + n.stage : ""}`).length;
-          return { x: q.x - 10, y: q.y - 14, w: 14 + headLen * 6.5 + 40, h: 34 };
+          const headLen = (`${n.virtual ? "" : n.recno + " · "}${n.date}${n.stage ? " " + n.stage : ""}`).length;
+          return { x: q.x - 10, y: q.y - 30, w: 14 + headLen * 6.5 + 40, h: 50 };
         });
       const spots = [
         { x: p2.x - 16 - w, y: p2.y + 20 },          // below-left
@@ -673,20 +899,43 @@ function init() {
         { x: p2.x + 16,     y: p2.y - 10 - h },      // above-right
         { x: p2.x - 16 - w, y: p2.y + 46 },          // further below-left
         { x: p2.x + 16,     y: p2.y + 46 },          // further below-right
+        { x: p2.x - 16 - w, y: p2.y + 72 },          // far below-left
+        { x: p2.x + 16,     y: p2.y + 72 },          // far below-right
       ].map(s => ({
         x: Math.min(Math.max(s.x, 4), Math.max(4, svgW - w - 4)),
         y: Math.min(Math.max(s.y, 4), Math.max(4, svgH - h - 4)),
       }));
-      const spot = spots.find(s => {
+      let spot = spots.find(s => {
         const r = { x: s.x, y: s.y, w, h };
         return !hitsAny(r, nodeRects) && !hitsAny(r, evRects) && !hitsAny(r, placedBoxes);
-      }) || spots[spots.length - 1];
+      });
+      if (!spot) {
+        // §5.3.6 canvas-extension fallback: grow the canvas instead of
+        // accepting an overlap.
+        spot = {
+          x: Math.min(Math.max(p2.x + 16, 4), Math.max(4, svgW - w - 4)),
+          y: svgH + 8, w, h,
+        };
+        svgH = spot.y + h + 16;
+      }
       spot.w = w; spot.h = h;
       placedBoxes.push(spot);
       c.rect = spot;
       svgH = Math.max(svgH, spot.y + h + 16);
       svgW = Math.max(svgW, spot.x + w + 8);
     });
+
+    // §5.2.6 stage-cluster bands: soft band + count chip behind clusters with
+    // ≥2 members. Span covers the members' full node footprint.
+    const bandHtml = clusters.filter(c => c.members.length >= 2).map(c => {
+      const ys = c.members.map(m => pos[m.recno]).filter(Boolean).map(q => q.y);
+      if (ys.length < 2) return "";
+      const top = Math.min(...ys) - 30, bottom = Math.max(...ys) + 26;
+      const label = `${c.stage} · ${c.members.length} 案` +
+        (c.undatedCount ? ` · ${c.undatedCount} 未核定` : "");
+      return `<g class="stage-band"><rect x="${PAD - 44}" y="${top}" width="${svgW - PAD * 2 + 88}" height="${bottom - top}"></rect>` +
+        `<text class="stage-band-chip" x="${PAD - 36}" y="${top + 12}">${escapeHtml(label)}</text></g>`;
+    }).join("");
 
     let s = `<h2><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}</h2>
       <div class="district">${escapeHtml(p.district)} · ${escapeHtml(p.section)} · ${escapeHtml(p.implementer)} · 共 ${p.member_recnos.length} 筆</div>
@@ -695,7 +944,8 @@ function init() {
         <span class="trk">事業種類</span>
         <span class="sec">區段</span>
       </div>
-      <svg viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="xMidYMid meet">`;
+      <div class="graph-viewport"><div class="graph-zoom">
+      <svg viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="xMidYMid meet">${bandHtml}`;
 
     p.edges.forEach(e => {
       const a = pos[e.from], b = pos[e.to];
@@ -703,10 +953,19 @@ function init() {
       s += `<line class="edge ${e.kind}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
     });
 
-    // Source-group edges: events group by provenance (Taipei carrying case /
-    // national-only). Solid edge from each group's source node to the group's
-    // first event; solid chain within a group; dashed between adjacent groups
-    // colored by the incoming group. No edges to non-source records.
+    // D12 chain edges: attempt-succession between consecutive virtual nodes
+    // inside each cluster (row order = case_id ascending). real↔real pairs
+    // keep graph.py's revision edges; cross-cluster pairs are parallel tracks.
+    virtualChainPairs(clusters).forEach(([a, b]) => {
+      const pa = pos[a.recno], pb = pos[b.recno];
+      if (!pa || !pb) return;
+      s += `<line class="edge virtual" x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}"></line>`;
+    });
+
+    // Source-group edges (final model): slanted solid source edge from the
+    // owning record — or the orphan's ghost anchor — to each group's earliest
+    // event; solid vertical chain within a source group; dashed vertical
+    // transition between different source groups (incoming group's color).
     const sameSource = (a, b) =>
       (a.national ? "national" : "case:" + (a.case || "")) ===
       (b.national ? "national" : "case:" + (b.case || ""));
@@ -723,31 +982,44 @@ function init() {
             const cur = nodes.find(n => n.is_current) || nodes[nodes.length - 1];
             const a = pos[cur.recno];
             s += `<line class="event-edge national" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+          } else if (!e.national && orphanSources[e.case]) {
+            const a = orphanSources[e.case];
+            s += `<line class="event-edge ${colorCls}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
           }
-          if (i > 0) {
-            // dashed transition into the new group (incoming group's colour)
-            const a = evPos[events[i - 1].label];
-            s += `<line class="event-link ${colorCls} dashed" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
-          }
-        } else {
+        }
+        if (i > 0) {
           const a = evPos[events[i - 1].label];
-          const dashed = sameSource(e, events[i - 1]) ? "" : " dashed";
-          s += `<line class="event-link ${colorCls}${dashed}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+          if (groupStart) {
+            s += `<line class="event-link ${colorCls} dashed" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+          } else {
+            s += `<line class="event-link ${colorCls}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
+          }
         }
       });
     }
 
-    nodes.forEach(n => {
+    [...nodes, ...virtualNodes].forEach(n => {
       const p2 = pos[n.recno];
-      const label = `${n.recno} · ${n.date}${n.stage ? " " + n.stage : ""}`;
+      if (!p2) return;
+      const secTok = areaTokenFromName(n.case_name);
+      const areaTxt = n.area ? `（${escapeHtml(n.area)}區段）` : (secTok ? `（${escapeHtml(secTok)}）` : "");
+      const label = n.virtual
+        ? `${n.undated ? "(未核定) " : ""}${n.stage}`
+        : `${n.recno} · ${n.date}${perTrackStageText(n)}`;
+      const schedTxt = n.virtual
+        ? scheduleBadgeText(n.schedule)
+        : scheduleBadgeText(caseScheduleOf(p, n.links.taipei[0]));
       const badges = getNodeMilestoneBadges(n, p);
       const ghost = n.track === "事業概要" ? " ghost" : "";
+      const virtualCls = n.virtual ? " virtual" : "";
       // badges sit ABOVE the first line, aligned to its left edge — never
-      // covering the label or the track line beneath.
-      s += `<g class="node${ghost} ${n.is_current ? "current" : ""}" transform="translate(${p2.x},${p2.y})">
+      // covering the label or the track line beneath. Virtual nodes use the
+      // same badge anatomy; provenance lives in the tooltip (no 孤 badge).
+      s += `<g class="node${ghost}${virtualCls} ${n.is_current ? "current" : ""}" transform="translate(${p2.x},${p2.y})">
+        ${n.virtual ? `<title>孤兒案例（orphan-case-anchoring）· 案${escapeHtml(n.case_id)}</title>` : ""}
         <circle r="9"></circle>
-        <text class="title" x="14" y="3">${escapeHtml(label)}</text>
-        <text class="sub" x="14" y="15">${escapeHtml(n.track)}${n.area ? "（" + escapeHtml(n.area) + "區段）" : ""}</text>
+        <text class="title" x="14" y="3">${escapeHtml(label)}${escapeHtml(schedTxt)}</text>
+        <text class="sub" x="14" y="15">${escapeHtml(n.track)}${areaTxt}</text>
         ${badges ? `<foreignObject x="14" y="-27" width="34" height="15"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;gap:2px;">${badges}</div></foreignObject>` : ""}
       </g>`;
     });
@@ -770,6 +1042,24 @@ function init() {
       });
     }
 
+    // Interim orphan anchors (孤): rightmost column, nameless orphans only —
+    // named orphans became virtual nodes in the grid. Anchors are dashed
+    // circles labelled 北<case_id>; their execution dates live once in the
+    // shared column, fed by slanted solid source edges from these anchors.
+    if (hasGhosts) {
+      interimOrphans.forEach(g => {
+        const nb = ghostPos[`${g.case_id}::__node__`];
+        const caseUrl = g.case_id
+          ? `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${g.case_id}`
+          : "";
+        s += `<g class="node orphan-node" transform="translate(${nb.x},${nb.y})">
+          <circle r="9"></circle>
+          <foreignObject x="14" y="-27" width="90" height="15"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;gap:2px;align-items:center;"><a class="orphan-id-link" href="${escapeHtml(caseUrl)}" target="_blank" rel="noopener"><span class="node-milestone-badge taipei">北</span>${escapeHtml(g.case_id)}</a><span class="node-milestone-badge orphan-badge" title="孤兒案例（orphan-case-anchoring）">孤</span></div></foreignObject>
+          <text class="sub" x="14" y="15">PDF 未收錄 · 孤兒錨點</text>
+        </g>`;
+      });
+    }
+
     // Per-record implementation callouts: render the pre-placed rects.
     callouts.forEach(c => {
       const r = c.rect;
@@ -787,7 +1077,7 @@ function init() {
       s += `<polygon class="callout-tail" points="${tail}"></polygon>`;
       s += `<foreignObject x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"><div xmlns="http://www.w3.org/1999/xhtml" class="impl-callout">${rowsHtml}</div></foreignObject>`;
     });
-    s += "</svg>";
+    s += "</svg></div></div>";
 
     const border = p.borderline || [];
     if (border.length) {
@@ -854,11 +1144,23 @@ function init() {
         s += `<li><a href="${escapeHtml(links.twur)}" target="_blank" rel="noopener">都市更新入口網 (twur.nlma.gov.tw)</a>${nm ? ` — <span class="link-case-name">${escapeHtml(nm)}</span>` : ""}</li>`;
       }
       if (links.taipei && links.taipei.length) {
+        const schedules = links.case_schedules || {};
+        const NEVER = ["已駁回", "自行撤回", "已失效"];
         links.taipei.forEach(cid => {
           const url = `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cid}`;
           const nm = linkLabels.byCase[cid] || "";
-          s += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">臺北市都市更新審議服務平台 (case_id: ${cid})</a>${nm ? ` — <span class="link-case-name">${escapeHtml(nm)}</span>` : ""}</li>`;
+          const sched = schedules[cid] || "";
+          const schedBadge = scheduleBadgeText(sched);
+          s += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">臺北市都市更新審議服務平台 (case_id: ${cid})</a>${nm ? ` — <span class="link-case-name">${escapeHtml(nm)}</span>` : ""}${schedBadge ? ` <span class="link-schedule">${escapeHtml(schedBadge.trim())}</span>` : ""}</li>`;
         });
+        // never-approved: every case 駁回/撤回/失效 and no national page —
+        // the portal will never list this unit, so the absence is explained.
+        if (!links.twur && links.taipei.length) {
+          const known = links.taipei.filter(cid => schedules[cid]);
+          if (known.length && known.every(cid => NEVER.includes(schedules[cid]))) {
+            s += `<li class="no-twur-reason">未曾核定（已駁回/自行撤回/已失效）— 無國土管理署入口網頁</li>`;
+          }
+        }
       }
       s += `</ul></div></div>`;
     }
@@ -879,6 +1181,11 @@ function init() {
       linksToggle.onchange = () => { linksSection.hidden = !linksToggle.checked; };
     }
 
+    // §5.3.3 graph viewport: pinch-zoom (2 fingers), drag-pan, ctrl-wheel zoom,
+    // double-click reset. Desktop pointers get the same treatment.
+    const vp = detail.querySelector(".graph-viewport");
+    if (vp) attachGraphViewport(vp);
+
     // Toggle for full columns
     const toggleBtn = detail.querySelector("#expand-toggle");
     if (toggleBtn) {
@@ -896,6 +1203,62 @@ function init() {
 
   filter.addEventListener("input", renderList);
   renderList();
+}
+
+// §5.3.3 pinch-zoom + pan for the graph viewport. Two-finger pinch scales the
+// graph (clamped, anchored at the pinch midpoint); one-finger/mouse drag pans
+// via scroll; ctrl+wheel zooms; double-click resets. touch-action is disabled
+// in CSS so pointer events own the gestures.
+function attachGraphViewport(vp) {
+  const inner = vp.querySelector(".graph-zoom");
+  if (!inner) return;
+  let scale = 1;
+  const MIN = 0.5, MAX = 3;
+  const apply = () => { inner.style.transform = `scale(${scale})`; };
+  const pts = new Map();
+  let lastDist = 0, panRef = null;
+
+  vp.addEventListener("pointerdown", e => {
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 1) {
+      panRef = { x: e.clientX, y: e.clientY, sl: vp.scrollLeft, st: vp.scrollTop };
+    } else {
+      panRef = null;
+      lastDist = 0;
+    }
+    vp.setPointerCapture(e.pointerId);
+  });
+  vp.addEventListener("pointermove", e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      const dist = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      if (lastDist > 0) {
+        scale = Math.min(MAX, Math.max(MIN, scale * (dist / lastDist)));
+        apply();
+      }
+      lastDist = dist;
+      e.preventDefault();
+    } else if (panRef) {
+      vp.scrollLeft = panRef.sl - (e.clientX - panRef.x);
+      vp.scrollTop = panRef.st - (e.clientY - panRef.y);
+    }
+  });
+  const release = e => {
+    pts.delete(e.pointerId);
+    if (pts.size < 2) lastDist = 0;
+    if (pts.size === 0) panRef = null;
+  };
+  vp.addEventListener("pointerup", release);
+  vp.addEventListener("pointercancel", release);
+  vp.addEventListener("wheel", e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    scale = Math.min(MAX, Math.max(MIN, scale * (e.deltaY < 0 ? 1.1 : 0.9)));
+    apply();
+  }, { passive: false });
+  vp.addEventListener("dblclick", () => { scale = 1; apply(); });
 }
 
 function escapeHtml(t) {

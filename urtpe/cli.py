@@ -61,6 +61,9 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
         project_district = pg["project_id"].split("-")[0] if "-" in pg["project_id"] else ""
         members = []
         for node in pg["nodes"]:
+            if (node.get("orphan") or node.get("recno", 0) < 0
+                    or node.get("stage") == "孤兒節點"):
+                continue
             # Fallback to project-level district if node lacks it
             node_district = node.get("district", "") or project_district
             node_district_land = node.get("district_land", "") or node_district
@@ -107,6 +110,8 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
             # lossless even without --links (attach overwrites when it runs)
             if node.get("implementation"):
                 rec.implementation = dict(node["implementation"])
+            if node.get("links"):
+                rec.links = dict(node["links"])
             members.append(rec)
         project = Project(
             project_id=pg["project_id"],
@@ -156,14 +161,20 @@ def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None, lin
     # Run link discovery if requested
     link_results = {}
     if links:
+        from urtpe.coverage import coverage_guard
+
         if playwright:
             print("[INFO] Running Playwright-based link discovery (experimental)...")
             discovery = links_mod.LinksDiscovery(cache_dir=f"{outdir}/.link_cache")
-            link_results = discovery.run(projects, fresh=fresh, use_playwright=True)
+            # Coverage guard (§12 #1): abort a cache-wiping job before the
+            # viewer can be emitted on the regressed state.
+            with coverage_guard(Path(f"{outdir}/.link_cache"), [p.project_id for p in projects]):
+                link_results = discovery.run(projects, fresh=fresh, use_playwright=True)
         else:
             print("[INFO] Running link discovery with fallback JSON mapping (recommended)...")
             discovery = links_mod.LinksDiscovery(cache_dir=f"{outdir}/.link_cache")
-            link_results = discovery.run(projects, fresh=fresh)
+            with coverage_guard(Path(f"{outdir}/.link_cache"), [p.project_id for p in projects]):
+                link_results = discovery.run(projects, fresh=fresh)
         discovery.write_crawl_log(link_results, f"{outdir}/crawl_log.tsv")
         resolved = sum(1 for r in link_results.values() if r.status != 'unresolved')
         unresolved = sum(1 for r in link_results.values() if r.status == 'unresolved')

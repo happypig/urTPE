@@ -902,3 +902,361 @@ class TestDiscoveryFetchesThirdFourth:
         assert result.implementation.get("09811141", {}) in ({}, None) or "09811141" not in result.implementation
         assert result.rewards["09811141"]["F0"] == "8,982.01"
         assert "09811141" in result.error
+
+class TestOrphanGhostAnchoring:
+    """§6.8 orphan ghost nodes: city_case_ids that no node anchors become
+    ghost nodes when a landcore-similar case_name exists (search_rejected)
+    OR when stage attribution (milestones_source) proves the case belongs
+    to this unit. Anchored siblings are never ghosted, on both the PDF path
+    (fresh merge) and the --from-js path."""
+
+    PID = "文山區-木柵段三小段-623地號等39筆"
+
+    def _project(self):
+        from urtpe.models import Project
+        from urtpe.cleanse import cleanse
+        from urtpe.models import RawRecord
+
+        raw1 = RawRecord(5, "115/8/11", "文山區",
+                         "變更文山區木柵段三小段623地號等39筆都市更新權利變換計畫案",
+                         "臺北市文山區木柵段三小段623地號等39筆", "某建設", "某規劃")
+        raw2 = RawRecord(263, "99/12/20", "文山區",
+                         "擬訂文山區木柵段三小段623地號等39筆土地都市更新事業計畫案",
+                         "臺北市文山區木柵段三小段623地號等39筆", "某建設", "某規劃")
+        return Project(project_id=self.PID, anchor_recno=5,
+                       members=[cleanse(raw1), cleanse(raw2)])
+
+    def _disc(self, **over):
+        base = {
+            "twur": "",
+            "taipei": ["09907222", "11501041", "09907221"],
+            "milestones_national": {},
+            "milestones_taipei": {
+                "計畫公聽會日期": "2010/05/01",
+                "核定日期": "2010/12/20",
+                "事業計畫申請日期": "2011/02/01",
+                "建照核發日期": "2011/06/15",
+                "開工日期": "2011/08/01",
+                "使照核發日期": "2014/03/10",
+            },
+            "case_milestones": {},
+            "milestones_source": {
+                "計畫公聽會日期": "09907223",
+                "核定日期": "09907223",
+                "事業計畫申請日期": "09907221",
+                "建照核發日期": "09907221",
+                "開工日期": "09907221",
+                "使照核發日期": "09907221",
+            },
+            "implementation": {},
+            "rewards": {},
+            "search_rejected": {},
+        }
+        base.update(over)
+        return {self.PID: base}
+
+    def test_attribution_only_orphan_becomes_ghost(self):
+        project = self._project()
+        attach_links_to_projects([project], self._disc())
+
+        ghosts = project.links.get("orphan_nodes")
+        assert ghosts is not None and len(ghosts) == 1
+        g = ghosts[0]
+        assert g["case_id"] == "09907221"
+        assert g["orphan"] is True
+        assert g["provenance"] == "orphan-case-anchoring"
+        assert set(g["milestones_taipei"]) == {
+            "事業計畫申請日期", "建照核發日期", "開工日期", "使照核發日期",
+        }
+
+    def test_anchored_siblings_are_not_ghosted(self):
+        project = self._project()
+        attach_links_to_projects([project], self._disc())
+
+        ghost_ids = {g["case_id"] for g in project.links.get("orphan_nodes", [])}
+        assert "09907222" not in ghost_ids
+        assert "11501041" not in ghost_ids
+
+    def test_dissimilar_named_orphan_is_excluded(self):
+        project = self._project()
+        disc = self._disc(
+            taipei=["09907222", "11501041", "09907221"],
+            milestones_source={},
+            search_rejected={
+                "09907221": "擬訂臺北市中山區中山段二小段125地號等1筆土地都市更新事業計畫案",
+            },
+        )
+        attach_links_to_projects([project], disc)
+        assert "orphan_nodes" not in project.links
+
+    def test_view_verified_orphan_bypasses_similarity_gate(self):
+        """Cases listed on the project's own national view page 相關連結 are
+        portal-verified — they become ghosts even when the case name carries
+        no parcel (landcore similarity 0.0), e.g. 崇仁新村 (§6.11/§6.12)."""
+        project = self._project()
+        disc = self._disc(
+            taipei=["09907222", "11501041", "09907221"],
+            milestones_source={},
+            candidate_names={
+                "09907221": "變更臺北市萬華區崇仁新村土地都市更新事業計畫及權利變換計畫案",
+            },
+            view_verified_case_ids=["09907221"],
+        )
+        attach_links_to_projects([project], disc)
+        ghosts = project.links.get("orphan_nodes", [])
+        assert {g["case_id"] for g in ghosts} == {"09907221"}
+        assert ghosts[0]["case_name"].startswith("變更臺北市萬華區崇仁新村")
+
+    def test_similar_named_orphan_still_becomes_ghost(self):
+        project = self._project()
+        name = "擬訂臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫案"
+        disc = self._disc(
+            taipei=["09907222", "11501041", "09907221"],
+            milestones_source={"建照核發日期": "09907221"},
+            search_rejected={"09907221": name},
+        )
+        attach_links_to_projects([project], disc)
+        ghosts = project.links.get("orphan_nodes", [])
+        assert [g["case_id"] for g in ghosts] == ["09907221"]
+        assert ghosts[0]["case_name"] == name
+
+    def test_twin_bridge_anchors_shadowed_twin_without_attribution(self):
+        project = self._project()
+        shared = [
+            ("計畫公聽會日期", "2010/05/01"),
+            ("核定日期", "2019/01/31"),
+            ("建照核發日期", "2022/02/17"),
+            ("開工日期", "2022/08/26"),
+        ]
+        disc = self._disc(
+            taipei=["09907222", "11501041", "09907223"],
+            milestones_source={},
+            case_milestones={
+                "09907222": dict(shared),
+                "09907223": dict(shared + [("申請計畫日期", "2010/07/22")]),
+            },
+        )
+        attach_links_to_projects([project], disc)
+        ghost_ids = {g["case_id"] for g in project.links.get("orphan_nodes", [])}
+        assert "09907223" in ghost_ids
+
+    def test_twin_bridge_excludes_disjoint_history_orphan(self):
+        project = self._project()
+        disc = self._disc(
+            taipei=["09907222", "10809251"],
+            milestones_source={},
+            case_milestones={
+                "09907222": {"計畫公聽會日期": "2010/05/01", "核定日期": "2019/01/31",
+                             "建照核發日期": "2022/02/17"},
+                "10809251": {"計畫公聽會日期": "2008/03/03", "核定日期": "2008/11/12",
+                             "建照核發日期": "2009/06/01"},
+            },
+        )
+        attach_links_to_projects([project], disc)
+        ghost_ids = {g["case_id"] for g in project.links.get("orphan_nodes", [])}
+        assert "10809251" not in ghost_ids
+
+
+class TestLoaderRestoresNodeLinks:
+    """/--from-js round-trip must restore per-record links so that attach's
+    anchored-set reflects real node anchoring (graph.py emits them)."""
+
+    def test_load_projects_restores_member_links(self, tmp_path):
+        import json
+
+        from urtpe.cli import _load_projects_from_js
+
+        doc = {
+            "schema_version": 2,
+            "published_date": "",
+            "projects": [
+                {
+                    "project_id": "大同區-玉泉段一小段-11地號等73筆",
+                    "anchor_recno": 7,
+                    "nodes": [
+                        {
+                            "recno": 7,
+                            "date": "2016-05-20",
+                            "track": "事業計畫、權利變換",
+                            "case_name": "擬訂大同區玉泉段一小段11地號等73筆案",
+                            "links": {"taipei": ["10110181"], "milestones_national": {},
+                                      "milestones_taipei": {}},
+                        }
+                    ],
+                }
+            ],
+        }
+        js = tmp_path / "projects.data.js"
+        js.write_text("window.PROJECTS=" + json.dumps(doc, ensure_ascii=False) + ";",
+                      encoding="utf-8")
+
+        projects, _meta = _load_projects_from_js(str(js))
+        member = projects[0].members[0]
+        assert member.links["taipei"] == ["10110181"]
+
+
+class TestCandidateNameHarvest:
+    """§5.1: kept-case names persist into candidate_names and supersede the
+    attribution/twin-bridge proxies; ghost payloads carry stage/track/node_date
+    derived from the harvested name + milestones."""
+
+    PID = "文山區-木柵段三小段-623地號等39筆"
+    NAME = "擬訂臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫案"
+
+    def _project(self):
+        from urtpe.models import Project
+        from urtpe.cleanse import cleanse
+        from urtpe.models import RawRecord
+
+        raw = RawRecord(5, "115/8/11", "文山區",
+                        "變更文山區木柵段三小段623地號等39筆都市更新權利變換計畫案",
+                        "臺北市文山區木柵段三小段623地號等39筆", "某建設", "某規劃")
+        return Project(project_id=self.PID, anchor_recno=5, members=[cleanse(raw)])
+
+    def _disc(self, **over):
+        base = {
+            "twur": "",
+            "taipei": ["09907221"],
+            "milestones_national": {},
+            "milestones_taipei": {"建照核發日期": "2022/02/17"},
+            "case_milestones": {"09907221": {"核定日期": "2019/01/31",
+                                             "建照核發日期": "2022/02/17"}},
+            "milestones_source": {},
+            "implementation": {},
+            "rewards": {},
+            "search_rejected": {},
+            "candidate_names": {"09907221": self.NAME},
+        }
+        base.update(over)
+        return {self.PID: base}
+
+    def test_harvested_name_supersedes_proxies(self):
+        project = self._project()
+        attach_links_to_projects([project], self._disc(
+            taipei=["09907222", "11501041", "09907221"],
+        ))
+        ghosts = project.links.get("orphan_nodes", [])
+        assert [g["case_id"] for g in ghosts] == ["09907221"]
+        assert ghosts[0]["case_name"] == self.NAME
+
+    def test_payload_derives_stage_track_node_date(self):
+        project = self._project()
+        attach_links_to_projects([project], self._disc(
+            taipei=["09907222", "11501041", "09907221"],
+        ))
+        g = project.links["orphan_nodes"][0]
+        assert g["stage"] == "擬訂"
+        assert g["track"] == "事業計畫"
+        assert g["node_date"] == "2019-01-31"
+
+    def test_dissimilar_harvested_name_blocks_proxies(self):
+        project = self._project()
+        disc = self._disc(
+            taipei=["09907222", "11501041", "09907221"],
+            milestones_source={"建照核發日期": "09907221"},
+            candidate_names={
+                "09907221": "擬訂臺北市中山區中山段二小段125地號等1筆土地都市更新事業計畫案",
+            },
+        )
+        attach_links_to_projects([project], disc)
+        assert "orphan_nodes" not in project.links
+
+
+class TestDeriveFromCaseName:
+    def test_stage_variants(self):
+        from urtpe.links import derive_stage_from_case_name as f
+        assert f("擬訂臺北市文山區…案") == "擬訂"
+        assert f("變更臺北市文山區…案") == "變更"
+        assert f("變更(第二次)臺北市文山區…案") == "變更(第二次)"
+        assert f("變更（第二次）臺北市文山區…案") == "變更(第二次)"
+        assert f("") == ""
+
+    def test_track_variants(self):
+        from urtpe.links import derive_track_from_case_name as f
+        assert f("擬訂臺北市…事業計畫案") == "事業計畫"
+        assert f("擬訂臺北市…事業計畫及權利變換計畫案") == "事業計畫、權利變換"
+        assert f("變更臺北市…權利變換計畫案") == "權利變換"
+        assert f("擬訂臺北市…事業概要案") == "事業概要"
+        assert f("擬訂臺北市…都市更新計畫案") == "都市更新計畫"
+        assert f("擬訂臺北市…案") == ""
+
+
+class TestChimeraEmitFix:
+    """§8 / facts §12 #2: the project-level merged milestones_taipei is
+    last-write-wins (newest fetched case wins every label), so all nodes would
+    render the newest case's dates. Each node must instead emit its OWN
+    anchored case's per-case timeline (from case_milestones), falling back to
+    the merged dict only when no per-case timeline exists."""
+
+    PID = "中山區-中山段一小段-254地號等13筆"
+
+    def _family(self):
+        from urtpe.models import Project, RawRecord
+        from urtpe.cleanse import cleanse
+
+        rows = [
+            (1219, "101/8/27", "擬訂臺北市中山區中山段一小段254地號等13筆土地都市更新事業計畫案"),
+            (1037, "105/8/23", "變更臺北市中山區中山段一小段254地號等13筆土地都市更新事業計畫案"),
+            (991, "106/4/13", "變更臺北市中山區中山段一小段254地號等13筆土地都市更新事業計畫案"),
+        ]
+        members = [cleanse(RawRecord(rn, dt, "中山區", nm,
+                                     "臺北市中山區中山段一小段254地號等13筆",
+                                     "某建設", "某規劃")) for rn, dt, nm in rows]
+        return Project(project_id=self.PID, anchor_recno=1219, members=members)
+
+    def _disc(self):
+        return {self.PID: {
+            "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/136",
+            "taipei": ["09811141", "09811142", "09811144"],
+            "milestones_national": {},
+            # the merged chimera: 142 was fetched last and won 核定日期
+            "milestones_taipei": {"核定日期": "2016/08/23"},
+            "case_milestones": {
+                "09811141": {"核定日期": "2012/08/27"},
+                "09811142": {"核定日期": "2016/08/23"},
+                "09811144": {"核定日期": "2017/04/13"},
+            },
+            "milestones_source": {"核定日期": "09811142"},
+            "implementation": {}, "rewards": {}, "search_rejected": {},
+        }}
+
+    def test_nodes_emit_own_case_timeline_not_chimera(self):
+        import copy
+
+        project = self._family()
+        disc = self._disc()
+        before = copy.deepcopy(disc)
+        attach_links_to_projects([project], disc)
+
+        by_recno = {m.recno: m.links for m in project.members}
+        assert by_recno[1219]["milestones_taipei"]["核定日期"] == "2012/08/27"
+        assert by_recno[1037]["milestones_taipei"]["核定日期"] == "2016/08/23"
+        assert by_recno[991]["milestones_taipei"]["核定日期"] == "2017/04/13"
+        # project-level merged dict + provenance untouched (no mutation)
+        assert disc[self.PID]["milestones_taipei"] == before[self.PID]["milestones_taipei"]
+        assert disc[self.PID]["milestones_source"] == before[self.PID]["milestones_source"]
+
+    def test_legacy_cache_falls_back_to_merged_dict(self):
+        """Anchored case without a per-case timeline → node falls back to the
+        project-level merged dict (current behavior preserved)."""
+        from urtpe.models import Project, RawRecord
+        from urtpe.cleanse import cleanse
+
+        raw = RawRecord(772, "115/8/11", "中正區",
+                        "變更中正區河堤段四小段263-19地號等25筆都市更新事業計畫案",
+                        "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+        project = Project(project_id="中正區-河堤段四小段-263-19地號等25筆",
+                          anchor_recno=772, members=[cleanse(raw)])
+        merged = {"核定日期": "2019/08/01"}
+        disc = {"中正區-河堤段四小段-263-19地號等25筆": {
+            "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/262",
+            "taipei": ["10707031"],
+            "milestones_national": {},
+            "milestones_taipei": merged,
+            "case_milestones": {},  # legacy: no per-case data
+            "milestones_source": {},
+            "implementation": {}, "rewards": {}, "search_rejected": {},
+        }}
+        attach_links_to_projects([project], disc)
+        node_links = project.members[0].links
+        assert node_links["milestones_taipei"] == merged

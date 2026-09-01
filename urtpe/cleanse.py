@@ -189,19 +189,44 @@ def cleanse(rec: RawRecord) -> CleanRecord:
         flags.append("日期無法解析")
 
     name_raw = re.sub(r"\s+", "", rec.name)
+    # PDF extraction sometimes glues the 地號 cell onto the end of 案名 and
+    # leaves the 地號 cell empty (recno 1354 崇仁新村: 案名…案臺北市…地號土地).
+    # Recover the trailing land fragment so the record gets a land core and can
+    # cluster with its family instead of becoming 未解析-{recno}.
+    recovered_land = ""
+    if not re.sub(r"\s+", "", rec.land):
+        idx = name_raw.rfind("臺北市")
+        if idx > 0:
+            tail = name_raw[idx:]
+            pl_tail = _parse_land(tail)
+            if pl_tail["section"] and pl_tail["parcels"]:
+                if pl_tail["land_count"] is None:
+                    # cross-section lists (711-3、青年段二小段18) keep only the
+                    # first-section parcel in `parcels` — count land tokens
+                    pl_tail["land_count"] = tail.count("、") + 1
+                recovered_land = tail
+                fixes.append("地號自案名尾端復原(地號欄黏入案名)")
+                name_raw = name_raw[:idx]
     name = normalize_name(name_raw)
     # 事業換計畫 is a scrambled 事業計畫 (recno 621 大業段三小段184-1): the
     # 換/計 transposition otherwise drops the record into track 其他.
     if "事業換計畫" in name:
         fixes.append("案名錯字→事業計畫")
         name = name.replace("事業換計畫", "事業計畫")
+    # 土地都市更新計畫案 is a PDF-era abbreviation of 土地都市更新事業計畫案 —
+    # the platform's own CASE_NAME always writes 事業 (cross-ref 18/18,
+    # operations log §6.14). Recover the dropped 事業 so the track derives
+    # 事業計畫 instead of the synthetic 都市更新計畫 fallback.
+    if "都市更新計畫" in name and "事業計畫" not in name:
+        fixes.append("案名補事業(都市更新計畫案簡寫)")
+        name = name.replace("土地都市更新計畫", "土地都市更新事業計畫")
 
-    land_clean = re.sub(r"\s+", "", rec.land)
+    land_clean = re.sub(r"\s+", "", recovered_land or rec.land)
     land_district = _land_district(land_clean)
     if land_district and district and land_district != district:
         flags.append(f"行政區與地號行政區不一致(地號為{land_district})")
 
-    pl = _parse_land(rec.land)
+    pl = pl_tail if recovered_land else _parse_land(rec.land)
     if not pl["section"]:
         flags.append("地號無法解析(缺少段小段)")
     elif not pl["parcels"]:
@@ -237,6 +262,24 @@ def cleanse(rec: RawRecord) -> CleanRecord:
             anchor = "原" + am.group(1)
             break
 
+    # §10 per-track stage derivation: combined-track 案名 may carry two
+    # stage ordinals — [stage1]…事業計畫及[stage2]權利變換計畫案 — because
+    # 事業計畫 (bonus floor area) and 權利變換 (builder/owner share) progress
+    # independently. Additive fields; the single `stage` stays the prefix.
+    stage_事業計畫 = stage_權利變換 = None
+    if "事業計畫" in name and "權利變換" in name and "事業計畫、權利變換" == track:
+        m_head = STAGE_RE.match(name)
+        s1 = m_head.group(1) if m_head else ""
+        i_qb = name.find("及")
+        m2 = None
+        if i_qb >= 0:
+            m2 = re.match(r"(擬訂|變更(?:\(第[一二三四五六七八九十]+次\))?)", name[i_qb + 1:])
+        if m2 and m2.group(1) != s1:
+            stage_事業計畫 = s1
+            stage_權利變換 = m2.group(1)
+        else:
+            stage_事業計畫 = stage_權利變換 = s1
+
     return CleanRecord(
         recno=rec.recno,
         date=rec.date,
@@ -246,7 +289,7 @@ def cleanse(rec: RawRecord) -> CleanRecord:
         district_land=land_district,
         name=name,
         name_raw=name_raw,
-        land=rec.land,
+        land=recovered_land or rec.land,
         section=section,
         first_parcel=first_parcel,
         parcels=parcels,
@@ -258,6 +301,8 @@ def cleanse(rec: RawRecord) -> CleanRecord:
         stage=stage,
         stage_index=stage_index,
         track=track,
+        stage_事業計畫=stage_事業計畫,
+        stage_權利變換=stage_權利變換,
         implementer=re.sub(r"\s+", "", rec.implementer),
         planner=re.sub(r"\s+", "", rec.planner),
         auto_fixes=fixes,

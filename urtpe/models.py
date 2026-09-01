@@ -46,6 +46,9 @@ class CleanRecord:
     planner: str
     auto_fixes: list[str] = field(default_factory=list)
     review_flags: list[str] = field(default_factory=list)
+    links: dict = field(default_factory=dict)
+    stage_事業計畫: Optional[str] = None
+    stage_權利變換: Optional[str] = None
 
     def parcel_set(self) -> set[str]:
         s = set(self.parcels)

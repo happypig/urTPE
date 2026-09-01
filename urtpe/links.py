@@ -305,6 +305,18 @@ class DiscoveryResult:
     # §6.8 fragment evidence: {case_id: case_name} — cases the platform
     # returned for this family's parcel search but the name guard rejected.
     search_rejected: dict[str, str] = field(default_factory=dict)
+    # Harvested candidate names {case_id: case_name} — kept candidates from the
+    # platform search response; enables landcore similarity and virtual-node
+    # stage/track derivation for orphans without a PDF record.
+    candidate_names: dict[str, str] = field(default_factory=dict)
+    # Per-case schedule from the search response (已核准/已駁回/自行撤回/已失效/
+    # 審查中/施工中) — explains each case's state and why a project whose cases
+    # were all rejected/withdrawn/lapsed has no national-portal page (§6.14).
+    case_schedules: dict[str, str] = field(default_factory=dict)
+    # Case_ids extracted from this project's own national view page 相關連結 —
+    # identity-verified by the portal itself, exempt from the landcore
+    # similarity gate in ghost creation (parcel-less case names score 0.0).
+    view_verified_case_ids: list[str] = field(default_factory=list)
     status: str = "unresolved"  # resolved, unresolved, multi-case, error
     error: str = ""
 
@@ -537,6 +549,16 @@ def discover_project_links(
         except Exception as e:
             result.error = f"Taipei search failed: {e}"
     result.search_rejected = dropped_by_guard
+    result.candidate_names = {
+        e["case_id"]: e.get("case_name", "")
+        for e in city_entries
+        if e.get("case_id")
+    }
+    result.case_schedules = {
+        e["case_id"]: e.get("schedule", "")
+        for e in city_entries
+        if e.get("case_id") and e.get("schedule")
+    }
 
     city_ids = [e["case_id"] for e in city_entries]
     result.city_case_ids = city_ids
@@ -630,6 +652,13 @@ TAIPEI_TOP_API = "https://gis.uro.taipei/ashx/get_project168_top.ashx"
 TAIPEI_STAGE_API = "https://gis.uro.taipei/ashx/Get_project168_second.ashx"
 TAIPEI_THIRD_API = "https://gis.uro.taipei/ashx/Get_project168_third.ashx"
 TAIPEI_FOURTH_API = "https://gis.uro.taipei/ashx/Get_project168_fourth.ashx"
+
+# Twin-bridge ghost gate: an orphan with no name and no attribution still
+# anchors when its per-case milestone record shares at least this many exact
+# (label, date) pairs with cases already anchored to the same unit — shared
+# process history as the stand-in for landcore similarity until case_name
+# harvesting lands.
+TWIN_BRIDGE_MIN_SHARED_DATES = 3
 
 # Milestone field mapping from Get_project168_second.ashx JSON keys
 STAGE_FIELD_MAP = [
@@ -761,6 +790,130 @@ _FULLWIDTH_DIGITS = str.maketrans("０１２３４５６７８９", "0123456789"
 def normalize_parcel_token(token: str) -> str:
     """Normalize parcel notation only: full-width→ASCII digits, 之→-."""
     return (token or "").translate(_FULLWIDTH_DIGITS).replace("之", "-")
+
+
+def derive_stage_from_case_name(name: str) -> str:
+    """Derive the approval stage (擬訂 / 變更 / 變更(第N次)) from a case name."""
+    n = (name or "").strip()
+    if not n:
+        return ""
+    if n.startswith("擬訂"):
+        return "擬訂"
+    m = re.match(r"^變更(?:\s*[（(]?第([一二三四五六七八九十百\d]+)次[）)]?)?", n)
+    if m:
+        return f"變更(第{m.group(1)}次)" if m.group(1) else "變更"
+    return ""
+
+
+def derive_track_from_case_name(name: str) -> str:
+    """Derive 事業種類 from a case name using the TRACK vocabulary."""
+    n = name or ""
+    if "事業概要" in n:
+        return "事業概要"
+    has_plan = "事業計畫" in n
+    has_rw = "權利變換" in n
+    if has_plan and has_rw:
+        return "事業計畫、權利變換"
+    if has_rw:
+        return "權利變換"
+    if has_plan:
+        return "事業計畫"
+    if "都市更新計畫" in n:
+        return "都市更新計畫"
+    return ""
+
+
+def extract_landcore_from_case_name(name: str) -> str:
+    """Extract landcore from a case name, skipping prefixes like '擬訂臺北市'.
+
+    The landcore format is: {district}{section}{first_parcel}地號等{count}筆
+    e.g., "文山區木柵段三小段623地號等39筆" (段小段) or
+    "松山區民生段140-9地號等3筆" (single-段 sections — village/older units;
+    rejecting them silently dropped every orphan of the family, §6.14).
+    """
+    patterns = [
+        re.compile(r"([\u4e00-\u9fff]+區[\u4e00-\u9fff]+?段(?:[\u4e00-\u9fff]+?段)?\d+(?:-\d+)?地號等?\d*筆?)"),
+        re.compile(r"([\u4e00-\u9fff]+區[\u4e00-\u9fff]+段[\u4e00-\u9fff]+段\d+地號等\d+筆)"),
+    ]
+    for pattern in patterns:
+        if "臺北市" in name:
+            after_taipei = name.split("臺北市", 1)[1]
+            m = pattern.search(after_taipei)
+            if m:
+                return m.group(1)
+        m = pattern.search(name)
+        if m:
+            return m.group(1)
+    return ""
+
+
+def _parse_landcore(lc: str) -> tuple[str, str, str, str]:
+    """Parse landcore string into (district, section, first_parcel, land_count)."""
+    district = section = first_parcel = land_count = ""
+
+    m = re.match(r"(.+?區)", lc)
+    if m:
+        district = m.group(1)
+        rest = lc[len(m.group(1)):]
+    else:
+        rest = lc
+
+    m = re.match(r"(.+?段)", rest)
+    if m:
+        section = m.group(1)
+        rest = rest[len(m.group(1)):]
+
+    m = re.match(r"(.+?)地號", rest)
+    if m:
+        first_parcel = m.group(1)
+        rest = rest[len(m.group(1)) + 2:]
+
+    m = re.search(r"等(\d+)筆", lc)
+    if m:
+        land_count = m.group(1)
+
+    return district, section, first_parcel, land_count
+
+
+def compute_landcore_similarity(a: str, b: str) -> float:
+    """Compute similarity between two landcore strings.
+
+    Uses the same weighted logic as merge.py's score function:
+    - section match: 0.35 (already verified by district/section equality)
+    - first parcel match: 0.20
+    - parcel Jaccard: 0.30
+    - land count match: 0.10
+
+    Returns similarity in [0.0, 1.0]. Returns 0.0 if district/section differ.
+    """
+    a_district, a_section, a_parcel, a_count = _parse_landcore(a)
+    b_district, b_section, b_parcel, b_count = _parse_landcore(b)
+
+    if a_district != b_district or a_section != b_section:
+        return 0.0
+
+    # Section already matches (weight 0.35)
+    sec_score = 1.0
+
+    # First parcel score (weight 0.20)
+    fp = 0.0
+    if a_parcel and b_parcel:
+        if a_parcel == b_parcel:
+            fp = 1.0
+        elif (b_parcel in a_parcel) or (a_parcel in b_parcel):
+            fp = 0.95  # renumbering alias
+        elif a_parcel in b_parcel or b_parcel in a_parcel:
+            fp = 0.7
+
+    # Land count score (weight 0.10)
+    cnt = 0.0
+    if a_count and b_count and a_count == b_count:
+        cnt = 1.0
+
+    # Parcel Jaccard (weight 0.30) - simplified since we only have first parcel
+    jac = 1.0 if a_parcel == b_parcel else 0.0
+
+    return 0.35 * sec_score + 0.2 * fp + 0.3 * jac + 0.1 * cnt
 
 
 def _case_name_carries_parcel(case_name: str, parcel: str) -> bool:
@@ -933,16 +1086,86 @@ def merge_stage_milestones(
         source[label] = cid
 
 
+def schedule_from_top(top_row: dict) -> str:
+    """Map a get_project168_top.ashx row (phase/NAME) to the search-response
+    schedule vocabulary — for cases discovered outside the parcel search
+    (view-page 相關連結, curated exceptions) where no schedule was returned."""
+    name = str((top_row or {}).get("NAME", ""))
+    if "駁回" in name:
+        return "已駁回"
+    if "撤回" in name:
+        return "自行撤回"
+    if "失效" in name:
+        return "已失效"
+    if "核定" in name:
+        return "已核准"
+    if "審查" in name or "審議" in name:
+        return "審查中"
+    if "施工" in name or "備查" in name:
+        return "施工中"
+    return ""
+
+
+def classify_case_outcome(top_row: dict) -> str:
+    """top.ashx phase/NAME → outcome class for ledger liveness (§6.14 E3):
+    never-approved (駁回/撤回/失效 — the portal will never list the unit),
+    approved (業經本府核定 — a portal page should exist), in-progress
+    (審查中/施工中 — gazette lag), other."""
+    name = str((top_row or {}).get("NAME", ""))
+    if "駁回" in name or "撤回" in name or "失效" in name:
+        return "never-approved"
+    if "核定" in name:
+        return "approved"
+    if "審查" in name or "審議" in name or "施工" in name or "備查" in name:
+        return "in-progress"
+    return "other"
+
+
+def project_twur_class(case_outcomes: dict) -> str:
+    """Project-level class from per-case outcomes: any approved/in-progress
+    case means the portal page should exist (recoverable); every case
+    never-approved means the portal will never list the unit; no data →
+    unknown."""
+    if not case_outcomes:
+        return "unknown"
+    vals = set(case_outcomes.values())
+    if vals & {"approved", "in-progress"}:
+        return "recoverable"
+    if vals <= {"never-approved"}:
+        return "never-approved"
+    return "recoverable"  # other outcomes still justify a probe
+
+
+def _ghost_node_date(own_milestones: dict) -> str:
+    """Ghost/virtual node date — approval-date fallback in track order:
+    核定日期 → 權變核定日期 → 概要核准日期 (the 概要 track's approval)."""
+    for label in ("核定日期", "權變核定日期", "概要核准日期"):
+        iso = _iso_date(own_milestones.get(label, ""))
+        if iso:
+            return iso
+    return ""
+
+
 def _match_case_by_date(member_date: str, disc) -> str:
     """Find the city case whose 核定日期/權變核定日期 equals the node's date
-    (exact first, then ±1 day). Returns case_id or ''."""
+    (exact first, then ±1 day). Returns case_id or ''. Accepts ISO
+    ('2008-01-02'), slash-Gregorian ('2008/01/02') and ROC ('97/1/2') dates —
+    the PDF pipeline passes raw ROC gazette dates."""
     if not member_date or not getattr(disc, "case_milestones", None):
         return ""
     target = _iso_date(member_date)
+    if not re.fullmatch(r"\d{4}-\d{1,2}-\d{1,2}", target or ""):
+        from urtpe.cleanse import roc_to_iso
+
+        iso, _ = roc_to_iso(member_date)
+        target = _iso_date(iso or "")
     candidates: dict[str, set[str]] = {}
     for cid, ms in disc.case_milestones.items():
         dates: set[str] = set()
-        for label in ("核定日期", "權變核定日期"):
+        # 概要核准日期 is the approval milestone of the 事業概要 track — a 概要
+        # case has no 核定日期, so omitting it silently degrades 概要-node
+        # anchoring to the positional fallback (§6.14 延吉段727 shape).
+        for label in ("核定日期", "權變核定日期", "概要核准日期"):
             iso = _iso_date(ms.get(label, ""))
             if iso:
                 dates.add(iso)
@@ -1058,6 +1281,9 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             obj.implementation = v.get("implementation", {})
             obj.rewards = v.get("rewards", {})
             obj.search_rejected = v.get("search_rejected", {})
+            obj.candidate_names = v.get("candidate_names", {})
+            obj.case_schedules = v.get("case_schedules", {})
+            obj.view_verified_case_ids = v.get("view_verified_case_ids", [])
             disc_by_pid[k] = obj
 
     for project in projects:
@@ -1073,13 +1299,23 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
 
         project.links = {
             "twur": disc.twur_url,
-            "taipei": disc.city_case_ids[:],
+            "taipei": sorted(disc.city_case_ids),
             "milestones_national": disc.national_milestones.copy(),
             "milestones_taipei": disc.taipei_milestones.copy(),
         }
         source_map = getattr(disc, "milestones_source", None) or {}
         if source_map:
             project.links["milestones_source"] = dict(source_map)
+        if getattr(disc, "case_milestones", None):
+            project.links["case_milestones"] = {
+                k: dict(v) for k, v in disc.case_milestones.items()
+            }
+        if getattr(disc, "search_rejected", None):
+            project.links["search_rejected"] = dict(disc.search_rejected)
+        if getattr(disc, "candidate_names", None):
+            project.links["candidate_names"] = dict(disc.candidate_names)
+        if getattr(disc, "case_schedules", None):
+            project.links["case_schedules"] = dict(disc.case_schedules)
 
         # Implementation (third.ashx) / rewards (fourth.ashx): project-level
         # attachment with case provenance (design D2/D5). Date fields surface as
@@ -1109,6 +1345,8 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             # Spec (official-link-discovery): per-stage city links land on the
             # node whose 核定日期 matches the case's approval date. Fall back to
             # the legacy positional heuristic only when dates cannot disambiguate.
+            # member.date is the raw gazette date — ROC (97/1/2) in the PDF
+            # pipeline, ISO in --from-js regens; the matcher handles both.
             matched = _match_case_by_date(member.date, disc)
             if matched:
                 node_links["taipei"].append(matched)
@@ -1118,6 +1356,34 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
                 node_links["taipei"].append(disc.city_case_ids[1])
             elif "權利變換" in track and disc.city_case_ids:
                 node_links["taipei"].append(disc.city_case_ids[0])
+
+            # §12 #2 chimera emit fix: the node carries ITS OWN approval's
+            # per-case timeline, not the project-level last-write-wins merged
+            # dict (319 families have multiple distinct 核定日期 — the merged
+            # value shows the newest fetched case's date on every node). The
+            # merged dict remains the fallback and stays at project level
+            # unchanged (the 階段辦理過程 card + milestones_source provenance).
+            anchored_cid = node_links["taipei"][0] if node_links["taipei"] else ""
+            own_ms = (getattr(disc, "case_milestones", None) or {}).get(anchored_cid)
+            if own_ms:
+                node_links["milestones_taipei"] = dict(own_ms)
+            else:
+                node_links["milestones_taipei"] = dict(
+                    getattr(disc, "taipei_milestones", None) or {})
+
+            # §9.4 gazette printing anomaly: the PDF's printed 階段 may
+            # disagree with the platform's recorded case state for the
+            # anchored case (吉林段四小段603 node 920: gazette 擬訂 vs platform
+            # 變更[已核准]). Keep the printed stage (faithful to the PDF) and
+            # route the disagreement to human review via a flag.
+            if anchored_cid and member.stage:
+                case_name = (getattr(disc, "candidate_names", None) or {}).get(anchored_cid, "")
+                if case_name:
+                    m_case = re.match(r"(擬訂|變更(?:\(第[一二三四五六七八九十]+\))?)", case_name)
+                    if m_case and m_case.group(1) != member.stage:
+                        member.review_flags = list(member.review_flags) + [
+                            f"階段與平台案件狀態不一致(公報{member.stage}/平台{m_case.group(1)})"
+                        ]
 
             member.links = node_links
 
@@ -1132,6 +1398,75 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
                     snapshot["case_id"] = cid
                     member.implementation = snapshot
                     break
+
+        anchored_case_ids = set()
+        for member in project.members:
+            for cid in (member.links or {}).get("taipei", []):
+                anchored_case_ids.add(cid)
+
+        orphan_case_ids = set(disc.city_case_ids) - anchored_case_ids
+        if orphan_case_ids and project.members:
+            anchor_record = next(
+                (m for m in project.members if m.recno == project.anchor_recno),
+                project.members[0],
+            )
+            anchor_landcore_str = build_land_core_key(anchor_record)
+            source_map = getattr(disc, "milestones_source", None) or {}
+            attributed_case_ids = set(source_map.values())
+            anchored_date_pool = set()
+            for aid in anchored_case_ids:
+                anchored_date_pool |= set((disc.case_milestones.get(aid) or {}).items())
+            orphan_nodes = []
+            view_verified = set(getattr(disc, "view_verified_case_ids", None) or [])
+            for cid in orphan_case_ids:
+                similar = False
+                twin_shared_dates = None
+                own_milestones = disc.case_milestones.get(cid) or {}
+                case_name = (disc.search_rejected.get(cid, "")
+                             or (getattr(disc, "candidate_names", None) or {}).get(cid, ""))
+                if cid in view_verified:
+                    # Portal-verified: the case is listed on this project's own
+                    # national view page 相關連結 — no similarity gate needed
+                    # (parcel-less case names would score 0.0).
+                    similar = True
+                elif case_name:
+                    orphan_landcore = extract_landcore_from_case_name(case_name)
+                    if orphan_landcore and compute_landcore_similarity(
+                        anchor_landcore_str, orphan_landcore
+                    ) >= 0.7:
+                        similar = True
+                elif cid in attributed_case_ids:
+                    similar = True
+                else:
+                    own_dates = set(own_milestones.items())
+                    shared = own_dates & anchored_date_pool
+                    if len(shared) >= TWIN_BRIDGE_MIN_SHARED_DATES:
+                        similar = True
+                        twin_shared_dates = dict(shared)
+                if not similar:
+                    continue
+                if twin_shared_dates is not None:
+                    orphan_milestones_taipei = dict(twin_shared_dates)
+                else:
+                    orphan_milestones_taipei = {}
+                    for label, src_cid in source_map.items():
+                        if src_cid == cid and label in disc.taipei_milestones:
+                            orphan_milestones_taipei[label] = disc.taipei_milestones[label]
+                orphan_milestones_national = dict(disc.case_milestones.get(cid) or {})
+                orphan_nodes.append({
+                    "case_id": cid,
+                    "case_name": case_name,
+                    "orphan": True,
+                    "provenance": "orphan-case-anchoring",
+                    "stage": derive_stage_from_case_name(case_name),
+                    "track": derive_track_from_case_name(case_name),
+                    "node_date": _ghost_node_date(own_milestones),
+                    "schedule": (getattr(disc, "case_schedules", None) or {}).get(cid, ""),
+                    "milestones_taipei": orphan_milestones_taipei,
+                    "milestones_national": orphan_milestones_national,
+                })
+            if orphan_nodes:
+                project.links["orphan_nodes"] = orphan_nodes
 
     # §6.8: after node anchoring, surface fragment families as merge
     # candidates (review flags on anchor records; no family mutation).

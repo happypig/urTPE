@@ -102,6 +102,14 @@ def save_ledger(ledger: dict, path: Path = LEDGER_PATH) -> None:
     os.replace(tmp, path)
 
 
+def annotate_class(ledger: dict, project_id: str, cls: str) -> None:
+    """Annotate a ledger entry with the project's twur class
+    (never-approved / recoverable) from the top.ashx outcome classification —
+    never-approved entries are excluded from re-probes regardless of TTL."""
+    if project_id in ledger:
+        ledger[project_id]["twur_class"] = cls
+
+
 def record_no_match(ledger: dict, project_id: str, view_ids_checked: list[str],
                     now: Optional[datetime] = None) -> None:
     """Record/update a project's no-match probe result (mutates ledger in place)."""
@@ -121,8 +129,10 @@ def filter_candidates(candidates: list[dict], ledger: dict, reprobe_days: float 
     """Split candidates into (kept, skipped-as-recently-probed).
 
     Pure logic over in-memory entries — no filesystem access. A project is
-    skipped only when its ledger entry has a parseable last_probed newer than
-    now - reprobe_days. Malformed or missing entries never exclude.
+    skipped when its ledger entry is annotated never-approved (the portal will
+    never list the unit — liveness policy, §6.14 E3) or when its entry has a
+    parseable last_probed newer than now - reprobe_days. Malformed or missing
+    entries never exclude.
     """
     now = now or datetime.now()
     cutoff = now - timedelta(days=reprobe_days)
@@ -130,6 +140,9 @@ def filter_candidates(candidates: list[dict], ledger: dict, reprobe_days: float 
     skipped: list[dict] = []
     for cand in candidates:
         entry = ledger.get(cand["project_id"]) or {}
+        if entry.get("twur_class") == "never-approved":
+            skipped.append(cand)
+            continue
         probed = None
         raw = entry.get("last_probed")
         if isinstance(raw, str):

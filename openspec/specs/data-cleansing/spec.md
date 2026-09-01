@@ -3,12 +3,10 @@
 ## Purpose
 
 Cleans the raw TSV into a normalized dataset: fixes known data errors, derives structured fields (parcels, counts, aliases, sections, stages), auto-applies obvious fixes, and flags ambiguous cases for review.
-
 ## Requirements
-
 ### Requirement: Normalize known data errors
 
-The system SHALL correct the known error classes: district "松化區" to "松山區", "計劃" to "計畫", "ㄧ" to "一", and treat "權利變換案" as equivalent to "權利變換計畫案".
+The system SHALL correct the known error classes: district "松化區" to "松山區", "計劃" to "計畫", "ㄧ" to "一", treat "權利變換案" as equivalent to "權利變換計畫案", and normalize the 案名 abbreviation "土地都市更新計畫案" to "土地都市更新事業計畫案" (when the 案名 does not already contain 事業計畫) — the PDF-era gazette abbreviation verified against the platform's own `CASE_NAME` (live cross-reference 18/18, data: `data/_gengxin_plan_crossref.json`). Each application of this rule SHALL be noted in the record's `auto_fixes`.
 
 #### Scenario: District typo corrected
 - **WHEN** a record has 行政區 = "松化區"
@@ -18,6 +16,21 @@ The system SHALL correct the known error classes: district "松化區" to "松�
 #### Scenario: Character and variant normalization
 - **WHEN** a name contains "計劃" or the bopomofo character "ㄧ"
 - **THEN** it is emitted as "計畫" and "一" respectively
+
+#### Scenario: Abbreviated 案名 gains 事業
+- **WHEN** a record's 案名 is "擬訂臺北市中山區長春段二小段775地號等3筆土地都市更新計畫案" (no 事業計畫)
+- **THEN** it is emitted as "擬訂臺北市中山區長春段二小段775地號等3筆土地都市更新事業計畫案"
+- **AND** the correction is noted in `auto_fixes` as 案名補事業(都市更新計畫案簡寫)
+- **AND** the record's track derives as 事業計畫 (not the synthetic 都市更新計畫)
+
+#### Scenario: Already-full names are untouched
+- **WHEN** a record's 案名 already contains "事業計畫" (e.g. "變更…土地都市更新事業計畫及擬訂權利變換計畫案")
+- **THEN** the name is emitted unchanged and no auto-fix is recorded
+
+#### Scenario: Downstream track vocabulary collapses the synonym
+- **WHEN** cleansing completes over the corpus (10 affected nodes / 6 families at the 2026-08-30 census)
+- **THEN** no node emits the synthetic track `都市更新計畫` — affected nodes derive track `事業計畫`
+- **AND** the viewer's four-column placement of those nodes is unchanged (both tracks map to column 1)
 
 ### Requirement: Convert dates to ISO
 
@@ -72,3 +85,20 @@ The system SHALL produce a review report listing every auto-fix and every flagge
 #### Scenario: Report covers all interventions
 - **WHEN** the cleansing step finishes
 - **THEN** the report contains one entry per auto-fix and one entry per flagged record, each traceable to a 編號
+
+### Requirement: Per-track stage derivation for combined-track nodes
+
+A node whose 事業種類 is 事業計畫、權利變換 (combined track) and whose 案名 carries two stage ordinals — `[stage1]…事業計畫及[stage2]權利變換計畫案` — SHALL derive **per-track stages**: `stage_事業計畫 = stage1`, `stage_權利變換 = stage2` (e.g. 中正區-臨沂段一小段-507 recno 1: 案名 `變更臺北市…事業計畫及變更(第二次)權利變換計畫案` → 事業計畫 at 變更, 權利變換 at 變更(第二次)). Uniform-ordinal 案名 (`…事業計畫及權利變換計畫案` with one shared ordinal, or identical ordinals) keep the single derived stage for both tracks. The single `stage` field remains unchanged for compatibility; the per-track stages are additive fields.
+
+#### Scenario: Split-stage combined node derives both stages
+- **WHEN** a combined-track node's 案名 is `變更臺北市中正區臨沂段一小段507地號等3筆土地都市更新事業計畫及變更(第二次)權利變換計畫案`
+- **THEN** the record derives `stage_事業計畫 = 變更` and `stage_權利變換 = 變更(第二次)`
+
+#### Scenario: Uniform-ordinal combined node keeps the shared stage
+- **WHEN** a combined-track node's 案名 is `變更(第四次)…事業計畫及權利變換計畫案` (one ordinal covering both)
+- **THEN** both per-track stages equal the single ordinal
+
+#### Scenario: The single stage field is unchanged
+- **WHEN** the per-track derivation runs
+- **THEN** `stage` remains the 案名-prefix stage (existing clustering, table, and graph placement are unaffected)
+

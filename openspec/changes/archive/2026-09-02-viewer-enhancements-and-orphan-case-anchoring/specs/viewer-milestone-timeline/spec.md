@@ -37,23 +37,15 @@ The system SHALL display per-node milestone badges in the history graph nodes an
 - **THEN** the node shows a badge indicating the milestone source (e.g., "國", "北")
 - **AND** hovering or clicking reveals the specific milestones for that node
 
-### Requirement: Combined-track nodes render per-track stages
-
-A combined-track node (事業種類 = 事業計畫、權利變換) whose per-track stages differ SHALL render them as `stage1/stage2` (事業計畫 first, 權利變換 second — e.g. `變更/變更(第二次)` for 中正區-臨沂段一小段-507 recno 1) in the graph node label and the detail table's 階段 column. Uniform-ordinal nodes keep the single-stage form. The 事業計畫 track covers bonus floor area; the 權利變換 track covers builder/owner share — the two progress independently, so a single stage cannot represent both.
-
-#### Scenario: Split-stage combined node renders both ordinals
-- **WHEN** node 1 (2026-08-11) of 中正區-臨沂段一小段-507 derives stage_事業計畫 = 變更 and stage_權利變換 = 變更(第二次)
-- **THEN** the node label reads `1 · 2026-08-11 變更/變更(第二次)` and the table 階段 column shows the same
-
-#### Scenario: Uniform combined node keeps the single form
-- **WHEN** both per-track stages are identical (or the node is single-track)
-- **THEN** the node label keeps the single-stage form (current behavior)
-
 #### Scenario: Different nodes show different milestones
 - **WHEN** a project has both 事業計畫 and 權利變換 nodes with different case_ids
 - **THEN** the 事業計畫 node shows its milestones, the 權利變換 node shows its own
 
 #### Scenario: Node emits its anchored case's own 核定日期, not the merged chimera
+- **WHEN** the family 中山區-中山段一小段-254地號等13筆 has case 09811141 (核定 2012/08/27, anchored to node 1219) and case 09811142 (核定 2016/08/23 — the last-fetched, hence merged-dict winner)
+- **THEN** node 1219's `links.milestones_taipei.核定日期` is `2012/08/27` (its own case), not `2016/08/23`
+
+#### Scenario: Fallback to merged dict when the anchored case has no per-case timeline
 - **WHEN** the family 中山區-中山段一小段-254地號等13筆 has case 09811141 (核定 2012/08/27, anchored to node 1219) and case 09811142 (核定 2016/08/23 — the last-fetched, hence merged-dict winner)
 - **THEN** node 1219's `links.milestones_taipei.核定日期` is `2012/08/27` (its own case), not `2016/08/23`
 
@@ -78,7 +70,12 @@ The system SHALL show loading indicators when milestone data is available from o
 - **WHEN** both `links.milestones_national` and `links.milestones_taipei` are populated
 - **THEN** both cards render fully with no loading indicators
 
-### ADDED Requirements
+#### Scenario: Combined-track node renders per-track stages
+- **WHEN** node 1 (2026-08-11) of 中正區-臨沂段一小段-507 derives stage_事業計畫 = 變更 and stage_權利變換 = 變更(第二次) (per-track derivation, data-cleansing delta)
+- **THEN** the node label reads `1 · 2026-08-11 變更/變更(第二次)` and the table 階段 column shows the same
+- **AND** uniform-ordinal or single-track nodes keep the single-stage form
+
+## ADDED Requirements
 
 ### Requirement: Execution events render once, sourced from records or ghost anchors
 

@@ -39,6 +39,26 @@ The system SHALL provide multi-select filters above the project list for 地區 
 - **THEN** the viewer shows "顯示 42 / 718"
 - **AND** when no project matches, it shows an empty state instead of a blank list
 
+### Requirement: Filter the project list by construction stage
+
+The left-list filter bar SHALL include a construction-stage dimension (labelled 施工階段， positioned next to 事業種類) with the fixed options 建照 / 開工 / 使照. A project's stage SHALL derive from the same `constructionStage` derivation the list badge uses — the latest of 建照核發日期 / 開工日期 / 使照核發日期 (使照 falling back to the national 使用核發日期) — so the filter and the badge never disagree. Selecting one or more stages SHALL restrict the list to projects whose stage is among them; projects without any construction stage SHALL be excluded while the dimension is active. The dimension SHALL combine with the existing 地區/年度/事業種類 dimensions under the same multi-select semantics.
+
+#### Scenario: 使照 filter selects completed projects
+- **WHEN** the user selects only 使照
+- **THEN** the list shows exactly the projects whose latest construction event is 使照核發日期 (including national-fallback values), and the count line reflects the restriction
+
+#### Scenario: Combines with other dimensions
+- **WHEN** 使照 and 大安區 are both selected
+- **THEN** the list shows only 大安區 projects whose stage is 使照
+
+#### Scenario: Projects without construction dates
+- **WHEN** any stage is selected
+- **THEN** projects carrying none of the three construction dates are excluded from the list
+
+#### Scenario: Filter and badge agree
+- **WHEN** a project passes the 使照 filter
+- **THEN** its list item badge shows 使照 (same derivation, no divergence)
+
 ### Requirement: Surface the district dimension in the detail header
 
 The system SHALL echo the project's district chip in the detail header so the list and detail stay visually connected.
@@ -64,4 +84,40 @@ The system SHALL render the record table under the graph with all original Clean
 - **WHEN** the viewport is narrow and the table has many columns
 - **THEN** the table container shows a horizontal scrollbar
 - **AND** the user can scroll to see all columns without page-level horizontal scroll
+
+### Requirement: 基本面積 displays with conditional color and style based on value thresholds
+
+The left-list project card SHALL render the 基本面積 value with conditional color and font weight based on its numeric value (in square meters, parsed from `p.implementation.Base_Area`):
+
+- **< 500 m²**: purple color (`#8b5cf6`), normal font weight
+- **≥ 500 and < 1,000 m²**: default label text color (inherit), normal font weight
+- **≥ 1,000 and < 2,000 m²**: orange color (`#f59e0b`), normal font weight
+- **≥ 2,000 and < 3,000 m²**: orange color (`#f59e0b`), bold font weight
+- **≥ 3,000 m²**: red color (`#ef4444`), bold font weight
+
+The style SHALL apply only to the 基本面積 numeric value and its unit label, not to the 實施者 name or the "基本面積" prefix.
+
+#### Scenario: Small project (<500 m²) shows purple
+- **WHEN** a project has `implementation.Base_Area = "350"`
+- **THEN** the left-list card renders "基本面積 350" in purple (`#8b5cf6`), normal weight
+
+#### Scenario: Medium-small project (500–999 m²) shows default style
+- **WHEN** a project has `implementation.Base_Area = "750"`
+- **THEN** the left-list card renders "基本面積 750" with default label color, normal weight
+
+#### Scenario: Medium project (1,000–1,999 m²) shows orange (not bold)
+- **WHEN** a project has `implementation.Base_Area = "1500"`
+- **THEN** the left-list card renders "基本面積 1500" in orange (`#f59e0b`), normal weight
+
+#### Scenario: Large project (2,000–2,999 m²) shows orange bold
+- **WHEN** a project has `implementation.Base_Area = "2425"`
+- **THEN** the left-list card renders "基本面積 2425" in orange (`#f59e0b`), bold
+
+#### Scenario: Very large project (≥3,000 m²) shows red bold
+- **WHEN** a project has `implementation.Base_Area = "5751"`
+- **THEN** the left-list card renders "基本面積 5751" in red (`#ef4444`), bold
+
+#### Scenario: Missing or invalid Base_Area shows no style
+- **WHEN** a project has no `implementation` or `Base_Area` is empty/non-numeric
+- **THEN** the left-list card shows only 實施者 without 基本面積 (no style applied)
 

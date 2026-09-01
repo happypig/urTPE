@@ -33,7 +33,7 @@ The system SHALL render the Taipei platform's 階段辦理過程 milestones as a
 
 ### Requirement: Per-node milestone attribution
 
-The system SHALL display per-node milestone badges in the history graph nodes and/or table rows, indicating which milestones belong to that approval stage.
+The system SHALL display per-node milestone badges in the history graph nodes and/or table rows, indicating which milestones belong to that approval stage. Each node's emitted `links.milestones_taipei` SHALL be the **anchored case's own per-case timeline** from `case_milestones[anchored_case_id]` — not the project-level last-write-wins merged dict (the §5 chimera: 319 families carry multiple distinct 核定日期 across cases, so the merged value shows the newest case's date on every node). When the anchored case has no per-case timeline (legacy caches, or the case's `second.ashx` returned empty), the node SHALL fall back to the project-level merged dict; the merged dict itself remains at project level unchanged (the 階段辦理過程 card and `milestones_source` provenance are untouched).
 
 #### Scenario: Node shows relevant milestone badge
 - **WHEN** a node has `links.milestones_national` or `links.milestones_taipei` populated
@@ -43,6 +43,22 @@ The system SHALL display per-node milestone badges in the history graph nodes an
 #### Scenario: Different nodes show different milestones
 - **WHEN** a project has both 事業計畫 and 權利變換 nodes with different case_ids
 - **THEN** the 事業計畫 node shows its milestones, the 權利變換 node shows its own
+
+#### Scenario: Node emits its anchored case's own 核定日期, not the merged chimera
+- **WHEN** the family 中山區-中山段一小段-254地號等13筆 has case 09811141 (核定 2012/08/27, anchored to node 1219) and case 09811142 (核定 2016/08/23 — the last-fetched, hence merged-dict winner)
+- **THEN** node 1219's `links.milestones_taipei.核定日期` is `2012/08/27` (its own case), not `2016/08/23`
+
+#### Scenario: Fallback to merged dict when the anchored case has no per-case timeline
+- **WHEN** the family 中山區-中山段一小段-254地號等13筆 has case 09811141 (核定 2012/08/27, anchored to node 1219) and case 09811142 (核定 2016/08/23 — the last-fetched, hence merged-dict winner)
+- **THEN** node 1219's `links.milestones_taipei.核定日期` is `2012/08/27` (its own case), not `2016/08/23`
+
+#### Scenario: Fallback to merged dict when the anchored case has no per-case timeline
+- **WHEN** a node's anchored case has no `case_milestones` entry (legacy cache without per-case data)
+- **THEN** the node's `links.milestones_taipei` falls back to the project-level merged `milestones_taipei` (current behavior preserved)
+
+#### Scenario: Project-level merged dict is unchanged
+- **WHEN** the per-node emission fix runs
+- **THEN** the project-level `links.milestones_taipei` (chimera, with `milestones_source` provenance) is emitted as before — the 階段辦理過程 card and construction-chain provenance are unaffected
 
 ### Requirement: Progressive loading states
 
@@ -56,4 +72,42 @@ The system SHALL show loading indicators when milestone data is available from o
 #### Scenario: Both portals have data
 - **WHEN** both `links.milestones_national` and `links.milestones_taipei` are populated
 - **THEN** both cards render fully with no loading indicators
+
+#### Scenario: Combined-track node renders per-track stages
+- **WHEN** node 1 (2026-08-11) of 中正區-臨沂段一小段-507 derives stage_事業計畫 = 變更 and stage_權利變換 = 變更(第二次) (per-track derivation, data-cleansing delta)
+- **THEN** the node label reads `1 · 2026-08-11 變更/變更(第二次)` and the table 階段 column shows the same
+- **AND** uniform-ordinal or single-track nodes keep the single-stage form
+
+### Requirement: Execution events render once, sourced from records or ghost anchors
+
+The history graph SHALL render each execution date (建照核發日期 / 開工日期 / 使照核發日期) exactly once, in the shared execution column. An execution date whose provenance is an orphan case (non-PDF, no anchor record) SHALL NOT be duplicated in the ghost column; instead, the orphan's dashed-circle ghost anchor node connects to that event with a slanted solid pink source edge, exactly as anchored records do.
+
+#### Scenario: 建照核發日期 renders once with its orphan source
+- **WHEN** 建照核發日期 2022/02/17 is attributed to orphan case 09907221 in 文山區-木柵段三小段-623地號等39筆
+- **THEN** the graph shows a single 建照核發日期 event, connected to the 09907221 dashed-circle anchor by a slanted solid pink edge
+- **AND** no second 建照核發日期 appears in the ghost column
+
+#### Scenario: Ghost anchors without construction dates render bare
+- **WHEN** an orphan ghost anchor's payload contains no execution dates (e.g., 09907223)
+- **THEN** only its dashed-circle anchor node renders in the ghost column
+
+### Requirement: Source-colored edge semantics for execution events
+
+The history graph SHALL link execution events to their sources with portal-colored edges: (1) each source group's earliest event receives a slanted solid `event-edge` (pink `taipei` / green `national`) from its source — the anchored record node, or the orphan's ghost anchor; national-fallback groups attach to the 現況 record; (2) adjacent events of the SAME source connect by a vertical solid `event-link` in the group's color; (3) adjacent events of DIFFERENT sources connect by a vertical dashed `event-link` in the incoming group's color (pink for Taipei cases, green for the national fallback). Timeline rows (records and events) SHALL use half the previous vertical pitch so records and execution dates sit close together.
+
+#### Scenario: Source edge slants from record to the group's earliest event
+- **WHEN** a source group's earliest execution event has anchored provenance (e.g., 開工日期 2022/08/26 matching implementation case 09907222 anchored to recno 829)
+- **THEN** a slanted pink `event-edge` connects the recno-829 node to that event
+
+#### Scenario: Same-source chain connects vertically solid
+- **WHEN** a project's three execution dates share one source (e.g., 北投區-振興段四小段-166-2地號等34筆: 建照 2020/12/08, 開工 2021/02/20, 使照 2025/04/15 all from case 10211302)
+- **THEN** 建照→開工 and 開工→使照 connect by vertical solid pink `event-link`s, with one slanted source edge from the owning record to the earliest event
+
+#### Scenario: Cross-source transition connects vertically dashed
+- **WHEN** the last event of one source group and the first event of a different source group are adjacent
+- **THEN** they connect by a vertical dashed `event-link` in the incoming group's color
+
+#### Scenario: Timeline rows use the compact pitch
+- **WHEN** a project graph renders records and execution events
+- **THEN** consecutive timeline rows are separated by half the previous vertical pitch (32px, down from 64px)
 

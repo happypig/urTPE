@@ -431,3 +431,35 @@ rows, so coverage is "recent ~3 years" — everything older (e.g. view/136, 核�
 systematically absent. Design fork for later: resume/repair bulk crawl vs per-project
 targeted search via the list page's `?title=<keywords>` parameter (mirrors the Taipei
 parcel-search pattern).
+
+---
+
+## 21. Session Findings (2026-08-29/31) — Virtual-node Ordering, Chain Edges & Badge-strip Append
+
+User-identified rendering gaps in the history graph (canonical detail: operations
+log §6.14-§6.16; OpenSpec change viewer-enhancements-and-orphan-case-anchoring,
+design.md D12):
+
+1. **Same-date virtual order was platform-search-dependent** — 29 families carry
+   ≥2 virtual nodes on one node_date (attempt twins 吉林段三小段1021
+   09902261/10201171; 概要+計畫 same-day 吉林段四小段676; 3-stage 吉林段一小段717).
+   Decided: row-by-row **case_id ascending** — real nodes compare via their
+   anchored case_id (links.taipei[0]), virtuals via their own case_id,
+   case-less real nodes first (empty key). Order = application-attempt order,
+   deterministic across portal loads.
+2. **Virtual nodes carry no edges** — decided: consecutive virtuals within a
+   stage cluster chain by a **dashed virtual revision edge** (attempt
+   succession); cross-stage same-day pairs stay unchained (parallel tracks are
+   not revisions); real↔real pairs keep graph.py revision edges.
+3. **Badge-strip append (2026-08-31 clarification)** — for same-date virtual
+   nodes, only badges carrying 區段標籤 and 排程 append next to the anchored
+   milestone\'s 北 badge. Refinement (2026-08-31): 已核准 is the default focus
+   state — its badge is skipped (only exceptional schedules render).
+   nodes, only badges carrying 區段標籤 **and** 排程 (已駁回/施工中/自行撤回/
+   已核准…) append next to the anchored milestone 北 badge on the real node.
+   The virtual\'s own circle keeps its dashed shape + tooltip; strip growth is
+   bounded by 區段-carrying virtuals. Status data comes from case_schedules
+   (search response + top.ashx outcome, corpus top-up 623 caches).
+
+Implemented: cluster comparator + chain edges + schedule badges (suite 299);
+spec deltas virtual-milestone-nodes / viewer-milestone-timeline / viewer-related-links.

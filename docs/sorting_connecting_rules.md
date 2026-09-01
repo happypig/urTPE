@@ -88,5 +88,5 @@ Project-level `links.milestones_taipei` (last-write-wins merged dict) is **uncha
 
 - **Virtual–virtual same-date order**: ~~underspecified~~ → **decided 2026-08-31 (design.md D12)**: row-by-row by case_id ascending (real via anchored case_id, virtual via own; case-less real first) + dashed virtual chain edges between consecutive virtuals in a cluster. Spec delta + tasks pending at implementation.
 - **Virtual vs real on the same date**: cluster rule puts the real member first — correct by design (real record outranks a sibling-family case reference).
-- **Delta sync**: the change deltas above live under `openspec/changes/viewer-enhancements-and-orphan-case-anchoring/specs/` until archive; `openspec/specs/` holds the pre-change baselines (history-graph, viewer-milestone-timeline base requirements).
+- **Delta sync (closed 2026-09-02)**: all change deltas were archived — the main specs under `openspec/specs/` now carry the complete requirements (virtual-milestone-nodes has 6 requirements incl. D12 ordering + chain edges; orphan-case-anchoring and viewer-graph-layout created).
 - Cross-family double-display (same case as real node in one family, virtual in another) is inherent until fragment-family merges land (§6.8/§12).

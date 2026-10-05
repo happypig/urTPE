@@ -1,4 +1,11 @@
+# Generated agent scaffolding. `openspec update` recreates all of it, so none of
+# it carries project knowledge and all of it churns on a CLI upgrade.
+# .github/ is NOT ignored wholesale — CI workflows belong in the repository.
+.claude/
+.github/prompts/
+.github/skills/
 .opencode
+
 .pytest_cache
 .specstory
 __pycache__/

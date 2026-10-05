@@ -33,3 +33,12 @@ data_test/*
 # caches per archive member; without the cache a run rescans every archived PDF,
 # which is most of a rebuild's wall time.
 .corpus_cache/
+
+# docs/temp.* is a paste pad, not a document: in-flight questions, audit output
+# and draft rules copied out of the viewer mid-investigation. It is pinned to one
+# moment -- the counters, the harvest PID and the unresolved-project lists in it
+# were true of a single run -- so it is stale the moment it is written and states
+# no project knowledge that a reader can act on later. Keep it locally; do not
+# let it accumulate in history. Anything worth keeping belongs in docs/ proper
+# or in openspec/.
+docs/temp.*

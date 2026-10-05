@@ -187,6 +187,7 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
         calendar=extract_meta.get("calendar", "unknown"),
         record_count=len(records), project_count=len(projects),
         duplicate_recnos=int(extract_meta.get("duplicate_recnos", 0)),
+        excluded_recnos=sorted(excluded_recnos),
     )
     print(tw_result.report())
     if faults:

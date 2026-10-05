@@ -68,3 +68,34 @@ def test_failure_carries_the_result():
     err = TripwireFailure(result)
     assert err.result is result
     assert "tripwire: FAIL" in str(err)
+
+
+
+def test_run_report_states_the_excluded_count():
+    """A gazette missing records must never be presented as a faithful copy.
+
+    The structural gate passes when a gap is fully explained, so 'PASS' alone would
+    read as a complete extraction. The exclusion has to appear in the report next to
+    the emitted count.
+    """
+    recs = [{"recno": str(n), "date": "115/8/27", "district": "中正區",
+             "name": "n", "land": "l", "implementer": "i", "planner": "p"}
+            for n in range(1, 6) if n != 3]
+    tw = Tripwire()
+    faults = tw.check(recs, excluded_recnos={3})
+    assert faults == []          # the gap is explained, so the gate passes
+    result = TripwireResult(ok=not faults, faults=faults, record_count=len(recs),
+                            excluded_recnos=sorted(tw.excluded_recnos))
+    text = result.report()
+    assert "INCOMPLETE" in text
+    assert "NOT a faithful copy" in text
+    assert "1141" not in text
+    assert " 3" in text
+
+
+def test_run_report_is_silent_when_nothing_was_excluded():
+    recs = [{"recno": str(n), "date": "115/8/27", "district": "中正區",
+             "name": "n", "land": "l", "implementer": "i", "planner": "p"}
+            for n in range(1, 6)]
+    result = TripwireResult(ok=True, record_count=5)
+    assert "INCOMPLETE" not in result.report()

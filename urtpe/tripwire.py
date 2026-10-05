@@ -116,6 +116,9 @@ class TripwireResult:
     record_count: int = 0
     project_count: int = 0
     duplicate_recnos: int = 0
+    # 編號 dropped because the publisher truncated their cell. Carried into the run
+    # report so a gazette missing records is never presented as a faithful copy.
+    excluded_recnos: list[int] = field(default_factory=list)
 
     def report(self) -> str:
         head = "tripwire: PASS" if self.ok else f"tripwire: FAIL ({len(self.faults)} fault(s))"
@@ -124,6 +127,14 @@ class TripwireResult:
             f"  records: {self.record_count}  projects: {self.project_count}",
             f"  calendar: {self.calendar}  duplicate 編號: {self.duplicate_recnos}",
         ]
+        if self.excluded_recnos:
+            shown = ", ".join(str(v) for v in self.excluded_recnos[:20])
+            more = (f" (+{len(self.excluded_recnos) - 20} more)"
+                    if len(self.excluded_recnos) > 20 else "")
+            lines.append(
+                f"  INCOMPLETE: {len(self.excluded_recnos)} record(s) excluded because the "
+                f"publisher truncated their 地號 cell — this gazette is NOT a faithful "
+                f"copy: {shown}{more}")
         lines += [f"  - {f}" for f in self.faults]
         return "\n".join(lines)
 

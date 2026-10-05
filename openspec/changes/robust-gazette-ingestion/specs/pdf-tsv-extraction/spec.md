@@ -87,8 +87,26 @@ The system SHALL read the "統計至" line from the document and emit it as publ
 #### Scenario: Published date threads through pipeline meta
 
 - **WHEN** the CLI runs with the extracted publication date
-- **THEN** it appears in the pipeline meta dict, in projects.json, and in projects.data.js
+- **THEN** it appears in the pipeline meta dict, in projects.json, in projects.data.js
 - **AND** the viewer header displays the publication date rather than a generation timestamp
+
+#### Scenario: A run refreshes the viewer without being asked
+
+- **WHEN** a run targets the repository's own output tree
+- **THEN** the viewer's `projects.data.js` is rewritten from the dataset that run emitted, whether or not a viewer target was passed
+- **AND** the viewer cannot continue to serve a dataset an earlier or abandoned publication produced
+
+#### Scenario: The cache-bust names the publication the data carries
+
+- **WHEN** the viewer data is written
+- **THEN** the asset version referenced by `index.html` is derived from the emitted dataset's publication date
+- **AND** it is not a literal maintained by hand, so it cannot name a publication the data does not carry
+
+#### Scenario: Viewer and dataset disagree
+
+- **WHEN** the viewer's `projects.data.js` and the dataset's `projects.json` disagree on `published_date` or on the project or record count
+- **THEN** the inconsistency is reported as a fault naming both files and both values
+- **AND** a browser holding a superseded cache-bust is not the only way the drift becomes visible
 
 ### Requirement: Reject structures the reader cannot interpret exactly
 

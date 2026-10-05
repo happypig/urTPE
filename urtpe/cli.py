@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -358,6 +359,30 @@ def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = No
     if viewer_dir:
         path = viewer_mod.write_projects_js(viewer_dir, doc)
         print(f"Viewer data written to {path}")
+        faults = viewer_mod.consistency_faults(doc, path)
+        if faults:
+            for f in faults:
+                print(f"[WARN] {f}", file=sys.stderr)
+    else:
+        # A run against the repository's own tree refreshes its viewer whether or
+        # not a target was named. Leaving this to an optional flag let the page
+        # keep serving a dataset an abandoned publication had produced.
+        sibling = _repo_viewer_dir(outdir)
+        if sibling:
+            path = viewer_mod.write_projects_js(sibling, doc)
+            print(f"Viewer data written to {path}")
+
+
+def _repo_viewer_dir(outdir: str) -> str | None:
+    """The viewer directory belonging to this output tree, if the tree is ours.
+
+    Identified by an index.html beside the output directory: a scratch run writes
+    to a temp directory with no viewer, so it must not reach into the repository.
+    """
+    candidate = os.path.join(os.path.dirname(os.path.abspath(outdir)), "viewer")
+    if os.path.exists(os.path.join(candidate, "index.html")):
+        return candidate
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:

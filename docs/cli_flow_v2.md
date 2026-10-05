@@ -105,6 +105,36 @@ flowchart TD
 - All HTTP fetches use browser-like headers, retry with exponential backoff,
   and transparent gzip/deflate decoding (`fetch_url`, `_post_taipei_api`).
 
+## Companion script: `scripts/poll_gazette.py` (acquisition only)
+
+```bash
+python scripts/poll_gazette.py [--dry-run] [--page-url URL]
+                                [--cadence-days N] [--archive-root DIR]
+```
+
+Answers one question — has the city published a gazette we do not hold? — and archives
+one if so. **It never ingests.** Ingesting an archived gazette is a separate explicit act
+(`python -m urtpe.cli <path>`), because an unattended run that could ingest is one that
+could overwrite a good dataset with a bad one. The single-writer lock serialises writers;
+it does not decide which writer is correct.
+
+- **Change detection is by content hash, never by the publisher's timestamp.** Measured
+  2026-10-05: the page advertised `資料更新 115-09-29` while the newest gazette held is
+  `2026-09-24`, and the served PDF was byte-identical (matching SHA-256) to our archived
+  copy. The city re-uploads unchanged documents under a later stamp, so a timestamp
+  comparison would re-ingest the same gazette every week and report it as new. The stamp
+  is recorded as provenance and never read back to decide.
+- **Steady-state cost is one 86 KB GET.** The page carries no `ETag` and no `Last-Modified`,
+  so conditional requests are unavailable and every poll fetches it in full. The 1.9 MB PDF
+  is downloaded only when the page's bytes actually change.
+- **Every check leaves a dated record** in `poll_log.jsonl` under the archive root, with
+  status `new_gazette` / `reuploaded` / `unchanged` / `failed`. A check that finds nothing
+  and a check that never ran must not look alike, or a missed publication reads as a quiet
+  week. `--cadence-days` (default 7) drives a warning when the series has a gap.
+- `--dry-run` reports `would_download` and writes nothing, including no state — otherwise
+  the next real check would compare against a page it never saw. It deliberately does not
+  claim to have classified content it never retrieved.
+
 ## Key differences from v1
 
 1. Discovery order inverted: Taipei JSON API first, national portal

@@ -33,12 +33,21 @@ DEFAULT_ARCHIVE_ROOT = Path(
 )
 
 INDEX_NAME = "index.jsonl"
-READER_VERSION = "table-lines-v1"
+RECORD_NAME = "poll_log.jsonl"
+
+# Two reader identities, not one. `table-lines-v1` absorbed a page-number footer into a
+# 地號 cell and truncated long cells at the printed row height, so an entry stamped with
+# it cannot be treated as equivalent to one stamped `v2`: cell content differs between
+# them, and a comparison across the two would attribute reader differences to the
+# publisher. Entries predating this distinction keep their original string and are
+# reported as unverified rather than being rewritten.
+READER_VERSION = "table-lines-v2"
+LEGACY_READER_VERSIONS = frozenset({"table-lines-v1"})
 
 
 @dataclass
 class IndexEntry:
-    """One append-only record of one ingest."""
+    """One append-only record of one ingest or re-read."""
 
     gazette_id: str
     published_date: str
@@ -50,6 +59,29 @@ class IndexEntry:
     calendar: str = ""
     source_path: str = ""
     sha256: str = ""
+    # `first_ingest` is the ingest that produced the archived data; `reread` is a later
+    # read of the same publication. Recording them separately is what lets a reader tell
+    # how many publications are archived from how many ingestions ran — twelve entries
+    # previously described three publications, and the index could not say which.
+    event: str = "first_ingest"
+    # How the gazette reached the archive. `fetched` carries the publisher's reported
+    # timestamp, which is provenance: the publisher re-uploads unchanged content under a
+    # later stamp, so it is never evidence that a gazette is new.
+    acquisition: str = ""
+    publisher_stamp: str = ""
+    # Departures from descending approval date, with the count of records a date could be
+    # read from. Both are stored because a zero-violation result over too few dated
+    # records means the date parser failed, not that the publication is well ordered.
+    date_order_violations: int = -1
+    dated_records: int = -1
+
+    def is_verified(self) -> bool:
+        """True only when a digest was recorded *and* the reader is precisely identified."""
+        return bool(self.sha256) and self.reader_verified
+
+    @property
+    def reader_verified(self) -> bool:
+        return self.reader_version not in LEGACY_READER_VERSIONS and bool(self.reader_version)
 
 
 def _sha256(path: Path) -> str:
@@ -78,7 +110,8 @@ class GazetteArchive:
 
     def store(self, pdf_path: Path | str, gazette_id: str, *, published_date: str = "",
               record_count: int = 0, project_count: int = 0, calendar: str = "",
-              source_path: str = "") -> Path:
+              source_path: str = "", acquisition: str = "", publisher_stamp: str = "",
+              **_ignored) -> Path:
         """Retain a verbatim copy of ``pdf_path``, named by publication date.
 
         Re-storing the same publication date replaces the copy only when the content
@@ -110,14 +143,113 @@ class GazetteArchive:
             ingested_at=dt.datetime.now().astimezone().isoformat(timespec="seconds"),
             record_count=kwargs.get("record_count", 0),
             project_count=kwargs.get("project_count", 0),
-            reader_version=READER_VERSION,
+            reader_version=kwargs.get("reader_version", READER_VERSION),
             filename=dest.name,
             calendar=kwargs.get("calendar", ""),
             source_path=kwargs.get("source_path", str(pdf_path)),
-            sha256=_sha256(dest),
+            sha256=kwargs.get("sha256") or _sha256(dest),
+            event=kwargs.get("event", "first_ingest"),
+            acquisition=kwargs.get("acquisition", ""),
+            publisher_stamp=kwargs.get("publisher_stamp", ""),
+            date_order_violations=kwargs.get("date_order_violations", -1),
+            dated_records=kwargs.get("dated_records", -1),
         )
         self.append_index(entry)
         return dest, entry
+
+    def record_ingest_bytes(self, body: bytes, gazette_id: str, **kwargs) -> IndexEntry:
+        """Archive an in-memory document and index it.
+
+        Used by the poller, which receives the publisher's bytes rather than a path.
+        """
+        import tempfile
+
+        tmp = Path(tempfile.mkdtemp(prefix="urtpe-archive-")) / "gazette.pdf"
+        tmp.write_bytes(body)
+        _, entry = self.record_ingest(tmp, gazette_id, **kwargs)
+        return entry
+
+    def has_hash(self, digest: str) -> bool:
+        """Whether a document with this content hash is already archived."""
+        if not digest:
+            return False
+        return any(e.sha256 == digest for e in self.entries())
+
+    def gazette_id_for_hash(self, digest: str) -> str | None:
+        for e in self.entries():
+            if e.sha256 == digest:
+                return e.gazette_id
+        return None
+
+    def assert_matches_entry(self, pdf_path: Path | str, gazette_id: str) -> None:
+        """Raise unless ``pdf_path`` is the document the index says it archived.
+
+        Provenance has to be provable. An entry with no digest cannot prove anything, so
+        it refuses rather than waving the document through.
+        """
+        path = Path(pdf_path)
+        if not path.exists():
+            raise FileNotFoundError(path)
+        entries = [e for e in self.entries() if e.gazette_id == gazette_id]
+        if not entries:
+            raise KeyError("no index entry for gazette %s" % gazette_id)
+        hashed = [e for e in entries if e.sha256]
+        if not hashed:
+            raise ValueError(
+                "gazette %s has no recorded digest; provenance cannot be established" % gazette_id)
+        actual = _sha256(path)
+        known = {e.sha256 for e in hashed}
+        if actual not in known:
+            raise ValueError(
+                "content of %s does not match any recorded digest for %s "
+                "(found %s, index holds %s)"
+                % (path.name, gazette_id, actual[:12], ", ".join(sorted(h[:12] for h in known))))
+
+    def unverified_members(self) -> list[str]:
+        """Publications whose provenance cannot be established from the index.
+
+        A member with no digest, or one stamped with a reader too coarse to distinguish
+        from the reader it replaced. Both are reported rather than assumed sound.
+        """
+        out = []
+        for e in self.entries():
+            if e.event == "reread":
+                continue
+            if not e.is_verified():
+                out.append(e.gazette_id)
+        return sorted(set(out))
+
+    def publication_count(self) -> int:
+        """Distinct publications archived, counting each once however often it was read."""
+        return len(self.index_ids_on_disk())
+
+    def ingestion_count(self) -> int:
+        """Every ingest and re-read recorded. Diverges from publication_count by design."""
+        return len(self.entries())
+
+    def record_ordering(self, gazette_id: str, violations: int, dated_records: int,
+                        **kwargs) -> None:
+        """Append the publication's date-ordering result to its own entry.
+
+        Appended rather than mutated in place: the index is append-only, so correcting a
+        measurement is a new record and the earlier one stays readable. An entry whose
+        ``date_order_violations`` is -1 was recorded before this measurement existed,
+        which is different from a measurement of zero.
+        """
+        target = None
+        for entry in reversed(self.entries()):
+            if entry.gazette_id == gazette_id and entry.event != "reread":
+                target = entry
+                break
+        if target is None:
+            return
+        self.append_index(IndexEntry(**{**asdict(target),
+                                        "ingested_at": dt.datetime.now().astimezone().isoformat(
+                                            timespec="seconds"),
+                                        "event": "ordering",
+                                        "date_order_violations": violations,
+                                        "dated_records": dated_records,
+                                        **kwargs}))
 
     def entries(self) -> list[IndexEntry]:
         """Every index entry, oldest first. Malformed lines are skipped, not fatal."""
@@ -151,19 +283,15 @@ class GazetteArchive:
     def predecessor_of(self, gazette_id: str) -> str | None:
         """The publication immediately before ``gazette_id``.
 
-        The gazette itself need not be archived yet. ``cli.py`` looks up the
-        predecessor before it writes the current gazette into the archive, so
-        requiring it to be present made this return None on every ingestion --
-        reconciliation then reported "no comparison possible" against an archive
-        that already held both publications.
-
-        That is why the parked portal cascade's trigger, "a reliable change set
-        across at least two consecutive ingestions", was never satisfiable. It was
-        not waiting on trust; the lookup could not reach its predecessor.
+        The gazette itself need not be archived yet. It is archived *after* reconciliation
+        runs, so requiring it to be present made this return None on every ingestion and
+        left reconciliation reporting "no comparison possible" against a populated archive —
+        which is why the parked portal cascade's trigger ("a reliable change set across two
+        consecutive ingestions") could never be met.
         """
         ids = self.archived_ids()
         if gazette_id not in ids:
-            # the incoming gazette: compare against the latest publication before it
+            # the incoming gazette: compare against whatever precedes it
             earlier = [i for i in ids if i < gazette_id]
             return earlier[-1] if earlier else None
         i = ids.index(gazette_id)

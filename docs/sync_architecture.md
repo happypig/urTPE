@@ -36,9 +36,9 @@ exists to spend it only where it can change the data.
 
 ## 2. The recno Instability (why PDF sync is not trivial)
 
-The gazette list is newest-first (編號 1 = latest). Every new approval **prepends**
-and shifts every existing 編號 by +1. The dataset's `recno` is a snapshot of the PDF
-at publication time (115/8/11: recno 1419 = oldest, 2000-09-29), so:
+The gazette list is newest-first (編號 1 = latest). Every new approval **prepends**,
+so every existing 編號 shifts. The dataset's `recno` is a snapshot of the PDF at
+publication time (115/8/11: recno 1419 = oldest, 2000-09-29), so:
 
 ```
 PDF 115/8/11:   recno 1 = newest case X        (1419 records)
@@ -46,6 +46,17 @@ PDF 115/9/xx:   new case Y prepends
                 → X is now recno 2             (1420 records)
                 → EVERY old recno shifted
 ```
+
+**The shift is not affine.** An earlier draft of this section argued from the
+`1150820 → 1150827` transition, where all 1,421 matched records moved by exactly `+5`,
+and treated that offset as general. It is not. The `1150827 → 1151002` transition moves
+records in **both** directions — one measured case moving up past 13 others — so 編號 is
+a coordinate in a mutable list, not a rank with an offset. Anything that keys on
+`previous_recno + k` will be wrong for some record on every publication.
+
+The conclusion below is unchanged and reinforced by this: `recno` is **not** a cross-PDF
+identity, and node-level links (recno-keyed edges, per-node case links) must be
+**re-derived from content each sync**.
 
 Consequences:
 
@@ -58,6 +69,13 @@ Consequences:
   **sync-stable**: a PDF re-sync that doesn't change a project's anchor keeps its
   cache valid; a project whose anchor changes (rare — only if a *newer* approval
   lands on the same unit) gets a new cache key naturally.
+
+**A related trap: the list is not reliably sorted either.** Measured with the corrected
+reader, departures from descending approval date are 9 / 9 / 1 across `1150820`,
+`1150827` and `1151002`. The lone `1151002` departure is a re-dated historical row, so
+the publisher sorts by date and then edits history behind itself. Do not assume the list
+is ordered, and do not assume its order is stable across publications. Content-based
+reconciliation is correct under any ordering; anything that reads positionally is not.
 
 ---
 

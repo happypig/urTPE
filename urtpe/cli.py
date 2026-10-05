@@ -240,6 +240,18 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
             strict=strict_reconcile,
         )
         print(reconciliation.report())
+        # Persisted, so the comparison outlives this process. Without it the conclusion
+        # exists only on a screen, and "trusted across two consecutive ingestions" is not
+        # a judgement anyone can make about output that was never written down.
+        try:
+            from urtpe.changeset import ChangeSetStore, write_change_set
+            cs_path = write_change_set(
+                ChangeSetStore(Path(archive.root) / "change_sets"),
+                reconciliation,
+                recorded_at=dt.datetime.now().astimezone().isoformat(timespec="seconds"))
+            print(f"change set written: {cs_path}")
+        except Exception as exc:  # a persistence failure must not fail an otherwise sound ingest
+            print(f"[WARN] could not persist the change set: {exc}")
         if reconciliation.blocking and not allow_reconcile_block:
             print("[ERROR] reconciliation found unexplained changes; refusing to write",
                   file=sys.stderr)

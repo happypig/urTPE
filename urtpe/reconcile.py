@@ -64,6 +64,10 @@ class ReconcileResult:
     unchanged_project_ids: int = 0
     total_rekey: bool = False
 
+    # The land labels of the approvals newer than the predecessor's newest. A count says
+    # how many; a downstream consumer needs which, and cannot reconstruct it afterwards.
+    new_approval_labels: list[str] = field(default_factory=list)
+
     calendar_previous: str = ""
     calendar_current: str = ""
     blocking: list[str] = field(default_factory=list)
@@ -178,6 +182,8 @@ def reconcile(previous: list[dict] | None, current: list[dict], *,
     boundary = result.previous_newest
     if boundary:
         result.new_approvals = sum(1 for r in current if _iso(r) > boundary)
+        result.new_approval_labels = sorted(
+            {_label(r) for r in current if _iso(r) > boundary})
         # A previous newest-cohort row whose content is absent from the current
         # gazette altogether — deleted, or moved to a different date — is a
         # withdrawal worth refusing over. Rows merely re-dated stay in the

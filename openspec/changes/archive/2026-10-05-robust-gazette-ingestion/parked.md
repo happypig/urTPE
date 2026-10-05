@@ -37,17 +37,17 @@ decoration, liveness-based refresh policy). Three findings from this exploration
 - **The 28 h national-portal sweep is the scarce resource.** It should consume the
   reconciliation diff — projects that gained a node — rather than re-scan all projects.
   Measured baseline: 709 projects, 292 with portal coverage, 58 with 使用核發.
+  **The change set this needs now exists as durable output**, written per publication by
+  `gazette-ingest-cadence`; before that it was console text that no later run could read.
 
-- **`coverage.py` cannot see a total re-key.** `coverage.py:51` computes
-  regressions over `set(before) & set(after)`. When every project identity changes,
-  that intersection is empty, so `regressions = {}` and the guard passes — while every
-  cache is orphaned. The 2026-08-24 incident (four concurrent writers, 47 caches wiped)
-  has the same shape: a check that cannot observe the failure it exists to catch.
-  `gazette-reconciliation` reports total re-keying as a distinct outcome (design D6);
-  this guard needs the same treatment. **This is no longer a hypothesis.** During this
-  change the orphaned set moved 27 → 2 without the guard noticing either transition, and
-  `coverage_guard` records `lost` but never raises on it. It remains unfixed and is the
-  most valuable thing in this file.
+- ~~**`coverage.py` cannot see a total re-key.**~~ **RESOLVED** in `no-silent-data-loss`.
+  `urtpe/coverage.py` now reports `total_rekey` as its own outcome and `coverage_guard`
+  raises on it. Verified against a wholesale re-key: the guard raises, where it previously
+  computed regressions over `set(before) & set(after)`, found that intersection empty, and
+  passed while every cache was orphaned. The same blind spot, and the reason this item was
+  called the most valuable thing in this file, applied to reconciliation itself — which is
+  why a total re-key is now a requirement of `gazette-reconciliation` too. The portal
+  cascade itself remains unbuilt.
 
 - **The recno model in `sync_architecture.md` §2 no longer holds.** It argues from the
   `1150820 → 1150827` transition, where all 1,421 matched records shifted by exactly
@@ -62,45 +62,137 @@ a reliable change set across at least two consecutive ingestions.
 
 ## 3. Whether the city re-sorts by date permanently
 
-**Blocked on:** observing further publications. Not answerable from the transitions
-available, and **not answerable from the two that exist** — both were measured on the
-contaminated read described above.
+**Blocked on:** observing further publications. Permanence still needs two more
+publications; but the measurement this item said was impossible **has since been taken**.
 
-Whether the `1151002` date-sort is permanent determines whether the "block-insert per
-gazette batch" mental model in `openspec/config.yaml` should be retired outright. It
-does not block any work here — content-based reconciliation (design D6) is correct under
-either ordering — but it changes what a future reader should assume about the list. The
-often-quoted "date-order violations fell from 9 to 1" is **withdrawn**: it cannot be
-re-derived until `1151002` is read by the corrected reader.
+This item recorded the often-quoted "date-order violations fell from 9 to 1" as
+**withdrawn**, on the ground that it "cannot be re-derived until `1151002` is read by the
+corrected reader". That reasoning was wrong in a way worth recording: the figure was
+withdrawn for want of a read, not for doubt about the number. `1151002` has now been read
+by the corrected reader, and **the figure stands: 9, 9, 1**.
 
-**Trigger to un-park:** two or more further publications ingested with the corrected
-reader; count date-order violations per publication as the indicator. Re-measuring
-`1151002` would also settle it sooner.
+| publication | dated records | departures | largest inversion |
+|---|---|---|---|
+| 1150820 | 1417 | 9 | 1820 days |
+| 1150827 | 1422 | 9 | 1820 days |
+| 1151002 | 1421 | **1** | 113 days |
+
+The lone `1151002` departure is 編號 109 (2025-08-05) sitting above 編號 110
+(2025-11-26): the same unit's 第二次 and 第三次 權利變換. So it is a **re-dated historical
+row, not a failure to sort** — the publisher sorts by date and then edits history behind
+itself. That is a partial answer rather than a full one: the sorting is real, and so is
+the re-dating.
+
+Two traps had to be cleared to get these numbers, and both produce a *healthy-looking*
+result when missed:
+
+- `1151002` repeats 編號 1 as a running page head on all 246 pages. A raw table scan reads
+  1681 rows for 1436 records, and each head restates the newest date after an older row, so
+  the departure count inflates from 1 to **246**.
+- `1151002` publishes Gregorian dates (`2026/9/24`) where earlier publications use ROC. A
+  single-calendar parser finds no dates and reports **zero** departures.
+
+A metric that returns zero because it parsed nothing is indistinguishable from a metric
+reporting a well-ordered publication, which is why the count is now stored beside its
+denominator and marked unmeasurable when the denominator is too small. `gazette-ingest-cadence`
+records the figure per publication, so the remaining question resolves itself as
+publications arrive rather than needing a re-derivation.
+
+**Trigger to un-park (still):** two or more further publications ingested with the
+corrected reader. Half-met: the re-measurement that was said to "settle it sooner" is done,
+and the trend is recorded per publication.
 
 ## 4. Gazette fetching on a schedule
 
-**Blocked on:** nothing technically; needs a decision on automation and politeness.
+**Un-parked and built** in `gazette-ingest-cadence`. The politeness question is answered
+by measurement rather than by judgement.
 
-The gazette page (`uro.gov.taipei/cp.aspx?n=963B15B39CADB94E`) exposes a 資料更新
-timestamp, a 資料維護 attribution, and a link to the newest PDF only. Older gazettes are
-unreachable — the file path is UUID-based
-(`www-ws.gov.taipei/001/Upload/459/relfile/18558/10496/c5ff4f68-….pdf`), so the city
-serves one version at a time. This is the argument for D8: archives must be local.
+The item left two things open: whether the page honours conditional requests, and the
+politeness decision. Probed against the live page on 2026-10-05:
 
-Whether the page honours conditional requests (`ETag` / `If-Modified-Since`) is untested
-and determines whether polling is cheap or requires downloading ~2 MB per check. Observed
-publication cadence in the sample: roughly 2-4 approvals per week, with the PDF published
-weekly to fortnightly.
+| probe | result |
+|---|---|
+| page `ETag` | **absent** |
+| page `Last-Modified` | **absent** |
+| page `Cache-Control` | `no-cache` |
+| page size | 86,586 bytes |
+| page `資料更新` | `115-09-29 13:55` |
+| newest gazette held | `2026-09-24` |
+| PDF `ETag` | `"78d49422d74fdd1:0"` |
+| PDF `Last-Modified` | `Tue, 29 Sep 2026 05:55:30 GMT` |
+| SHA-256 of served PDF | `5066b108…8a92a` |
+| SHA-256 of archived `2026-09-24` | `5066b108…8a92a` — **identical** |
 
-**Trigger to un-park:** `gazette-archival` and `gazette-reconciliation` are both in
-production and stable, so that an unattended run cannot overwrite a bad dataset.
+So conditional requests are unavailable on the page, and a poll costs its full 86 KB.
+That is affordable at weekly cadence, and it is not the interesting finding.
+
+**The important finding is that `Last-Modified` cannot detect a new gazette.** The page
+advertised `115-09-29` while the newest gazette held is `2026-09-24`, and the served PDF
+was byte-identical to the archived copy: the city **re-uploads the same document under a
+later timestamp**. A poller keyed on the timestamp would re-ingest the same gazette every
+week, report it as new, and be unable to distinguish that from a genuine re-publication of
+an amended document. Detection is therefore by content hash, reusing the archive's existing
+SHA-256 rather than introducing a second digest for the same document.
+
+Weekly cadence matches the observed ~2-4 approvals per week with the PDF published weekly
+to fortnightly. The interval is a staleness choice only: nothing about detection changes
+with it, and a missed gazette is fixed by checking sooner rather than by changing the rule.
+
+Acquisition stays separate from ingestion. The poller archives and never ingests, because
+an unattended run that could ingest is one that could overwrite a good dataset with a bad
+one, and the single-writer lock serialises writers without deciding which writer is
+correct. A detected gazette waits for a person; the automation removes the need to watch,
+not the need to decide.
 
 ## 5. `gazette_index` as a sync manifest
 
-**Blocked on:** item 2 beginning. The `gazette-archival` half of this landed in
-`robust-gazette-ingestion` — an append-only index outside the working tree, carrying
-publication date, ingest timestamp, record count and reader version, with SHA-256 on
-each member. Extending it with portal-side state is still deferred so the manifest is
-designed once rather than twice.
+**Partly taken into `gazette-ingest-cadence`**, which item 2's start made possible.
 
-**Trigger to un-park:** item 2 begins.
+The `gazette-archival` half landed in `robust-gazette-ingestion` — an append-only index
+outside the working tree, carrying publication date, ingest timestamp, record count and
+reader version, with SHA-256 on each member. Extending it was deferred "so the manifest is
+designed once rather than twice", and that is why this change covers item 2's remainder
+and this item together rather than in sequence.
+
+Schema now carries what it previously could not:
+
+- **`reader_version` separates two readers rather than naming one.** The index read
+  `table-lines-v1` on all twelve entries, including ingestions made with the reader that
+  absorbed page footers and truncated cells — so it could not distinguish a contaminated
+  read from a corrected one, which is the manifest's stated purpose. A digest alone is not
+  provenance when the reader may have truncated cells, so such an entry now reports
+  unverified rather than being treated as sound. The twelve existing entries are left
+  unmodified; rewriting append-only history to look correct is the failure this project
+  keeps paying for.
+- **First ingestion and re-read are distinct events.** Twelve entries described three
+  publications, so entry count and publication count had drifted apart and neither could be
+  read off the index. Both are now countable separately.
+- **Acquisition provenance.** Whether a gazette was fetched or supplied from a path, and
+  the publisher's reported timestamp where fetched — recorded as provenance, never read
+  back to decide whether a gazette is new, for the reason in item 4.
+- **The publication's own ordering**, as a count of departures from descending approval
+  date stored beside the number of records a date could be read from, so a zero with too
+  small a denominator is recognisable as a parser failure.
+
+**Still open:** the portal-side state proper. That belongs to the portal cascade in item 2,
+whose sweep now has a persisted change set to consume but has not been built.
+## Status — 2026-10-06
+
+Recorded on the way into `gazette-ingest-cadence`, which takes the unbuilt remainder.
+
+| item | was | now |
+|---|---|---|
+| 1. Cache migration | resolved | resolved |
+| 2. Portal sync / event cascade | open | `coverage.py` half **resolved**; cascade still open, now with a persisted change set to consume |
+| 3. Date-sort permanence | open, figure withdrawn | **measured: 9 / 9 / 1.** Permanence still needs two more publications; recorded per publication |
+| 4. Scheduled fetching | open, ETag untested | **built.** No validators on the page, and the timestamp is not a valid signal — detection is by content hash |
+| 5. Index as sync manifest | open | **partly built.** Reader identity, re-read events, acquisition provenance, ordering. Portal-side state remains with item 2 |
+
+Two of the withdrawals in this file were withdrawn for the wrong reason, which is worth
+noting because both read as careful and neither was. Item 3's figure was set aside for
+want of a read, not for doubt about the number, and it turned out to be exactly right.
+Item 1's figures were wrong and had to be replaced. A parked item says what was believed
+at the time; this table is what is measurable now.
+
+The measurements behind items 3 and 4 are recorded in
+`openspec/changes/gazette-ingest-cadence/design.md` with the probes they came from.

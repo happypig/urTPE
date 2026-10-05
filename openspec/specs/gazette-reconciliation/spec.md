@@ -11,7 +11,11 @@ The scope is deliberately narrow, and that is a measured decision rather than a 
 
 So an "absent record" cannot be distinguished from an edited or re-dated one by content. This capability therefore reports additions and net change authoritatively, reports historical movement as its own counted signal, and refuses the run only for the conditions the data does support.
 
-The specific counts once quoted for these two properties — 59 differing land cells, 22 approvals moved later and 21 earlier, date-order violations falling from 9 to 1 — were measured on a **contaminated read** and are withdrawn. The reader that produced them absorbed a page-number footer into a 地號 cell and truncated long cells at the row height; with it corrected, the pre-cutoff record set is identical across `1150822`, `1150820` and `1150827` at 1412 records, with 0 lost and 0 gained. The two properties above are retained because they are properties of the publication, not of that read — but they are stated without figures here deliberately, and re-measuring them requires an uncontaminated read of `1151002`.
+The counts once quoted for these two properties — 59 differing land cells, 22 approvals moved later and 21 earlier — were measured on a **contaminated read** and are withdrawn: the reader that produced them absorbed a page-number footer into a 地號 cell and truncated long cells at the row height. With it corrected, the pre-cutoff record set is identical across `1150822`, `1150820` and `1150827` at 1412 records, with 0 lost and 0 gained.
+
+The date-order figure was withdrawn on a different and mistaken ground. It was recorded as "9 to 1" and then set aside as *not re-derivable* until `1151002` had been read by the corrected reader — not because the number was doubtful. That read has now happened, and the figure stands: departures from descending approval date are **9, 9 and 1** across `1150820`, `1150827` and `1151002`. The single `1151002` departure is 編號 109 (2025-08-05) above 編號 110 (2025-11-26) — the same unit's 第二次 and 第三次 權利變換, so it is a re-dated historical row rather than a failure to sort. The publisher sorts by date and then re-dates history behind itself; whether that continues is tracked per publication by `gazette-cadence`.
+
+Two measurement properties make the naive count wrong, and both report as healthy rather than broken. `1151002` repeats 編號 1 as a running page head on all 246 pages, so a raw table scan reads 1681 rows for 1436 records and inflates the departure count to 246. And `1151002` publishes Gregorian dates where earlier publications use ROC, so a single-calendar parser finds no dates at all and reports **zero** departures. A departure count is therefore meaningless without its denominator.
 
 ## Requirements
 
@@ -179,3 +183,57 @@ is orphaned.
 - **WHEN** a run re-keys every identity
 - **THEN** reconciliation and the cache guard report the same outcome
 - **AND** neither reports success while every cache is orphaned
+
+### Requirement: The change set is persisted, not only printed
+
+The system SHALL write the outcome of each comparison to durable storage alongside the
+archive, so that what a past ingestion concluded remains available to a later run and to an
+operator after the terminal output is gone. The persisted form SHALL identify both
+publications compared, and SHALL distinguish the authoritative signals — new approvals and
+net change — from movement that the data cannot resolve.
+
+A persisted change set SHALL record the project identities that gained an approval, since
+that set is the input a downstream consumer needs and cannot reconstruct from counts alone.
+
+#### Scenario: A comparison concludes and the console output is discarded
+
+- **WHEN** a gazette is reconciled against its predecessor
+- **THEN** the comparison's outcome is written to durable storage
+- **AND** it can be read back later without re-running the ingestion
+
+#### Scenario: A downstream run needs to know which projects changed
+
+- **WHEN** a consumer asks which projects gained an approval in a given publication
+- **THEN** the persisted change set names those projects
+- **AND** naming them does not require re-reading either gazette
+
+#### Scenario: The comparison could not be made
+
+- **WHEN** a gazette is ingested with no predecessor to compare against
+- **THEN** the persisted record states that no comparison was possible
+- **AND** it does not present an empty change set as though the publications were identical
+
+#### Scenario: A comparison is revisited
+
+- **WHEN** a persisted change set for a publication is read after later publications have been ingested
+- **THEN** it still describes the comparison that was actually made at that time
+- **AND** it is not recomputed against a newer predecessor
+
+### Requirement: The reader that produced an archive entry is identified accurately
+
+An archive entry SHALL record the identity of the reader that produced it in a form that
+distinguishes readers whose output could differ. An entry whose reader is not identified at
+that granularity SHALL NOT be treated as equivalent to one that is, because a comparison
+across two such entries cannot establish what changed in the source.
+
+#### Scenario: Comparing entries produced by readers that differ
+
+- **WHEN** two archive entries are compared and their readers are known to differ in a way that affects cell content
+- **THEN** the comparison reports that the readers differ
+- **AND** movement between them is not attributed to the publisher
+
+#### Scenario: An entry predates reader identification
+
+- **WHEN** an archive entry records a reader identity too coarse to distinguish a corrected reader from the one it replaced
+- **THEN** the entry is reported as having an unverified reader
+- **AND** a comparison involving it says so rather than presenting the result as clean

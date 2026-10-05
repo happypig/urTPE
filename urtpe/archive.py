@@ -149,10 +149,23 @@ class GazetteArchive:
         return ids[-1] if ids else None
 
     def predecessor_of(self, gazette_id: str) -> str | None:
-        """The publication immediately before ``gazette_id`` in the archive."""
+        """The publication immediately before ``gazette_id``.
+
+        The gazette itself need not be archived yet. ``cli.py`` looks up the
+        predecessor before it writes the current gazette into the archive, so
+        requiring it to be present made this return None on every ingestion --
+        reconciliation then reported "no comparison possible" against an archive
+        that already held both publications.
+
+        That is why the parked portal cascade's trigger, "a reliable change set
+        across at least two consecutive ingestions", was never satisfiable. It was
+        not waiting on trust; the lookup could not reach its predecessor.
+        """
         ids = self.archived_ids()
         if gazette_id not in ids:
-            return None
+            # the incoming gazette: compare against the latest publication before it
+            earlier = [i for i in ids if i < gazette_id]
+            return earlier[-1] if earlier else None
         i = ids.index(gazette_id)
         return ids[i - 1] if i > 0 else None
 

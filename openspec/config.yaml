@@ -3,27 +3,58 @@ schema: spec-driven
 # Project context (optional)
 # This is shown to AI when creating artifacts.
 context: |
-  Project: urTPE — turn the Taipei City Government's urban-renewal approved-cases
-  list (臺北市都市更新核定案件一覽表, 1,419 approvals, dated 99/9/2–115/8/11 =
-  2010–2026) into a clean, merged dataset with per-project history.
-  Pipeline: PDF (gov.taipei) -> positional parse -> raw.tsv -> agent cleansing ->
-  clean.tsv -> similarity merge -> merged.tsv (project_id anchored on the latest
-  approval) -> projects.json (history graph) + viewer.
-  Domain: one 更新單元 (renewal unit) receives many stage approvals (擬訂 /
-  變更(第N次), 事業計畫 / 權利變換計畫, 甲/A/B區段). Parcel coverage changes
-  (13筆(原11筆)) and parcel renumbering (689地號(原726地號)) break exact-key
-  matching, so unit identity must be found by similarity, not equality. Named
-  anchors (原東星大樓基地) identify units with no stable parcel basis.
-  Key constraints:
-  - The list is newest-first (編號 1 = latest); a new approval is always
-    prepended, so the anchor of a project family is the newest record by
-    核定日期, never by 編號. project_id = slug of the latest approval's
-    normalized name-core — append-friendly and stable across revisions.
-  - ~70% of records are repeat approvals of the same unit; ~430 are singletons.
-  - Known data errors to normalize: 松化區→松山區, 計劃→計畫, ㄧ→一,
+    Project: urTPE — turn the Taipei City Government's urban-renewal approved-cases
+    list (臺北市都市更新核定案件一覽表, 1,419 approvals, dated 99/9/2–115/8/11 =
+    2010–2026) into a clean, merged dataset with per-project history.
+    Pipeline: PDF (gov.taipei) -> ruled-table extraction (pymupdf find_tables,
+    strategy="lines") -> raw.tsv -> cleansing -> clean.tsv -> similarity merge ->
+    merged.tsv (project_id anchored on the latest approval) -> projects.json (history
+    graph) + viewer. Cell boundaries come from the document's own ruling lines; there
+    are no stored x-coordinate bands and no positional or text-alignment fallback.
+    A structure the reader cannot interpret exactly (merged cell, page without a
+    table, ragged row) aborts the run rather than producing partial output, and a
+    completeness tripwire gates every emission.
+    Calendars: the city published ROC dates (115/8/27) until the 1151002 gazette,
+    which switched to Gregorian (2026/9/24); both are accepted per cell and
+    normalized to ISO-8601. published_date is read from the document's 統計至 line.
+    Every ingested gazette is archived outside the git working tree with an
+    append-only index, and each ingestion is reconciled against its predecessor.
+    Domain: one 更新單元 (renewal unit) receives many stage approvals (擬訂 /
+    變更(第N次), 事業計畫 / 權利變換計畫, 甲/A/B區段). Parcel coverage changes
+    (13筆(原11筆)) and parcel renumbering (689地號(原726地號)) break exact-key
+    matching, so unit identity must be found by similarity, not equality. Named
+    anchors (原東星大樓基地) identify units with no stable parcel basis.
+    Key constraints:
+    - The list is newest-first (編號 1 = latest), and 編號 is a coordinate in a
+    mutable list, not an identity: new approvals are prepended, the older export was
+    insertion-ordered while the newer one re-sorts history by 核定日期, and the city
+    edits and re-dates historical rows. The shift is therefore NOT affine — measured
+    +5 uniformly for 1150820->1150827, but +8 at the head, -13 mid-list and +10 at
+    the tail for 1150827->1151002. Never key anything durable on 編號.
+    - project_id = slug of the latest approval's normalized land core. It churns
+    (~11% of multi-record families have moved at least once, always early in a
+    project's life) and is not a stable identity either; .link_cache directories are
+    migrated through data/project_aliases.json, which pairs identities on member
+    content and refuses ambiguous pairs.
+    - Reconciliation can only assert three things about a new gazette: how many
+    approvals are newer than the predecessor's newest date, the net change in total
+    records, and which calendar was used. A per-record content diff cannot
+    distinguish a deletion from an edit or a re-dating, because in the published data
+    they are the same observation; historical movement is therefore reported, not
+    treated as removal.
+    - ~70% of records are repeat approvals of the same unit; ~430 are singletons.
+    - Known data errors to normalize: 松化區→松山區, 計劃→計畫, ㄧ→一,
     權利變換案 == 權利變換計畫案; ambiguous cases go to a review/flag column.
-  Tech stack: Python 3, pymupdf (positional text extraction), agent-assisted
-  cleansing & merge, JSON history graph + browser viewer.
+    - Untreated source typos (present in every gazette, city-side):
+    臺北市投區 (missing 北), 臺北大安區 / 臺北士林區 (missing 市), and rows whose
+    案名 spills into the 地號 cell.
+    - Manual corrections live in an append-only ledger keyed on land core plus
+    approval date, never on 編號, and are applied after cleansing and before merge.
+    Dated one-off scripts that patch emitted output are obsolete by construction.
+    - Single-writer rule: one run per output tree, enforced by urtpe/lock.py after
+    the 2026-08-24 incident in which four concurrent runs wiped 47 caches.
+    Tech stack: Python 3, pymupdf (ruled-table extraction), agent-assisted
+    cleansing & merge, JSON history graph + browser viewer.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.

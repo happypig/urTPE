@@ -537,7 +537,7 @@ function init() {
   const total = projects.length;
   meta.textContent =
     `${window.PROJECTS.counts.projects} 個專案 / ${window.PROJECTS.counts.records} 筆記錄` +
-    ` · ${window.PROJECTS.published_date || window.PROJECTS.generated_at || ""}`;
+    ` · 統計至 ${window.PROJECTS.published_date || window.PROJECTS.generated_at || ""}`;
 
   const sel = { district: new Set(), year: new Set(), track: new Set(), stage: new Set() };
   const districts = [...new Set(projects.map(p => p.district))].sort();

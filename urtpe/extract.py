@@ -182,6 +182,129 @@ def land_cell_is_complete(land: str, name: str) -> bool:
     return parcel_token_count(land) == declared
 
 
+@dataclass(frozen=True)
+class CompletionResult:
+    """Outcome of attempting to complete a publisher-truncated 地號 cell."""
+
+    completed: bool
+    reason: str = ""
+    parcels: tuple[str, ...] = ()
+    parcel_count: int = 0
+    land: str = ""
+    source_gazette: str = ""
+    source_recno: str = ""
+
+    def audit_entry(self) -> str:
+        """One line naming the source, so a completion is reversible after the fact."""
+        if not self.completed:
+            return ""
+        return (f"completed from {self.source_gazette} 編號 {self.source_recno}: "
+                f"{self.parcel_count} parcels")
+
+
+_SECTION_RE = re.compile(r"^臺北市[^區]{1,4}區\s*([^\d]{1,14}段[^\d]{0,4}小段)")
+
+
+def _section_token(land: str) -> str:
+    """The 段/小段 of a land cell, without the leading 區, for comparison."""
+    m = _SECTION_RE.match((land or "").strip())
+    if not m:
+        return ""
+    return m.group(1).replace(" ", "").lstrip("區")
+
+
+def complete_truncated_cell(land: str, name: str,
+                            candidates: list[dict] | None = None,
+                            *, source_gazette: str = "") -> CompletionResult:
+    """Complete a truncated 地號 cell from another approval of the same unit.
+
+    Borrowing was forbidden outright by the previous change, on the evidence that it
+    is unsafe for 17 of 21 truncated records. That evidence stands, so a candidate is
+    accepted only when three independent checks all hold:
+
+    1. **Same unit** — the same 行政區 and the same 段/小段. A section is never matched
+       by string containment: 甲段一小段 must not match 甲段二小段.
+    2. **Literal prefix** — the truncated cell's text is a prefix of the candidate's,
+       so the parcels already read are byte-identical to the candidate's opening.
+    3. **The count closes** — the candidate's parcel count equals the count the same
+       row's 案名 declares.
+
+    Checks 1 and 2 can be satisfied by a parcel set that merely *starts* the same way;
+    check 3 is what separates "the same list, continued" from "a different list". The
+    refused case is recorded in `tests/test_bounded_completion.py` as 雙連段一小段197等72筆:
+    prefix match, and the count closes at 62 against a 案名 declaring 72 — so neither
+    publication holds the list and the record stays excluded.
+    """
+    declared = declared_parcel_count(name)
+    if declared is None:
+        return CompletionResult(False, "the 案名 declares no parcel count")
+
+    if land_cell_is_complete(land, name):
+        tokens = _parcel_tokens(land)
+        return CompletionResult(
+            False,
+            "the parcel list is already whole; only the closing phrase was lost, "
+            "so no completion is needed",
+            parcels=tuple(tokens), parcel_count=len(tokens), land=land)
+
+    if not candidates:
+        return CompletionResult(False, "no candidate from another approval is available")
+
+    trimmed = _normalise_for_compare(land)
+    here = _section_token(land)
+    for cand in candidates:
+        cand_land = cand.get("land") or ""
+        if (cand.get("district") or "") != "" and not _same_district(land, cand):
+            continue
+        cand_sec = _section_token(cand_land) or str(cand.get("section") or "").lstrip("區")
+        if not here or not cand_sec or cand_sec != here:
+            continue
+        if not _normalise_for_compare(cand_land).startswith(trimmed):
+            continue
+        # The prefix establishes textual continuity; containment establishes that no
+        # parcel already read is missing from the candidate. Both are needed: a shared
+        # opening alone does not mean the same list.
+        cand_parcels = set(_parcel_tokens(cand_land))
+        if not set(_parcel_tokens(land)).issubset(cand_parcels):
+            continue
+        count = int(cand.get("parcel_count") or len(cand_parcels))
+        if count != declared:
+            # keep looking: another candidate may close the count exactly
+            continue
+        return CompletionResult(
+            True, "", parcels=tuple(_parcel_tokens(cand_land)), parcel_count=count,
+            land=cand_land, source_gazette=str(cand.get("gazette_id") or ""),
+            source_recno=str(cand.get("recno") or ""))
+
+    return CompletionResult(
+        False,
+        f"no candidate satisfied all three checks (same 段/小段, literal prefix, and a "
+        f"parcel count equal to the {declared} the 案名 declares)")
+
+
+def _normalise_for_compare(text: str) -> str:
+    """Collapse the publisher's inconsistent spacing before comparing two cells.
+
+    Spacing around `、` and around sub-parcel hyphens varies between publications for
+    the same list — 1150827 writes `332 、333` where 1151002 writes `332、333` — and is
+    presentation rather than content. Comparing raw text fails on that alone and would
+    refuse a genuine continuation. Parcel identity is checked separately.
+    """
+    return re.sub(r"[\s\u3000]+", "", text or "")
+
+
+def _parcel_tokens(land: str) -> list[str]:
+    body = (land or "").replace(" ", "").replace("\u3000", "")
+    body = SECTION_PREFIX_RE.sub("", body)
+    body = LAND_TERMINATOR_RE.sub("", body)
+    return sorted(set(PARCEL_TOKEN_RE.findall(body)))
+
+
+def _same_district(land: str, cand: dict) -> bool:
+    m = re.match(r"^臺北市([^區]{1,4}區)", (land or "").strip())
+    return bool(m) and m.group(1) == (cand.get("district") or "")
+
+
 def strip_page_footer(text: str, page_no: int) -> tuple[str, bool]:
     """Remove a page number the city's layout printed inside a cell.
 
@@ -367,11 +490,17 @@ def _clean_cell(text: str | None) -> str:
 
 
 def _page_records(page, faults: list[Fault],
-                  cell_faults: list[CellFault] | None = None) -> list[dict[str, str]]:
+                  cell_faults: list[CellFault] | None = None,
+                  corpus: list[dict] | None = None,
+                  completions: list[CompletionResult] | None = None,
+                  ) -> list[dict[str, str]]:
     """Read one page's table into record dicts, appending any located faults.
 
     ``cell_faults`` collects publisher defects in cell text. A record carrying one
-    is dropped rather than returned, because its contents cannot be trusted.
+    is dropped rather than returned, because its contents cannot be trusted — unless
+    ``corpus`` supplies another approval of the same unit that satisfies all three
+    completion checks, in which case the record is emitted with the completed list and
+    an audit entry naming the source.
     """
     page_no = page.number + 1
     if cell_faults is None:
@@ -421,6 +550,18 @@ def _page_records(page, faults: list[Fault],
                 # Every parcel the row declares is present; the publisher only cut
                 # the closing phrase. Keep the record rather than discard good data.
                 truncated = False
+            if truncated:
+                # The publisher stopped drawing the parcel list at the printed row
+                # height. Another approval of the same unit may complete it, but only
+                # when all three checks agree; otherwise the parcel set is unknown and
+                # the record is excluded and named.
+                done = (complete_truncated_cell(land, name, corpus)
+                        if corpus else CompletionResult(False, "no corpus available"))
+                if done.completed:
+                    land = done.land
+                    truncated = False
+                    if completions is not None:
+                        completions.append(done)
             if truncated:
                 # The publisher stopped drawing the parcel list at the printed row
                 # height; the remainder is not in the document, so the parcel set
@@ -477,12 +618,12 @@ def extract_pdf(path: str, *, strict: bool = True) -> list[dict[str, str]]:
 
     Raises :class:`TableStructureError` when the document cannot be read exactly.
     """
-    records, _duplicates, _cell_faults = _extract(path, strict=strict)
+    records, _duplicates, _cell_faults, _done = _extract(path, strict=strict)
     return records
 
 
 def extract_pdf_with_faults(
-    path: str, *, strict: bool = True
+    path: str, *, strict: bool = True, corpus: list[dict] | None = None
 ) -> tuple[list[dict[str, str]], list[CellFault]]:
     """Extract records together with the publisher defects found in cell text.
 
@@ -490,19 +631,21 @@ def extract_pdf_with_faults(
     :class:`CellFault`, so a caller can report the shortfall rather than present a
     short gazette as a faithful copy.
     """
-    records, _duplicates, cell_faults = _extract(path, strict=strict)
+    records, _duplicates, cell_faults, _done = _extract(path, strict=strict, corpus=corpus)
     return records, cell_faults
 
 
-def _extract(path: str, *, strict: bool) -> tuple[list[dict[str, str]], int, list[CellFault]]:
+def _extract(path: str, *, strict: bool, corpus: list[dict] | None = None
+            ) -> tuple[list[dict[str, str]], int, list[CellFault], list[CompletionResult]]:
     gazette_id = gazette_id_for(path)
     doc = pymupdf.open(path)
     faults: list[Fault] = []
     cell_faults: list[CellFault] = []
+    completions: list[CompletionResult] = []
     records: list[dict[str, str]] = []
     try:
         for page in doc:
-            records.extend(_page_records(page, faults, cell_faults))
+            records.extend(_page_records(page, faults, cell_faults, corpus, completions))
     finally:
         doc.close()
 
@@ -512,12 +655,14 @@ def _extract(path: str, *, strict: bool) -> tuple[list[dict[str, str]], int, lis
     records, duplicates = _dedupe_by_recno(records)
     for rec in records:
         rec["gazette_id"] = gazette_id
-    return records, duplicates, cell_faults
+    return records, duplicates, cell_faults, completions
 
 
-def extract_pdf_with_meta(path: str, *, strict: bool = True) -> tuple[list[dict[str, str]], dict[str, str]]:
+def extract_pdf_with_meta(path: str, *, strict: bool = True,
+                         corpus: list[dict] | None = None,
+                         ) -> tuple[list[dict[str, str]], dict[str, str]]:
     """Extract records plus metadata: publication date, gazette_id, calendar mix."""
-    records, duplicates, cell_faults = _extract(path, strict=strict)
+    records, duplicates, cell_faults, completions = _extract(path, strict=strict, corpus=corpus)
     published = find_published_date(path)
     calendars = {calendar_of(r["date"]) for r in records}
     meta: dict[str, str] = {
@@ -525,6 +670,10 @@ def extract_pdf_with_meta(path: str, *, strict: bool = True) -> tuple[list[dict[
         "duplicate_recnos": str(duplicates),
         "record_count": str(len(records)),
     }
+    if completions:
+        meta["completed_count"] = str(len(completions))
+        meta["completed_from"] = ",".join(
+            f"{c.source_gazette}#{c.source_recno}" for c in completions)
     if cell_faults:
         # A gazette missing records must never be presented as a faithful copy.
         meta["excluded_count"] = str(len(cell_faults))

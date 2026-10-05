@@ -27,3 +27,9 @@ data_test/*
 # re-ingested from source.pdf, which is tracked, so it is reproducible with
 #     python -m urtpe.cli source.pdf -o <tmp> --no-archive
 # rather than 2.8 MB of regenerable data in the history.
+
+# The completion corpus is derived from the archived gazettes, which are read-only
+# inputs outside the repository. Rebuild with `urtpe.corpus.build_corpus`, which
+# caches per archive member; without the cache a run rescans every archived PDF,
+# which is most of a rebuild's wall time.
+.corpus_cache/

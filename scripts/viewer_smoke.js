@@ -15,7 +15,10 @@ const vm = require("vm");
 
 const ROOT = path.resolve(__dirname, "..");
 const APP = path.join(ROOT, "viewer", "app.js");
-const DATA = path.join(ROOT, "viewer", "projects.data.js");
+// an alternate dataset may be passed so the render path can be exercised against a
+// fixture whose records carry no portal data at all
+const DATA = process.argv[2] ? path.resolve(process.argv[2])
+                             : path.join(ROOT, "viewer", "projects.data.js");
 
 const text = fs.readFileSync(DATA, "utf8");
 const doc = JSON.parse(text.slice("window.PROJECTS = ".length).replace(/;\s*$/, ""));
@@ -112,10 +115,21 @@ setTimeout(() => {
   check("left pane rendered items", (listEl.children || []).length > 0,
     `${(listEl.children || []).length} children`);
 
+  // Stage chips come from p.links.milestones_taipei, so they are only expected when
+  // the dataset actually carries milestone data. A fixture with no portal fields must
+  // still render, just without the chips.
+  const expectBadges = doc.projects.some((p) =>
+    (p.links || {}).milestones_taipei &&
+    Object.keys(p.links.milestones_taipei).length > 0);
   const badgeCount = items.reduce(
     (n, el) => n + ((String(el.innerHTML).match(/stage-badge/g) || []).length), 0);
-  check("left pane carries construction-stage badges", badgeCount > 0,
-    `${badgeCount} badges across ${items.length} items`);
+  if (expectBadges) {
+    check("left pane carries construction-stage badges", badgeCount > 0,
+      `${badgeCount} badges across ${items.length} items`);
+  } else {
+    check("stage badges omitted when the dataset carries no milestones",
+      badgeCount === 0, `${badgeCount} badges (dataset has none to render)`);
+  }
 
   const fakeEvent = { stopPropagation() {}, preventDefault() {}, target: {} };
 

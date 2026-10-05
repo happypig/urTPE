@@ -1,7 +1,7 @@
 tripwire: PASS
-  records: 1422  projects: 709
+  records: 1423  projects: 709
   calendar: roc  duplicate 編號: 0
-  INCOMPLETE: 5 record(s) excluded because the publisher truncated their 地號 cell — this gazette is NOT a faithful copy: 1141, 1198, 1204, 1210, 1381
+  INCOMPLETE: 4 record(s) excluded because the publisher truncated their 地號 cell — this gazette is NOT a faithful copy: 1141, 1204, 1210, 1381
 
 解析缺漏記錄: 0 筆
 

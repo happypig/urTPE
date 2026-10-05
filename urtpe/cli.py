@@ -11,6 +11,8 @@ import sys
 from pathlib import Path
 
 from urtpe import cleanse as cleanse_mod
+from urtpe import corpus as corpus_mod
+from urtpe import emission as emission_mod
 from urtpe import extract as extract_mod
 from urtpe import graph as graph_mod
 from urtpe import io as io_mod
@@ -161,7 +163,29 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
     print(f"[INFO] gazette_id: {gazette_id}")
 
     # --- read --------------------------------------------------------------
-    records, extract_meta = extract_mod.extract_pdf_with_meta(pdf)
+    # A publisher-truncated 地號 cell can sometimes be completed from another
+    # approval of the same unit elsewhere in the archive. The corpus is built lazily
+    # and cached, so an ordinary rebuild does not re-read every gazette.
+    corpus = []
+    corpus_note = ""
+    try:
+        arch = GazetteArchive(archive_root) if archive_root else GazetteArchive()
+        seen, members = set(), []
+        root = Path(arch.root)
+        for e in arch.entries():
+            fp = root / e.filename
+            if e.filename in seen or not fp.exists():
+                continue
+            seen.add(e.filename)
+            members.append((e.published_date or e.gazette_id, fp))
+        corpus = corpus_mod.build_corpus(
+            members, exclude=str(extract_mod.gazette_id_for(pdf)),
+            cache_dir=(Path(outdir).parent / ".corpus_cache"))
+        corpus_note = f"{len(corpus)} candidate rows"
+    except Exception as exc:  # an unreadable archive must not block ingestion
+        print(f"[WARN] completion corpus unavailable: {exc}")
+
+    records, extract_meta = extract_mod.extract_pdf_with_meta(pdf, corpus=corpus)
     if not records:
         raise SystemExit("[ERROR] no records parsed")
     print(f"[INFO] read {len(records)} records ({extract_meta.get('calendar', '?')} calendar)")

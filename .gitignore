@@ -10,5 +10,20 @@
 .specstory
 __pycache__/
 *.pyc
-data/**
-data_test/**
+# Note: `data/*`, not `data/**`. A trailing /** excludes the directory itself, and
+# git cannot re-include a file through an excluded parent — which would make the
+# negation below inert. data/* matches the children directly, so the one file we
+# want can be named back.
+data/*
+data_test/*
+
+# ...except the alias table, which is configuration rather than derived data:
+# links.load_project_cache reads it at runtime to map a moved identity onto its
+# current one, so a clone without it strands every cache directory that moved.
+# Regenerate with scripts/build_project_aliases.py.
+!data/project_aliases.json
+
+# data/projects.previous.json stays ignored. It is derived: the 8/11 baseline
+# re-ingested from source.pdf, which is tracked, so it is reproducible with
+#     python -m urtpe.cli source.pdf -o <tmp> --no-archive
+# rather than 2.8 MB of regenerable data in the history.

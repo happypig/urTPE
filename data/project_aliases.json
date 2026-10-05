@@ -1,0 +1,22 @@
+{
+  "_comment": "project_id aliases for cache migration; former -> current. Regenerate with scripts/build_project_aliases.py",
+  "_buckets": {
+    "aliases": "former -> current. basis 'exact' = identical ISO date and parcel cell; 'overlap J=' = same 段/小段 with the parcels overlapping above the threshold, i.e. a scope change",
+    "ambiguous": "several current projects match equally well; needs a human",
+    "unmatched": "nothing above the threshold; the cache directory is stranded"
+  },
+  "overlap_threshold": 0.5,
+  "previous_published_date": "2026-08-11",
+  "current_published_date": "2026-08-27",
+  "aliases": {},
+  "alias_basis": {},
+  "ambiguous": {},
+  "unmatched": [
+    "南港區-南港段一小段-720地號等105筆",
+    "文山區-萬隆段二小段-519地號等56筆"
+  ],
+  "orphaned": [
+    "南港區-南港段一小段-720地號等105筆",
+    "文山區-萬隆段二小段-519地號等56筆"
+  ]
+}

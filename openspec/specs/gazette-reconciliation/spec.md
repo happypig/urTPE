@@ -1,3 +1,5 @@
+# gazette-reconciliation Specification
+
 ## Purpose
 
 Compares a newly ingested gazette against its predecessor and reports what changed — how many approvals are new, whether the list grew or shrank, and how many pre-existing rows the city re-dated or edited. Its purpose is to make an unexplained change impossible to miss while staying honest about what the published data can actually support.
@@ -11,7 +13,7 @@ So an "absent record" cannot be distinguished from an edited or re-dated one by 
 
 The specific counts once quoted for these two properties — 59 differing land cells, 22 approvals moved later and 21 earlier, date-order violations falling from 9 to 1 — were measured on a **contaminated read** and are withdrawn. The reader that produced them absorbed a page-number footer into a 地號 cell and truncated long cells at the row height; with it corrected, the pre-cutoff record set is identical across `1150822`, `1150820` and `1150827` at 1412 records, with 0 lost and 0 gained. The two properties above are retained because they are properties of the publication, not of that read — but they are stated without figures here deliberately, and re-measuring them requires an uncontaminated read of `1151002`.
 
-## MODIFIED Requirements
+## Requirements
 
 ### Requirement: Report new approvals and net change between publications
 
@@ -122,8 +124,6 @@ The system SHALL report which calendar the publication used, alongside the new-a
 
 - **WHEN** the new publication uses the same calendar as the previous
 - **THEN** the report records that the calendar is unchanged
-
-## ADDED Requirements
 
 ### Requirement: Accept historical disappearances recorded in the ledger
 

@@ -4,7 +4,8 @@ schema: spec-driven
 # This is shown to AI when creating artifacts.
 context: |
     Project: urTPE — turn the Taipei City Government's urban-renewal approved-cases
-    list (臺北市都市更新核定案件一覽表, 1,419 approvals, dated 99/9/2–115/8/11 =
+    list (臺北市都市更新核定案件一覽表, 1,422 approvals as emitted from the 1150827
+    gazette, dated 99/9/2–115/8/27 =
     2010–2026) into a clean, merged dataset with per-project history.
     Pipeline: PDF (gov.taipei) -> ruled-table extraction (pymupdf find_tables,
     strategy="lines") -> raw.tsv -> cleansing -> clean.tsv -> similarity merge ->
@@ -28,14 +29,27 @@ context: |
     - The list is newest-first (編號 1 = latest), and 編號 is a coordinate in a
     mutable list, not an identity: new approvals are prepended, the older export was
     insertion-ordered while the newer one re-sorts history by 核定日期, and the city
-    edits and re-dates historical rows. The shift is therefore NOT affine — measured
-    +5 uniformly for 1150820->1150827, but +8 at the head, -13 mid-list and +10 at
-    the tail for 1150827->1151002. Never key anything durable on 編號.
+    edits and re-dates historical rows. The shift is therefore NOT affine —
+    1150820->1150827 moved every matched record by exactly +5, while
+    1150827->1151002 moved records in both directions. Never key anything durable
+    on 編號. (The specific per-record offsets once quoted here came from a reader
+    with two known cell-content faults and are withdrawn; see design.md D6/D10.)
+    - A 地號 cell can be defective in two unrelated ways, and the distinction
+    decides what the pipeline does. The city's layout sometimes prints the page
+    number INSIDE the last row's 地號 cell, which is the reader's fault and is
+    stripped only when the digits equal that page. Separately, the city truncates
+    long 地號 cells at the printed row height and never draws the remainder, which
+    is the publisher's fault: the text is absent from the PDF, so those records are
+    excluded and named, never repaired by inference. A truncated cell whose parcel
+    count already matches its own 案名's declared count has lost only the closing
+    phrase and is kept. Any declared exclusion must be reported with its count, or
+    a short gazette reads as a complete one.
     - project_id = slug of the latest approval's normalized land core. It churns
     (~11% of multi-record families have moved at least once, always early in a
     project's life) and is not a stable identity either; .link_cache directories are
     migrated through data/project_aliases.json, which pairs identities on member
-    content and refuses ambiguous pairs.
+    content and refuses ambiguous pairs. That file is tracked; it is configuration,
+    not derived data.
     - Reconciliation can only assert three things about a new gazette: how many
     approvals are newer than the predecessor's newest date, the net change in total
     records, and which calendar was used. A per-record content diff cannot

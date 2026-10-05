@@ -1008,7 +1008,7 @@ function init() {
         : `${n.recno} · ${n.date}${perTrackStageText(n)}`;
       const schedTxt = n.virtual
         ? scheduleBadgeText(n.schedule)
-        : scheduleBadgeText(caseScheduleOf(p, n.links.taipei[0]));
+        : scheduleBadgeText(caseScheduleOf(p, ((n.links || {}).taipei || [])[0]));
       const badges = getNodeMilestoneBadges(n, p);
       const ghost = n.track === "事業概要" ? " ghost" : "";
       const virtualCls = n.virtual ? " virtual" : "";

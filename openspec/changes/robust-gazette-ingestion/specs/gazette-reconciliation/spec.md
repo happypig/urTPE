@@ -4,10 +4,12 @@ Compares a newly ingested gazette against its predecessor and reports what chang
 
 The scope is deliberately narrow, and that is a measured decision rather than a convenience. Two properties of the source make per-record content diffing unsound:
 
-- **The city edits historical rows.** Between publications 1150827 and 1151002, 59 land cells differ in text. Matching on `(行政區, land, 核定日期)` therefore reports the same unit as both added and removed.
-- **The new export re-dates history.** The 1151002 export moved 22 historical approvals later and 21 earlier, and cut date-order violations from 9 to 1 — it re-sorted and recomputed the list rather than appending to it.
+- **The city edits historical rows.** A land cell's text is not stable across publications, so matching on `(行政區, land, 核定日期)` can report the same unit as both added and removed.
+- **The export is re-sorted and recomputed rather than appended to.** New approvals are prepended while the older export was insertion-ordered and the newer one orders history by 核定日期, so a record's position carries no information about its identity.
 
-So an "absent record" cannot be distinguished from an edited or re-dated one by content. This capability therefore reports additions and net change authoritatively, reports historical movement as its own counted signal, and refuses the run only for the two conditions the data does support.
+So an "absent record" cannot be distinguished from an edited or re-dated one by content. This capability therefore reports additions and net change authoritatively, reports historical movement as its own counted signal, and refuses the run only for the conditions the data does support.
+
+The specific counts once quoted for these two properties — 59 differing land cells, 22 approvals moved later and 21 earlier, date-order violations falling from 9 to 1 — were measured on a **contaminated read** and are withdrawn. The reader that produced them absorbed a page-number footer into a 地號 cell and truncated long cells at the row height; with it corrected, the pre-cutoff record set is identical across `1150822`, `1150820` and `1150827` at 1412 records, with 0 lost and 0 gained. The two properties above are retained because they are properties of the publication, not of that read — but they are stated without figures here deliberately, and re-measuring them requires an uncontaminated read of `1151002`.
 
 ## MODIFIED Requirements
 

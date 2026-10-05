@@ -22,13 +22,24 @@
 
 ```
 IN SCOPE (this change)                OUT OF SCOPE
-──────────────────────                ─────────────────────────────
+─────────────────────                ─────────────────────────────
 gazette PDF → raw rows                portal (twur / Taipei ashx) discovery
 cleansing rule application            the 28 h national-portal sweep
-similarity merge (unchanged)          .link_cache migration of moved ids
+similarity merge (unchanged)          portal sync / event cascade
 project identity (unchanged)          viewer UI beyond a label
 archive + diff + tripwire
+correction ledger
+link_cache alias table (see below)
 ```
+
+The last row was originally listed as out of scope: ".link_cache migration of
+moved ids". That was wrong, and the work proved it. Reconciliation shipped and the
+alias mechanism turned out to be a prerequisite for landing it — a reader change
+that moves an identity strands the cache directory named after it, and the run
+cannot complete while that is unhandled. It is in scope, and landed as
+`scripts/build_project_aliases.py` + `data/project_aliases.json`, applied at
+cache-load time rather than by renaming directories on disk, which would break the
+single-writer rule and any in-flight run.
 
 ### The failure this design exists to prevent
 
@@ -64,12 +75,21 @@ Cause (b) is the one that matters: **the reader had no way to report that it had
 | | 1150827 | 1151002 |
 |---|---|---|
 | pages yielding a table | 202/202 | 246/246 |
-| distinct 編號 | 1427 | 1436 |
-| contiguous 1..N | yes | yes |
+| distinct 編號 published | 1427 | 1436 |
 | empty 案名 | 0 | 0 |
 | empty 核定日期 | 0 | 0 |
+| records emitted | 1422 | 1421 |
+| excluded as publisher-truncated | 5 | 15 |
 
-100% on both, including the file the positional reader fails on completely. The column shift and the calendar change are both invisible to it because neither is expressed as a coordinate it stored.
+100% structural on both, including the file the positional reader fails on
+completely. The column shift and the calendar change are both invisible to it
+because neither is expressed as a coordinate it stored.
+
+The emitted counts are **not** the published counts, and the difference is
+deliberate: the publisher truncates a handful of 地號 cells at the row height, and
+those records are excluded rather than emitted with a parcel set nobody can
+verify (D10). Contiguity therefore holds with known exceptions rather than
+absolutely — see D3.
 
 **Alternative rejected — fix the bands.** The bands are 7 numbers tuned to one export. The city changed the calendar and shifted the columns in a single publication; the next change is equally unforecastable. Tuning constants against observed drift treats a moving target as a fixed one.
 
@@ -114,9 +134,11 @@ Empirically this costs nothing today: **0 `None` cells across 23,177 cells** in 
 
 ### D3 — Completeness tripwire, evaluated before any write
 
-**Decision.** Every emission is gated on: 編號 contiguous from 1 to max with no gaps; every 核定日期 parsed; exactly one table per page; no `None` cells; no row-shape mismatch; duplicate-編號 count within the known header-artifact tolerance.
+**Decision.** Every emission is gated on: every 核定日期 parsed; exactly one table per page; no `None` cells; no row-shape mismatch; duplicate-編號 count within the known header-artifact tolerance; and 編號 contiguous from 1 to max **apart from exclusions the reader has declared and the caller has been told about**.
 
-**Rationale.** 編號 is contiguous in both publications (1427 and 1436, no gaps). That makes "no gaps" a three-line, format-agnostic assertion that catches a whole class of silent truncation — including a page the reader failed on entirely, which under D2 aborts anyway.
+**Rationale.** 編號 is contiguous as published, with no gaps. That makes "no gaps" a three-line, format-agnostic assertion that catches a whole class of silent truncation — including a page the reader failed on entirely, which under D2 aborts anyway.
+
+The qualification exists because D10 introduces declared exclusions. An exclusion and a lost page look identical to a contiguity check, so the tripwire takes the excluded 編號 as input: a gap that is fully explained passes, and any other gap still aborts. Carrying them separately also keeps the two failure modes distinguishable in the run report rather than collapsed into one number.
 
 Critically, the gate must run **before any artifact is written**. The 2026-08-24 incident (four concurrent writers, 47 caches wiped) and the current `coverage.py` blind spot have the same shape: a check that runs after the damage, or that cannot see the failure. `coverage.py:46-59` diffs only `set(before) & set(after)`; a total re-key empties that intersection, so the guard passes while every cache is orphaned. The tripwire must be upstream of the write, and reconciliation (D6) must special-case total re-keying.
 
@@ -156,28 +178,28 @@ promotes historical disappearance to blocking, satisfiable by a ledger acceptanc
                      old#1420 → +10
 ```
 
-Non-monotonic. Date-order violations fell from **9** to **1** between the two
-publications: the earlier export was insertion-ordered, the newer one re-sorts history
-by 核定日期. So recno is a coordinate in a mutable list, not a rank with an offset, and
+Non-monotonic. So recno is a coordinate in a mutable list, not a rank with an offset, and
 any remap keyed on it is arithmetic on an unknown function.
 
-**Rationale — why per-record content diffing was rejected.** The first implementation
+The shape of that non-affinity was measured on a **contaminated read** — see the
+withdrawn note below — so the specific per-record offsets and the "date-order
+violations fell from 9 to 1" figure are not cited. The non-affinity itself is not in
+doubt: `1150820 → 1150827` was uniform at +5 across all 1,421 matched records, and
+`1150827 → 1151002` moved records in both directions.
+
+**Rationale — why per-record content diffing was rejected.** An early implementation
 matched on `(行政區, land, ISO date)` and reported **74 removals** for 1151002. Every one
-was a false positive, from two measured causes:
+was a false positive. The two causes originally given for that — the new export
+re-dates history, and the city edits historical cells — are real properties of the
+source, but they were **not** the cause of those 74. The cause was the reader: a
+page-number footer absorbed into a 地號 cell, and long cells truncated at the row
+height, both of which change a row's text and so make it look added and removed at
+once. With the reader corrected, the pre-cutoff record set is **identical** across
+`1150822`, `1150820` and `1150827` at 1412 records — 0 lost, 0 gained (D10).
 
-```
-                          1150820 → 1150827    1150827 → 1151002
-content keys changed                 5                       79
-approval-year gained          2026: +5      2026: +8  and 2006..2016: +22
-approval-year lost                   none      2000..2024: −21
-```
-
-1. **The new export re-dates history** — 22 historical approvals moved later, 21 earlier.
-2. **The city edits historical cells** — 59 land cells differ in text between the two
-   publications, so an edit makes a row look simultaneously added and removed.
-
-Matching cannot distinguish a deletion from an edit, because in the published data they
-are the same observation. Only three things survive that:
+The re-dating and editing properties still stand, and still mean a per-record
+deletion cannot be asserted against this source: in the published data a deletion and
+an edit are the same observation. Only three things survive that:
 
 | Signal | 0820→0827 | 0827→1002 | Authoritative |
 |---|---|---|---|
@@ -192,11 +214,14 @@ decision rather than a scoring strategy. Similarity matching was considered and
 rejected: ~1400² comparisons per run to resolve rows that are, in the cases that
 matter, genuinely ambiguous.
 
-**Consequence, recorded honestly.** The genuine 89/9/29 disappearance
-(`大安區仁愛段四小段114地號等6筆`) is a 2000-vintage row, so it now falls in the historical
-signal rather than the blocking one. It is reported, prominently, with its district and
-land description — but it does not stop a run. Task 13.3's original wording ("aborts on
-the removed 2000 record") is therefore not satisfiable as written and was revised; a
+**Consequence, recorded honestly.** The disappearance of
+`大安區仁愛段四小段114地號等6筆`, a 2000-vintage row, was originally read as a genuine city
+deletion and made the subject of a blocking rule. It is no longer treated as
+established. It falls in the historical signal, is reported prominently with its
+district and land description, and does not stop a run — and the specific figures once
+attached to it (`89/9/29`, and the per-cell counts behind them) came from the
+contaminated read and are withdrawn. Task 13.3's original wording ("aborts on the
+removed 2000 record") is therefore not satisfiable as written and was revised; a
 per-record deletion assertion cannot be made against this source.
 
 **Blocking conditions, and why each is sound:**
@@ -244,7 +269,36 @@ Cost: the archive is a separate durability concern from the repo. Mitigated by t
 
 **Rationale.** Measured cost of a full rebuild: `find_tables()` over 448 pages ≈ 42 s, cleanse + merge ≈ 0.3 s, graph emit ≈ 2 s. Roughly **45 seconds**. Incremental would buy nothing and would guarantee the failure mode that produced `repair_621`: 2019 records parsed under old rules, 2026 under new, in one dataset. Full rebuild is the only way a reader change reaches historical records uniformly.
 
-The portal layer is the opposite and is already correct: `.link_cache/<project_id>/` is keyed on an identity that survives, measured at **704 of 709 unchanged** (712 vs 713 families, 5 degenerate ids where the positional reader had extracted no parcel number or produced a `-2` collision suffix). Caches are consulted, not rebuilt.
+The portal layer is the opposite and is already correct: `.link_cache/<project_id>/` is keyed on an identity that survives. Against the corrected reader, migrating three publications strands **2** of 709 directories, needs **0** aliases, and has **0** ambiguous pairs — and both stranded directories are the projects whose sole record the publisher truncated, so no identity pairs them. The earlier figure of 5 moves (704 of 709 unchanged) was measured with the old reader and is withdrawn. Caches are consulted, not rebuilt.
+
+### D10 — A fault in a cell is classified by who caused it
+
+**Decision.** Faults found in cell text are sorted by cause, and the two demand opposite responses. A fault the reader could have prevented is fixed, and if it cannot be fixed with certainty the run aborts. A fault the publisher introduced, which no reading of the document can repair, does not abort: the record is excluded, named with page, row and column, and counted, so a gazette missing records is never presented as a faithful copy.
+
+**Rationale.** The measurement that forced this is that the same symptom has two
+unrelated causes. A 地號 cell ending in a bare integer was, in every observed case,
+the page-number footer printed inside the last row's cell — 11 of 11 times the digits
+equalled the page the row sat on. A 地號 cell ending mid-enumeration was the
+publisher stopping at the row height, and the missing text is **not in the PDF**:
+widening the text window recovered nothing at pad 0, 6 or 14, and at pad 14 the window
+crossed the row rule and returned the next unit's land list; the raw word list holds no
+continuation below the cell band; and borrowing a same-section sibling is unsafe for 17
+of 21 truncated records (Jaccard 0.00–0.96, one case at 0.00 against a same-section
+sibling that is a different project entirely). A reader that treated both as "bad cell"
+would either abort on every gazette forever or invent parcel data.
+
+Two consequences worth stating plainly:
+
+- **The declared parcel count is knowable; the parcel identities are not.** A 案名
+  reading `等138筆` tells you how many parcels should be there. It cannot tell you which.
+- **Completeness has a self-check.** When a truncated cell still shows exactly as many
+  parcels as its own row's 案名 declares, the list is provably whole and only the closing
+  phrase was lost, so the record is kept. This is a same-row comparison and imports
+  nothing from another approval; without it, two sound 110-parcel records were being
+  discarded for want of a closing `地號等110筆土地`.
+
+Stripping the page number is done only when the digits equal the page the cell sits on.
+A trailing number that does not match is not discarded on a guess.
 
 ## Risks
 
@@ -253,18 +307,29 @@ The portal layer is the opposite and is already correct: `.link_cache/<project_i
 | A future publication has no ruling lines | Low | D2 hard-fails; no unsafe fallback exists. Re-evaluate `pymupdf_layout` **only** at that point, when whitespace heuristics are the only alternative |
 | Tripwire thresholds too strict, blocking a valid ingestion | Medium | Thresholds are parameters, not constants; a blocked run names the failing check |
 | Archive diverges from index | Low | Index records what each file yielded; a missing member is detectable |
-| The 2000 record was a parser bug, not a city deletion | Unknown | D6 aborts and forces the question; the previous gazette stays archived so the record is recoverable |
+| **A declared exclusion masks a reader fault** | **Realised — this is how 1151002's 15 truncations shipped** | **D10.** Once the reader began excluding records on purpose, a contiguity check could no longer distinguish "we chose to drop this" from "we lost this". Every exclusion is therefore named with page, row and column, counted in the run report, and listed in the extraction metadata; a reviewer can audit the exclusion set rather than trusting a count |
+| **A reader fault is misattributed to the publisher** | **Realised** | **D10.** Both faults looked alike — a cell ending oddly — and the page-number bleed was invisible to a detector aimed at truncation. A footer is stripped only on an exact page-number match; anything else stays a fault |
+| The viewer keeps serving a dataset the pipeline abandoned | Realised | The viewer file is refreshed by any run against this tree, its asset version is derived from the data, and a guard reports a viewer that disagrees with `projects.json` |
 | Ledger grows unwieldy | Low | Append-only, content-keyed, superseded entries retained as history |
-| Records dropped by a reader bug never reach the tripwire | Low | D3's contiguity check catches the common case; D6's diff catches subtler losses by content |
+| Records dropped by a reader bug never reach the tripwire | Medium | D3 catches unexplained gaps. It does **not** catch a fault that declares its own exclusions — see the two realised rows above |
+| `coverage.py` cannot see a total re-key | **Realised, unfixed** | `coverage.py:51` diffs only `set(before) & set(after)`; under a total re-key that intersection is empty, so `regressions={}` and the guard passes while every cache is orphaned. The 2026-08-24 incident has the same shape. **Not fixed by this change** — see `parked.md` item 2 |
 
 ## Migration
 
 ```
 1  Archive the three known gazettes (1150820, 1150827, 1151002) under their
    統計至 dates; append index entries. Nothing is derived from them yet.
-2  Swap the reader. Regenerate from the newest archived gazette.
-3  Reconciliation reports against the previous gazette. Absorb the expected
-   5 project_id moves via an alias table — see parked.md.
+2  Swap the reader. Regenerate. NOTE: the newest gazette is not necessarily the
+   one to build from — see step 2a.
+2a Build from 1150827, not 1151002. 1151002 is the newest publication and is
+   archived and readable, but it carries 15 publisher-truncated 地號 cells
+   against 1150827's 5, so building from it would emit a dataset 14 records
+   smaller and less trustworthy than the one it replaces. Choosing the source
+   gazette is a judgement, not a max().
+3  Reconciliation reports against the previous gazette. Cache directories that
+   move with the reader are absorbed through the alias table rather than by
+   renaming on disk. Measured: 0 aliases, 2 stranded, both traceable to a
+   truncated record.
 4  Convert repair_621_track and any other emitted-data patch script into
    ledger entries, then delete the script.
 5  From here: periodical fetcher compares 統計至 against the index and runs

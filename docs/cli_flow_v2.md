@@ -128,34 +128,43 @@ its results are picked up on the next `--links` run.
 Usage:
 
 ```
-python scripts/fetch_remaining_national_portal.py [--dry-run] [--max-projects N]
+python scripts/fetch_remaining_national_portal.py [--dry-run] [--max-projects N] [--max-probe N] [--reprobe-days N]
 ```
 
 ```mermaid
 flowchart TD
-    S0[Start] --> S1[load_candidates<br/>parse window.PROJECTS<br/>from viewer/projects.data.js]
-    S1 --> S2[Filter projects where<br/>links.twur is empty]
-    S2 --> S3[For each: find is_current node<br/>extract section + parcel from land]
-    S3 --> S4[Sort by 現況 date desc<br/>newest first]
-    S4 --> S5{--dry-run /<br/>--max-projects?}
-    S5 -->|Yes| S6[Truncate candidate list]
-    S5 -->|No| S7[Keep all]
-    S6 --> S8[For each candidate]
-    S7 --> S8
-    S8 -->     S9{Past deadline?<br/>DEADLINE_HOUR/MINUTE<br/>wrapper-overridable}
-    S9 -->|Yes| S15[Stop loop<br/>print summary]
-    S9 -->|No| S10[search_portal<br/>?title=section&city_id=2<br/>regex /view/NNN]
-    S10 --> S11[Probe up to --max-probe 8<br/>strict section+parcel+count match]
-    S11 --> S12{Match found?}
-    S12 -->|No| S13[record_no_match to<br/>no_match_ledger.json]
-    S12 -->|Yes| S14[update_project_cache<br/>merge national_milestones<br/>set twur_view_id + twur_url<br/>in .link_cache/&lt;pid&gt;/result.json]
-    S13 --> S16{More candidates<br/>and not dry-run?}
-    S14 --> S16
-    S16 -->|Yes|     S17[Sleep 15-45s skip<br/>60-180s match]
-    S17 --> S8
-    S16 -->|No| S15
-    S15 --> S18[regenerate_viewer<br/>python -m urtpe.cli<br/>--from-js viewer/projects.data.js<br/>-o data --viewer viewer --links]
-    S18 --> S19[Done]
+    S0["Start<br/>parse --dry-run, --max-projects,<br/>--reprobe-days, --max-probe"] --> S1["load_ledger<br/>data/.link_cache/no_match_ledger.json<br/>corrupt file → quarantine .corrupt"]
+    S1 --> S2["sweep_matched_entries<br/>clear ledger entries for projects<br/>whose cache gained twur elsewhere"]
+    S2 --> S3["load_candidates from<br/>viewer/projects.data.js:<br/>links.twur empty + is_current node<br/>yields section + first_parcel (+ 等N筆 count)<br/>sort by 現況 date desc"]
+    S3 --> S4["filter_candidates:<br/>skip probed within --reprobe-days (14)<br/>0 disables skipping"]
+    S4 --> S5{"candidates left?"}
+    S5 -->|"no"| S5X["print 'No candidates to process'<br/>exit"]
+    S5 -->|"yes"| S6{"--dry-run or<br/>--max-projects?"}
+    S6 -->|"yes"| S7["truncate list<br/>(dry-run → first 3)"]
+    S6 -->|"no"| S8["keep all"]
+    S7 --> LOOP["for each candidate"]
+    S8 --> LOOP
+    LOOP --> D1{"is_past_deadline?<br/>DEADLINE_HOUR/MINUTE (default 07:00)<br/>_next_deadline: target at/before launch<br/>rolls to tomorrow (cross-midnight OK);<br/>run_sweep_until.py overrides the pair"}
+    D1 -->|"yes"| SUM
+    D1 -->|"no"| F1["find_matching_view:<br/>search_portal ?title=section, city_id=2<br/>collect /view/NNN ids"]
+    F1 --> F2["probe up to --max-probe (default 8):<br/>fetch view page, view_page_matches<br/>strict section+parcel+count equality,<br/>notation-normalized (之 ↔ -, full-width)"]
+    F2 --> F3{"match found?"}
+    F3 -->|"no"| NM["record_no_match + save_ledger<br/>immediately (design D3:<br/>a deadline kill keeps tonight's negatives)"]
+    F3 -->|"yes"| UP["update_project_cache:<br/>merge national_milestones (new wins),<br/>set twur_view_id + twur_url,<br/>write result.json + view.html,<br/>clear ledger entry + save (design D4)"]
+    UP --> UPOK{"cache updated?"}
+    UPOK -->|"yes"| INC["updated++<br/>processed++"]
+    UPOK -->|"no (no cache / IO error)"| NM2["failed++<br/>record_no_match + save_ledger"]
+    NM --> INC2["processed++"]
+    NM2 --> INC2
+    INC --> D2{"is_past_deadline?"}
+    INC2 --> D2
+    D2 -->|"yes"| SUM["print summary:<br/>total / skipped as recently probed /<br/>processed / updated / failed"]
+    D2 -->|"no"| SL{"more candidates<br/>and not dry-run?"}
+    SL -->|"yes"| SLP["sleep: match 60-180 s<br/>skip 15-45 s"]
+    SLP --> LOOP
+    SL -->|"no"| SUM
+    SUM --> RG["regenerate_viewer (subprocess):<br/>python -m urtpe.cli --from-js<br/>viewer/projects.data.js -o data<br/>--viewer viewer --links<br/>output → regen_log.txt, timeout 1800 s"]
+    RG --> DONE["Done"]
 ```
 
 Details:
@@ -190,13 +199,59 @@ Details:
   `data/.link_cache/fetch_failures.json`) exists but is not currently wired
   into `main`.
 
-> **Stale-diagram note (2026-08-26)**: the flowchart above predates the
-> no-match ledger, the strict matcher (`fix-targeted-portal-matcher`, §16.1 in
-> `docs/facts_2_portals.md`), and the deadline-overriding wrapper
-> `scripts/run_sweep_until.py HH MM`. Current truth: probe up to
-> `--max-probe` (default 8) pages with strict section+parcel+count match,
-> record negatives in `no_match_ledger.json`, sleep 60–180 s (match) /
-> 15–45 s (skip), default deadline 07:00 (wrapper overrides).
+> **Diagram updated (2026-08-26)**: the flowchart now reflects the no-match
+> ledger lifecycle (load/quarantine, matched-entry sweep, `--reprobe-days`
+> filter, immediate negatives — design D1–D5), the strict matcher
+> (`fix-targeted-portal-matcher`, facts §16.1), the cache-update failure path
+> (counted as failed and ledger-recorded), the double deadline check per
+> iteration, and the `_next_deadline` cross-midnight roll used by the
+> deadline-overriding wrapper `scripts/run_sweep_until.py HH MM`.
+
+## Companion script: `scripts/regen_links_2026_08_26.py`
+
+One-shot §6.8 re-merge pass for the `fix-cross-family-case-pollution` change:
+refreshes every per-project cache after the §6.7/§6.8 parcel-guard
+strictness change, so polluted slots re-resolve from the live Taipei API
+while all expensive national-portal artifacts stay cached.
+
+Usage:
+
+```
+python scripts/regen_links_2026_08_26.py [delay_seconds]
+```
+
+```mermaid
+flowchart TD
+    R0["Start<br/>delay = first CLI arg, default 0.25 s"] --> R1["_load_projects_from_js<br/>viewer/projects.data.js"]
+    R1 --> R2["clear phase: unlink every<br/>data/.link_cache/*/result.json<br/>keeps view.html, portal_index.json,<br/>no_match_ledger.json, logs"]
+    R2 --> R3["LinksDiscovery(cache_dir,<br/>delay).run(projects)"]
+    R3 --> R4["build_portal_index<br/>portal_index.json cache hit →<br/>no national list crawl"]
+    R4 --> R5["for each project<br/>(sorted by project_id;<br/>result.json just cleared → cache miss)"]
+    R5 --> R6["Step 1: Get_updcase_list.ashx search<br/>§6.7/§6.8 guard keeps case_names<br/>carrying the searched parcel;<br/>rejects → search_rejected"]
+    R6 --> R7["Step 2: per case_id —<br/>second.ashx milestones,<br/>third.ashx implementation,<br/>fourth.ashx rewards<br/>sleep(delay) between calls"]
+    R7 --> R8["Step 3 supplementary:<br/>portal index → fallback mapping → view_id<br/>fetch view page (cached view.html<br/>served from disk) → national milestones"]
+    R8 --> R9["resolve status<br/>save result.json"]
+    R9 --> R10{"more projects?"}
+    R10 -->|"yes"| R5
+    R10 -->|"no"| R11["print summary:<br/>done: N projects,<br/>resolved / unresolved / errors"]
+    R11 --> R12["Done — caches only:<br/>no crawl_log / projects.json /<br/>viewer write. Re-emit with<br/>urtpe.cli --from-js --links --viewer<br/>(cache-fed, no network)"]
+```
+
+Details:
+
+- **Clear phase deletes ALL `result.json` up front** — despite the script
+  docstring's "resumable" claim, an interrupted rerun starts from scratch
+  (the clear phase is unconditional in `main`). Resumability is a property
+  of the CLI `--links` run, not of this script.
+- **What survives the clear**: cached `view.html` pages,
+  `portal_index.json`, and `no_match_ledger.json` — so the national half of
+  each discovery is disk-served and the run stresses only the Taipei ashx
+  APIs (no twur WAF exposure beyond stray view_id misses).
+- **Caches only, no emission**: the script stops after the summary print;
+  `projects.json` / `viewer/projects.data.js` / `crawl_log.tsv` are refreshed
+  by a subsequent CLI pass, which reads everything from the fresh caches.
+- **Delay parameter**: per-call `time.sleep(delay)` between Taipei API
+  requests (search + milestones + implementation + rewards per case).
 
 ## Data flow — where data lives
 
@@ -273,3 +328,17 @@ Reading the diagram:
   everything older reached the cache via sweeps, so deleting per-project
   caches cannot be healed from the index alone — see facts §18 before any
   destructive job.
+
+## Document history
+
+- `docs/cli_flow.archive.md` — the v1 diagram this file replaced (archived
+  2026-08-24). It is retained for history and is **not** current; its
+  national-portal-first discovery order no longer matches the code.
+- This file grew by accretion: the main CLI flow (2026-08-24), then the
+  `fetch_remaining_national_portal.py` sweep, then the "Data flow — where
+  data lives" section, then `regen_links_2026_08_26.py` (all 2026-08-26). Line
+  numbers are referenced from outside, so append new material at the end
+  rather than inserting above the CLI options table — e.g.
+  `openspec/changes/archive/2026-10-05-no-silent-data-loss/proposal.md` pins
+  the `--links` row at line 83, and `scripts/baseline_silent_failures.py`
+  asserts that row still reads "recommended".

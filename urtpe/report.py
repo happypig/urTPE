@@ -11,13 +11,28 @@ def review_report(
     projects: list[Project],
     link_threshold: float,
     flag_threshold: float,
+    ledger_outcome=None,
+    reconciliation=None,
+    tripwire=None,
 ) -> str:
     lines: list[str] = []
+
+    if tripwire is not None:
+        lines.append(tripwire.report())
+        lines.append("")
+
+    if reconciliation is not None:
+        lines.append(reconciliation.report())
+        lines.append("")
 
     errs = [r for r in raw if r.parse_error]
     lines.append(f"解析缺漏記錄: {len(errs)} 筆")
     for r in errs:
         lines.append(f"  編號 {r.recno}: {r.parse_error}")
+
+    if ledger_outcome is not None:
+        lines.append("")
+        lines.append(ledger_outcome.report())
 
     fixed = [c for c in clean if c.auto_fixes]
     lines.append("")

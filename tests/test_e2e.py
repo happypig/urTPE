@@ -1,14 +1,15 @@
-"""End-to-end pipeline test on the synthetic sample PDF."""
+"""End-to-end pipeline test on a synthetic ruled-table gazette."""
 
 from __future__ import annotations
 
 from urtpe import cli
-from tests.fixtures import SAMPLE_ROWS, build_sample_pdf
+from tests.fixtures import SAMPLE_ROWS
+from tests.gazette_fixtures import write_gazette
 
 
 def test_full_pipeline_emits_all_outputs(tmp_path):
     pdf = tmp_path / "sample.pdf"
-    build_sample_pdf(str(pdf), SAMPLE_ROWS)
+    write_gazette(str(pdf), SAMPLE_ROWS, published="統計至115年8月11日")
     out = tmp_path / "out"
     out.mkdir()
     assert cli.main([str(pdf), "-o", str(out)]) == 0
@@ -31,7 +32,7 @@ def test_full_pipeline_emits_all_outputs(tmp_path):
 
 def test_cli_accepts_no_tsv_flag(tmp_path):
     pdf = tmp_path / "sample.pdf"
-    build_sample_pdf(str(pdf), SAMPLE_ROWS[:1])
+    write_gazette(str(pdf), SAMPLE_ROWS[:1], published="統計至115年8月11日")
     out = tmp_path / "out2"
     out.mkdir()
     assert cli.main([str(pdf), "-o", str(out), "--no-tsv"]) == 0

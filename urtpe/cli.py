@@ -13,10 +13,15 @@ from urtpe import cleanse as cleanse_mod
 from urtpe import extract as extract_mod
 from urtpe import graph as graph_mod
 from urtpe import io as io_mod
+from urtpe import ledger as ledger_mod
 from urtpe import links as links_mod
+from urtpe import lock as lock_mod
 from urtpe import merge as merge_mod
+from urtpe import reconcile as reconcile_mod
 from urtpe import report as report_mod
+from urtpe import tripwire as tripwire_mod
 from urtpe import viewer as viewer_mod
+from urtpe.archive import GazetteArchive
 from urtpe.models import CleanRecord, Project
 
 # Fallback mapping file path
@@ -133,7 +138,148 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
     return projects, meta
 
 
-def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None, links: bool = False, from_js: str | None = None, fresh: bool = False, playwright: bool = False) -> None:
+def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool = True, ledger_path=None,
+                previous_projects: list[str] | None = None,
+                allow_reconcile_block: bool = False, strict_reconcile: bool = False) -> dict:
+    """Archive -> read -> tripwire -> reconcile -> cleanse -> ledger -> merge.
+
+    Every gate runs before the first artifact is written, so a refused ingestion
+    leaves raw.tsv, clean.tsv, merged.tsv, projects.json and the viewer data exactly
+    as they were. Nothing here is incremental: a full rebuild is ~45 s and is the
+    only way a reader change reaches historical records uniformly.
+
+    The archive is on by default: without it there is nothing to reconcile against,
+    which is precisely the state this pipeline was in before the change.
+    """
+    result: dict = {"pdf": pdf}
+
+    # --- archive -----------------------------------------------------------
+    gazette_id = extract_mod.gazette_id_for(pdf)
+    archive = GazetteArchive(archive_root) if use_archive else None
+    result["gazette_id"] = gazette_id
+    print(f"[INFO] gazette_id: {gazette_id}")
+
+    # --- read --------------------------------------------------------------
+    records, extract_meta = extract_mod.extract_pdf_with_meta(pdf)
+    if not records:
+        raise SystemExit("[ERROR] no records parsed")
+    print(f"[INFO] read {len(records)} records ({extract_meta.get('calendar', '?')} calendar)")
+    excluded_recnos = {
+        int(v) for v in (extract_meta.get("excluded_recnos") or "").split(",")
+        if v.strip().isdigit()
+    }
+    if excluded_recnos:
+        print(f"[WARN] {len(excluded_recnos)} record(s) excluded: the publisher "
+              f"truncated their 地號 cell and the remainder is not in the PDF "
+              f"(編號 {', '.join(str(v) for v in sorted(excluded_recnos))})")
+
+    # --- tripwire ----------------------------------------------------------
+    tw = tripwire_mod.Tripwire()
+    pages = _page_count(pdf)
+    faults = tw.check(records, pages=pages, tables_found=pages,
+                      duplicate_recnos=int(extract_meta.get("duplicate_recnos", 0)),
+                      excluded_recnos=excluded_recnos)
+    raw_recs = extract_mod.to_raw_records(records)
+    clean = cleanse_mod.cleanse_all(raw_recs)
+    projects = merge_mod.merge(clean)
+    tw_result = tripwire_mod.TripwireResult(
+        ok=not faults, faults=faults,
+        calendar=extract_meta.get("calendar", "unknown"),
+        record_count=len(records), project_count=len(projects),
+        duplicate_recnos=int(extract_meta.get("duplicate_recnos", 0)),
+    )
+    print(tw_result.report())
+    if faults:
+        raise tripwire_mod.TripwireFailure(tw_result)
+
+    # --- reconcile against the archived predecessor ------------------------
+    reconciliation = None
+    if archive is not None:
+        prev_id = archive.predecessor_of(gazette_id)
+        previous = None
+        if prev_id:
+            prev_path = archive.path_of(prev_id)
+            if prev_path is not None:
+                try:
+                    previous, _ = extract_mod.extract_pdf_with_meta(str(prev_path), strict=False)
+                except Exception as exc:  # a corrupt archive member must not block ingest
+                    print(f"[WARN] archived predecessor {prev_id} unreadable: {exc}")
+        ledger = ledger_mod.CorrectionLedger(ledger_path) if ledger_path else None
+        reconciliation = reconcile_mod.reconcile(
+            previous, records,
+            previous_id=prev_id, current_id=gazette_id,
+            previous_projects=previous_projects,
+            current_projects=[p.project_id for p in projects],
+            accepted_removals=ledger.accepted_removals() if ledger else set(),
+            strict=strict_reconcile,
+        )
+        print(reconciliation.report())
+        if reconciliation.blocking and not allow_reconcile_block:
+            print("[ERROR] reconciliation found unexplained changes; refusing to write",
+                  file=sys.stderr)
+            for b in reconciliation.blocking:
+                print(f"  - {b}", file=sys.stderr)
+            raise SystemExit(2)
+
+    # --- ledger ------------------------------------------------------------
+    ledger_outcome = None
+    if ledger_path:
+        ledger = ledger_mod.CorrectionLedger(ledger_path)
+        ledger_outcome = ledger.apply(clean, key_of=ledger_mod.default_key)
+        # A correction to an identity-bearing field must be reflected in identities.
+        projects = merge_mod.merge(clean)
+        print(ledger_outcome.report())
+
+    # --- archive write-back ------------------------------------------------
+    if archive is not None:
+        dest, entry = archive.record_ingest(
+            pdf, gazette_id,
+            published_date=extract_meta.get("published_date", gazette_id),
+            record_count=len(records), project_count=len(projects),
+            calendar=extract_meta.get("calendar", ""), source_path=pdf,
+        )
+        print(f"[INFO] archived to {dest}")
+
+    meta = {
+        "generated_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+        "source": pdf,
+        "gazette_id": gazette_id,
+        "thresholds": {"link": merge_mod.LINK_THRESHOLD, "flag": merge_mod.FLAG_THRESHOLD},
+    }
+    if extract_meta.get("published_date"):
+        meta["published_date"] = extract_meta["published_date"]
+
+    result.update(raw_recs=raw_recs, clean=clean, projects=projects, meta=meta,
+                  tripwire=tw_result, reconciliation=reconciliation,
+                  ledger=ledger_outcome)
+    return result
+
+
+def _page_count(pdf: str) -> int:
+    import pymupdf
+
+    doc = pymupdf.open(pdf)
+    try:
+        return len(doc)
+    finally:
+        doc.close()
+
+
+def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None, links: bool = False, from_js: str | None = None, fresh: bool = False, playwright: bool = False,
+         archive_root=None, use_archive: bool = True, ledger_path=None, allow_reconcile_block: bool = False,
+         previous_projects: list[str] | None = None, strict_reconcile: bool = False) -> None:
+    # Single-writer rule (2026-08-24: four concurrent runs wiped 47 caches).
+    # Taken before the first read so a losing run cannot populate the cache it is
+    # about to destroy. Covers the archive and ledger as well as outdir.
+    with lock_mod.SingleWriterLock(outdir):
+        _run_locked(pdf, outdir, no_tsv, viewer_dir, links, from_js, fresh, playwright,
+                    archive_root, use_archive, ledger_path, allow_reconcile_block,
+                    previous_projects, strict_reconcile)
+
+
+def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None, links: bool = False, from_js: str | None = None, fresh: bool = False, playwright: bool = False,
+                archive_root=None, use_archive: bool = True, ledger_path=None, allow_reconcile_block: bool = False,
+                previous_projects: list[str] | None = None, strict_reconcile: bool = False) -> None:
     # Load projects from JS (primary) or PDF
     if from_js:
         print(f"[INFO] Loading projects from {from_js}")
@@ -141,22 +287,23 @@ def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None, lin
         raw_recs = []
         clean = []
         extract_meta = {"published_date": meta.get("published_date", "")}
+        tripwire_result = None
+        reconciliation = None
+        ledger_outcome = None
     else:
-        recs, extract_meta = extract_mod.extract_pdf_with_meta(pdf)
-        raw_recs = extract_mod.to_raw_records(recs)
-        if not raw_recs:
-            print("[ERROR] No records parsed", file=sys.stderr)
-            sys.exit(1)
-
-        clean = cleanse_mod.cleanse_all(raw_recs)
-        projects = merge_mod.merge(clean)
-        meta = {
-            "generated_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
-            "source": pdf,
-            "thresholds": {"link": merge_mod.LINK_THRESHOLD, "flag": merge_mod.FLAG_THRESHOLD},
-        }
-        if "published_date" in extract_meta:
-            meta["published_date"] = extract_meta["published_date"]
+        ingested = _ingest_pdf(pdf, outdir, archive_root=archive_root,
+                               use_archive=use_archive, ledger_path=ledger_path,
+                               previous_projects=previous_projects,
+                               allow_reconcile_block=allow_reconcile_block,
+                               strict_reconcile=strict_reconcile)
+        projects = ingested["projects"]
+        meta = ingested["meta"]
+        raw_recs = ingested["raw_recs"]
+        clean = ingested["clean"]
+        extract_meta = {"published_date": meta.get("published_date", "")}
+        tripwire_result = ingested["tripwire"]
+        reconciliation = ingested["reconciliation"]
+        ledger_outcome = ingested["ledger"]
 
     # Run link discovery if requested
     link_results = {}
@@ -185,6 +332,9 @@ def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None, lin
         raw_recs, clean, projects,
         link_threshold=merge_mod.LINK_THRESHOLD,
         flag_threshold=merge_mod.FLAG_THRESHOLD,
+        ledger_outcome=ledger_outcome,
+        reconciliation=reconciliation,
+        tripwire=tripwire_result,
     )
     io_mod.write_text(f"{outdir}/review_report.txt", report)
 
@@ -223,6 +373,20 @@ def main(argv: list[str] | None = None) -> int:
                         help="從既有 projects.data.js 載入專案資料 (略過 PDF 解析)")
     parser.add_argument("--add-mapping-file", metavar="PATH", default=None,
                         help="從 JSON 文件新增 fallback 映射 (包含 land_core, view_id, case_id)")
+    parser.add_argument("--archive-root", metavar="DIR", default=None,
+                        help="gazette 封存目錄 (預設為 repo 外的 urtpe-gazettes)")
+    parser.add_argument("--no-archive", action="store_true",
+                        help="停用封存與 reconciliation (不建議)")
+    parser.add_argument("--ledger", metavar="PATH", default=None,
+                        help="人工修正 ledger 路徑 (JSONL, append-only)")
+    parser.add_argument("--allow-reconcile-block", action="store_true",
+                        help="即使 reconciliation 發現未解釋的變更也繼續寫出 (危險)")
+    parser.add_argument("--strict-reconcile", action="store_true",
+                        help="歷史列消失也視為阻擋 (需 ledger 已記錄接受)")
+    parser.add_argument("--archive-only", action="store_true",
+                        help="只封存 PDF，不執行完整 pipeline")
+    parser.add_argument("--previous-projects-from", metavar="PATH", default=None,
+                        help="用於辨識 project_id 搬移的上一版 projects.json")
     args = parser.parse_args(argv)
 
     if args.add_mapping_file:
@@ -235,7 +399,43 @@ def main(argv: list[str] | None = None) -> int:
     if not args.from_js and not args.pdf:
         parser.error("需要提供 PDF 路徑或使用 --from-js 指定 projects.data.js")
 
-    _run(args.pdf or "", args.outdir, args.no_tsv, args.viewer, args.links, args.from_js, args.fresh, args.playwright)
+    if args.archive_only:
+        if not args.pdf:
+            parser.error("--archive-only 需要 PDF 路徑")
+        root = GazetteArchive(args.archive_root)
+        gid = extract_mod.gazette_id_for(args.pdf)
+        dest, entry = root.record_ingest(
+            args.pdf, gid,
+            published_date=extract_mod.find_published_date(args.pdf) or gid,
+            source_path=args.pdf,
+        )
+        print(f"archived {gid} -> {dest}")
+        print(f"index entries: {len(root.entries())}")
+        return 0
+
+    previous_projects = None
+    if args.previous_projects_from:
+        prev = json.loads(Path(args.previous_projects_from).read_text(encoding="utf-8"))
+        previous_projects = [p["project_id"] for p in prev.get("projects", [])]
+
+    try:
+        _run(args.pdf or "", args.outdir, args.no_tsv, args.viewer, args.links, args.from_js,
+             args.fresh, args.playwright,
+             archive_root=args.archive_root, use_archive=not args.no_archive,
+             ledger_path=args.ledger,
+             allow_reconcile_block=args.allow_reconcile_block,
+             previous_projects=previous_projects, strict_reconcile=args.strict_reconcile)
+    except extract_mod.TableStructureError as exc:
+        # The reader refused the document; nothing was written.
+        print(str(exc), file=sys.stderr)
+        return 3
+    except tripwire_mod.TripwireFailure as exc:
+        # The extraction was not provably complete; nothing was written.
+        print(str(exc), file=sys.stderr)
+        return 4
+    except lock_mod.LockHeld as exc:
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        return 5
     return 0
 
 

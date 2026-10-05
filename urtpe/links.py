@@ -996,8 +996,50 @@ def _project_cache_dir(cache_dir: Path, project_id: str) -> Path:
     return cache_dir / safe_id
 
 
+_ALIAS_CACHE: dict[str, dict[str, str]] = {}
+
+
+def load_alias_table(cache_dir: Path) -> dict[str, str]:
+    """Return current -> former project_id, for cache migration.
+
+    A project's identity is the land-core slug of its newest approval, so it changes
+    whenever that approval's parcel description or district is corrected. The cache
+    directories are named on the former identity; resolving through this table keeps
+    the ~28 hours of portal work already done instead of orphaning it. Built by
+    ``scripts/build_project_aliases.py``, which pairs identities on member content
+    and refuses ambiguous pairs.
+    """
+    root = Path(cache_dir)
+    if root in _ALIAS_CACHE:
+        return _ALIAS_CACHE[root]
+    table: dict[str, str] = {}
+    for candidate in (root.parent / "project_aliases.json", root / "project_aliases.json"):
+        if candidate.exists():
+            try:
+                data = json.loads(candidate.read_text(encoding="utf-8"))
+                table = {new: old for old, new in (data.get("aliases") or {}).items()}
+            except (json.JSONDecodeError, OSError, AttributeError):
+                table = {}
+            break
+    _ALIAS_CACHE[root] = table
+    return table
+
+
+def resolve_cache_dir(cache_dir: Path, project_id: str) -> Path:
+    """The cache directory for ``project_id``, following an alias if one applies."""
+    direct = _project_cache_dir(cache_dir, project_id)
+    if direct.exists():
+        return direct
+    former = load_alias_table(cache_dir).get(project_id)
+    if former:
+        aliased = _project_cache_dir(cache_dir, former)
+        if aliased.exists():
+            return aliased
+    return direct
+
+
 def load_project_cache(cache_dir: Path, project_id: str) -> Optional[DiscoveryResult]:
-    project_cache = _project_cache_dir(cache_dir, project_id)
+    project_cache = resolve_cache_dir(cache_dir, project_id)
     result_file = project_cache / "result.json"
     if result_file.exists():
         try:

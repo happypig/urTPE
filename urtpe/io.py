@@ -17,13 +17,14 @@ def _cell(value) -> str:
     return str(value)
 
 
-RAW_HEADERS = ["編號", "核定日期", "行政區", "案名", "地號", "實施者", "更新規劃單位", "parse_error"]
+RAW_HEADERS = ["編號", "核定日期", "行政區", "案名", "地號", "實施者", "更新規劃單位",
+              "parse_error", "gazette_id"]
 
 CLEAN_HEADERS = [
     "recno", "iso_date", "date", "district", "district_land", "name", "name_raw",
     "land", "section", "first_parcel", "parcels", "aliases", "land_count",
     "orig_count", "named_anchor", "area_section", "stage", "stage_index", "track",
-    "implementer", "planner", "auto_fixes", "review_flags",
+    "implementer", "planner", "auto_fixes", "review_flags", "gazette_id",
 ]
 
 MERGE_HEADERS = CLEAN_HEADERS + ["project_id", "is_current", "anchor_recno"]
@@ -33,7 +34,8 @@ def raw_to_tsv(records: list[RawRecord]) -> str:
     lines = ["\t".join(RAW_HEADERS)]
     for r in records:
         lines.append("\t".join([
-            str(r.recno), r.date, r.district, r.name, r.land, r.implementer, r.planner, r.parse_error,
+            str(r.recno), r.date, r.district, r.name, r.land, r.implementer, r.planner,
+            r.parse_error, r.gazette_id,
         ]))
     return "\n".join(lines) + "\n"
 
@@ -46,7 +48,7 @@ def clean_to_tsv(records: list[CleanRecord]) -> str:
             r.land, r.section, r.first_parcel, _cell(r.parcels), _cell(r.aliases),
             _cell(r.land_count), _cell(r.orig_count), r.named_anchor, r.area_section,
             r.stage, str(r.stage_index), r.track, r.implementer, r.planner,
-            _cell(r.auto_fixes), _cell(r.review_flags),
+            _cell(r.auto_fixes), _cell(r.review_flags), r.gazette_id,
         ]))
     return "\n".join(lines) + "\n"
 
@@ -60,7 +62,7 @@ def merged_to_tsv(projects: list[Project]) -> str:
                 r.land, r.section, r.first_parcel, _cell(r.parcels), _cell(r.aliases),
                 _cell(r.land_count), _cell(r.orig_count), r.named_anchor, r.area_section,
                 r.stage, str(r.stage_index), r.track, r.implementer, r.planner,
-                _cell(r.auto_fixes), _cell(r.review_flags),
+                _cell(r.auto_fixes), _cell(r.review_flags), r.gazette_id,
                 p.project_id, "true" if r.recno == p.anchor_recno else "false", str(p.anchor_recno),
             ]))
     return "\n".join(lines) + "\n"

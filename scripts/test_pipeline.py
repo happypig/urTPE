@@ -6,12 +6,13 @@ import tempfile
 import os
 import json
 
-# Create a test PDF using the fixture
-from tests.fixtures import build_sample_pdf, SAMPLE_ROWS
+# Create a test PDF using the ruled-table fixture
+from tests.fixtures import SAMPLE_ROWS
+from tests.gazette_fixtures import write_gazette
 
 with tempfile.TemporaryDirectory() as tmpdir:
     pdf_path = os.path.join(tmpdir, 'test.pdf')
-    build_sample_pdf(pdf_path, SAMPLE_ROWS)
+    write_gazette(pdf_path, SAMPLE_ROWS, published="統計至115年8月11日")
     
     # Capture stdout to avoid encoding issues
     import io, contextlib

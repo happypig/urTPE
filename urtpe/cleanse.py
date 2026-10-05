@@ -54,14 +54,25 @@ def cn_to_int(s: str) -> int:
     return CN_NUM.get(s, 0)
 
 
+def to_iso(date_str: str) -> tuple[str | None, tuple[int, int, int] | None]:
+    """Convert a 核定日期 cell to ISO-8601, accepting either calendar.
+
+    The city published ROC dates (``115/8/27``) until the 1151002 gazette, which
+    switched to Gregorian (``2026/9/24``). ROC years are 1-3 digits and always below
+    1912, so a year under 1911 is unambiguously ROC and the decision is safe per
+    cell — one publication may mix calendars.
+
+    Kept as an alias of :func:`urtpe.extract.to_iso` so the cleansing layer and the
+    reader agree on exactly one calendar rule.
+    """
+    from urtpe.extract import to_iso as _to_iso
+
+    return _to_iso(date_str)
+
+
 def roc_to_iso(date_str: str) -> tuple[str | None, tuple[int, int, int] | None]:
-    """Convert ROC date 'YY/M/D' to ISO-8601 (ROC + 1911)."""
-    m = re.fullmatch(r"(\d{1,3})/(\d{1,2})/(\d{1,2})", date_str.strip())
-    if not m:
-        return None, None
-    y, mo, d = (int(g) for g in m.groups())
-    iso = f"{y + 1911:04d}-{mo:02d}-{d:02d}"
-    return iso, (y + 1911, mo, d)
+    """Deprecated alias for :func:`to_iso`."""
+    return to_iso(date_str)
 
 
 def normalize_name(name: str) -> str:
@@ -184,7 +195,7 @@ def cleanse(rec: RawRecord) -> CleanRecord:
         fixes.append("行政區錯字→松山區")
         district = DISTRICT_FIXES[district]
 
-    iso, ymd = roc_to_iso(rec.date)
+    iso, ymd = to_iso(rec.date)
     if iso is None:
         flags.append("日期無法解析")
 
@@ -282,6 +293,7 @@ def cleanse(rec: RawRecord) -> CleanRecord:
 
     return CleanRecord(
         recno=rec.recno,
+        gazette_id=rec.gazette_id,
         date=rec.date,
         iso_date=iso or "",
         ymd=ymd or (0, 0, 0),

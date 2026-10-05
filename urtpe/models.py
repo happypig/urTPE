@@ -16,6 +16,7 @@ class RawRecord:
     implementer: str
     planner: str
     parse_error: str = ""
+    gazette_id: str = ""
 
 
 @dataclass
@@ -46,6 +47,7 @@ class CleanRecord:
     planner: str
     auto_fixes: list[str] = field(default_factory=list)
     review_flags: list[str] = field(default_factory=list)
+    gazette_id: str = ""
     links: dict = field(default_factory=dict)
     stage_事業計畫: Optional[str] = None
     stage_權利變換: Optional[str] = None

@@ -433,13 +433,17 @@ def find_matching_view_with_outcome(section: str, parcel: str, count: str = "",
     the first match. When the limit truncates unprobed results without a
     match, a note with the unprobed count is printed.
 
-    Returns (view_id, milestones, city_ids, html, view_ids_checked); html is
+    Returns (view_id, milestones, city_ids, html, view_ids_checked, outcome); html is
     empty when no match. view_ids_checked lists every probed view_id (match,
     reject, or error) so no-match probes can be recorded in the ledger.
+
+    Every return path carries the outcome. A search that returned no view ids at all is a
+    real negative -- the portal answered, with nothing in it -- so it is a miss, not an
+    error: there was nothing to fetch and therefore nothing that could have failed.
     """
     vids = search_portal(section)
     if not vids:
-        return "", {}, [], "", []
+        return "", {}, [], "", [], OUTCOME_MISS
 
     limit = max(1, int(max_probe))
     checked: list[str] = []

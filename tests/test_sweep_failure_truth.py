@@ -122,6 +122,52 @@ def test_never_approved_is_still_permanently_excluded():
 
 # --- 1.4: a partial failure that still matched is a match ------------------
 
+def test_a_search_returning_no_view_ids_is_a_miss_not_an_error(monkeypatch):
+    """The empty-result path.
+
+    A search that yielded no view ids at all is a real negative: the portal answered, with
+    nothing in it. There was nothing to fetch, so nothing could have failed -- calling it an
+    error would return every such project to the queue forever. It must also carry the
+    outcome, which is the return path this test exists to pin: it once returned five values
+    while every other path returned six, and the whole sweep died on its first project.
+    """
+    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: [])
+
+    result = sweep.find_matching_view_with_outcome("華中段二小段", "201-2", "26")
+
+    assert len(result) == 6, "every return path carries the outcome: %r" % (result,)
+    assert result[5] == "miss", result[5]
+
+
+def test_every_return_path_of_the_search_carries_an_outcome(monkeypatch):
+    """A shape test, because the failure was a shape mismatch, not a logic error."""
+    cases = []
+
+    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: [])
+    cases.append(("no view ids", sweep.find_matching_view_with_outcome("s", "p", "c")))
+
+    def boom(url, data=None, browser=False):
+        raise OSError("connection reset")
+
+    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: ["v1"])
+    monkeypatch.setattr(sweep, "fetch_url", boom)
+    cases.append(("all probes raised",
+                  sweep.find_matching_view_with_outcome("s", "p", "c")))
+
+    monkeypatch.setattr(sweep, "fetch_url", lambda *a, **k: "<html>x</html>")
+    monkeypatch.setattr(sweep, "view_page_matches", lambda *a: False)
+    cases.append(("probed, none matched",
+                  sweep.find_matching_view_with_outcome("s", "p", "c")))
+
+    monkeypatch.setattr(sweep, "view_page_matches", lambda *a: True)
+    cases.append(("matched",
+                  sweep.find_matching_view_with_outcome("s", "p", "c")))
+
+    for label, result in cases:
+        assert len(result) == 6, "%s returned %d values, expected 6: %r" % (label, len(result), result)
+        assert result[5] in ("match", "miss", "error"), "%s: bad outcome %r" % (label, result[5])
+
+
 def test_some_probes_raising_with_a_later_match_is_a_match_not_an_error(monkeypatch):
     """Discarding a real match would be wrong in the opposite direction."""
     calls = {"n": 0}

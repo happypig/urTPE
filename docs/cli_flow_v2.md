@@ -158,12 +158,53 @@ its results are picked up on the next `--links` run.
 Usage:
 
 ```
-python scripts/fetch_remaining_national_portal.py [--dry-run] [--max-projects N] [--max-probe N] [--reprobe-days N]
-```
+python scripts/fetch_remaining_national_portal.py [--dry-run] [--max-projects N] [--max-probe N] [--reprobe-days N] [--deadline HH:MM]
+`
+
+### Outcomes are three, not two
+
+The ledger records what happened to each candidate, and 	wur_class is what
+distinguishes them:
+
+| outcome | meaning | re-probe exclusion |
+|---|---|---|
+| *(entry removed)* | a probe returned a page satisfying the strict matcher | none |
+| miss | every fetch answered, none satisfied — a real negative | 14 days |
+| rror | **every fetch raised** — the search never completed | **none** |
+
+An rror is not a negative and never becomes one. The requirement *No-match
+ledger persistence* scopes recording to a candidate that **completes** targeted
+search; a run whose probes all raised did not complete one, so recording it as a
+miss would bury the project for two weeks on the strength of a network blip —
+in an entry byte-identical to a genuine "the portal does not list this parcel".
+
+The same applies to a **cache-write failure after a successful match**: the portal
+had the case and we failed to save it, which is our failure, not its absence.
+
+ilter_candidates keys eligibility on the class rather than on last_probed, so an
+error entry stays eligible however recent it is. Leaving last_probed unset would have
+had the opposite effect — permanently eligible, re-probed every run forever at
+full-sweep politeness cost.
+
+Classification (
+ever-approved / 
+ecoverable) applies to negatives only and refuses
+to overwrite an rror entry, because nothing was retrieved and so there is no case
+outcome to read.
+
+### --deadline
+
+Replaces a hardcoded DEADLINE_HOUR/DEADLINE_MINUTE pair that had drifted from the
+requirement (code said 07:00, requirement said 06:30). Default is **06:30**; the window
+resolves to the first occurrence *after* launch, so a post-deadline launch rolls to
+tomorrow rather than exiting instantly. **A malformed value refuses the run with exit 2**
+rather than falling back to the default — a typo silently becoming 06:30 would turn an
+afternoon sweep into an overnight crawl. The resolved stop time is printed at startup and
+repeated in the run summary.``
 
 ```mermaid
 flowchart TD
-    S0["Start<br/>parse --dry-run, --max-projects,<br/>--reprobe-days, --max-probe"] --> S1["load_ledger<br/>data/.link_cache/no_match_ledger.json<br/>corrupt file → quarantine .corrupt"]
+    S0["Start<br/>parse --dry-run, --max-projects,<br/>--reprobe-days, --max-probe,<br/>--deadline (default 06:30;<br/>malformed \u2192 exit 2)"] --> S1["load_ledger<br/>data/.link_cache/no_match_ledger.json<br/>corrupt file → quarantine .corrupt"]
     S1 --> S2["sweep_matched_entries<br/>clear ledger entries for projects<br/>whose cache gained twur elsewhere"]
     S2 --> S3["load_candidates from<br/>viewer/projects.data.js:<br/>links.twur empty + is_current node<br/>yields section + first_parcel (+ 等N筆 count)<br/>sort by 現況 date desc"]
     S3 --> S4["filter_candidates:<br/>skip probed within --reprobe-days (14)<br/>0 disables skipping"]
@@ -174,7 +215,7 @@ flowchart TD
     S6 -->|"no"| S8["keep all"]
     S7 --> LOOP["for each candidate"]
     S8 --> LOOP
-    LOOP --> D1{"is_past_deadline?<br/>DEADLINE_HOUR/MINUTE (default 07:00)<br/>_next_deadline: target at/before launch<br/>rolls to tomorrow (cross-midnight OK);<br/>run_sweep_until.py overrides the pair"}
+    LOOP --> D1{"is_past_deadline?<br/>resolved --deadline (default 06:30)<br/>resolve_deadline: target at/before launch<br/>rolls to tomorrow (cross-midnight OK)"}
     D1 -->|"yes"| SUM
     D1 -->|"no"| F1["find_matching_view:<br/>search_portal ?title=section, city_id=2<br/>collect /view/NNN ids"]
     F1 --> F2["probe up to --max-probe (default 8):<br/>fetch view page, view_page_matches<br/>strict section+parcel+count equality,<br/>notation-normalized (之 ↔ -, full-width)"]

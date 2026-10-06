@@ -33,6 +33,7 @@ import argparse
 import json
 import os
 import random
+import re
 import sys
 import time
 from datetime import datetime, time as dtime, timedelta
@@ -62,8 +63,9 @@ from urtpe.links import (
 # Constants
 # ──────────────────────────────────────────────────────────────────────────────
 
-DEADLINE_HOUR = 7
-DEADLINE_MINUTE = 0
+# The requirement says 06:30; the implementation said 07:00. The requirement wins, and the
+# window is now a launch-time option so the two can never disagree again.
+DEFAULT_DEADLINE = "06:30"
 SEARCH_URL = "https://twur.nlma.gov.tw/zh/urban/rebuild/0"
 VIEW_URL_BASE = "https://twur.nlma.gov.tw/zh/urban/rebuild/view/"
 ROOT = Path("data/.link_cache")
@@ -102,21 +104,60 @@ def save_ledger(ledger: dict, path: Path = LEDGER_PATH) -> None:
     os.replace(tmp, path)
 
 
+# Outcome of a targeted search. miss is a negative: the portal answered and had nothing.
+# rror means every fetch raised, so the search never completed and the project was never
+# shown to be absent -- recording it as a miss would bury it for the re-probe TTL on the
+# strength of a network blip.
+OUTCOME_MATCH = "match"
+OUTCOME_MISS = "miss"
+OUTCOME_ERROR = "error"
+
+
 def annotate_class(ledger: dict, project_id: str, cls: str) -> None:
     """Annotate a ledger entry with the project's twur class
     (never-approved / recoverable) from the top.ashx outcome classification —
-    never-approved entries are excluded from re-probes regardless of TTL."""
-    if project_id in ledger:
-        ledger[project_id]["twur_class"] = cls
+    never-approved entries are excluded from re-probes regardless of TTL.
+
+    Classification reads case outcomes, so it applies to negatives only. An rror entry
+    retrieved nothing and therefore has no case outcome; forcing 
+ecoverable onto it
+    would assert the portal should hold a page we never reached.
+    """
+    entry = ledger.get(project_id)
+    if entry is None:
+        return
+    if entry.get("twur_class") == OUTCOME_ERROR:
+        return
+    entry["twur_class"] = cls
 
 
 def record_no_match(ledger: dict, project_id: str, view_ids_checked: list[str],
                     now: Optional[datetime] = None) -> None:
     """Record/update a project's no-match probe result (mutates ledger in place)."""
-    ledger[project_id] = {
+    record_outcome(ledger, project_id, view_ids_checked,
+                   outcome=OUTCOME_MISS, now=now)
+
+
+def record_outcome(ledger: dict, project_id: str, view_ids_checked: list[str],
+                   *, outcome: str, now: Optional[datetime] = None) -> None:
+    """Record a targeted search's outcome. Only a miss carries the re-probe exclusion.
+
+    The entry shape is identical for all three so the ledger stays one table; 	wur_class
+    is what distinguishes them, and ilter_candidates keys eligibility off it rather than
+    off the timestamp. An rror keeps its last_probed -- when the failure happened is
+    evidence -- without that timestamp buying an exclusion, because it was never a negative.
+    """
+    entry = {
         "last_probed": (now or datetime.now()).isoformat(timespec="seconds"),
         "view_ids_checked": list(view_ids_checked),
     }
+    if outcome == OUTCOME_ERROR:
+        entry["twur_class"] = OUTCOME_ERROR
+    elif outcome == OUTCOME_MISS:
+        entry["twur_class"] = ledger.get(project_id, {}).get("twur_class")
+        if entry["twur_class"] in (None, OUTCOME_ERROR):
+            entry["twur_class"] = OUTCOME_MISS
+    ledger[project_id] = entry
 
 
 def clear_entry(ledger: dict, project_id: str) -> None:
@@ -142,6 +183,12 @@ def filter_candidates(candidates: list[dict], ledger: dict, reprobe_days: float 
         entry = ledger.get(cand["project_id"]) or {}
         if entry.get("twur_class") == "never-approved":
             skipped.append(cand)
+            continue
+        if entry.get("twur_class") == OUTCOME_ERROR:
+            # Never a negative: the search did not complete, so the project must not be
+            # suppressed for the TTL. Re-probe pacing for a portal that is down is the
+            # politeness interval's job, not this entry's.
+            kept.append(cand)
             continue
         probed = None
         raw = entry.get("last_probed")
@@ -184,24 +231,45 @@ def sweep_matched_entries(ledger: dict, cache_root: Path = ROOT) -> list[str]:
 _PROCESS_START = datetime.now()
 
 
-def _next_deadline(now: datetime, start: datetime,
-                   hour: int, minute: int) -> datetime:
-    """Resolve an HH:MM wall-clock deadline to the first occurrence after `start`.
+def parse_deadline(text: str) -> tuple[int, int]:
+    """Parse an `HH:MM` stop time.
 
-    A deadline at-or-before the launch moment means tomorrow: launching at
-    22:32 with deadline 06:00 targets tomorrow 06:00, not the already-past
-    06:00 (which previously stopped the run instantly).
+    Raises ValueError on anything unparseable. Falling back to the default instead would be
+    worse than refusing: a typo in `--deadline` would silently become 06:30 and a sweep
+    meant to stop this afternoon would run overnight against the portal.
     """
-    target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    raw = (text or "").strip()
+    m = re.fullmatch(r"(\d{1,2}):(\d{2})", raw)
+    if not m:
+        raise ValueError(
+            "stop time must be HH:MM in 24-hour form, got %r" % text)
+    hour, minute = int(m.group(1)), int(m.group(2))
+    if not (0 <= hour <= 23) or not (0 <= minute <= 59):
+        raise ValueError("stop time out of range: %r" % text)
+    return hour, minute
+
+
+def resolve_deadline(start: datetime, hour: int, minute: int) -> datetime:
+    """The first occurrence of the stop time strictly after `start`.
+
+    A stop time at-or-before the launch moment means tomorrow: launching at 10:30 with a
+    06:30 stop targets tomorrow 06:30, not an already-past 06:30 that would exit instantly.
+    """
+    target = start.replace(hour=hour, minute=minute, second=0, microsecond=0)
     if target <= start:
         target += timedelta(days=1)
     return target
 
 
+# Resolved once at startup so is_past_deadline stays a cheap comparison in the hot loop.
+# Rebound by main() when --deadline supplies a different window.
+_DEADLINE: list[datetime] = [resolve_deadline(_PROCESS_START, *parse_deadline(DEFAULT_DEADLINE))]
+
+
 def is_past_deadline() -> bool:
-    """True once now passes the deadline resolved by _next_deadline."""
-    return datetime.now() >= _next_deadline(
-        datetime.now(), _PROCESS_START, DEADLINE_HOUR, DEADLINE_MINUTE)
+    """True once now passes the resolved stop time."""
+    now = datetime.now()
+    return now >= _DEADLINE[0]
 
 
 def load_candidates(js_path: Optional[Path] = None) -> list[dict]:
@@ -357,7 +425,7 @@ def view_page_matches(html: str, section: str, parcel: str, count: str = "") -> 
     return True
 
 
-def find_matching_view(section: str, parcel: str, count: str = "",
+def find_matching_view_with_outcome(section: str, parcel: str, count: str = "",
                        max_probe: int = DEFAULT_MAX_PROBE) -> tuple[str, dict[str, str], list[str], str, list[str]]:
     """Search for view_id matching section, then filter by strict identity match.
 
@@ -375,6 +443,7 @@ def find_matching_view(section: str, parcel: str, count: str = "",
 
     limit = max(1, int(max_probe))
     checked: list[str] = []
+    raised = 0
     for vid in vids[:limit]:
         print(f"  Checking view/{vid} for parcel {parcel}...")
         checked.append(vid)
@@ -385,16 +454,23 @@ def find_matching_view(section: str, parcel: str, count: str = "",
                 print(f"  Match found: view/{vid}")
                 milestones = extract_tuidui_history_from_view(html)
                 city_ids = extract_case_ids_from_view(html)
-                return vid, milestones, city_ids, html, checked
+                # Some probes may have raised; a page that satisfies the strict matcher is
+                # still a match, so no error is recorded for the ones that did not.
+                return vid, milestones, city_ids, html, checked, OUTCOME_MATCH
             print(f"  view/{vid} rejected (section/parcel/count mismatch)")
         except Exception as e:
+            raised += 1
             print(f"  Error checking view/{vid}: {e}")
             continue
 
     remaining = len(vids) - len(checked)
     if remaining > 0:
         print(f"  No match within {limit} probes ({remaining} unprobed results remain)")
-    return "", {}, [], "", checked
+    # Every probe raised, or at least one did and none answered. A miss is a negative only
+    # when the portal actually answered.
+    if checked and raised == len(checked):
+        return "", {}, [], "", checked, OUTCOME_ERROR
+    return "", {}, [], "", checked, OUTCOME_MISS
 
 
 def update_project_cache(project_id: str, view_id: str, milestones: dict[str, str], view_html: str = "",
@@ -505,11 +581,27 @@ def main():
                         help=f"Re-probe no-match candidates after N days (default {DEFAULT_REPROBE_DAYS}; 0 disables skipping)")
     parser.add_argument("--max-probe", type=int, default=DEFAULT_MAX_PROBE,
                         help=f"Max view pages to probe per project (default {DEFAULT_MAX_PROBE})")
+    parser.add_argument("--deadline", default=DEFAULT_DEADLINE, metavar="HH:MM",
+                        help="Stop initiating fetches at this local time; resolves to the next "
+                             "occurrence after launch (default: %(default)s). Malformed input is "
+                             "refused rather than defaulted.")
     args = parser.parse_args()
 
     print("=" * 60)
     print("Fetch Remaining National Portal Data")
-    print(f"Deadline: {DEADLINE_HOUR:02d}:{DEADLINE_MINUTE:02d}")
+
+    # Refuse a malformed stop time before touching the ledger or the portal: silently
+    # defaulting would turn a typo into an overnight crawl.
+    try:
+        hour, minute = parse_deadline(args.deadline)
+    except ValueError as exc:
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        return 2
+    global _DEADLINE
+    _DEADLINE = [resolve_deadline(_PROCESS_START, hour, minute)]
+    resolved_deadline = _DEADLINE[0]
+    print(f"Stop time: {resolved_deadline:%Y-%m-%d %H:%M} local "
+          f"({(resolved_deadline - _PROCESS_START).total_seconds() / 3600:.1f}h window)")
     print("=" * 60)
 
     # Load ledger + self-heal entries for projects that gained twur elsewhere
@@ -553,7 +645,7 @@ def main():
     for i, cand in enumerate(candidates):
         # Check deadline at start of each iteration
         if is_past_deadline():
-            print(f"\nDeadline {DEADLINE_HOUR:02d}:{DEADLINE_MINUTE:02d} reached. Stopping.")
+            print(f"\nStop time {resolved_deadline:%H:%M} reached. Stopping.")
             break
 
         project_id = cand["project_id"]
@@ -565,13 +657,21 @@ def main():
         print(f"\n[{processed+1}/{len(candidates)}] {project_id} | {current_date} | {section}{parcel}")
 
         # Search portal by section, then filter by strict identity match
-        chosen_vid, milestones, city_ids, view_html, checked_vids = find_matching_view(
-            section, parcel, count, max_probe=args.max_probe)
-        matched = bool(chosen_vid)
-        if not matched:
+        chosen_vid, milestones, city_ids, view_html, checked_vids, outcome = \
+            find_matching_view_with_outcome(section, parcel, count, max_probe=args.max_probe)
+        matched = outcome == OUTCOME_MATCH
+        if outcome == OUTCOME_ERROR:
+            # Every fetch raised. The search did not complete, so this is not evidence the
+            # portal lacks the case -- recording it as a miss would suppress the project for
+            # the re-probe TTL on the strength of a network blip.
+            print(f"  All {len(checked_vids)} portal fetches failed for {parcel}; "
+                  f"recording an error, not a no-match")
+            record_outcome(ledger, project_id, checked_vids, outcome=OUTCOME_ERROR)
+            save_ledger(ledger)
+        elif not matched:
             print(f"  No matching view_id found for parcel {parcel}, skipping")
             # Record immediately (design D3): a deadline kill must not lose tonight's negatives
-            record_no_match(ledger, project_id, checked_vids)
+            record_outcome(ledger, project_id, checked_vids, outcome=OUTCOME_MISS)
             save_ledger(ledger)
         else:
             print(f"  Matched view/{chosen_vid}")
@@ -588,8 +688,10 @@ def main():
                 updated += 1
                 print(f"  Cache updated for {chosen_vid}")
             else:
+                # The portal matched but the cache could not be written. That is our
+                # failure, not the portal's absence, so it must not become a 14-day miss.
                 failed += 1
-                record_no_match(ledger, project_id, checked_vids)
+                record_outcome(ledger, project_id, checked_vids, outcome=OUTCOME_ERROR)
                 save_ledger(ledger)
 
         processed += 1

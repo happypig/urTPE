@@ -367,26 +367,26 @@ class TestDeadlineLogic:
     def test_next_deadline_same_day(self):
         """Deadline later today resolves to today."""
         from datetime import datetime
-        from scripts.fetch_remaining_national_portal import _next_deadline
+        from scripts.fetch_remaining_national_portal import resolve_deadline
         start = datetime(2026, 8, 25, 12, 59)
         now = datetime(2026, 8, 25, 13, 0)
-        assert _next_deadline(now, start, 22, 30) == datetime(2026, 8, 25, 22, 30)
+        assert resolve_deadline(start, 22, 30) == datetime(2026, 8, 25, 22, 30)
 
     def test_next_deadline_crosses_midnight(self):
         """Deadline already passed at launch rolls to tomorrow (run_sweep_until 6 0 at 22:32)."""
         from datetime import datetime
-        from scripts.fetch_remaining_national_portal import _next_deadline
+        from scripts.fetch_remaining_national_portal import resolve_deadline
         start = datetime(2026, 8, 25, 22, 32)
         now = datetime(2026, 8, 25, 23, 0)
-        assert _next_deadline(now, start, 6, 0) == datetime(2026, 8, 26, 6, 0)
+        assert resolve_deadline(start, 6, 0) == datetime(2026, 8, 26, 6, 0)
 
     def test_next_deadline_at_launch_rolls_forward(self):
         """Deadline equal to the launch moment also rolls to tomorrow."""
         from datetime import datetime
-        from scripts.fetch_remaining_national_portal import _next_deadline
+        from scripts.fetch_remaining_national_portal import resolve_deadline
         start = datetime(2026, 8, 25, 7, 0)
         now = datetime(2026, 8, 25, 7, 0)
-        assert _next_deadline(now, start, 7, 0) == datetime(2026, 8, 26, 7, 0)
+        assert resolve_deadline(start, 7, 0) == datetime(2026, 8, 26, 7, 0)
 
     def test_loop_stops_at_deadline(self):
         """Loop stops at 06:30 and triggers regeneration."""
@@ -495,8 +495,13 @@ class TestLedgerLoadSave:
         assert ledger == {}
         record_no_match(ledger, "pid-A", ["123", "456"], now=datetime(2026, 8, 25, 3, 0, 0))
         save_ledger(ledger, ledger_path)
+        # twur_class now names the outcome rather than being distinguished by its absence:
+        # a miss, an error and an unclassified entry must be readable apart. See
+        # sweep-failure-truth, which added the third outcome.
         assert load_ledger(ledger_path) == {
-            "pid-A": {"last_probed": "2026-08-25T03:00:00", "view_ids_checked": ["123", "456"]}
+            "pid-A": {"last_probed": "2026-08-25T03:00:00",
+                       "view_ids_checked": ["123", "456"],
+                       "twur_class": "miss"}
         }
 
     def test_update_existing_entry_last_wins(self):
@@ -655,7 +660,7 @@ import re as _re
 
 from scripts.fetch_remaining_national_portal import (
     DEFAULT_MAX_PROBE,
-    find_matching_view,
+    find_matching_view_with_outcome,
     load_candidates,
     normalize_land_token,
     view_page_matches,
@@ -807,7 +812,7 @@ class TestProbeBreadth:
         monkeypatch.setattr(mod, "fetch_url", fake_fetch)
 
         kwargs = {} if max_probe is None else {"max_probe": max_probe}
-        result = find_matching_view("寶清段四小段", "599", "27", **kwargs)
+        result = find_matching_view_with_outcome("寶清段四小段", "599", "27", **kwargs)
         out = capsys.readouterr().out
         return result, calls["n"], out, vids
 

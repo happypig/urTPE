@@ -614,29 +614,44 @@ def discover_project_links(
     # ── Step 3 (supplementary): national portal for view URL + 推動歷程 ──────
     national_milestones = {}
     view_html = ""
+    view_id = None
     if portal_index:
         view_id = lookup_in_portal_index(land_core, portal_index)
         if not view_id:
             fb_entry = load_fallback_mapping().get(land_core, {})
             view_id = fb_entry.get("view_id")
-        if view_id:
-            result.twur_view_id = view_id
-            result.twur_url = f"{VIEW_URL_BASE}{view_id}"
-            try:
-                time.sleep(delay)
-                view_html = fetch_view_page(view_id, cache_dir, fresh)
-                national_milestones = extract_tuidui_history_from_view(view_html)
-            except Exception as e:
-                if result.error:
-                    result.error += "; "
-                result.error += f"View page fetch failed: {e}"
-                view_html = ""
+    if not view_id and cache_dir:
+        # Last link in the chain: a human-verified record. Read here, during discovery,
+        # rather than from `load_project_cache` -- that function can only see a record
+        # from inside its `result.json` branch, so on an empty cache (every fresh clone,
+        # since `.link_cache/` is not version-controlled) the table was never consulted and
+        # the committed dataset could not be rebuilt. Returning a synthetic result from the
+        # cache read instead would satisfy the link and leave every other field empty.
+        entry = load_twur_overrides(cache_dir).get(project.project_id)
+        view_id = entry.get("twur_view_id") if entry else None
+    if view_id:
+        result.twur_view_id = view_id
+        result.twur_url = f"{VIEW_URL_BASE}{view_id}"
+        try:
+            time.sleep(delay)
+            view_html = fetch_view_page(view_id, cache_dir, fresh)
+            national_milestones = extract_tuidui_history_from_view(view_html)
+            _absorb_view_case_ids(project, result, view_html, delay,
+                                  all_taipei_milestones, milestones_source)
+        except Exception as e:
+            if result.error:
+                result.error += "; "
+            result.error += f"View page fetch failed: {e}"
+            view_html = ""
     result.national_milestones = national_milestones
 
-    # Determine final status based on what we actually obtained
-    if city_ids and all_taipei_milestones:
+    # Determine final status based on what we actually obtained. Read the result's own
+    # case ids, not the Step 1 local: ids absorbed from the view page count, or an
+    # overridden project reads "unresolved" while carrying both its links and milestones.
+    found_ids = result.city_case_ids
+    if found_ids and all_taipei_milestones:
         result.status = "resolved"
-    elif city_ids:
+    elif found_ids:
         result.status = "resolved_no_city"
     else:
         result.status = "unresolved"
@@ -646,6 +661,43 @@ def discover_project_links(
         save_project_cache(cache_dir, project.project_id, result, view_html=view_html)
 
     return result
+
+
+def _absorb_view_case_ids(project, result: "DiscoveryResult", view_html: str, delay: float,
+                          all_taipei_milestones: dict, milestones_source: dict) -> None:
+    """Take the city case ids off the national view page and resolve their milestones.
+
+    The view page lists the project's own cases under 縣市政府案件連結. For a project whose
+    parcel the city API cannot match -- the parcel the city prints differs from the one in the
+    gazette -- that block is the only place the case id is written down at all.
+
+    `extract_case_ids_from_view` and the `view_verified_case_ids` field both existed, and
+    `attach_links_to_projects` already skips its similarity gate for view-verified ids, but
+    nothing ever populated the field: the extractor was called from tests and nowhere else.
+    So a project reached this way kept an empty `city_case_ids` while the page named its case,
+    and rendered a national-portal link with no city link beside it.
+
+    The ids are marked view-verified rather than merely added, because a parcel-less case name
+    scores 0.0 against the project's land core and would otherwise be rejected as unrelated.
+    """
+    ids = [c for c in extract_case_ids_from_view(view_html) if c]
+    if not ids:
+        return
+    result.view_verified_case_ids = list(ids)
+    known = list(result.city_case_ids)
+    fresh_ids = [c for c in ids if c not in known]
+    if fresh_ids:
+        result.city_case_ids = known + fresh_ids
+    for cid in fresh_ids:
+        time.sleep(delay)
+        try:
+            ms = fetch_taipei_milestones_api(cid)
+            merge_stage_milestones(all_taipei_milestones, milestones_source, cid, ms)
+            result.case_milestones[cid] = ms
+        except Exception as e:
+            if result.error:
+                result.error += "; "
+            result.error += f"View-page milestone {cid} failed: {e}"
 
 
 def fetch_view_page(view_id: str, cache_dir: Optional[Path] = None, fresh: bool = False) -> str:
@@ -1623,6 +1675,11 @@ class LinksDiscovery:
         multimap = build_index_multimap(portal_index)
 
         sorted_projects = sorted(projects, key=lambda p: p.project_id)
+
+        # A record naming a project this dataset no longer contains is a moved identity.
+        # Reporting it here is the only place the whole dataset is enumerated, so it would
+        # otherwise never be reported and the record would silently stop applying.
+        unattached_overrides(self.cache_dir, [p.project_id for p in projects])
 
         results = {}
         for project in sorted_projects:

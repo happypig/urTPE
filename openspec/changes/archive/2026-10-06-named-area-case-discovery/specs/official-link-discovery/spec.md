@@ -48,6 +48,32 @@ A unit named for a place rather than a parcel declares no 地號 at all, which i
 
 Every case the guard rejects SHALL remain reported in `search_rejected`, so a case left out for want of corroboration is auditable and can be recorded by hand rather than vanishing.
 
+#### Scenario: A parcel-less case naming the same area is kept
+- **WHEN** the search for 青年段一小段 parcel 711 returns 09112120 / 09112121, whose names
+  declare the area 崇仁新村 and no 地號, and the searched record's name carries 崇仁新村
+- **THEN** both remain in `city_case_ids`
+
+#### Scenario: A parcel-less case naming a different area is rejected
+- **WHEN** a case's name declares no 地號 and shares no place run with the searched record
+- **THEN** it is dropped and named in `search_rejected`
+
+#### Scenario: A declared conflicting parcel is never corroborated
+- **WHEN** a case's name carries a 地號 other than the searched one, even while sharing a
+  place run with the searched record
+- **THEN** it is dropped, because a conflicting 地號 is positive evidence of a different unit
+
 #### Scenario: Own-family cases survive the guard
 - **WHEN** the search for 寶清段一小段 parcel 57-13 returns 10212211 (擬訂…57-13地號等1筆…) and 10212212/10212214/11412018 (…57-13地號等1筆…)
 - **THEN** all four remain in `city_case_ids`
+
+#### Scenario: Foreign same-section case rejected
+- **WHEN** the search for 正義段四小段 parcel 115 returns case 11102211 (擬訂…正義段四小段**133地號**1筆…)
+- **THEN** 11102211 is dropped — its name lacks parcel 115
+
+#### Scenario: Sibling R13 概要 case rejected
+- **WHEN** the search for 南港段一小段 parcel 520-2 returns 概要 cases on 522等45筆 / 467等41筆 / 403-2等28筆 / 561等5筆 (§6.7)
+- **THEN** the four siblings are dropped; 09407070/71/73 (520-2等18筆) remain
+
+#### Scenario: Notation drift tolerated
+- **WHEN** the searched parcel is 263-19 and a case name writes 263之19
+- **THEN** the case is kept (drift-tolerant comparison, same rule as the national strict matcher)

@@ -4,7 +4,6 @@
 
 Publishes the merged result as a per-project JSON history graph whose revision edges converge on each family's latest approval, and renders it in a browser viewer so an analyst can read one project's full approval timeline.
 ## Requirements
-
 ### Requirement: Emit a valid history graph
 
 The system SHALL emit projects.json containing one graph per project family: nodes for each record (編號, ISO date, stage, track, 區段, is_current, case_name, land, parcels, aliases, land_count, orig_count, named_anchor, area_section, implementer, planner, review_flags, auto_fixes) and edges for revision progressions and section branches, with edges converging on the anchor. Each project SHALL carry a `published_date` field with the official PDF publication date (統計至 115年8月11日).
@@ -265,3 +264,34 @@ Badge colours: 建照 orange, 開工 red, 使照 green.
 #### Scenario: No construction dates, no badge
 - **WHEN** a project carries none of the three construction dates
 - **THEN** its list item shows no stage badge
+
+### Requirement: Node order survives a rebuild from emitted state
+
+A rebuild that starts from an emitted graph rather than from the gazette SHALL restore
+each node's calendar ordering before the family's approvals are ordered. Ordering keys
+SHALL be derived from the node's own approval date and never from 編號, which is a
+coordinate that shifts as the city prepends and re-dates rows, so an ordering that
+degrades to 編號 silently inverts a project's timeline.
+
+Because such a rebuild reads the emitted payload as its input, a node missing its
+ordering key would otherwise re-emit in the same wrong order on every subsequent run,
+making the inversion permanent rather than transient.
+
+#### Scenario: A node's ordering key is restored from its date
+
+- **WHEN** an emitted node carries a date but no ordering key
+- **THEN** the key is reconstructed from that date
+- **AND** it is never left at its empty default while the node carries a date
+
+#### Scenario: Approvals order by date, not by 編號
+
+- **WHEN** a family's members are 編號 1362 dated 2008-01-02 (變更) and 編號 1407 dated 2005-02-24 (擬訂)
+- **THEN** the rebuilt graph emits 1407 before 1362
+- **AND** the anchor is highlighted rather than placed first, since 編號 order and date
+  order disagree for this family
+
+#### Scenario: No dated node is left unordered
+
+- **WHEN** an emitted payload is examined node by node
+- **THEN** no node carrying a date carries the empty ordering key
+

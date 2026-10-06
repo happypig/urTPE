@@ -492,8 +492,13 @@ def find_matching_view_with_outcome(section: str, parcel: str, count: str = "",
 
 def update_project_cache(project_id: str, view_id: str, milestones: dict[str, str], view_html: str = "",
                          ledger: Optional[dict] = None, ledger_path: Path = LEDGER_PATH,
+                         city_case_ids: Optional[list[str]] = None,
                          cache_root: Path = Path("data/.link_cache")) -> bool:
     """Update project cache with twur_view_id, twur_url, national_milestones (and view.html when provided).
+
+    ``city_case_ids`` carries the 臺北市案件 identifiers the same page exposes. They are
+    written additively so the project renders its city-platform link and can resolve Taipei
+    milestones; a match found without them showed a portal link and nothing else.
 
     When a ledger dict is supplied, a successful update also clears the
     project's no-match entry and persists the ledger (design D4).
@@ -521,6 +526,13 @@ def update_project_cache(project_id: str, view_id: str, milestones: dict[str, st
     # Update twur info
     result["twur_view_id"] = view_id
     result["twur_url"] = f"https://twur.nlma.gov.tw/zh/urban/rebuild/view/{view_id}"
+
+    # City case ids, which the view page also carries. Without these the project renders
+    # a 都市更新入口網 link but no 臺北市案件 link, and never resolves Taipei milestones:
+    # the 09112120 that was sitting on the page had nowhere to go.
+    if city_case_ids:
+        have = list(result.get("city_case_ids") or [])
+        result["city_case_ids"] = have + [c for c in city_case_ids if c not in have]
 
     # Write back
     try:

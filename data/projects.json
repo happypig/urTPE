@@ -281280,7 +281280,9 @@
           "stage_事業計畫": null,
           "stage_權利變換": null,
           "links": {
-            "taipei": [],
+            "taipei": [
+              "09112120"
+            ],
             "milestones_national": {},
             "milestones_taipei": {}
           }
@@ -281314,7 +281316,9 @@
           "stage_事業計畫": null,
           "stage_權利變換": null,
           "links": {
-            "taipei": [],
+            "taipei": [
+              "09112120"
+            ],
             "milestones_national": {},
             "milestones_taipei": {}
           }
@@ -281334,7 +281338,9 @@
       ],
       "links": {
         "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/18",
-        "taipei": [],
+        "taipei": [
+          "09112120"
+        ],
         "milestones_national": {
           "事業計畫申請日期": "93.04.22",
           "事業計畫核定日期": "94.02.24",

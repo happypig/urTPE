@@ -105,6 +105,30 @@ flowchart TD
 - All HTTP fetches use browser-like headers, retry with exponential backoff,
   and transparent gzip/deflate decoding (`fetch_url`, `_post_taipei_api`).
 
+## Human-verified portal links: `data/twur_overrides.json`
+
+Tracked configuration, for the rare project whose portal page exists but that discovery
+cannot match. Applied by `urtpe.links.load_twur_overrides` at cache-load time and **only
+where discovery found no link** — a project discovery resolved keeps its own link, so a
+record can never overwrite what the portal actually returned.
+
+Each record carries the evidence it was verified against: `twur_url`, `portal_title`,
+`verified_on` and a `reason`. A record missing any of them is ignored and reported, because
+an unattributed link cannot be audited and a wrong one silently attaches another project's
+milestones. The `reason` field exists specifically to stop a later reader from "fixing" the
+underlying miss by loosening the parcel matcher.
+
+One entry today: `萬華區-崇仁新村青年段一小段-711-3地號等?筆` → `view/18`. We search
+`崇仁新村青年段一小段` while the portal indexes the unit as `崇仁新村`, and our parcel is
+`711-3` where the portal says `711`. `parse_name_id` extracts nothing from the portal's
+two-section title, so the strict matcher is right to refuse.
+
+**The parcel test was deliberately not loosened.** A rename-tolerant rule would have to
+adjudicate 23 sub-parcel projects, and the asymmetry decides it: a false positive attaches
+the wrong project's 推動歷程 invisibly, while a false negative leaves one project without a
+link. Measured across all 75 twur-less projects, exactly one has a `project_id` of the form
+`等?筆` — the population this was built for is n=1. Revisit on a second case.
+
 ## Companion script: `scripts/poll_gazette.py` (acquisition only)
 
 ```bash

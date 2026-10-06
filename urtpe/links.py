@@ -8,6 +8,7 @@ import html.parser
 import json
 import re
 import shutil
+import sys
 import time
 import urllib.parse
 import urllib.request
@@ -1025,6 +1026,63 @@ def load_alias_table(cache_dir: Path) -> dict[str, str]:
     return table
 
 
+_OVERRIDE_CACHE: dict = {}
+
+# Evidence every recorded link must carry. A view id alone is an assertion nobody can
+# audit, and the failure it produces -- another project's milestones attached to this one
+# -- is invisible downstream. The "reason" field specifically exists so that a future
+# reader does not "fix" the underlying miss by loosening the parcel matcher.
+_OVERRIDE_EVIDENCE = ("twur_url", "portal_title", "verified_on", "reason")
+
+
+def load_twur_overrides(cache_dir: Path) -> dict[str, dict]:
+    """Return project_id -> recorded portal link, for projects discovery could not match.
+
+    Tracked configuration rather than derived data, exactly as
+    `data/project_aliases.json` is: a per-project cache write would satisfy today's
+    dataset and nothing else, and the next `--fresh` run would drop it with no record
+    that it had ever been found. Records lacking evidence are dropped and reported.
+    """
+    root = Path(cache_dir)
+    if root in _OVERRIDE_CACHE:
+        return _OVERRIDE_CACHE[root]
+    table: dict[str, dict] = {}
+    for candidate in (root.parent / "twur_overrides.json", root / "twur_overrides.json"):
+        if candidate.exists():
+            try:
+                data = json.loads(candidate.read_text(encoding="utf-8"))
+                for pid, entry in (data.get("overrides") or {}).items():
+                    if not entry.get("twur_view_id"):
+                        print(f"[WARN] twur override for {pid} names no view id; ignored",
+                              file=sys.stderr)
+                        continue
+                    missing = [f for f in _OVERRIDE_EVIDENCE if not entry.get(f)]
+                    if missing:
+                        print(f"[WARN] twur override for {pid} lacks {', '.join(missing)}; "
+                              f"ignored -- an unattributed link cannot be audited",
+                              file=sys.stderr)
+                        continue
+                    table[pid] = entry
+            except (json.JSONDecodeError, OSError, AttributeError):
+                table = {}
+            break
+    _OVERRIDE_CACHE[root] = table
+    return table
+
+
+def unattached_overrides(cache_dir: Path, known_project_ids) -> list[str]:
+    """Recorded links whose project is not in the dataset.
+
+    An identity churn would silently stop the record applying; surfacing it keeps the
+    table honest instead of leaving a stale entry nobody notices.
+    """
+    known = set(known_project_ids)
+    orphans = [pid for pid in load_twur_overrides(cache_dir) if pid not in known]
+    for pid in orphans:
+        print(f"[WARN] twur override names a project not in the dataset: {pid}")
+    return orphans
+
+
 def resolve_cache_dir(cache_dir: Path, project_id: str) -> Path:
     """The cache directory for ``project_id``, following an alias if one applies."""
     direct = _project_cache_dir(cache_dir, project_id)
@@ -1044,9 +1102,19 @@ def load_project_cache(cache_dir: Path, project_id: str) -> Optional[DiscoveryRe
     if result_file.exists():
         try:
             data = json.loads(result_file.read_text(encoding="utf-8"))
-            return DiscoveryResult(**data)
+            result = DiscoveryResult(**data)
         except (json.JSONDecodeError, TypeError):
-            pass
+            result = None
+        if result is not None:
+            # Gap-fill only. A recorded link is a human assertion about a project discovery
+            # could not resolve; letting it displace a real discovery result would mean one
+            # careless record silently rewrites what the portal actually returned.
+            if not result.twur_view_id:
+                entry = load_twur_overrides(cache_dir).get(project_id)
+                if entry:
+                    result.twur_view_id = entry["twur_view_id"]
+                    result.twur_url = entry.get("twur_url", "")
+            return result
     return None
 
 

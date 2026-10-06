@@ -23,6 +23,11 @@ data_test/*
 # Regenerate with scripts/build_project_aliases.py.
 !data/project_aliases.json
 
+# ...and the human-verified portal links, which are the same kind of thing: a decision
+# recorded once and needed again. Not regenerable, because regenerating them would mean
+# re-deriving a person's reading of a portal page from nothing.
+!data/twur_overrides.json
+
 # data/projects.previous.json stays ignored. It is derived: the 8/11 baseline
 # re-ingested from source.pdf, which is tracked, so it is reproducible with
 #     python -m urtpe.cli source.pdf -o <tmp> --no-archive

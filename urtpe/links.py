@@ -559,7 +559,11 @@ def discover_project_links(
         try:
             time.sleep(delay)
             city_entries = search_taipei_cases_api(
-                anchor.section, anchor.first_parcel, dropped_out=dropped_by_guard
+                anchor.section, anchor.first_parcel, dropped_out=dropped_by_guard,
+                # The anchor's own 案名 is what corroborates a parcel-less case name; without
+                # it a named-area unit like 崇仁新村 can never be corroborated and both of
+                # its Taipei cases stay rejected.
+                anchor_name=anchor.name,
             )
         except Exception as e:
             result.error = f"Taipei search failed: {e}"
@@ -789,7 +793,8 @@ def _post_taipei_api(url: str, params: dict, max_retries: int = 3) -> str:
     raise last_exception
 
 
-def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dict] = None) -> list[dict]:
+def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dict] = None,
+                            anchor_name: str = "") -> list[dict]:
     """Search Taipei platform cases by land section + parcel.
 
     Args:
@@ -798,32 +803,46 @@ def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dic
         dropped_out: optional dict filled with the guard-rejected entries
             ({case_id: case_name}) — cross-family pollution kept out of the
             result but retained as fragment-detection evidence (§6.8).
+        anchor_name: the gazette record's own 案名, used only to corroborate a
+            case whose name declares no 地號 at all (see `_corroborated_area`).
 
     Returns list of {case_id, case_name, schedule} dicts whose case_name
-    carries the searched parcel (§6.7 guard shape).
+    carries the searched parcel (§6.7 guard shape) or is a corroborated named-area case.
     """
-    if "-" in parcel:
-        mono, _, suno = parcel.partition("-")
-    else:
-        mono, suno = parcel, "0"
+    def _query(sec: str, p: str) -> list:
+        if "-" in p:
+            mono, _, suno = p.partition("-")
+        else:
+            mono, suno = p, "0"
+        body = _post_taipei_api(TAIPEI_SEARCH_API, {
+            "qitem": "qland",
+            "sectstr": sec,
+            "monobuf": mono,
+            "sunobuf": suno or "0",
+        })
+        try:
+            return json.loads(body)
+        except json.JSONDecodeError:
+            return []
 
-    body = _post_taipei_api(TAIPEI_SEARCH_API, {
-        "qitem": "qland",
-        "sectstr": section,
-        "monobuf": mono,
-        "sunobuf": suno or "0",
-    })
-    try:
-        entries = json.loads(body)
-    except json.JSONDecodeError:
-        return []
+    # Both halves of the key drift from what the city prints, so an empty answer is retried
+    # across the small cross-product of the two known variants: printed parcel vs its
+    # pre-subdivision stem, printed section vs the same section without its place name.
+    # Bounded to three retries and only on an empty body -- an unmatchable project must not
+    # fan out into a sweep against a WAF-fronted endpoint.
+    stem = parcel.partition("-")[0]
+    sections = _section_variants(section, anchor_name)
+    parcels = [parcel] if stem == parcel else [parcel, stem]
 
-    # Keep only r_progress_detail cases (those carry milestone timelines).
-    # The numeric detail case_id lives in the details URL, not the case_id
-    # field (which may hold internal codes like 'R091306-02').
-    # §6.7/§6.8 parcel guard: the platform matches at renewal-unit/R13 street-
-    # block level, so sibling and foreign same-section cases ride along; keep
-    # only cases whose own case_name carries the searched parcel.
+    entries: list = []
+    for sec in sections:
+        for p in parcels:
+            entries = _query(sec, p)
+            if entries:
+                break
+        if entries:
+            break
+
     results = []
     dropped: dict[str, str] = {}
     seen: set[str] = set()
@@ -837,7 +856,8 @@ def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dic
             continue
         seen.add(cid)
         case_name = e.get("case_name", "")
-        if not _case_name_carries_parcel(case_name, parcel):
+        if not (_case_name_carries_parcel(case_name, parcel)
+                or _corroborated_area(anchor_name, case_name)):
             dropped[cid] = case_name
             continue
         results.append({
@@ -1008,6 +1028,108 @@ def _case_name_carries_parcel(case_name: str, parcel: str) -> bool:
         return True
     mono = parcel_n.partition("-")[0]
     return mono != parcel_n and bool(mono) and _token_hit(mono, declared_only=True)
+
+
+# A 地號 / 等N筆 declaration anywhere in a case name. Its absence is what makes a
+# name "parcel-less" — the 崇仁新村 case names say nothing about parcels at all.
+_PARCEL_DECLARED = re.compile(r"[0-9０-９]+\s*[地等]")
+
+# Tokens that identify a place rather than a parcel. 段 marks a section name, 市/區 a
+# district; matching only on those would corroborate every case in the same 段, which is
+# the pollution §6.7 exists to keep out.
+_NOT_AREA = ("段", "市", "區")
+
+# Case-name boilerplate. Every 都市更新 case name ends in some of these, so a longest-common-
+# run over two case names finds 更新事業計畫 before it finds anything about the place -- and
+# '更新事業計畫' corroborates every project in Taipei. A run lying inside any of these is
+# not evidence of a shared place.
+_GENERIC_CASE_WORDS = (
+    "都市更新", "更新事業", "事業計畫", "權利變換", "土地", "重建", "區段", "概要",
+    "計畫", "變更", "擬訂", "臺北市", "臺北縣", "新北市", "都計畫", "都更", "公展",
+    "都審", "開工", "使照", "竣工", "實施", "權利", "面積", "容積", "建築物", "住宅",
+)
+
+
+def _declares_parcel(case_name: str) -> bool:
+    return bool(_PARCEL_DECLARED.search(normalize_parcel_token(case_name)))
+
+
+def _is_generic(run: str) -> bool:
+    return any(g in run or run in g for g in _GENERIC_CASE_WORDS)
+
+
+def _place_candidates(name: str, min_len: int = 2) -> list[str]:
+    """Strip plan boilerplate and section/district text, leaving place-name runs.
+
+    Comparing two case names directly is hopeless: every 都市更新 case name ends in the same
+    words, so a longest-common-run finds '更新事業計畫' — or a 4-char slice across a word
+    boundary like '新事業計' — before anything about the place, and that corroborates every
+    project in Taipei. Masking the boilerplate first is what makes the comparison mean
+    something; filtering matches afterwards cannot, because the leak is a fragment.
+    """
+    s = normalize_parcel_token(name)
+    for word in sorted(_GENERIC_CASE_WORDS, key=len, reverse=True):
+        s = s.replace(word, "\x00")
+    s = s.replace("段", "\x00").replace("市", "\x00").replace("區", "\x00")
+    return [p for p in s.split("\x00") if len(p) >= min_len]
+
+
+def _shared_place_run(a: str, c: str, min_len: int = 3) -> str:
+    """The longest run of place-name text two names share, after boilerplate is masked out."""
+    best = ""
+    for pa in _place_candidates(a):
+        if len(pa) <= len(best) or len(pa) < min_len:
+            continue
+        for pc in _place_candidates(c):
+            run = pa if pa in pc else ""
+            if len(run) > len(best):
+                best = run
+    return best
+
+
+def _corroborated_area(anchor_name: str, case_name: str, min_len: int = 3) -> bool:
+    """True when two names share a run of text that names a place.
+
+    The §6.7 guard reads a name with no 地號 as a foreign case. That is wrong for a unit
+    named for a place — 崇仁新村's cases declare no parcel precisely because the unit has
+    no parcel-numbered name. So a parcel-less name is admitted only when it shares a
+    place-name run with the gazette record, which is what makes it the *same* unit rather
+    than a neighbour.
+
+    Deliberately biased toward rejection: the run must be at least `min_len` characters and
+    must not consist of section or district text, so two 更新單元 in one 段 that share only
+    a district stay apart. A genuine unit whose area name is shorter stays rejected and is
+    named in `search_rejected`, to be recorded by hand.
+    """
+    if not anchor_name or not case_name or _declares_parcel(case_name):
+        # A name that declares a parcel of its own is never rescued: a conflicting 地號 is
+        # positive evidence of a specific different unit, whatever area text it shares.
+        return False
+    return bool(_shared_place_run(anchor_name, case_name))
+
+
+def _section_variants(section: str, anchor_name: str) -> list[str]:
+    """The section as printed, then the same section without a leading place name.
+
+    The gazette prints 崇仁新村青年段一小段 while the city's index holds 青年段一小段. Both
+    halves of the key drift, and the section half is the one that actually blocks the
+    search: with the prefix left on, every parcel variant returns an empty body, so the
+    stem retry recovers nothing.
+
+    The prefix is identified from the same shared place run used for corroboration rather
+    than by guessing at 段 boundaries, which are not recoverable from the text (青年段一小段
+    and 仁新村青年段一小段 are both suffix-段 strings). A section that is already a whole
+    段-name yields no place run and therefore no extra request.
+    """
+    out = [section]
+    run = _shared_place_run(anchor_name, section)
+    if run and section.startswith(run):
+        trimmed = section[len(run):]
+        # A trimmed name that still opens on 段 is not a section name, it is the tail of one
+        # (玉泉段二小段 → 段二小段), so it would only spend a request.
+        if trimmed and not trimmed.startswith("段"):
+            out.append(trimmed)
+    return out
 
 
 def fetch_taipei_milestones_api(case_id: str) -> dict[str, str]:

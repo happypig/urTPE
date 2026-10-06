@@ -78,21 +78,36 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
             
             # Derive iso_date: graph.py emits date=iso_date, so node.date may
             # already be ISO (YYYY-MM-DD). Only ROC-format strings need conversion.
+            #
+            # ymd has to be derived here too. The emitter never writes a `ymd` key, so the
+            # old `node.get("ymd", (0,0,0))` gave every node (0,0,0) and _sort's
+            # (ymd, recno) key silently degraded to 編號 order -- the AGENTS.md trap, and
+            # self-perpetuating because --from-js reads its own output. 1407 (2005-02-24)
+            # rendered above 1362 (2008-01-02) purely because 1362 sorts first by 編號.
+            # to_iso() only parses slashes, so an ISO node is split here rather than
+            # round-tripped through it.
             node_date = node.get("date", "")
             node_iso_date = node.get("iso_date", "")
-            if not node_iso_date and node_date:
-                if re.match(r"^\d{4}-\d{2}-\d{2}$", node_date):
-                    node_iso_date = node_date  # already ISO — keep as-is
+            node_ymd = tuple(node["ymd"]) if node.get("ymd") else None
+            if node_ymd is None:
+                from urtpe.cleanse import roc_to_iso
+                iso, ymd = roc_to_iso(node_date)
+                if iso:
+                    node_iso_date = node_iso_date or iso
+                    node_ymd = tuple(ymd) if ymd else (0, 0, 0)
                 else:
-                    from urtpe.cleanse import roc_to_iso
-                    iso, _ = roc_to_iso(node_date)
-                    node_iso_date = iso or ""
+                    m_iso = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", node_date)
+                    if m_iso:
+                        node_iso_date = node_iso_date or node_date
+                        node_ymd = (int(m_iso.group(1)), int(m_iso.group(2)), int(m_iso.group(3)))
+            if node_ymd is None:
+                node_ymd = (0, 0, 0)
             
             rec = CleanRecord(
                 recno=node["recno"],
                 date=node_date,
                 iso_date=node_iso_date,
-                ymd=tuple(node.get("ymd", (0, 0, 0))) if "ymd" in node else (0, 0, 0),
+                ymd=node_ymd,
                 district=node_district,
                 district_land=node_district_land,
                 name=node.get("case_name", node.get("name", "")),

@@ -857,7 +857,7 @@ class TestDiscoveryFetchesThirdFourth:
             return "[]"
 
         monkeypatch.setattr(links, "_post_taipei_api", fake_post)
-        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel, dropped_out=None: [
+        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel, dropped_out=None, anchor_name="": [
             {"case_id": "09811141", "case_name": "x", "schedule": ""}])
 
         project = self._project()
@@ -893,7 +893,7 @@ class TestDiscoveryFetchesThirdFourth:
             return "[]"
 
         monkeypatch.setattr(links, "_post_taipei_api", fake_post)
-        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel, dropped_out=None: [
+        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel, dropped_out=None, anchor_name="": [
             {"case_id": "09811141", "case_name": "x", "schedule": ""}])
 
         project = self._project()

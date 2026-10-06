@@ -283,7 +283,8 @@ def _offline(monkeypatch, city_cases=None):
     """No network. Taipei search returns ``city_cases``; the view page is canned."""
     import urtpe.links as links
     monkeypatch.setattr(links, "search_taipei_cases_api",
-                        lambda section, parcel, dropped_out=None: list(city_cases or []))
+                        lambda section, parcel, dropped_out=None, anchor_name="":
+                            list(city_cases or []))
     monkeypatch.setattr(links, "fetch_view_page", lambda *a, **k: VIEW_HTML)
     monkeypatch.setattr(links, "extract_tuidui_history_from_view",
                         lambda html: {"使用核發日期": "2008/01/03"})

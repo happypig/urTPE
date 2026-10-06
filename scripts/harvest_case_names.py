@@ -59,7 +59,8 @@ def main() -> None:
 
         anchor = next(m for m in project.members if m.recno == project.anchor_recno)
         try:
-            entries = search_taipei_cases_api(anchor.section, anchor.first_parcel)
+            entries = search_taipei_cases_api(anchor.section, anchor.first_parcel,
+                                          anchor_name=anchor.name)
         except Exception as e:
             print(f"  FAIL {project.project_id}: {e}", flush=True)
             failed += 1

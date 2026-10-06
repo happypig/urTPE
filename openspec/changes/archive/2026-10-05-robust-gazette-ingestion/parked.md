@@ -29,7 +29,11 @@ almost entirely self-inflicted by the reader rather than by identity churn.
 
 ## 2. Portal sync / event cascade
 
-**Blocked on:** reconciliation diff providing a trustworthy per-gazette change set.
+**Blocked on (was):** reconciliation diff providing a trustworthy per-gazette change set.
+That blocker is gone — the change set is durable output. **Blocked on now:** nothing
+structural. What is missing is a *consumer*: no code reads `change_sets/*.json`, so the
+cascade's input exists and its sweep does not. A second gate also stands, and it is
+measured rather than asserted: see the trigger below.
 
 `docs/sync_architecture.md` §3 already designs this (PDF as heartbeat, portals as
 decoration, liveness-based refresh policy). Three findings from this exploration revise it:
@@ -59,6 +63,26 @@ decoration, liveness-based refresh policy). Three findings from this exploration
 
 **Trigger to un-park:** reconciliation is trusted in production and has produced
 a reliable change set across at least two consecutive ingestions.
+
+**Status: 0 of 2 met.** `gazette-ingest-cadence` persisted the change set, but the live
+archive at `D:\project\urtpe-gazettes\` has no `change_sets/` directory yet — every
+ingestion on record was a first ingest with no predecessor, so `comparable: false`. One
+comparable comparison has been produced, against a scratch archive, and it is what sized
+the work: `1150827 → 1151002` yields **8** project identities gained, against 77
+candidates for a full re-scan. At the sweep's enforced 60–180 s between projects that is
+roughly 13 minutes rather than the ~28 h politeness budget, so the cascade's premise holds
+up — but one comparison is not two, and it is the sample that crosses a calendar switch
+(roc → gregorian, 41 vanished, 18 re-dated), which is the least typical transition
+available.
+
+The first comparable reconciliation also required a fix this file did not anticipate.
+`GazetteArchive.predecessor_of` required the incoming gazette to be *already archived*,
+while `cli.py` resolves the predecessor before archiving the current one — so it returned
+None on every ingestion and reconciliation reported "no comparison possible" against a
+fully populated archive. Reconciliation had never actually compared two gazettes. Fixed in
+`fd7ff89` with `tests/test_predecessor_lookup.py`. Worth recording because the trigger
+above looked merely unmet when it was in fact unsatisfiable, and reading a parked trigger
+as "not yet" rather than "not ever, as written" is how it survived that long.
 
 ## 3. Whether the city re-sorts by date permanently
 
@@ -102,10 +126,10 @@ publications arrive rather than needing a re-derivation.
 corrected reader. Half-met: the re-measurement that was said to "settle it sooner" is done,
 and the trend is recorded per publication.
 
-## 4. Gazette fetching on a schedule
+## 4. ~~Gazette fetching on a schedule~~ — BUILT in `gazette-ingest-cadence`
 
-**Un-parked and built** in `gazette-ingest-cadence`. The politeness question is answered
-by measurement rather than by judgement.
+**Un-parked and built.** The politeness question is answered by measurement rather than by
+judgement.
 
 The item left two things open: whether the page honours conditional requests, and the
 politeness decision. Probed against the live page on 2026-10-05:
@@ -174,8 +198,17 @@ Schema now carries what it previously could not:
   date stored beside the number of records a date could be read from, so a zero with too
   small a denominator is recognisable as a parser failure.
 
-**Still open:** the portal-side state proper. That belongs to the portal cascade in item 2,
-whose sweep now has a persisted change set to consume but has not been built.
+**Still open:** the portal-side state proper — per-project portal freshness, so the sweep
+can be scheduled from the manifest instead of by re-deriving candidates from the emitted
+dataset on every run. `scripts/fetch_remaining_national_portal.py` still enumerates by
+absence: it loads `viewer/projects.data.js` and collects every project whose `links.twur`
+is empty, re-deriving the list from scratch each time (measured: 709 projects, 632 with a
+link, **77 candidates**). It does not read the change set this item now enables, and it
+cannot, because the change set has no consumer. Building that consumer is item 2's
+remaining work and the two are the same task: the manifest's shape depends on what the
+cascade needs to schedule, which is why they are recorded together rather than as one
+followed by the other.
+
 ## Status — 2026-10-06
 
 Recorded on the way into `gazette-ingest-cadence`, which takes the unbuilt remainder.
@@ -183,10 +216,10 @@ Recorded on the way into `gazette-ingest-cadence`, which takes the unbuilt remai
 | item | was | now |
 |---|---|---|
 | 1. Cache migration | resolved | resolved |
-| 2. Portal sync / event cascade | open | `coverage.py` half **resolved**; cascade still open, now with a persisted change set to consume |
+| 2. Portal sync / event cascade | open | `coverage.py` half **resolved**; cascade still open — its input exists, no consumer reads it, and the two-ingestion trigger stands at 0 of 2 |
 | 3. Date-sort permanence | open, figure withdrawn | **measured: 9 / 9 / 1.** Permanence still needs two more publications; recorded per publication |
 | 4. Scheduled fetching | open, ETag untested | **built.** No validators on the page, and the timestamp is not a valid signal — detection is by content hash |
-| 5. Index as sync manifest | open | **partly built.** Reader identity, re-read events, acquisition provenance, ordering. Portal-side state remains with item 2 |
+| 5. Index as sync manifest | open | **partly built.** Reader identity, re-read events, acquisition provenance, ordering. Portal-side state remains open, and is item 2's remaining work |
 
 Two of the withdrawals in this file were withdrawn for the wrong reason, which is worth
 noting because both read as careful and neither was. Item 3's figure was set aside for
@@ -194,5 +227,12 @@ want of a read, not for doubt about the number, and it turned out to be exactly 
 Item 1's figures were wrong and had to be replaced. A parked item says what was believed
 at the time; this table is what is measurable now.
 
+A third correction belongs beside those two. Item 2's trigger — "a reliable change set
+across at least two consecutive ingestions" — read as *not yet met* for as long as it stood,
+and it was in fact **unsatisfiable**: `predecessor_of` could not reach a predecessor the
+pipeline had not yet archived, so no ingestion ever produced a change set to be trusted.
+Fixed in `fd7ff89`. The trigger was not being met slowly; it could not be met at all.
+
 The measurements behind items 3 and 4 are recorded in
-`openspec/changes/gazette-ingest-cadence/design.md` with the probes they came from.
+`openspec/changes/archive/2026-10-06-gazette-ingest-cadence/design.md` with the probes
+they came from.

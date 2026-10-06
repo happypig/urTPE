@@ -1,0 +1,27 @@
+{
+  "owner": "happypig",
+  "repo": "urTPE",
+  "pages_base": "https://happypig.github.io/urTPE",
+  "published_from": {
+    "branch": "main",
+    "path": "/",
+    "build_type": "legacy"
+  },
+  "artifacts": [
+    "viewer/index.html",
+    "viewer/app.js",
+    "viewer/app.css",
+    "viewer/projects.data.js"
+  ],
+  "notes": [
+    "The final path segment of pages_base is case-sensitive and MUST equal the repository",
+    "name exactly. GitHub Pages answers /urtPE/ (all lowercase t) with a 'Page not found'",
+    "document, which a browser will happily keep rendering from cache -- so a stale page",
+    "reads as a working one. Checked offline by tests/test_deploy_target.py, which reads",
+    "this file and `git remote get-url origin` and compares them; see that file's docstring",
+    "for the 2026-10-06 incident.",
+    "Run `python scripts/check_deploy.py` to compare the served bytes against the HEAD blob",
+    "of each artifact. Network by design, so it is a command and not a pytest case: the",
+    "suite is offline and must stay that way."
+  ]
+}

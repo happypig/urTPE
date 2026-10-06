@@ -130,7 +130,16 @@ Violating any of these corrupts output silently rather than raising.
   decoupled from the emitted dataset. Keep pure cleansing/merge/scoring logic separate
   from I/O adapters.
 - `viewer/` — a static `file://` site. No dev server, and **no browser test exists**, so
-  nothing automatically checks the page renders.
+  nothing automatically checks the page renders. It is also published to GitHub Pages at
+  **`https://happypig.github.io/urTPE`** — the canonical address is recorded once in
+  `viewer/deploy.json`, and that path is **case-sensitive**: `/urtPE/` is a different site
+  that serves GitHub's "Page not found" document, which a browser will keep rendering over
+  from cache, so a stale page reads as a working one. This cost a real investigation on
+  2026-10-06. `tests/test_deploy_target.py` checks the capitalisation offline, by reading
+  `deploy.json` and `git remote get-url origin` and comparing them;
+  `python scripts\check_deploy.py` fetches each artifact and compares it byte-for-byte
+  against the `HEAD` blob, reporting **fresh / stale / missing** separately. It reaches the
+  network, so it is a command and not a pytest case.
 - `scripts/` — 45 files. Undated ones (`poll_gazette.py`, `fetch_remaining_national_portal.py`,
   `build_project_aliases.py`, `stranded_report.py`) are durable tools; dated ones
   (`*_2026MMDD`) and `probe_*.py` are one-shot archaeology.

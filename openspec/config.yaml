@@ -4,9 +4,9 @@ schema: spec-driven
 # This is shown to AI when creating artifacts.
 context: |
     Project: urTPE — turn the Taipei City Government's urban-renewal approved-cases
-    list (臺北市都市更新核定案件一覽表, 1,422 approvals as emitted from the 1150827
+    list (臺北市都市更新核定案件一覽表, 1,423 approvals as emitted from the 1150827
     gazette, dated 99/9/2–115/8/27 =
-    2010–2026) into a clean, merged dataset with per-project history.
+    2010–2026, 統計至 2026-08-27) into a clean, merged dataset with per-project history.
     Pipeline: PDF (gov.taipei) -> ruled-table extraction (pymupdf find_tables,
     strategy="lines") -> raw.tsv -> cleansing -> clean.tsv -> similarity merge ->
     merged.tsv (project_id anchored on the latest approval) -> projects.json (history

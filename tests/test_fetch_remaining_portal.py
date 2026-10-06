@@ -800,7 +800,7 @@ class TestProbeBreadth:
         import scripts.fetch_remaining_national_portal as mod
 
         vids = [str(100 + i) for i in range(n_vids)]
-        monkeypatch.setattr(mod, "search_portal", lambda section: vids)
+        monkeypatch.setattr(mod, "search_portal", lambda section: ("miss", vids))
         calls = {"n": 0}
 
         def fake_fetch(url, *a, **k):

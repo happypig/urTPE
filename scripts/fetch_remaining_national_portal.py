@@ -337,8 +337,15 @@ def load_candidates(js_path: Optional[Path] = None) -> list[dict]:
     return candidates
 
 
-def search_portal(section: str) -> list[str]:
-    """Search portal by section name, return list of view_ids."""
+def search_portal(section: str) -> tuple[str, list[str]]:
+    """Search the portal by section name. Returns `(outcome, view_ids)`.
+
+    The outcome is returned rather than inferred, because a request that failed and a
+    search that succeeded with no results are otherwise the same empty list -- and only one
+    of them is evidence that the portal lacks the case. Collapsing them recorded a 14-day
+    negative for every project a brief outage happened to touch, indistinguishable
+    afterwards from a genuine miss.
+    """
     params = {"title": section, "city_id": "2", "page": "1"}
     from urllib.parse import urlencode
     url = f"{SEARCH_URL}?{urlencode(params)}"
@@ -347,7 +354,7 @@ def search_portal(section: str) -> list[str]:
         html = fetch_url(url, None, True)
     except Exception as e:
         print(f"  search failed: {e}", file=sys.stderr)
-        return []
+        return OUTCOME_ERROR, []
 
     import re
     ids = []
@@ -355,7 +362,7 @@ def search_portal(section: str) -> list[str]:
         vid = m.group(1)
         if vid not in ids:
             ids.append(vid)
-    return ids
+    return OUTCOME_MISS, ids
 
 
 def fetch_and_parse_view(view_id: str) -> tuple[dict[str, str], list[str]]:
@@ -441,8 +448,14 @@ def find_matching_view_with_outcome(section: str, parcel: str, count: str = "",
     real negative -- the portal answered, with nothing in it -- so it is a miss, not an
     error: there was nothing to fetch and therefore nothing that could have failed.
     """
-    vids = search_portal(section)
+    search_outcome, vids = search_portal(section)
+    if search_outcome == OUTCOME_ERROR:
+        # The search never completed, so nothing was learned about the portal. Probing is
+        # pointless with no candidates, and a miss here would suppress the project for the
+        # re-probe TTL on the strength of a network blip.
+        return "", {}, [], "", [], OUTCOME_ERROR
     if not vids:
+        # The portal answered and held nothing for this section: a real negative.
         return "", {}, [], "", [], OUTCOME_MISS
 
     limit = max(1, int(max_probe))

@@ -169,8 +169,12 @@ distinguishes them:
 | outcome | meaning | re-probe exclusion |
 |---|---|---|
 | *(entry removed)* | a probe returned a page satisfying the strict matcher | none |
-| miss | every fetch answered, none satisfied — a real negative | 14 days |
-| rror | **every fetch raised** — the search never completed | **none** |
+| miss | the search ran and the portal held nothing for that 段/小段 — a real negative | 14 days |
+| rror | **the search request raised, or every probe raised** — nothing was learned | **none** |
+
+The distinction is made where the exception was caught and returned as an outcome, because a
+failed request and an empty result are otherwise the same empty list. Both leave
+iew_ids_checked: [], so the class is the only thing separating them afterwards.
 
 An rror is not a negative and never becomes one. The requirement *No-match
 ledger persistence* scopes recording to a candidate that **completes** targeted

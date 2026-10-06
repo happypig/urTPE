@@ -131,7 +131,7 @@ def test_a_search_returning_no_view_ids_is_a_miss_not_an_error(monkeypatch):
     outcome, which is the return path this test exists to pin: it once returned five values
     while every other path returned six, and the whole sweep died on its first project.
     """
-    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: [])
+    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: ("miss", []))
 
     result = sweep.find_matching_view_with_outcome("華中段二小段", "201-2", "26")
 
@@ -143,13 +143,13 @@ def test_every_return_path_of_the_search_carries_an_outcome(monkeypatch):
     """A shape test, because the failure was a shape mismatch, not a logic error."""
     cases = []
 
-    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: [])
+    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: ("miss", []))
     cases.append(("no view ids", sweep.find_matching_view_with_outcome("s", "p", "c")))
 
     def boom(url, data=None, browser=False):
         raise OSError("connection reset")
 
-    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: ["v1"])
+    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: ("miss", ["v1"]))
     monkeypatch.setattr(sweep, "fetch_url", boom)
     cases.append(("all probes raised",
                   sweep.find_matching_view_with_outcome("s", "p", "c")))
@@ -179,7 +179,7 @@ def test_some_probes_raising_with_a_later_match_is_a_match_not_an_error(monkeypa
         return "<html>華中段二小段 201-2地號等26筆</html>"
 
     monkeypatch.setattr(sweep, "fetch_url", fake_fetch)
-    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: ["v1", "v2"])
+    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: ("miss", ["v1", "v2"]))
     monkeypatch.setattr(sweep, "view_page_matches", lambda h, s, p, c: True)
 
     vid, *_rest, outcome = sweep.find_matching_view_with_outcome(
@@ -194,7 +194,7 @@ def test_all_probes_raising_reports_error_not_a_miss(monkeypatch):
         raise OSError("connection reset")
 
     monkeypatch.setattr(sweep, "fetch_url", fake_fetch)
-    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: ["v1", "v2", "v3"])
+    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: ("miss", ["v1", "v2", "v3"]))
 
     vid, _m, _c, _h, checked, outcome = sweep.find_matching_view_with_outcome(
         "華中段二小段", "201-2", "26", max_probe=4)
@@ -208,7 +208,7 @@ def test_all_probes_raising_reports_error_not_a_miss(monkeypatch):
 
 def test_probes_returning_but_none_matching_reports_a_miss(monkeypatch):
     monkeypatch.setattr(sweep, "fetch_url", lambda *a, **k: "<html>nothing</html>")
-    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: ["v1", "v2"])
+    monkeypatch.setattr(sweep, "search_portal", lambda *a, **k: ("miss", ["v1", "v2"]))
     monkeypatch.setattr(sweep, "view_page_matches", lambda *a: False)
 
     _vid, _m, _c, _h, _checked, outcome = sweep.find_matching_view_with_outcome(

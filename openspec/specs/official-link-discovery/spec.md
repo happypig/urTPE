@@ -8,7 +8,6 @@ case_id(s) it cross-references — by crawling the portals and joining on the sa
 land-identity core the merge step uses, so the pipeline can attach authoritative
 records to each project without manual curation.
 ## Requirements
-
 ### Requirement: Crawl the national portal for each project's view page
 
 The system SHALL treat the national portal as a **supplementary** source: after
@@ -260,6 +259,16 @@ An applied recorded link SHALL be completed from the portal page itself rather t
 hand-entered values, so milestones and case identifiers come from the same source as any
 discovered link.
 
+A recorded link SHALL be reachable whenever discovery runs, and SHALL NOT depend on a
+per-project cache entry existing. The per-project cache is derived data and is not
+version-controlled, so a record consulted only from inside a cache read can never satisfy
+a rebuild from an empty cache.
+
+Applying a recorded link SHALL NOT suppress the rest of discovery. City-platform search,
+milestones, implementation and rewards SHALL still run for the project, and the result
+SHALL be written to the per-project cache in the ordinary shape, so an applied record
+yields a complete result rather than a link with every other field empty.
+
 #### Scenario: A verified link is recorded
 
 - **WHEN** a person confirms a portal page for a project that discovery could not match
@@ -282,6 +291,20 @@ discovered link.
 
 - **WHEN** the emitted dataset is rebuilt on a machine that has no per-project cache
 - **THEN** the recorded link is still available, because it is configuration rather than a cache artefact
+- **AND** the record is applied even though no cache entry for the project exists
+
+#### Scenario: The record applies with no portal index available
+
+- **WHEN** the national-portal index is empty or could not be built
+- **THEN** a recorded link is still applied
+- **AND** the national-portal step is not skipped wholesale, since skipping it would strand the record exactly when it is needed
+
+#### Scenario: Applying the record does not suppress discovery
+
+- **WHEN** a recorded link is applied to a project
+- **THEN** city-platform search still runs for that project
+- **AND** the result carries the city case identifiers and their milestones
+- **AND** a cache entry is written in the ordinary shape, so a later run resumes from it
 
 #### Scenario: An unexplained record is refused
 
@@ -346,3 +369,4 @@ lost.
 - **WHEN** duplicates are collapsed during emission
 - **THEN** the set of distinct flags a record carries is unchanged
 - **AND** the count of records carrying at least one flag is unchanged
+

@@ -10,6 +10,22 @@ def _sort(members: list[CleanRecord]) -> list[CleanRecord]:
     return sorted(members, key=lambda r: (r.ymd, r.recno))
 
 
+def _dedupe(flags) -> list[str]:
+    """Collapse repeated flag strings, preserving first-appearance order.
+
+    The 2026-10-06 dataset carried 1162 copies of one flag across 282 nodes, accumulated
+    one per --links run. The copies were identical, so collapsing loses no distinct
+    finding; order is kept as first-seen so the review report still reads in the order the
+    conditions were met.
+    """
+    seen, out = set(), []
+    for f in flags or []:
+        if f not in seen:
+            seen.add(f)
+            out.append(f)
+    return out
+
+
 def build_project_graph(project: Project, implementer: str, name: str, published_date: str = "") -> dict:
     ordered = _sort(project.members)
     anchor_recno = project.anchor_recno
@@ -37,7 +53,7 @@ def build_project_graph(project: Project, implementer: str, name: str, published
             "area_section": r.area_section,
             "implementer": r.implementer,
             "planner": r.planner,
-            "review_flags": r.review_flags,
+            "review_flags": _dedupe(r.review_flags),
             "auto_fixes": r.auto_fixes,
             # District fields for link discovery core building
             "district": r.district,

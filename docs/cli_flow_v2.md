@@ -129,6 +129,44 @@ the wrong project's 推動歷程 invisibly, while a false negative leaves one pr
 link. Measured across all 75 twur-less projects, exactly one has a `project_id` of the form
 `等?筆` — the population this was built for is n=1. Revisit on a second case.
 
+## `--from-js --links` is not idempotent, and was silently corrupting the dataset
+
+Recorded 2026-10-06 while verifying a one-project link override. It is the single most
+easily missed property of this pipeline, because every run *succeeds*.
+
+**`--from-js` alone is deterministic.** Two consecutive runs produce byte-identical output
+(0 differing projects, measured).
+
+**`--from-js --links` is deterministic but not idempotent.** Two runs produce ~250 differing
+project payloads — not randomness, but *accumulation*. Each run appends review flags rather
+than deduplicating them, and because `--from-js` round-trips through `clean.tsv`, the next
+run inherits the previous run's copies:
+
+```
+run A: 階段與平台案件狀態不一致(公報變更(第二次)/平台變更)   × 5
+run B: the same flag                                            × 6
+```
+
+Measured on the dataset that day: **282 nodes carrying a duplicated flag**, with one flag
+string appearing **1162 times**. Every `--links` run adds roughly another 280.
+
+This matters because `regenerate_viewer()` in the portal sweep calls exactly
+`--from-js … --links`, so **every sweep regenerates the viewer and adds a round of
+duplicates**. Two sweeps on 2026-10-06 did exactly that.
+
+Three things this was mistaken for, recorded so it is not re-diagnosed:
+
+| mistaken for | how it was ruled out |
+|---|---|
+| set/dict iteration order | pinning `PYTHONHASHSEED=12345` changed nothing (still ~250 differences) |
+| slow convergence | counts went 253 → 261, i.e. up, not down |
+| emission nondeterminism | `--from-js` alone is byte-stable; the `--links` path is what accumulates |
+
+**How to tell the two apart in future:** run the command twice and compare. If the second run
+is identical, the emission is deterministic and the problem is idempotence. If it differs, check
+whether a value *grew* rather than moved — growth means append-without-dedupe, movement means
+ordering.
+
 ## Companion script: `scripts/poll_gazette.py` (acquisition only)
 
 ```bash

@@ -4,6 +4,7 @@
 
 Cleans the raw TSV into a normalized dataset: fixes known data errors, derives structured fields (parcels, counts, aliases, sections, stages), auto-applies obvious fixes, and flags ambiguous cases for review.
 ## Requirements
+
 ### Requirement: Normalize known data errors
 
 The system SHALL correct the known error classes: district "松化區" to "松山區", "計劃" to "計畫", "ㄧ" to "一", treat "權利變換案" as equivalent to "權利變換計畫案", and normalize the 案名 abbreviation "土地都市更新計畫案" to "土地都市更新事業計畫案" (when the 案名 does not already contain 事業計畫) — the PDF-era gazette abbreviation verified against the platform's own `CASE_NAME` (live cross-reference 18/18, data: `data/_gengxin_plan_crossref.json`). Each application of this rule SHALL be noted in the record's `auto_fixes`.
@@ -102,3 +103,21 @@ A node whose 事業種類 is 事業計畫、權利變換 (combined track) and wh
 - **WHEN** the per-track derivation runs
 - **THEN** `stage` remains the 案名-prefix stage (existing clustering, table, and graph placement are unaffected)
 
+### Requirement: Emitted review flags carry no duplicates
+
+The emitted dataset SHALL NOT contain the same review flag string more than once on a single
+record. Where duplicates exist from earlier runs, the next emission SHALL collapse them,
+preserving the order in which the flags were first raised, and no distinct finding SHALL be
+lost.
+
+#### Scenario: A record emitted with duplicates
+
+- **WHEN** a record's flags were accumulated by earlier runs and contain the same string more than once
+- **THEN** the emitted record carries that string once
+- **AND** the flags appear in the order they were first raised
+
+#### Scenario: Nothing is lost by collapsing
+
+- **WHEN** duplicates are collapsed during emission
+- **THEN** the set of distinct flags a record carries is unchanged
+- **AND** the count of records carrying at least one flag is unchanged

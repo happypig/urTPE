@@ -511,6 +511,20 @@ def build_index_multimap(index: list[dict]) -> dict[str, list[dict]]:
     return multimap
 
 
+def _sorted_orphan_nodes(nodes: list[dict]) -> list[dict]:
+    """Publish orphan nodes in a total order rather than the order they arrived in.
+
+    The list is built by iterating an unordered collection of case ids, so its order
+    tracked the concurrent Taipei fetches: two consecutive `--from-js --links` runs emitted
+    the same cases swapped, in 97 projects. Pinning PYTHONHASHSEED did not fix it, so the
+    driver is fetch completion order rather than string hashing.
+
+    Sorting by `case_id` makes the order total without changing what is emitted. Python's
+    sort is stable, so equal keys keep their arrival order rather than shuffling.
+    """
+    return sorted(nodes or [], key=lambda n: str(n.get("case_id") or ""))
+
+
 def discover_project_links(
     project: Project,
     cache_dir: Optional[Path] = None,
@@ -1491,9 +1505,15 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
                 if case_name:
                     m_case = re.match(r"(擬訂|變更(?:\(第[一二三四五六七八九十]+\))?)", case_name)
                     if m_case and m_case.group(1) != member.stage:
-                        member.review_flags = list(member.review_flags) + [
-                            f"階段與平台案件狀態不一致(公報{member.stage}/平台{m_case.group(1)})"
-                        ]
+                        # Idempotent: a disagreement is a property of the record/case
+                        # pair, not an event that recurs. Appending unconditionally,
+                        # combined with --from-js reading clean.tsv back as its input,
+                        # made every run add a copy — measured at 1162 occurrences of
+                        # one flag across 282 nodes.
+                        flag = (f"階段與平台案件狀態不一致"
+                                f"(公報{member.stage}/平台{m_case.group(1)})")
+                        if flag not in member.review_flags:
+                            member.review_flags = list(member.review_flags) + [flag]
 
             member.links = node_links
 
@@ -1576,7 +1596,9 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
                     "milestones_national": orphan_milestones_national,
                 })
             if orphan_nodes:
-                project.links["orphan_nodes"] = orphan_nodes
+                # sorted at publication, not at build: the build order follows the
+                # concurrent Taipei fetches, and two runs must emit the same file
+                project.links["orphan_nodes"] = _sorted_orphan_nodes(orphan_nodes)
 
     # §6.8: after node anchoring, surface fragment families as merge
     # candidates (review flags on anchor records; no family mutation).

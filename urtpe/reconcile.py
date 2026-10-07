@@ -152,14 +152,24 @@ def reconcile(previous: list[dict] | None, current: list[dict], *,
               previous_id: str | None = None, current_id: str = "",
               previous_projects: list[str] | None = None,
               current_projects: list[str] | None = None,
-              accepted_removals: set[tuple[str, str]] | None = None,
-              strict: bool = False) -> ReconcileResult:
+              accepted_removals: set[str, str] | None = None,
+              strict: bool = False,
+              unavailable_note: str = "") -> ReconcileResult:
     """Compare two publications and decide whether the ingest may proceed.
 
     ``strict`` promotes historical disappearance to blocking, which a ledger
     acceptance satisfies. ``previous_projects`` / ``current_projects`` enable the
     identity-move report; a total re-key is its own outcome because
     ``urtpe.coverage`` cannot express it.
+
+    ``unavailable_note`` names why ``previous`` could not be read when it is not an
+    absence of any earlier publication. A predecessor the index records but whose
+    document is not held is a different situation from an archive with nothing
+    earlier in it, and an operator cannot tell which occurred unless the report says
+    so. It must not be replaced by an earlier publication: comparing across the gap
+    attributes one publication's changes to another, and every count in the result —
+    approvals, totals, historical movement, calendar — would then describe the span
+    rather than either publication.
     """
     accepted_removals = accepted_removals or set()
     result = ReconcileResult(previous_id=previous_id, current_id=current_id)
@@ -167,7 +177,8 @@ def reconcile(previous: list[dict] | None, current: list[dict], *,
 
     if previous is None:
         result.comparable = False
-        result.note = "no previous gazette archived; nothing to compare against"
+        result.note = unavailable_note or (
+            "no previous gazette archived; nothing to compare against")
         return result
 
     result.comparable = True

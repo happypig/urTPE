@@ -284,3 +284,31 @@ def test_recording_ordering_appends_rather_than_rewriting(tmp_path):
         "the index is append-only; a corrected measurement is a new record")
     assert archive.entries()[0].date_order_violations == -1, (
         "the original entry is left as it was written")
+
+
+# --- an ingestion measures it, or the count is only ever a test fixture --------
+
+def test_an_ingestion_records_the_publication_ordering_indicator(tmp_path):
+    """`record_ordering` existed with no caller outside this file.
+
+    The archival spec requires every archived publication to carry the count of
+    positions where its stated order departs from descending approval date, and
+    `archive.record_ordering` is how an entry gets it — but nothing in the pipeline
+    called it, so every real ingestion wrote -1, "never measured", and the trend the
+    count exists to track could only be re-derived by hand from the PDFs.
+
+    Found 2026-10-07 while ingesting 1151006, whose entry also read -1.
+    """
+    from urtpe import cli
+    from urtpe.archive import GazetteArchive
+
+    pdf = _pdf(tmp_path, "wired", _rows(["115/8/27", "115/8/20"]))
+    out = tmp_path / "out"
+    out.mkdir()
+    assert cli.main([str(pdf), "-o", str(out)]) == 0
+
+    latest = GazetteArchive().entries()[-1]
+    assert latest.date_order_violations != -1, (
+        "the ingestion archived a publication and left its ordering unmeasured")
+    assert latest.dated_records > 0, (
+        "the count is meaningless without its denominator, so the denominator is stored")

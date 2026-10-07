@@ -21,6 +21,7 @@ from urtpe import links as links_mod
 from urtpe import lock as lock_mod
 from urtpe import merge as merge_mod
 from urtpe import reconcile as reconcile_mod
+from urtpe import ordering as ordering_mod
 from urtpe import report as report_mod
 from urtpe import tripwire as tripwire_mod
 from urtpe import viewer as viewer_mod
@@ -177,25 +178,48 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
     result["gazette_id"] = gazette_id
     print(f"[INFO] gazette_id: {gazette_id}")
 
+    # Archive damage is reported, never fatal. `verify()` had no production caller
+    # until 2026-10-07, so a member that went missing, was replaced, or appeared with
+    # no index entry produced a normal-looking run and exit 0 — which is how the loss
+    # of 核定案件-2026-09-24.pdf went unnoticed. It must not block: a missing older
+    # gazette does not invalidate the one being ingested, and this gate cannot repair
+    # the archive, so refusing would turn a filesystem accident into a permanent halt.
+    if archive is not None:
+        for problem in archive.verify():
+            print(f"[WARN] archive: {problem}")
+
     # --- read --------------------------------------------------------------
     # A publisher-truncated 地號 cell can sometimes be completed from another
     # approval of the same unit elsewhere in the archive. The corpus is built lazily
     # and cached, so an ordinary rebuild does not re-read every gazette.
+    #
+    # The predecessor is read through the same seam, with a corpus of its own that
+    # excludes it rather than the incoming publication. Measured on 1151006
+    # (2026-10-07): the incoming side recovered 14 records the predecessor's side
+    # excluded, and the reconciler published that as net change +18 against a true
+    # +4, plus 13 historical rows as "edited" that the city never edited. Each side
+    # is completed by every *other* archived publication, which is the only reading
+    # under which the two totals describe the publisher rather than the reader.
+    archive_members: list[tuple[str, Path]] = []
+
+    def _corpus_excluding(gazette_id: str) -> list[dict]:
+        return corpus_mod.build_corpus(
+            archive_members, exclude=str(gazette_id),
+            cache_dir=(Path(outdir).parent / ".corpus_cache"))
+
     corpus = []
     corpus_note = ""
     try:
         arch = GazetteArchive(archive_root) if archive_root else GazetteArchive()
-        seen, members = set(), []
+        seen = set()
         root = Path(arch.root)
         for e in arch.entries():
             fp = root / e.filename
             if e.filename in seen or not fp.exists():
                 continue
             seen.add(e.filename)
-            members.append((e.published_date or e.gazette_id, fp))
-        corpus = corpus_mod.build_corpus(
-            members, exclude=str(extract_mod.gazette_id_for(pdf)),
-            cache_dir=(Path(outdir).parent / ".corpus_cache"))
+            archive_members.append((e.published_date or e.gazette_id, fp))
+        corpus = _corpus_excluding(extract_mod.gazette_id_for(pdf))
         corpus_note = f"{len(corpus)} candidate rows"
     except Exception as exc:  # an unreadable archive must not block ingestion
         print(f"[WARN] completion corpus unavailable: {exc}")
@@ -238,13 +262,31 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
     if archive is not None:
         prev_id = archive.predecessor_of(gazette_id)
         previous = None
+        # Three states, not two. A predecessor the index records but whose document is
+        # not held is named in the report rather than quietly replaced by an earlier
+        # publication: comparing across that gap reports one publication's changes as
+        # another's. Measured 2026-10-07 — with 09-24 absent, reconciling 10-01 against
+        # 08-27 produced 19 re-dated, 16 edited and 41 vanished rows plus a
+        # `roc -> gregorian` calendar change, none of which were 10-01's, and
+        # `blocking: []` recorded none of that.
+        unavailable_note = ""
         if prev_id:
             prev_path = archive.path_of(prev_id)
-            if prev_path is not None:
+            if prev_path is None:
+                unavailable_note = (
+                    f"previous gazette {prev_id} is recorded but its document is not "
+                    f"held; nothing to compare against")
+                print(f"[WARN] {unavailable_note}")
+            else:
                 try:
-                    previous, _ = extract_mod.extract_pdf_with_meta(str(prev_path), strict=False)
+                    previous, _ = extract_mod.extract_pdf_with_meta(
+                        str(prev_path), strict=False,
+                        corpus=_corpus_excluding(prev_id))
                 except Exception as exc:  # a corrupt archive member must not block ingest
                     print(f"[WARN] archived predecessor {prev_id} unreadable: {exc}")
+                    unavailable_note = (
+                        f"previous gazette {prev_id} is recorded but could not be read "
+                        f"({exc}); nothing to compare against")
         ledger = ledger_mod.CorrectionLedger(ledger_path) if ledger_path else None
         reconciliation = reconcile_mod.reconcile(
             previous, records,
@@ -253,6 +295,7 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
             current_projects=[p.project_id for p in projects],
             accepted_removals=ledger.accepted_removals() if ledger else set(),
             strict=strict_reconcile,
+            unavailable_note=unavailable_note,
         )
         print(reconciliation.report())
         # Persisted, so the comparison outlives this process. Without it the conclusion
@@ -292,6 +335,20 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
             calendar=extract_meta.get("calendar", ""), source_path=pdf,
         )
         print(f"[INFO] archived to {dest}")
+
+        # The publication's own ordering indicator, recorded with its denominator.
+        # A departure count is meaningless alone — the same document read with a
+        # single-calendar parser reports zero — and an entry left at -1 reads as
+        # "never measured" rather than as a measurement. `archive.record_ordering`
+        # existed for this and nothing called it, so every real ingestion wrote -1
+        # and the trend could only be re-derived by hand from the PDFs. Computed
+        # from the records just read rather than by re-reading the document.
+        iso_dates = [extract_mod.to_iso(r.get("date") or "")[0] for r in records]
+        violations, _worst, _sorted = ordering_mod.departures_from_descending(iso_dates)
+        dated = sum(1 for d in iso_dates if d)
+        archive.record_ordering(gazette_id, violations, dated)
+        print("[INFO] date order: %d departure(s) from descending approval date "
+              "across %d dated records" % (violations, dated))
 
     meta = {
         "generated_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -467,7 +524,6 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.add_mapping_file:
-        import json
         with open(args.add_mapping_file, 'r', encoding='utf-8') as f:
             mapping_data = json.load(f)
         add_fallback_mapping(mapping_data['land_core'], mapping_data['view_id'], mapping_data['case_id'])

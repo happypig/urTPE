@@ -534,10 +534,16 @@ def _page_records(page, faults: list[Fault],
                 faults.append(_fault(page_no, i, None, "merged cell",
                                      "cell content owned by a spanning cell"))
                 continue
-            if i == 0:
-                # Header band. A defective export may put a data row here
-                # instead; that row is kept and de-duplicated by 編號 later.
-                continue
+            # The header band is NOT located by position. Measured 2026-10-07 on
+            # 1151006: the city stopped drawing the column-label band after page 1,
+            # so grid row 0 became the page's first real record, and skipping row 0
+            # deleted one approval from each of the 245 pages after the first — 230
+            # of 1,439 records, invisible until the contiguity gate fired. The two
+            # observed shapes are opposites: a band carrying a *copy* of a record
+            # that also appears as data (1151002), and a band carrying a record that
+            # appears nowhere else (1151006). Only the content below tells them
+            # apart, so the test below it does the deciding: 編號 fails RECNO_RE,
+            # a data row does not.
             recno_text = _clean_cell(row[0])
             if not RECNO_RE.match(recno_text):
                 # Trailing all-empty rows and other non-data bands.

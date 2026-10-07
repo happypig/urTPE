@@ -135,6 +135,7 @@ def write_gazette(
     shift: float = 0.0,
     rows_per_page: int = 8,
     repeat_header_row: bool = False,
+    no_header_band_after_first: bool = False,
     borderless_pages: tuple[int, ...] = (),
     merged_cells: tuple[tuple[int, int], ...] = (),
     paginate: bool = True,
@@ -150,6 +151,13 @@ def write_gazette(
     ``shift`` moves every column left by that many points (the real 8pt shift).
     ``repeat_header_row`` repeats the first data row inside the table header of
     every page after the first (the 1151002 defect).
+    ``no_header_band_after_first`` draws the column-label band on page 1 only and
+    starts every later page straight into data, which is what the city published
+    from 1151006 (2026-10-01) onward. The two are opposites. With
+    ``repeat_header_row`` the band on a later page carries a *copy* of a record
+    that also appears as data, so dropping it loses nothing; with this option it
+    carries a *record that appears nowhere else*, so dropping it deletes a real
+    approval — which is what the reader did, and what the tripwire caught.
     ``borderless_pages`` draws data rows without ruling lines on those pages.
     ``merged_cells`` holds ``(row, col)`` pairs whose bottom ruling line is
     omitted, merging each cell downwards.
@@ -183,13 +191,20 @@ def write_gazette(
         merged = {(r, c) for (r, c) in merged_cells if r < len(page_rows)}
         borderless = page_index in borderless_pages
 
-        skip_h: set[tuple[int, int]] = {(r + 1, c) for (r, c) in merged}
+        # Grid row at which this page's data starts: row 1 behind a column-label
+        # band, row 0 when the page goes straight into data (1151006 onward).
+        data_at = 0 if (no_header_band_after_first and not first) else 1
+
+        skip_h: set[tuple[int, int]] = {(r + data_at, c) for (r, c) in merged}
         header_cells = list(COLUMN_LABELS)
-        if repeat_header_row and not first:
+        if data_at == 0:
+            header_cells = []          # the band is absent, not merely empty
+        elif repeat_header_row and not first:
             # The defective export: the header band carries row 0's content.
             header_cells = list(_render_row(page_rows[0], calendar, 0)[:7])
 
-        heights = [HEADER_HEIGHT] + [ROW_HEIGHT] * len(page_rows)
+        heights = ([ROW_HEIGHT] * len(page_rows) if data_at == 0
+                   else [HEADER_HEIGHT] + [ROW_HEIGHT] * len(page_rows))
         if borderless:
             ys = [TABLE_ORIGIN[1]]
             for h in heights:
@@ -211,16 +226,16 @@ def write_gazette(
                     continue  # cell is owned by the span above it
                 cell_text = rendered[c] if c < len(rendered) else ""
                 if longest_land_row is not None and r == longest_land_row and c == 4:
-                    put_cell_clipped(page, edges, ys, r + 1, c, cell_text)
+                    put_cell_clipped(page, edges, ys, r + data_at, c, cell_text)
                 else:
-                    put_cell(page, edges, ys, r + 1, c, cell_text)
+                    put_cell(page, edges, ys, r + data_at, c, cell_text)
 
         if footer_inside_last_cell and page_rows:
             # The page number printed at the foot of the last row's 地號 cell,
             # which is where the city's layout puts it on the pages that exhibit
             # the bleed. Placing it below the cell's own text reproduces the real
             # signature: a bare integer welded onto the cell's tail.
-            page.insert_text((edges[4] + 3.0, ys[len(page_rows) + 1] - 2.0),
+            page.insert_text((edges[4] + 3.0, ys[len(page_rows) + data_at] - 2.0),
                              str(page_index + 1), fontsize=7.0, fontname=FONT)
         else:
             page.insert_text((600.0, 580.0), str(page_index + 1), fontsize=7.0, fontname=FONT)

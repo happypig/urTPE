@@ -146,6 +146,81 @@ def test_repeated_header_row_is_discarded_and_last_record_survives(tmp_path):
     assert recs[-1]["implementer"] == ROC_ROWS[-1][5]
 
 
+def test_a_page_that_starts_straight_into_data_keeps_its_first_record(tmp_path):
+    """The 1151006 defect, caught by the tripwire on 2026-10-07.
+
+    From publication 1151006 the city draws the column-label band on page 1 only
+    and starts every later page directly on a record. The reader skipped grid row
+    0 by *position* as though it were always the header band, so on each of the
+    245 pages after the first it deleted that page's first approval: 230 records
+    gone from a 1,439-record publication, and 編號 left with a gap every ~6 rows.
+
+    This is the same shape of assumption as the 1151002 defect, in the opposite
+    direction. There the band carried a *copy* of a record that also appeared as
+    data, so dropping it lost nothing; here it carries a record that exists
+    nowhere else. A band cannot be located by position, only by its content.
+    """
+    path = _pdf(tmp_path, "noband", rows_per_page=2, no_header_band_after_first=True)
+    recs, meta = E.extract_pdf_with_meta(path)
+    assert [r["recno"] for r in recs] == ["1", "2", "3", "4", "5"], (
+        "a record drawn in the first grid row of a page is still a record")
+    assert int(meta["duplicate_recnos"]) == 0, (
+        "nothing is repeated in this export, so nothing may be dropped as a repeat")
+    assert recs[2]["land"] == ROC_ROWS[2][4], (
+        "the record must come from its own row, with its own 地號 cell")
+
+
+def test_both_page_head_shapes_are_told_apart_by_content_not_position(tmp_path):
+    """The two exports differ in row 0, so the reader must too.
+
+    Reading both under one run is the point: whichever shape a publication uses,
+    every approval is emitted exactly once and no record is invented.
+    """
+    for kw, label in ((dict(repeat_header_row=True), "repeat"),
+                      (dict(no_header_band_after_first=True), "noband")):
+        path = _pdf(tmp_path, f"shape-{label}", rows_per_page=2, **kw)
+        recs, _meta = E.extract_pdf_with_meta(path)
+        assert [r["recno"] for r in recs] == ["1", "2", "3", "4", "5"], (
+            "export %s lost or invented a record" % label)
+        assert len({r["recno"] for r in recs}) == 5, (
+            "export %s emitted a record twice" % label)
+
+
+def test_the_tripwire_is_what_reported_the_missing_first_record(tmp_path):
+    """Why this is not a silent shortfall.
+
+    Deleting one record per page leaves 編號 gapped, which is the one property
+    every measured gazette holds. The gate caught it and refused the run; the
+    reader bug is why it could be fixed at all.
+    """
+    path = _pdf(tmp_path, "noband", rows_per_page=2, no_header_band_after_first=True)
+    recs, meta = E.extract_pdf_with_meta(path)
+    excluded = {int(v) for v in meta.get("excluded_recnos", "").split(",") if v.strip()}
+    from urtpe.tripwire import Tripwire
+
+    faults = Tripwire().check(recs, pages=3, tables_found=3,
+                              excluded_recnos=excluded)
+    assert faults == [], (
+        "a publication whose rows are all present must pass the completeness gate")
+
+
+def test_a_dropped_page_first_record_is_reported_as_a_gap_not_a_short_read(tmp_path):
+    """The gate must still fire when the reader is wrong, which is its job.
+
+    Simulates the pre-fix reader on the new export: the first record of each page
+    after the first is missing, so 編號 is not contiguous and the run must refuse
+    rather than emit 1,181 records as though they were the whole publication.
+    """
+    path = _pdf(tmp_path, "noband", rows_per_page=2, no_header_band_after_first=True)
+    full, _meta = E.extract_pdf_with_meta(path)
+    damaged = [r for r in full if r["recno"] != "3"]   # page 2's first record
+    from urtpe.tripwire import Tripwire
+
+    faults = Tripwire().check(damaged, pages=3, tables_found=3)
+    assert faults, "a missing 編號 must be a fault, not a shorter gazette"
+    assert "3" in faults[0], "the fault must name the record that is absent"
+
+
 def test_wrapped_cells_are_rejoined_without_inventing_whitespace(tmp_path):
     recs = E.extract_pdf(_pdf(tmp_path, "wrap"))
     first = recs[0]

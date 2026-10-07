@@ -35,13 +35,21 @@ DEFAULT_ARCHIVE_ROOT = Path(
 INDEX_NAME = "index.jsonl"
 RECORD_NAME = "poll_log.jsonl"
 
-# Two reader identities, not one. `table-lines-v1` absorbed a page-number footer into a
+# Three reader identities, not two. `table-lines-v1` absorbed a page-number footer into a
 # 地號 cell and truncated long cells at the printed row height, so an entry stamped with
 # it cannot be treated as equivalent to one stamped `v2`: cell content differs between
 # them, and a comparison across the two would attribute reader differences to the
 # publisher. Entries predating this distinction keep their original string and are
 # reported as unverified rather than being rewritten.
-READER_VERSION = "table-lines-v2"
+#
+# `table-lines-v3` drops the positional skip of grid row 0. `v2` located the header band
+# by position, which was correct only while every publication after page 1 repeated a
+# record inside that band; from 1151006 (2026-10-01) the band is absent and row 0 holds
+# a record of its own, so `v2` silently deleted one approval per page (230 of 1,439).
+# `v2` stays verified rather than becoming legacy: on every publication it actually read,
+# whose pages carry the repeated band, `v2` and `v3` emit the same records. It is `v3`
+# that is required to read the newer export shape.
+READER_VERSION = "table-lines-v3"
 LEGACY_READER_VERSIONS = frozenset({"table-lines-v1"})
 
 
@@ -270,6 +278,19 @@ class GazetteArchive:
         """Publication dates present on disk, oldest first."""
         return sorted(self.index_ids_on_disk())
 
+    def recorded_ids(self) -> list[str]:
+        """Publications the index says were ingested, oldest first.
+
+        History, not presence. `index_ids_on_disk()` answers "what files are here right
+        now"; this answers "what was ingested", and the two are not the same question.
+        Measured 2026-10-07: with 核定案件-2026-09-24.pdf deleted, the disk-glob answer
+        promoted 2026-08-27 into 09-24's slot, so reconciling 10-01 reported 19 re-dated,
+        16 edited and 41 vanished rows plus a `roc -> gregorian` calendar change that all
+        belonged to 09-24's own transition. A publication that was ingested keeps its
+        position whether or not the document is still here.
+        """
+        return sorted({e.gazette_id for e in self.entries()})
+
     def index_ids_on_disk(self) -> set[str]:
         ids: set[str] = set()
         for path in self.root.glob("核定案件-*.pdf"):
@@ -288,8 +309,14 @@ class GazetteArchive:
         left reconciliation reporting "no comparison possible" against a populated archive —
         which is why the parked portal cascade's trigger ("a reliable change set across two
         consecutive ingestions") could never be met.
+
+        Resolved from `recorded_ids()`, not from the directory listing, because this is a
+        question about what was ingested. A predecessor whose document has since been
+        deleted still occupies its position: the caller asks `path_of()` separately and
+        reports the absence, rather than this silently naming an earlier publication and
+        letting an interval spanning two publications read as though they were adjacent.
         """
-        ids = self.archived_ids()
+        ids = self.recorded_ids()
         if gazette_id not in ids:
             # the incoming gazette: compare against whatever precedes it
             earlier = [i for i in ids if i < gazette_id]

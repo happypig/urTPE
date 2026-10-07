@@ -130,3 +130,76 @@ def test_index_entry_roundtrips_through_json():
                        ingested_at="t", record_count=1436, project_count=713,
                        reader_version="v", filename="f.pdf")
     assert IndexEntry(**entry.__dict__) == entry
+
+
+# --- change archive-recorded-vs-held: recorded (history) vs held (presence) -------
+#
+# 2026-10-07. `核定案件-2026-09-24.pdf` was deleted from the archive. The next
+# ingestion reported `2026-08-27 -> 2026-10-01` and carried 19 re-dated, 16 edited and
+# 41 vanished rows plus a `roc -> gregorian` calendar change that were all 09-24's own
+# transition. `blocking: []`, so it persisted without objection. The cause was that
+# `predecessor_of()` derived the publication chain from a directory glob, so deleting a
+# document promoted an earlier publication into its slot.
+
+def _four_publications(archive, tmp_path, newest: str = "2026-10-01"):
+    for name, gid in [("a", "2026-08-11"), ("b", "2026-08-20"),
+                      ("c", "2026-08-27"), ("d", "2026-09-24")]:
+        archive.record_ingest(
+            _gazette(tmp_path, name, f"統計至{gid[2:4]}/{gid[5:7]}/{gid[8:10]}"),
+            gid, record_count=1)
+    archive.record_ingest(_gazette(tmp_path, "e", "統計至26年10月1日"), newest,
+                          record_count=1)
+
+
+def test_a_publication_the_index_records_outranks_one_the_disk_holds(archive, tmp_path):
+    """Two tenses, two answers, from one archive whose index and disk disagree."""
+    _four_publications(archive, tmp_path)
+    archive.path_of("2026-09-24").unlink()          # recorded, no longer held
+
+    assert archive.recorded_ids() == ["2026-08-11", "2026-08-20", "2026-08-27",
+                                      "2026-09-24", "2026-10-01"], (
+        "the index still records five publications; a record of what happened does not "
+        "change because a file was deleted")
+    assert archive.index_ids_on_disk() == {"2026-08-11", "2026-08-20", "2026-08-27", "2026-10-01"}, (
+        "the disk holds four; that is a different question and has a different answer")
+
+
+def test_a_recorded_but_absent_publication_still_occupies_its_position(archive, tmp_path):
+    """The exact substitution that produced the 41 phantom vanished rows."""
+    _four_publications(archive, tmp_path)
+    archive.path_of("2026-09-24").unlink()
+
+    assert archive.predecessor_of("2026-10-01") == "2026-09-24", (
+        "09-24 was ingested, so it is 10-01's predecessor even though the document is "
+        "gone. Returning 2026-08-27 makes an interval spanning two publications read as "
+        "though they were adjacent, and attributes 09-24's changes to 10-01.")
+    assert archive.path_of(archive.predecessor_of("2026-10-01")) is None, (
+        "and the caller can still tell that the predecessor is recorded but not held")
+
+
+def test_a_re_read_whose_document_is_absent_still_resolves_its_predecessor(archive, tmp_path):
+    """An out-of-order re-read is compared against what came before it, not against
+    whatever survives on disk."""
+    _four_publications(archive, tmp_path)
+    archive.path_of("2026-08-27").unlink()
+
+    assert archive.predecessor_of("2026-08-27") == "2026-08-20"
+    assert archive.predecessor_of("2026-09-24") == "2026-08-27", (
+        "09-24's predecessor is 08-27 even though 08-27's document is gone")
+
+
+def test_present_tense_accessors_keep_their_contracts(archive, tmp_path):
+    """D1 is rejected if implemented by reinterpreting an existing accessor.
+
+    `publication_count()`'s docstring says "publications archived", `newest()` answers
+    "what do we hold" — both present tense, both correct as-is. Re-pointing either at
+    the index would change an answer nothing currently depends on and lose a contract.
+    """
+    _four_publications(archive, tmp_path)
+    archive.path_of("2026-08-20").unlink()
+
+    assert archive.publication_count() == 4, (
+        "publication_count counts what is archived, so it must not count a document "
+        "that is not there")
+    assert archive.newest() == "2026-10-01"
+    assert archive.archived_ids() == ["2026-08-11", "2026-08-27", "2026-09-24", "2026-10-01"]

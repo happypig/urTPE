@@ -253,10 +253,19 @@ def test_from_js_load_restores_ymd():
     projects, _meta = _load_projects_from_js(str(ROOT / "viewer/projects.data.js"))
     p = next(x for x in projects if x.project_id == PID)
 
-    assert {m.recno: m.ymd for m in p.members} == {
-        1362: (2008, 1, 2), 1407: (2005, 2, 24)}, (
-        "cli.py:95 reads a `ymd` key the emitter never writes, so every node loads as "
-        "(0,0,0) and _sort's (ymd, recno) key degrades to 編號 order")
+    # Asserted through dates, never through 編號: the list is newest-first and the
+    # city prepends approvals, so every 編號 in this file moved when 1151006 was
+    # ingested. A 編號 here would make the test fail on the next publication while
+    # saying nothing about the ordering key it exists to check.
+    dated = {m.iso_date: m.ymd for m in p.members if m.iso_date}
+    assert sorted(dated) == ["2005-02-24", "2008-01-02"], (
+        "崇仁新村's two approvals, by date; got %r" % sorted(dated))
+
+    for iso, ymd in sorted(dated.items()):
+        assert ymd == tuple(int(v) for v in iso.split("-")), (
+            "cli.py:95 reads a `ymd` key the emitter never writes, so every node loads "
+            "as (0,0,0) and _sort's (ymd, recno) key degrades to 編號 order: "
+            "%s loaded as %r" % (iso, ymd))
 
 
 def test_a_loaded_project_orders_nodes_by_date_not_recno():
@@ -267,9 +276,11 @@ def test_a_loaded_project_orders_nodes_by_date_not_recno():
 
     nodes = build_project_graph(p, implementer="", name="")["nodes"]
 
-    assert [n["recno"] for n in nodes] == [1407, 1362], (
+    assert [n["date"] for n in nodes] == ["2005-02-24", "2008-01-02"], (
         "擬訂 2005-02-24 belongs above 變更 2008-01-02; history-graph requires date order "
-        "with the anchor highlighted, not the anchor first")
+        "with the anchor highlighted, not the anchor first. Got %r, which is the reverse "
+        "of the dates and therefore 編號 order."
+        % [n["date"] for n in nodes])
     assert [n["is_current"] for n in nodes] == [False, True], (
         "the anchor is marked, not promoted to the first row")
 

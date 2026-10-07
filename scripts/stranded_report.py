@@ -26,6 +26,7 @@ GAZETTES = [
     ("2026-08-20", ROOT.parent / "urtpe-gazettes" / "核定案件-2026-08-20.pdf"),
     ("2026-08-27", ROOT.parent / "urtpe-gazettes" / "核定案件-2026-08-27.pdf"),
     ("2026-09-24", ROOT.parent / "urtpe-gazettes" / "核定案件-2026-09-24.pdf"),
+    ("2026-10-01", ROOT.parent / "urtpe-gazettes" / "核定案件-2026-10-01.pdf"),
 ]
 
 

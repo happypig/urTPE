@@ -105,6 +105,11 @@ class CellFault:
     and the run must stop. A ``CellFault`` means the publisher's own output is
     defective in a way no reading can repair, so the affected record is excluded
     and reported rather than emitted with unknown contents.
+
+    ``cause`` records which detector caught the truncation — ``"tail"`` for a
+    dangling ending, ``"declared_count"`` for a list short of the 案名's count
+    with no closing phrase — so the run report can distinguish the two counts
+    while both remain publisher faults.
     """
 
     page: int
@@ -113,6 +118,7 @@ class CellFault:
     kind: str
     recno: str = ""
     detail: str = ""
+    cause: str = ""
 
     def __str__(self) -> str:
         where = f"page {self.page}"
@@ -131,8 +137,11 @@ class CellFault:
 
 # A 地號 cell ends with a CJK character in every published wording observed
 # (…地號等N筆土地, …筆土地), optionally followed by a closing paren. Ending on an
-# ASCII digit or a list separator means the parcel list stops mid-enumeration.
-TRUNCATED_TAIL_RE = re.compile(r"[、，,]$|\d$")
+# ASCII digit, a list separator, or a sub-parcel hyphen means the parcel list
+# stops mid-enumeration. The hyphen arm is the spec's half sub-parcel ending
+# (`139-`), measured live as 編號 1005's `…578、579-` (2026-10-15 gazette):
+# the earlier `[、，,]$|\d$` read that cut cell as complete.
+TRUNCATED_TAIL_RE = re.compile(r"[、，,]$|\d$|\d-$")
 
 # The city prints the page number inside the last row's 地號 cell on some pages.
 # The trailing digits always equal that page: 11 of 11 occurrences measured across
@@ -146,8 +155,60 @@ FOOTER_TAIL_RE = re.compile(
 # published row, so this is a self-check and imports nothing from another record.
 DECLARED_COUNT_RE = re.compile(r"地\s*號\s*(?:等)?\s*(?:共)?\s*(\d+)\s*筆")
 SECTION_PREFIX_RE = re.compile(r"^臺北市[^區]{1,4}區.*?小段")
-PARCEL_TOKEN_RE = re.compile(r"\d+(?:-\d+)?")
-LAND_TERMINATOR_RE = re.compile(r"地\s*號\s*(?:等)?\s*(?:共)?\s*\d*\s*筆\s*土\s*地\s*\)?\s*$")
+
+# One closing-phrase chunk: a digit run announced by 地號[等共]? or by 等/共, an
+# optional 筆, an optional parenthetical (the measured `等2筆(原17筆)土地`), then
+# 土地 with an optional `)`. The marker requirement keeps a bare parcel before
+# 土地 from ever being swallowed as a count.
+_CLOSING_CHUNK_RE = re.compile(
+    r"(?:地\s*號\s*(?:等)?\s*(?:共)?|(?:等)|(?:共))\s*\d+\s*筆?"
+    r"(?:\s*\([^)]{1,16}\))?\s*土\s*地\s*\)?\s*$"
+)
+# The published bare form `地號等12筆` with no 土地 (main spec, terminal
+# wording variations) is also a completion.
+_BARE_COUNT_RE = re.compile(r"地\s*號\s*(?:等)?\s*(?:共)?\s*\d+\s*筆\s*$")
+
+# A parcel token: a digit run, optionally continued by a sub-parcel hyphen.
+# The hyphen arm tolerates layout spaces INSIDE the token — `573 -6` is the
+# single parcel 573-6 (measured in the 雙園段二小段505 cells) — while a space
+# followed by bare digits delimits two parcels (`163 164` in the
+# 長安段四小段140 cells is 163 and 164, measured 2026-10-26). The counter must
+# not strip spaces before tokenising: that glue read 22 parcels as 21 and
+# would have excluded complete records under the declared-count check.
+PARCEL_TOKEN_RE = re.compile(r"\d+(?:\s*-\s*\d+)?")
+
+
+def _strip_closing_chunks(land: str) -> str:
+    """The cell text with its trailing closing-phrase chunks removed.
+
+    Strips from the right, iteratively, so a chained tail like
+    `地號等 18 筆土地)等 4 筆土地` (measured, 中正段44) loses both chunks and
+    neither `18` nor `4` is ever counted as a parcel.
+    """
+    body = (land or "").strip()
+    while True:
+        m = _CLOSING_CHUNK_RE.search(body)
+        if not m:
+            break
+        body = body[: m.start()].rstrip()
+    m = _BARE_COUNT_RE.search(body)
+    if m:
+        body = body[: m.start()].rstrip()
+    return body
+
+
+def closing_phrase_present(land: str) -> bool:
+    """Whether the publisher completed this cell with a closing phrase.
+
+    Any published variant counts, including the bare `地號等12筆`. A cell
+    whose closing phrase is present was drawn to completion, so a mismatch
+    between its visible parcel count and the 案名's declared count is a
+    city-side inconsistency between two published fields, never evidence of a
+    row-height cut (measured 2026-10-26: 48 such rows in the 2026-10-15
+    gazette, none truncated).
+    """
+    text = (land or "").strip()
+    return _strip_closing_chunks(text) != text
 
 
 def declared_parcel_count(name: str) -> int | None:
@@ -160,12 +221,14 @@ def parcel_token_count(land: str) -> int:
     """Distinct parcel numbers visible in a 地號 cell, ignoring its section prefix.
 
     Counts what the cell actually shows, so a cell the publisher cut short yields a
-    count below the number the 案名 declares.
+    count below the number the 案名 declares. Closing-phrase variants are stripped
+    first so their count digits never enter the token set, and spaces are left in
+    place so `163 164` delimits two parcels while `573 -6` stays one token.
     """
-    body = land.replace(" ", "").replace("\u3000", "")
+    body = _strip_closing_chunks(land)
     body = SECTION_PREFIX_RE.sub("", body)
-    body = LAND_TERMINATOR_RE.sub("", body)
-    return len(set(PARCEL_TOKEN_RE.findall(body)))
+    return len({t.replace(" ", "").replace("\u3000", "")
+                for t in PARCEL_TOKEN_RE.findall(body)})
 
 
 def land_cell_is_complete(land: str, name: str) -> bool:
@@ -294,10 +357,11 @@ def _normalise_for_compare(text: str) -> str:
 
 
 def _parcel_tokens(land: str) -> list[str]:
-    body = (land or "").replace(" ", "").replace("\u3000", "")
+    """The cell's parcels, canonicalised — same rules as `parcel_token_count`."""
+    body = _strip_closing_chunks(land)
     body = SECTION_PREFIX_RE.sub("", body)
-    body = LAND_TERMINATOR_RE.sub("", body)
-    return sorted(set(PARCEL_TOKEN_RE.findall(body)))
+    return sorted({t.replace(" ", "").replace("\u3000", "")
+                   for t in PARCEL_TOKEN_RE.findall(body)})
 
 
 def _same_district(land: str, cand: dict) -> bool:
@@ -551,7 +615,23 @@ def _page_records(page, faults: list[Fault],
             land = _clean_cell(row[4])
             land, footer_removed = strip_page_footer(land, page_no)
             name = _clean_cell(row[3])
-            truncated = bool(TRUNCATED_TAIL_RE.search(land))
+            # Publisher-truncation decision (check-declared-parcel-counts): the
+            # tail pattern is the primary signal; the declared-count check is
+            # the safety net for cuts that end where no tail pattern matches.
+            # It runs ONLY on cells that lost their closing phrase — a cell the
+            # publisher completed is not re-judged against its 案名, whose
+            # declared count disagrees with the cell in 48 published rows per
+            # Gregorian gazette (census 2026-10-26, poc_findings.md). Rows
+            # whose 案名 declares no count are not count-checked.
+            tail_fired = bool(TRUNCATED_TAIL_RE.search(land))
+            declared = declared_parcel_count(name)
+            count_fired = (
+                declared is not None
+                and not tail_fired
+                and not closing_phrase_present(land)
+                and parcel_token_count(land) < declared
+            )
+            truncated = tail_fired or count_fired
             if truncated and land_cell_is_complete(land, name):
                 # Every parcel the row declares is present; the publisher only cut
                 # the closing phrase. Keep the record rather than discard good data.
@@ -571,12 +651,21 @@ def _page_records(page, faults: list[Fault],
             if truncated:
                 # The publisher stopped drawing the parcel list at the printed row
                 # height; the remainder is not in the document, so the parcel set
-                # cannot be known. Drop the record and report it.
+                # cannot be known. Drop the record and report it, naming which
+                # detector caught it.
+                if tail_fired:
+                    cause, detail = "tail", (
+                        "cell ends mid-enumeration; the publisher truncated it "
+                        "at the row height and the remainder is not in the PDF")
+                else:
+                    cause, detail = "declared_count", (
+                        f"the parcel list stops at {parcel_token_count(land)} of the "
+                        f"{declared} parcels the 案名 declares; the closing phrase is "
+                        f"absent and the remainder is not in the PDF")
                 cell_faults.append(CellFault(
                     page=page_no, row=i, column="地號",
                     kind="source_truncated_land_cell", recno=recno_text,
-                    detail="cell ends mid-enumeration; the publisher truncated it "
-                           "at the row height and the remainder is not in the PDF",
+                    cause=cause, detail=detail,
                 ))
                 continue
             if footer_removed and TRUNCATED_TAIL_RE.search(land):
@@ -685,6 +774,11 @@ def extract_pdf_with_meta(path: str, *, strict: bool = True,
         meta["excluded_count"] = str(len(cell_faults))
         meta["excluded_recnos"] = ",".join(f.recno for f in cell_faults if f.recno)
         meta["excluded_reason"] = cell_faults[0].kind
+        # Both detectors catch publisher faults; the split says which signal
+        # fired per exclusion while the named 編號 stay the authoritative list.
+        by_tail = sum(1 for f in cell_faults if f.cause == "tail")
+        meta["excluded_by_tail"] = str(by_tail)
+        meta["excluded_by_count"] = str(len(cell_faults) - by_tail)
     if published:
         meta["published_date"] = published
     if calendars == {"roc"}:

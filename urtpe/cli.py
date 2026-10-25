@@ -233,9 +233,12 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
         if v.strip().isdigit()
     }
     if excluded_recnos:
+        by_tail = int(extract_meta.get("excluded_by_tail") or "0")
+        by_count = int(extract_meta.get("excluded_by_count") or "0")
         print(f"[WARN] {len(excluded_recnos)} record(s) excluded: the publisher "
               f"truncated their 地號 cell and the remainder is not in the PDF "
-              f"(編號 {', '.join(str(v) for v in sorted(excluded_recnos))})")
+              f"({by_tail} caught by the cell tail, {by_count} by the declared "
+              f"parcel count; 編號 {', '.join(str(v) for v in sorted(excluded_recnos))})")
 
     # --- tripwire ----------------------------------------------------------
     tw = tripwire_mod.Tripwire()

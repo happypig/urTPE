@@ -6,7 +6,7 @@ merged, per-project history graph plus a static viewer. Python, pymupdf, no web 
 ## Commands (verified on this machine)
 
 ```powershell
-python -m pytest                      # 598 tests, ~75s, fully offline
+python -m pytest                      # 667 tests, ~75s, fully offline
 python -m pytest tests/test_merge.py  # one file
 python -m pytest tests/test_merge.py::test_name -q
 python -m urtpe.cli source.pdf -o data --links
@@ -16,8 +16,8 @@ python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --
 - Use the **system** interpreter (`C:\Python314\python.exe`, pytest 9.0.1, pymupdf 1.28.2).
   `.venv/` exists but contains only pip — activating it leaves you unable to run tests.
 - The count in that first line goes stale whenever tests change. Refresh it with
-  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **598 collected**
-  while a full run reports **597 passed, 1 skipped** — the skip is deliberate, at
+  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **667 collected**
+  while a full run reports **666 passed, 1 skipped** — the skip is deliberate, at
   `tests/test_idempotent_flags.py:117`, because the node payload builder is not exposed and
   the graph test below it covers the behaviour. With no CI, an unnamed skip reads as a
   silently disabled guard.
@@ -90,7 +90,16 @@ Violating any of these corrupts output silently rather than raising.
   (a) The city sometimes prints the page number *inside* the last row's 地號 cell — that
   is the reader's fault, stripped only when the digits equal that page. (b) The city
   truncates long cells at the printed row height and never draws the remainder — that is
-  the publisher's fault, the text is absent from the PDF. Do not "fix" (b).
+  the publisher's fault, the text is absent from the PDF. Do not "fix" (b). A cell is
+  publisher-truncated iff its text ends in a tail pattern (`、，,` / digit / sub-parcel
+  hyphen, the measured `…578、579-` of 編號 1005) **or** it lost its closing phrase while
+  showing fewer parcels than its own 案名 declares; a cell whose closing phrase is present
+  is never count-checked (48 rows per Gregorian gazette disagree with their 案名 and are
+  complete as published). The counter does not strip spaces before tokenising —
+  `163 164` is two parcels, `573 -6` one — and closing-phrase variants
+  (`地號等22土地`, `地號等2筆(原17筆)土地`, chained `…土地)等 4 筆土地`) are stripped
+  chunk-wise so their digits never count as parcels (check-declared-parcel-counts,
+  2026-10-26; census in `openspec/changes/check-declared-parcel-counts/poc_findings.md`).
 - **Never repair absent data by inference.** Truncated records are excluded and named,
   and the exclusion count is reported, so a short gazette never reads as a faithful copy.
 - **Calendars:** ROC (115/8/27) until the 1151002 gazette, Gregorian after. Both accepted

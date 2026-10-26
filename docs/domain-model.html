@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Domain Model · 領域模型</title>
+<!--
+  Bilingual domain model. Self-contained: no external requests, opens offline from
+  file:// like the viewer. Companion to docs/domain_model.md, which stays the
+  prose source of truth; this adds the bilingual labels and, in §4, the entity
+  the current diagram omits.
+
+  Language switch is a two-line inline script. Both languages are in the DOM and
+  one set is hidden by CSS, so the page works with JS disabled (English shown).
+-->
+<style>
+  :root{
+    --ink:#0f172a; --muted:#64748b; --line:#cbd5e1; --bg:#fff; --panel:#f8fafc;
+    --src:#1d4ed8; --src-bg:#eff6ff;
+    --id:#0f766e;  --id-bg:#f0fdfa;
+    --por:#7c3aed; --por-bg:#f5f3ff;
+    --out:#b45309; --out-bg:#fffbeb;
+    --gap:#b91c1c; --gap-bg:#fef2f2;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#e2e8f0; --muted:#94a3b8; --line:#334155; --bg:#0b1220; --panel:#111827;
+      --src:#93c5fd; --src-bg:#0c1e3d; --id:#5eead4; --id-bg:#0b2b28;
+      --por:#c4b5fd; --por-bg:#1b1233; --out:#fbbf24; --out-bg:#2a1f06;
+      --gap:#fca5a5; --gap-bg:#2d1010;
+    }
+  }
+  html:not(.zh) .zh{display:none}
+  html.zh .en{display:none}
+  *{box-sizing:border-box}
+  body{margin:0;padding-bottom:64px;background:var(--bg);color:var(--ink);
+       font:15px/1.65 system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif}
+
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:26px 32px;
+         display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+  h1{margin:0 0 6px;font-size:21px}
+  .sub{color:var(--muted);font-size:13px;margin:0;max-width:80ch}
+  .switch{display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap;
+          border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer;
+          background:var(--bg)}
+  .switch input{margin:0;cursor:pointer}
+
+  main{max-width:1280px;margin:0 auto;padding:0 32px}
+  section{margin-top:42px}
+  h2{font-size:17px;margin:0 0 4px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h2 .n{color:var(--muted);font-weight:400;margin-right:10px}
+  h3{font-size:14.5px;margin:22px 0 8px}
+  .lead{color:var(--muted);font-size:13.5px;margin:10px 0 18px;max-width:92ch}
+
+  /* layered diagram */
+  .layers{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+  @media(max-width:1080px){.layers{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:640px){.layers{grid-template-columns:1fr}}
+  .layer{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:12px}
+  .layer > h4{margin:0 0 10px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+             color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:6px}
+  .layer.src{border-color:var(--src);background:var(--src-bg)}
+  .layer.src > h4{color:var(--src)}
+  .layer.id{border-color:var(--id);background:var(--id-bg)}
+  .layer.id > h4{color:var(--id)}
+  .layer.por{border-color:var(--por);background:var(--por-bg)}
+  .layer.por > h4{color:var(--por)}
+  .layer.out{border-color:var(--out);background:var(--out-bg)}
+  .layer.out > h4{color:var(--out)}
+
+  .ent{background:var(--bg);border:1px solid var(--line);border-radius:8px;
+       padding:9px 11px;margin-bottom:9px}
+  .ent .name{font-weight:650;font-size:13.5px;display:flex;justify-content:space-between;gap:8px}
+  .ent .role{color:var(--muted);font-weight:400;font-size:12px}
+  .ent ul{margin:7px 0 0;padding-left:16px;font-size:12px;color:var(--muted)}
+  .ent li{margin:1px 0}
+  .ent code{font-size:11.5px}
+  .tagline{font-size:11px;color:var(--muted);border-top:1px dashed var(--line);
+           margin-top:7px;padding-top:6px}
+
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+       background:var(--panel);padding:1px 5px;border-radius:4px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12.5px}
+  td.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .arrow{color:var(--muted);text-align:center;font-size:12.5px}
+
+  .callout{border-radius:10px;padding:15px 18px;margin-top:12px}
+  .callout.gap{border:1px solid var(--gap);background:var(--gap-bg)}
+  .callout.note{border:1px solid var(--line);background:var(--panel)}
+  .callout .h{font-weight:650;margin-bottom:6px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:700px){.cols{grid-template-columns:1fr}}
+  .col .ent{margin-bottom:0}
+  .ok{color:var(--id)}
+  .bad{color:var(--gap)}
+  .note-line{color:var(--muted);font-size:13px;margin:12px 0 0;max-width:92ch}
+  td.warn{color:var(--gap);font-weight:600}
+  footer{max-width:1280px;margin:52px auto 0;padding:18px 32px 0;
+         border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Domain Model<span class="zh"> · 領域模型</span></h1>
+    <p class="sub">Taipei urban-renewal approvals, from gazette row to browser graph.
+      <span class="zh">臺北市都市更新核定案件：從公報一列到瀏覽器圖。</span></p>
+  </div>
+  <label class="switch"><input type="checkbox" id="lang"> <span>中文</span></label>
+</header>
+
+<main>
+
+<section>
+  <h2><span class="n">§1</span>The model <span class="zh">模型</span></h2>
+  <p class="lead">Read left to right. The PDF is the skeleton; identity is the join key;
+    the portals attach depth and breadth; the graph is what ships.
+    <span class="zh">由左至右。公報是骨架；身分是 join key；兩個門戶分別補上深度與廣度；圖是對外產物。</span></p>
+
+  <div class="layers">
+    <div class="layer src">
+      <h4>Sources <span class="zh">來源</span></h4>
+      <div class="ent">
+        <div class="name">PDFGazette <span class="role zh">核定案件一覽表</span></div>
+        <div class="tagline"><span class="en">246 pages, newest-first, 編號 1 = latest</span>
+          <span class="zh">246 頁，由新到舊，編號 1 為最新</span></div>
+      </div>
+      <div class="ent">
+        <div class="name">TaipeiPortal <span class="role zh">北市都發局</span></div>
+        <div class="tagline"><span class="en">per case_id — pre-approval depth</span>
+          <span class="zh">以 case_id 為準 — 核定前的深度</span></div>
+      </div>
+      <div class="ent">
+        <div class="name">NationalPortal <span class="role zh">國土管理入口網</span></div>
+        <div class="tagline"><span class="en">one view/&lt;id&gt; — post-approval breadth</span>
+          <span class="zh">每單元一個 view/&lt;id&gt; — 核定後的廣度</span></div>
+      </div>
+    </div>
+
+    <div class="layer id">
+      <h4>Identity <span class="zh">身分</span></h4>
+      <div class="ent">
+        <div class="name">RawRecord <span class="role zh">原始列</span></div>
+        <ul><li><code>recno</code> <span class="zh">編號（列印值）</span></li>
+          <li><code>date</code> <span class="zh">核定日期</span></li>
+          <li><code>land</code> <span class="zh">地號</span></li></ul>
+      </div>
+      <div class="ent">
+        <div class="name">CleanRecord <span class="role zh">淨化紀錄</span></div>
+        <ul><li><code>iso_date</code> / <code>ymd</code> <span class="zh">西元日期／排序鍵</span></li>
+          <li><code>stage</code> <span class="zh">擬訂／變更(第N次)</span></li>
+          <li><code>track</code> <span class="zh">事業概要／計畫／權變</span></li>
+          <li><code>section</code> <code>first_parcel</code> <code>land_count</code></li>
+          <li><code>named_anchor</code> <span class="zh">命名基地</span></li>
+          <li><code>land</code> <span class="zh">完整地號清單</span></li></ul>
+        <div class="tagline"><span class="en">one per node; the unit of the graph</span>
+          <span class="zh">一筆對應一個節點，是圖的基本單位</span></div>
+      </div>
+      <div class="ent">
+        <div class="name">Project <span class="role zh">更新單元</span></div>
+        <ul><li><code>project_id</code> = land core slug</li>
+          <li><code>anchor_recno</code> <span class="zh">最新一次核定</span></li>
+          <li><code>members</code> <span class="zh">組成紀錄</span></li>
+          <li><code>borderline</code> <span class="zh">0.5–0.7 未併入的候選</span></li></ul>
+      </div>
+    </div>
+
+    <div class="layer por">
+      <h4>Portal <span class="zh">門戶</span></h4>
+      <div class="ent">
+        <div class="name">DiscoveryResult <span class="role zh">連結探索結果</span></div>
+        <ul><li><code>city_case_ids</code> <span class="zh">北市案號</span></li>
+          <li><code>case_milestones</code> <span class="zh">逐案歷程</span></li>
+          <li><code>milestones_source</code> <span class="zh">里程碑 → case 指派</span></li>
+          <li><code>case_schedules</code> <span class="zh">逐案狀態</span></li>
+          <li><code>orphan_nodes</code> <span class="zh">有案無核定</span></li>
+          <li><code>twur_url</code> <code>rewards</code></li></ul>
+        <div class="tagline"><span class="en">cached per project under .link_cache/</span>
+          <span class="zh">以 .link_cache/ 逐專案快取</span></div>
+      </div>
+      <div class="ent">
+        <div class="name">TaipeiCase <span class="role zh">北市案件</span></div>
+        <ul><li><code>case_id</code> <span class="zh">案號 — 唯一身分</span></li>
+          <li><code>case_name</code> <span class="zh">案名（自帶段／首宗地號／筆數／階段／track）</span></li>
+          <li><code>record_recnos</code> <span class="zh">引用它的紀錄；空 ⇒ 虛擬案</span></li>
+          <li><code>schedule</code> <span class="zh">審查中／已核准／施工中…</span></li></ul>
+        <div class="tagline"><span class="en">proposed · the join key — see §4</span>
+          <span class="zh">提案中 · 兩邊的 join key — 見 §4</span></div>
+      </div>
+    </div>
+
+    <div class="layer out">
+      <h4>Emission <span class="zh">產出</span></h4>
+      <div class="ent">
+        <div class="name">GraphDocument <span class="role zh">歷史圖文件</span></div>
+        <ul><li><code>counts</code> <span class="zh">專案／紀錄數</span></li>
+          <li><code>published_date</code> <span class="zh">統計至</span></li></ul>
+      </div>
+      <div class="ent">
+        <div class="name">ProjectGraph <span class="role zh">單元圖</span></div>
+        <ul><li><code>nodes</code> <span class="zh">節點＝紀錄</span></li>
+          <li><code>edges</code> <span class="zh">版本／事業種類／區段</span></li>
+          <li><code>links</code> <span class="zh">單元層級連結</span></li></ul>
+      </div>
+      <div class="ent">
+        <div class="name">Node <span class="role zh">節點</span></div>
+        <ul><li><code>recno</code> <code>date</code> <code>is_current</code></li>
+          <li><code>links.taipei</code> <span class="zh">該筆的案號</span></li>
+          <li><code>implementation</code> <span class="zh">逐筆快照</span></li></ul>
+      </div>
+    </div>
+
+    <div class="layer">
+      <h4>Identity rules <span class="zh">身分規則</span></h4>
+      <div class="ent">
+        <div class="name">land core <span class="role zh">地號核心</span></div>
+        <div class="tagline"><code>{district}{section}{first_parcel}地號等{count}筆</code></div>
+      </div>
+      <div class="ent">
+        <div class="name">編號 <span class="role zh">is a coordinate</span></div>
+        <div class="tagline"><span class="en">newest-first, re-dated by the city,
+          not an identity. Never key anything durable on it.</span>
+          <span class="zh">由新到舊、會被市政府改期，不是身分。不可作為任何持久鍵。</span></div>
+      </div>
+      <div class="ent">
+        <div class="name">project_id <span class="role zh">也會churn</span></div>
+        <div class="tagline"><span class="en">slug of the newest approval's land core.
+          Migrated via data/project_aliases.json.</span>
+          <span class="zh">最新一次核定之地號核心的 slug，透過 project_aliases.json 遷移。</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">§2</span>Relationships <span class="zh">關係</span></h2>
+  <table>
+    <thead><tr>
+      <th><span class="en">From → To</span><span class="zh">起 → 迄</span></th>
+      <th><span class="en">Cardinality</span><span class="zh">基數</span></th>
+      <th><span class="en">Meaning</span><span class="zh">意義</span></th></tr></thead>
+    <tbody>
+      <tr><td>PDFGazette → RawRecord</td><td class="num">1 : 1</td>
+        <td><span class="en">one row per gazette line</span>
+          <span class="zh">公報每一列一筆</span></td></tr>
+      <tr><td>RawRecord ⇢ CleanRecord</td><td class="num">1 : 1</td>
+        <td><span class="en">cleanse, normalise, derive dates</span>
+          <span class="zh">淨化、正規化、推導日期</span></td></tr>
+      <tr><td>CleanRecord → Project</td><td class="num">N : 1</td>
+        <td><span class="en">similarity join, never equality</span>
+          <span class="zh">以相似度合併，絕不以相等</span></td></tr>
+      <tr><td>CleanRecord ⇢ TaipeiCase</td><td class="num">N : 1</td>
+        <td><span class="en">the record's own case, via links.taipei</span>
+          <span class="zh">該筆自身的案，經 links.taipei</span></td></tr>
+      <tr><td>TaipeiCase ⇠ CleanRecord</td><td class="num">1 : N</td>
+        <td><span class="en">343 cases carry more than one record (up to 4)</span>
+          <span class="zh">343 個案涵蓋不只一筆紀錄（最多 4 筆）</span></td></tr>
+      <tr><td>Project ⇢ DiscoveryResult</td><td class="num">1 : 1</td>
+        <td><span class="en">keyed on land core</span>
+          <span class="zh">以地號核心為鍵</span></td></tr>
+      <tr><td>ProjectGraph → Node</td><td class="num">1 : N</td>
+        <td><span class="en">nodes are records</span>
+          <span class="zh">節點即紀錄</span></td></tr>
+      <tr><td>ProjectGraph → Edge</td><td class="num">1 : N</td>
+        <td><span class="en">revision · track · section</span>
+          <span class="zh">版本 · 事業種類 · 區段</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">§3</span>What each side is for <span class="zh">兩邊各自的作用</span></h2>
+  <table>
+    <thead><tr>
+      <th><span class="en">Side</span><span class="zh">來源</span></th>
+      <th><span class="en">Keyed on</span><span class="zh">鍵</span></th>
+      <th><span class="en">Contributes</span><span class="zh">提供</span></th></tr></thead>
+    <tbody>
+      <tr><td>PDF <span class="zh">公報</span></td><td><code>recno</code> <span class="zh">編號</span></td>
+        <td><span class="en">the family skeleton and the heartbeat — every approval that exists</span>
+          <span class="zh">家族骨架與心跳 — 每一筆真實存在的核定</span></td></tr>
+      <tr><td>Taipei <span class="zh">北市</span></td><td><code>case_id</code> <span class="zh">案號</span></td>
+        <td><span class="en">pre-approval depth: 公聽 → 申請 → 審議 → 核定 → 建照 → 開工, plus status</span>
+          <span class="zh">核定前深度：公聽 → 申請 → 審議 → 核定 → 建照 → 開工，以及狀態</span></td></tr>
+      <tr><td>National <span class="zh">全國</span></td><td><code>view/&lt;id&gt;</code> <span class="zh">單元</span></td>
+        <td><span class="en">post-approval breadth: 推動歷程, and 使用核發 — the only occupancy source</span>
+          <span class="zh">核定後廣度：推動歷程，以及使用核發 — 唯一的使照來源</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">§4</span>TaipeiCase <span class="zh">北市案件</span></h2>
+  <div class="callout note">
+    <div class="h"><span class="en">Proposed — not implemented.</span>
+      <span class="zh">提案中，尚未實作。</span></div>
+    <p style="margin:6px 0 0"><span class="en">The gazette and the portals do not agree on
+      what a thing is. The gazette counts <b>核定案件</b> — one approval. The Taipei portal
+      counts <b>案</b> — one application, which can span several approvals. Nothing in the
+      model names that second thing, so it is carried as loose keys.</span>
+      <span class="zh">公報與門戶對「一件事」的定义並不一致。公報計的是<b>核定案件</b> — 一次核定。
+      北市門戶計的是<b>案</b> — 一件申請，可能橫跨多次核定。模型裡沒有為這第二種東西命名，
+      於是它以零散的 key 形式被攜帶著走。</span></p>
+  </div>
+
+  <h3><span class="en">The asymmetry it costs today · <span class="zh">今天為此付出的代價</span></span></h3>
+  <div class="cols">
+    <div class="col">
+      <div class="ent">
+        <div class="name"><span class="en">virtual case</span><span class="zh">虛擬案</span></div>
+        <ul><li><code>orphan_nodes</code> 內的完整物件</li>
+          <li>11 個欄位，自足</li>
+          <li class="ok">讀一個物件即可畫出</li></ul>
+      </div>
+    </div>
+    <div class="col">
+      <div class="ent">
+        <div class="name"><span class="en">real case</span><span class="zh">真實案</span></div>
+        <ul><li>散在四個字典</li>
+          <li>節點上還留了一份重複</li>
+          <li class="bad">必須 join 四處才畫得出</li></ul>
+      </div>
+    </div>
+  </div>
+  <p style="margin:6px 0 0"><span class="en">Drawing a virtual case is reading one object; drawing a
+    real case is joining four. That asymmetry is why the viewer handles them differently — and
+    why 456 progress markers are anchored by a coin-flip:
+    <code>anchoredByCase[cid] = n.recno</code> keeps whichever record was written last, and 343
+    cases sit on more than one record.</span>
+    <span class="zh">畫一個虛擬案是讀一個物件，畫一個真實案要 join 四處。這個不對稱正是 viewer
+    對兩者處理方式不同的原因 — 也是 456 個進度標記靠擲硬幣決定錨點的原因：
+    <code>anchoredByCase[cid] = n.recno</code> 留最後寫入的那筆，而有 343 個案掛在不只一筆紀錄上。</span></p>
+
+  <div class="callout gap">
+    <div class="h"><span class="en">Two integrity problems this shape would expose.</span>
+      <span class="zh">這個形狀會暴露出的兩個完整性問題。</span></div>
+    <p style="margin:6px 0 0"><span class="en"><b>20</b> virtual cases are listed more than once —
+      <code>orphan_nodes</code> holds 969 entries for 949 distinct case ids. And <b>9</b> case ids
+      appear <i>both</i> as virtual and as real, so the total is 1,921 or 1,912 depending on
+      which wins. Neither is visible today because the virtual set is a flat list keyed by nothing.</span>
+      <span class="zh"><b>20</b> 個虛擬案被列了不只一次 — <code>orphan_nodes</code> 有 969 筆，
+      但只有 949 個不同 case id。另有 <b>9</b> 個 case id <i>同時</i>出現在虛擬與真實兩邊，
+      所以總數是 1,921 或 1,912，取決於哪一邊採計。今天這兩件事都看不見，因為虛擬集合是一個
+      沒有鍵的扁平清單。</span></p>
+  </div>
+
+  <h3><span class="en">Fields</span><span class="zh">欄位</span></h3>
+  <table>
+    <thead><tr><th><span class="en">Field</span><span class="zh">欄位</span></th>
+      <th><span class="en">Type</span><span class="zh">型別</span></th>
+      <th><span class="en">Meaning</span><span class="zh">意義</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>case_id</code></td><td>str</td>
+        <td><span class="en">案號 — the case's only identity</span>
+          <span class="zh">案號 — 案唯一的身分</span></td></tr>
+      <tr><td><code>case_name</code></td><td>str</td>
+        <td><span class="en">self-describing: 段 · 首宗地號 · 筆數 · 階段 · track</span>
+          <span class="zh">自帶描述：段 · 首宗地號 · 筆數 · 階段 · track</span></td></tr>
+      <tr><td><code>project_id</code></td><td>str</td>
+        <td><span class="en">owning unit</span><span class="zh">所屬單元</span></td></tr>
+      <tr><td><code>record_recnos</code></td><td>list&lt;int&gt;</td>
+        <td><span class="en">records that reference it; empty ⇒ virtual</span>
+          <span class="zh">引用它的紀錄；空 ⇒ 虛擬案</span></td></tr>
+      <tr><td><code>node_date</code></td><td>str</td>
+        <td><span class="en">platform-recorded approval date, ISO; "" if none</span>
+          <span class="zh">平台記載的核定日，ISO；無則空字串</span></td></tr>
+      <tr><td><code>stage</code> · <code>track</code> · <code>area</code></td><td>str</td>
+        <td><span class="en">derived from case_name</span>
+          <span class="zh">由 case_name 推導</span></td></tr>
+      <tr><td><code>declared_parcel</code></td><td>str</td>
+        <td><span class="en">首宗地號, parsed from case_name</span>
+          <span class="zh">首宗地號，由 case_name 解析</span></td></tr>
+      <tr><td><code>declared_count</code></td><td>int?</td>
+        <td><span class="en">筆數 as declared; None when the name omits it</span>
+          <span class="zh">案名所宣告的筆數；案名未載則為 None</span></td></tr>
+      <tr><td><code>schedule</code></td><td>str</td>
+        <td><span class="en">審查中 · 已核准 · 施工中 · 自行撤回 · 已失效 · 已駁回</span>
+          <span class="zh">審查中 · 已核准 · 施工中 · 自行撤回 · 已失效 · 已駁回</span></td></tr>
+      <tr><td><code>milestones</code></td><td>dict&lt;str,str&gt;</td>
+        <td><span class="en">the 34 process fields, one dict, never split</span>
+          <span class="zh">34 個流程欄位，一個 dict，不再拆分</span></td></tr>
+      <tr><td><code>milestones_source</code></td><td>dict&lt;str,str&gt;</td>
+        <td><span class="en">which case a merged milestone came from</span>
+          <span class="zh">某個里程碑來自哪個案</span></td></tr>
+      <tr><td><code>provenance</code></td><td>str</td>
+        <td><span class="en">how the case was found</span><span class="zh">此案如何被找到</span></td></tr>
+      <tr><td><code>orphan</code></td><td>bool</td>
+        <td><span class="en">true when no record references it</span>
+          <span class="zh">沒有任何紀錄引用它時為 true</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3><span class="en">Three invariants</span><span class="zh">三條不變條件</span></h3>
+  <div class="callout gap">
+    <div class="h">1 · <span class="en"><code>record_recnos</code> is the only relation between a
+      case and the gazette.</span>
+      <span class="zh"><code>record_recnos</code> 是案與公報之間唯一的關係。</span></div>
+    <p style="margin:6px 0 0"><span class="en">Measured: 1,409 bindings; 343 cases cover more than
+      one record (up to 4); <b>0</b> records name more than one case. Many-to-one, and must be stored
+      in that direction — never inferred from a shared name or a matching parcel.</span>
+      <span class="zh">量測：1,409 個綁定；343 個案涵蓋不只一筆紀錄（最多 4 筆）；<b>0</b> 筆紀錄掛在不只一個案上。
+      是一對多，必須以這個方向儲存 — 絕不可從同名或地號相符去反推。</span></p>
+  </div>
+  <div class="callout gap">
+    <div class="h">2 · <span class="en"><code>case_name</code> is parsed, never compared.</span>
+      <span class="zh"><code>case_name</code> 是用來解析的，不是用來比對的。</span></div>
+    <p style="margin:6px 0 0"><span class="en">It self-declares 段, 首宗地號, 筆數, 階段 and
+      track. That is what separates the 493 groups of cases sharing 段 and 首宗地號 — 365 differ on
+      count or stage, and 128 are identical on both. Comparing the name for equality, or ignoring the
+      parts that differ, collapses those groups.</span>
+      <span class="zh">它自帶段、首宗地號、筆數、階段與 track。正是這些把「段與首宗地號相同」的 493 組案
+      分開 — 其中 365 組在筆數或階段上不同、128 組則在兩者上都完全相同。用相等去比對案名，
+      或忽略其中有差異的部分，都會把這些組collapse 掉。</span></p>
+  </div>
+  <div class="callout gap">
+    <div class="h">3 · <span class="en">Milestones belong to the case, never to the record.</span>
+      <span class="zh">里程碑屬於案，永遠不屬於紀錄。</span></div>
+    <p style="margin:6px 0 0"><span class="en">The node's flattened copy is a denormalised
+      duplicate, and it is the reason a milestone can be dated two years before the record it is
+      drawn against.</span>
+      <span class="zh">節點上那份扁平副本是非正規化的重複物，也正是某個里程碑會比它所對照的紀錄早兩年的原因。</span></p>
+  </div>
+
+  <h3><span class="en">Two rules that fall out</span><span class="zh">由此導出的兩條規則</span></h3>
+  <table>
+    <thead><tr><th><span class="en">Rule</span><span class="zh">規則</span></th>
+      <th><span class="en">Resolves</span><span class="zh">解決</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="en"><b>Anchor resolution.</b> When several records carry a case, a
+          milestone attaches to <b>the latest record approved on or before the milestone's date</b>
+          — not the last one iterated.</span>
+        <span class="zh"><b>錨定解析。</b>當一個案掛在不只一筆紀錄上，里程碑應附到
+          <b>在該里程碑日期當日或之前最近一次核定的那筆紀錄</b> — 而不是最後被迭代到的那筆。</span></td>
+        <td><span class="en">456 ambiguous markers; 428 resolve, 28 have no prior approval</span>
+          <span class="zh">456 個錨定有歧義的標記；428 可解，28 沒有更早的核定</span></td></tr>
+      <tr><td><span class="en"><b>Discriminator.</b> When several cases share 段 and 首宗地號,
+          separate them by declared count and stage. Where identical on both, <b>attach none</b>
+          and report the group as ambiguous.</span>
+        <span class="zh"><b>判別式。</b>當數個案共享段與首宗地號，以宣告筆數與階段區分。
+          兩者都相同時<b>一個都不掛</b>，並把該組列為歧義。</span></td>
+        <td><span class="en">the 128 genuinely-identical groups</span>
+          <span class="zh">那 128 組完全相同的案</span></td></tr>
+    </tbody>
+  </table>
+  <p class="note-line"><span class="en">A wrong attachment is worse than an admitted gap — so
+    where the rule cannot decide, the case stays unattached and the count is reported.</span>
+    <span class="zh">錯誤的掛接比坦承的缺口更糟 — 所以當規則無法判定時，該案保持未掛接，並將數量回報。</span></p>
+
+  <h3><span class="en">Open question</span><span class="zh">待決問題</span></h3>
+  <div class="callout note">
+    <p style="margin:0"><span class="en">191 of 949 virtual cases carry no date at all. They are
+      retained today because <code>orphan_nodes</code> holds them, but a class with no position on
+      the time axis needs a stated home — a gutter column, or listed beneath the graph. That is a
+      decision, not a default.</span>
+      <span class="zh">949 個虛擬案中有 191 個完全沒有日期。它們今天被保留下來是因為
+      <code>orphan_nodes</code> 留著它們，但一個在時間軸上沒有位置的類別需要一個明確的歸屬 —
+      一個側欄欄位，或是列在圖的下方。這是一個決定，不是一個預設值。</span></p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">§5</span>Measured facts <span class="zh">量測事實</span></h2>
+  <p class="note-line"><span class="en">One measurement pass over the 2026-10-01 payload
+    (<code>viewer/projects.data.js</code>, 693 units). Case names were taken from
+    <code>orphan_nodes</code> plus the <code>.link_cache</code> candidate-name sets.</span>
+    <span class="zh">對 2026-10-01 的 payload（<code>viewer/projects.data.js</code>，693 個單元）
+    做單一次量測。案名取自 <code>orphan_nodes</code> 加上 <code>.link_cache</code> 的候選名稱集合。</span></p>
+  <table>
+    <thead><tr><th><span class="en">Fact</span><span class="zh">事實</span></th>
+      <th class="num"><span class="en">Value</span><span class="zh">數值</span></th></tr></thead>
+    <tbody>
+      <tr><td><span class="en">approvals / units</span><span class="zh">核定 / 單元</span></td><td class="num">1,439 / 693</td></tr>
+      <tr><td><span class="en">records per unit, median</span><span class="zh">每單元紀錄數中位數</span></td><td class="num">2</td></tr>
+      <tr><td><span class="en">units with ≤2 records</span><span class="zh">≤2 筆紀錄的單元</span></td><td class="num">491 (71%)</td></tr>
+      <tr><td><span class="en">units with ≥3 records</span><span class="zh">≥3 筆紀錄的單元</span></td><td class="num">202 (29%)</td></tr>
+      <tr><td><span class="en">case→record bindings</span><span class="zh">案→紀錄 綁定數</span></td><td class="num">1,409</td></tr>
+      <tr><td><span class="en">distinct cases on ≥1 record</span><span class="zh">掛在 ≥1 筆紀錄上的不同案</span></td><td class="num">981</td></tr>
+      <tr><td><span class="en">cases covering &gt;1 record</span><span class="zh">涵蓋 &gt;1 筆紀錄的案</span></td><td class="num">343</td></tr>
+      <tr><td><span class="en">— most records on one case</span><span class="zh">— 單一案最多紀錄數</span></td><td class="num">4</td></tr>
+      <tr><td><span class="en">records naming &gt;1 case</span><span class="zh">掛在不只一個案上的紀錄</span></td><td class="num">0</td></tr>
+      <tr><td><span class="en">distinct virtual cases</span><span class="zh">不同的虛擬案</span></td><td class="num">949</td></tr>
+      <tr><td><span class="en">— dated / undated</span><span class="zh">— 有日期 / 無日期</span></td><td class="num">778 / 191</td></tr>
+      <tr><td><span class="en">virtual cases listed &gt;once</span><span class="zh">被列出不只一次的虛擬案</span></td><td class="num warn">20</td></tr>
+      <tr><td><span class="en">cases both virtual and real</span><span class="zh">同時是虛擬與真實的案</span></td><td class="num warn">9</td></tr>
+      <tr><td><span class="en">(段, 首宗地號) groups</span><span class="zh">（段, 首宗地號）分組數</span></td><td class="num">1,285</td></tr>
+      <tr><td><span class="en">— with &gt;1 case</span><span class="zh">— 含 &gt;1 個案</span></td><td class="num">493</td></tr>
+      <tr><td><span class="en">— separated by count/stage</span><span class="zh">— 以筆數/階段可分開</span></td><td class="num">365</td></tr>
+      <tr><td><span class="en">— identical on both</span><span class="zh">— 兩者皆相同</span></td><td class="num">128</td></tr>
+      <tr><td><span class="en">names unparseable for 段/地號</span><span class="zh">段/地號無法解析的案名</span></td><td class="num">29</td></tr>
+      <tr><td><span class="en">progress markers ambiguously anchored</span><span class="zh">錨定有歧義的進度標記</span></td><td class="num">456</td></tr>
+      <tr><td><span class="en">rendered row pairs date-inverted</span><span class="zh">渲染列 日期倒置</span></td><td class="num">474</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">§6</span>Gazette cadence <span class="zh">公報節奏</span></h2>
+  <p class="lead"><span class="en">Acquisition is a separate process from ingestion. A gazette is
+    identified by its content hash, never by a timestamp — the city re-uploads a byte-identical PDF
+    and only advances the stamp on the page. The archive lives outside the repo, so a pipeline run
+    cannot destroy the only copy of a publication.</span>
+    <span class="zh">取得與匯入是兩個分開的過程。公報以內容雜湊辨識，不以時間戳記 — 市政府會重新上傳
+    位元組完全相同、只更新頁面標記的 PDF。檔案庫位於 repo 之外，因此管線執行不會毀掉某次發行的唯一副本。</span></p>
+
+  <h3><span class="en">State objects</span><span class="zh">狀態物件</span></h3>
+  <table>
+    <thead><tr>
+      <th><span class="en">Object</span><span class="zh">物件</span></th>
+      <th><span class="en">Lives in</span><span class="zh">存放位置</span></th>
+      <th><span class="en">Fields that matter</span><span class="zh">關鍵欄位</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>IndexEntry</code></td><td><code>index.jsonl</code></td>
+        <td><span class="en"><code>gazette_id</code> · <code>published_date</code> ·
+          <code>ingested_at</code> · <code>record_count</code> · <code>project_count</code> ·
+          <code>reader_version</code> · <code>sha256</code> · <code>event</code>
+          (<code>first_ingest</code>/<code>reread</code>) · <code>acquisition</code> ·
+          <code>publisher_stamp</code> · <code>calendar</code> ·
+          <code>date_order_violations</code></span>
+          <span class="zh"><code>gazette_id</code> · <code>published_date</code> ·
+          <code>ingested_at</code> · <code>record_count</code> · <code>project_count</code> ·
+          <code>reader_version</code> · <code>sha256</code> · <code>event</code>
+          （<code>first_ingest</code>／<code>reread</code>）· <code>acquisition</code> ·
+          <code>publisher_stamp</code> · <code>calendar</code> ·
+          <code>date_order_violations</code></span></td></tr>
+      <tr><td><code>GazetteArchive</code></td><td><code>index.jsonl</code> + <code>&lt;gazette_id&gt;.pdf</code></td>
+        <td><span class="en">the only copy that survives a bad run; <code>is_verified()</code> re-reads
+          and compares against the recorded counts</span>
+          <span class="zh">唯一能在一次錯誤執行後存活的副本；<code>is_verified()</code> 會重讀並與記錄的數量比對</span></td></tr>
+      <tr><td><code>Correction</code></td><td><code>corrections.jsonl</code></td>
+        <td><span class="en"><code>match_land_core</code> · <code>match_iso_date</code> ·
+          <code>field</code> · <code>to</code> · <code>why</code> · <code>by</code> ·
+          <code>at</code> · <code>supersedes</code> · <code>accept_removal</code>. Never keyed on
+          編號; applied after cleansing, before merge.</span>
+          <span class="zh"><code>match_land_core</code> · <code>match_iso_date</code> ·
+          <code>field</code> · <code>to</code> · <code>why</code> · <code>by</code> ·
+          <code>at</code> · <code>supersedes</code> · <code>accept_removal</code>。
+          絕不以編號為鍵；在淨化之後、合併之前套用。</span></td></tr>
+      <tr><td><code>CorrectionLedger</code></td><td><code>corrections.jsonl</code></td>
+        <td><span class="en">append-only; an ambiguous match is refused rather than guessed</span>
+          <span class="zh">僅追加；比對有歧義時拒絕套用，不猜測</span></td></tr>
+      <tr><td><code>PollState</code></td><td><code>poll_state.json</code></td>
+        <td><span class="en"><code>page_sha256</code> · <code>page_bytes</code> ·
+          <code>last_checked</code> · <code>last_gazette_id</code> · <code>known_hashes</code></span>
+          <span class="zh"><code>page_sha256</code> · <code>page_bytes</code> ·
+          <code>last_checked</code> · <code>last_gazette_id</code> · <code>known_hashes</code></span></td></tr>
+      <tr><td><code>PollOutcome</code></td><td><span class="en">returned, not stored</span>
+          <span class="zh">回傳，不落盤</span></td>
+        <td><span class="en"><code>status</code> ∈ <code>new_gazette</code> ·
+          <code>reuploaded</code> · <code>unchanged</code> · <code>failed</code>;
+          <code>ingested</code> is always false — acquisition never ingests (D4)</span>
+          <span class="zh"><code>status</code> ∈ <code>new_gazette</code> ·
+          <code>reuploaded</code> · <code>unchanged</code> · <code>failed</code>；
+          <code>ingested</code> 恆為 false — 取得從不匯入（D4）</span></td></tr>
+      <tr><td><code>ChangeSet</code></td><td><code>change_sets/&lt;gazette_id&gt;.json</code></td>
+        <td><span class="en"><code>previous_id</code> · <code>current_id</code> ·
+          <code>comparable</code> · <code>authoritative</code>{new_approvals, net_change} ·
+          <code>unresolvable</code>{redated, edited, vanished, withdrawn_recent} ·
+          <code>total_rekey</code> · <code>moved_project_ids</code> · <code>blocking</code>.
+          Keyed by publication, not by run.</span>
+          <span class="zh"><code>previous_id</code> · <code>current_id</code> ·
+          <code>comparable</code> · <code>authoritative</code>{new_approvals, net_change} ·
+          <code>unresolvable</code>{redated, edited, vanished, withdrawn_recent} ·
+          <code>total_rekey</code> · <code>moved_project_ids</code> · <code>blocking</code>。
+          以發行為鍵，不以執行為鍵。</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3><span class="en">Emitted artifacts</span><span class="zh">產出檔案</span></h3>
+  <table>
+    <thead><tr>
+      <th><span class="en">Artifact</span><span class="zh">檔案</span></th>
+      <th><span class="en">Written by</span><span class="zh">寫入者</span></th>
+      <th><span class="en">Note</span><span class="zh">說明</span></th></tr></thead>
+    <tbody>
+      <tr><td><code>data/projects.json</code></td><td><code>graph.py</code></td>
+        <td><span class="en">the GraphDocument above, <code>schema_version: 2</code></span>
+          <span class="zh">上述 GraphDocument，<code>schema_version: 2</code></span></td></tr>
+      <tr><td><code>data/raw.tsv</code> · <code>clean.tsv</code> · <code>merged.tsv</code></td>
+        <td><code>cli.py</code></td>
+        <td><span class="en">flat records, one row per approval</span>
+          <span class="zh">扁平紀錄，一列一筆核定</span></td></tr>
+      <tr><td><code>viewer/projects.data.js</code></td><td><code>cli.py</code></td>
+        <td><span class="en">the same document — and an input via <code>--from-js</code>, so a bad
+          emission round-trips</span>
+          <span class="zh">同一份文件 — 也是 <code>--from-js</code> 的輸入，因此錯誤的輸出會被來回放大</span></td></tr>
+      <tr><td><code>data/.link_cache/</code></td><td><code>links.py</code></td>
+        <td><span class="en">per-project <code>result.json</code>, <code>portal_index.json</code>
+          (newest ~110 only), <code>no_match_ledger.json</code> — durable, not scratch</span>
+          <span class="zh">逐專案的 <code>result.json</code>、<code>portal_index.json</code>
+          （僅最新約 110 筆）、<code>no_match_ledger.json</code> — 是持久層，不是暫存</span></td></tr>
+      <tr><td><code>data/project_aliases.json</code></td><td><code>scripts/build_project_aliases.py</code></td>
+        <td><span class="en">tracked config that migrates caches across <code>project_id</code> churn;
+          refuses ambiguous pairs</span>
+          <span class="zh">受版控的設定，用於在 <code>project_id</code> 變動時遷移快取；遇到歧義配對會拒絕</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout note" style="margin-top:22px">
+    <div class="h"><span class="en">Added since §1 was drawn</span>
+      <span class="zh">自 §1 繪製之後新增</span></div>
+    <p style="margin:6px 0 0"><span class="en"><code>gazette_id</code> on <code>RawRecord</code> and
+      <code>CleanRecord</code>; <code>stage_事業計畫</code> / <code>stage_權利變換</code> per-track
+      stages on the record and the node; <code>auto_fixes</code>, <code>name_raw</code>,
+      <code>district_land</code> on the node; and <code>implementation</code> /
+      <code>rewards</code> as optional objects on <code>ProjectGraph</code>.</span>
+      <span class="zh"><code>RawRecord</code> 與 <code>CleanRecord</code> 上的
+      <code>gazette_id</code>；紀錄與節點上分軌的 <code>stage_事業計畫</code> /
+      <code>stage_權利變換</code>；節點上的 <code>auto_fixes</code>、<code>name_raw</code>、
+      <code>district_land</code>；以及 <code>ProjectGraph</code> 上選配的
+      <code>implementation</code> / <code>rewards</code>。</span></p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <span class="en">Sources:
+    <code>urtpe/models.py</code>, <code>urtpe/graph.py</code>, <code>urtpe/merge.py</code>,
+    <code>urtpe/links.py</code>, <code>urtpe/archive.py</code>, <code>urtpe/ledger.py</code>,
+    <code>urtpe/poller.py</code>, <code>urtpe/changeset.py</code>,
+    <code>openspec/specs/official-link-discovery/spec.md</code>.
+    Companion to <code>docs/domain_model.md</code>, which remains the prose source of truth.
+    Self-contained — no external requests.</span>
+  <span class="zh">來源：<code>urtpe/models.py</code>、<code>urtpe/graph.py</code>、<code>urtpe/merge.py</code>、
+    <code>urtpe/links.py</code>、<code>urtpe/archive.py</code>、<code>urtpe/ledger.py</code>、
+    <code>urtpe/poller.py</code>、<code>urtpe/changeset.py</code>、
+    <code>openspec/specs/official-link-discovery/spec.md</code>。
+    本檔為 <code>docs/domain_model.md</code> 的雙語附頁，後者仍為文字上的 source of truth。
+    完全獨立，不連任何外部資源。</span>
+</footer>
+
+<script>
+  document.getElementById('lang').addEventListener('change', function () {
+    document.documentElement.classList.toggle('zh', this.checked);
+    document.documentElement.lang = this.checked ? 'zh-Hant' : 'en';
+  });
+</script>
+</body>
+</html>

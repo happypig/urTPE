@@ -153,7 +153,7 @@ Violating any of these corrupts output silently rather than raising.
   `build_project_aliases.py`, `stranded_report.py`) are durable tools; dated ones
   (`*_2026MMDD`) and `probe_*.py` are one-shot archaeology.
 - `data/`, `data_test/` — generated output; gitignored except the six tracked files above.
-- `openspec/` — 21 specs, spec-driven workflow. **`openspec/config.yaml` holds the
+- `openspec/` — 23 specs, spec-driven workflow. **`openspec/config.yaml` holds the
   authoritative project context** (calendars, identity rules, the 編號 warning) plus
   per-artifact rules and the test-first gate. Read it before proposing a change.
   `openspec/changes/` holds only `archive/` right now — no change is in flight.

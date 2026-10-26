@@ -16,9 +16,7 @@ The counts once quoted for these two properties — 59 differing land cells, 22 
 The date-order figure was withdrawn on a different and mistaken ground. It was recorded as "9 to 1" and then set aside as *not re-derivable* until `1151002` had been read by the corrected reader — not because the number was doubtful. That read has now happened, and the figure stands: departures from descending approval date are **9, 9 and 1** across `1150820`, `1150827` and `1151002`. The single `1151002` departure is 編號 109 (2025-08-05) above 編號 110 (2025-11-26) — the same unit's 第二次 and 第三次 權利變換, so it is a re-dated historical row rather than a failure to sort. The publisher sorts by date and then re-dates history behind itself; whether that continues is tracked per publication by `gazette-cadence`.
 
 Two measurement properties make the naive count wrong, and both report as healthy rather than broken. `1151002` repeats 編號 1 as a running page head on all 246 pages, so a raw table scan reads 1681 rows for 1436 records and inflates the departure count to 246. And `1151002` publishes Gregorian dates where earlier publications use ROC, so a single-calendar parser finds no dates at all and reports **zero** departures. A departure count is therefore meaningless without its denominator.
-
 ## Requirements
-
 ### Requirement: Report new approvals and net change between publications
 
 The system SHALL compare a newly ingested gazette against the previously archived gazette and report how many approvals are new, and how much the total record count changed. A record is new when its approval date falls after the newest approval date in the previous gazette.
@@ -274,3 +272,34 @@ publication.
 - **WHEN** a gazette is ingested and its immediate predecessor is both recorded and held
 - **THEN** the comparison proceeds and reports the two publications compared
 - **AND** the reported absence does not appear
+
+### Requirement: A row the reader recovered is not reported as a publisher edit
+
+When a run completes publisher-truncated rows from the city's APIs, those rows SHALL be
+reported under their own count, distinct from re-dated and edited historical rows. The
+predecessor is re-read without the recovery pass, so a recovered row is absent from the
+previous side by construction; recording that absence as an edit asserts a change to the
+published list that did not happen — the same misattribution the corpus exclusion fixes for
+a reader that dropped rows (measured 2026-10-07, 13 rows reported as "edited"). The
+persisted change set SHALL carry the count as its own field, outside both the authoritative
+signals and the unresolvable movement: nothing the city published changed, so it is not
+movement, and the cause is known exactly, so it is not unresolvable.
+
+Only rows this run actually completed SHALL leave the edit count. A run that recovers
+nothing SHALL record zero rather than omit the field.
+
+#### Scenario: A flagged re-ingestion's four completions are not edits
+
+- **WHEN** a gazette is ingested with `--recover-truncated` and this run recovers 4 rows
+  whose land is absent from the predecessor's unflagged read
+- **THEN** the report states `recovered by this reader: 4` and names each row
+- **AND** those 4 rows are not counted among the edited rows
+- **AND** the persisted change set records `recovered: 4` with `unresolvable.edited`
+  counting only rows whose land the city actually changed
+
+#### Scenario: A run without the flag records zero
+
+- **WHEN** a comparison runs on a gazette ingested without `--recover-truncated`
+- **THEN** the persisted change set records `recovered: 0`
+- **AND** an ordinary historical edit in the same comparison is still counted as edited
+

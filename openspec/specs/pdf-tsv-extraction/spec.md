@@ -3,9 +3,7 @@
 ## Purpose
 
 Converts the Taipei City Government's urban-renewal approved-cases gazette PDF into a raw, verbatim TSV. Cell boundaries come from the document's own ruling lines rather than fixed coordinates, so neither a column shift nor a calendar change alters what a cell contains. Both the Republic of China and Gregorian calendars are accepted and normalised to ISO-8601, a structure the reader cannot interpret exactly aborts the run rather than producing partial output, and a completeness tripwire gates every emission.
-
 ## Requirements
-
 ### Requirement: Extract all records as raw TSV rows
 
 The system SHALL convert the source PDF into a raw TSV with one row per approved case plus a header, deriving every cell boundary from the document's own table structure rather than from fixed coordinates, and preserving the original cell text verbatim without normalization. Each row SHALL carry a `gazette_id` identifying the publication it came from.
@@ -141,6 +139,13 @@ and column, or — where every check below is satisfied — completed from anoth
 the same unit and recorded with its provenance. In either case the affected count SHALL be
 reported, so that a gazette missing records is never presented as complete.
 
+When the run carries `--recover-truncated`, a publisher-truncated record SHALL additionally
+be retained in the raw TSV, marked as a source fault, and SHALL carry its surviving cells
+(核定日期, 行政區, the surviving 案名 text, and the surviving 地號 fragment) so that the
+recovery pass can re-identify it; the marked rows SHALL NOT reach cleansing or merge until
+the recovery pass resolves or abandons them. Without the flag the record SHALL be dropped
+before emission exactly as before, and the raw TSV SHALL NOT contain it.
+
 A 地號 cell is publisher-truncated when either signal fires:
 
 - **Tail pattern.** The cell text ends in a dangling list separator (`、` `，` `,`), a
@@ -175,6 +180,25 @@ emitted. A row whose 案名 declares no parcel count SHALL NOT be count-checked 
 the tail-pattern behaviour alone. No parcel list SHALL be inferred from the declared
 count.
 
+A completion is permitted only when all three of the following hold, and each is checked
+independently:
+
+1. **Same unit.** The candidate is in the same 行政區 and the same 段/小段.
+2. **The parcels already read are preserved.** The truncated cell's own text, once
+   whitespace is normalised, is a prefix of the candidate's text, **and** every parcel the
+   truncated cell shows is present in the candidate. The two halves are checked separately
+   and neither implies the other: spacing around `、` and around sub-parcel hyphens varies
+   between publications for the same list (`332 、333` in one, `332、333` in another) and is
+   presentation rather than content, so it is normalised before comparing; and a textual
+   prefix can still end mid-token, so that a parcel already read is bounded differently in
+   the candidate, which containment catches and a prefix test does not.
+3. **The count closes.** The completed parcel count equals the count the same row's 案名
+   declares. If it does not, the count is unexplained and the record stays excluded.
+
+Where all three hold the record is emitted with the completed list and an audit entry
+naming the source gazette and 編號 it was completed from. Where any one fails the record is
+excluded as before.
+
 The visible count SHALL be measured from parcel tokens as published, with these rules,
 each pinned by a measured cell:
 
@@ -201,6 +225,14 @@ each pinned by a measured cell:
 - **AND** if no candidate satisfies all three completion checks, the record is excluded from the emitted dataset rather than emitted with an unknown parcel set
 - **AND** the run continues and the excluded count is reported
 - **AND** no parcel list is inferred from the parcel count declared in the 案名, or from a wider text window
+
+#### Scenario: A truncated cell is retained and marked under the recovery flag
+
+- **WHEN** the run carries `--recover-truncated` and a 地號 cell is truncated by the publisher
+- **THEN** the raw TSV contains the row, marked as a source fault with its surviving cells
+  (核定日期, 行政區, 案名 fragment, 地號 fragment)
+- **AND** the row does not reach cleansing or merge until the recovery pass resolves it
+- **AND** a run without the flag still drops the row before emission, unchanged
 
 #### Scenario: A cut with no tail-pattern ending is caught by the declared-count check
 
@@ -294,3 +326,4 @@ The system SHALL ensure the dataset it emits carries the fields the viewer reads
 - **WHEN** some projects carry link-derived fields and others do not
 - **THEN** the run reports the count that do and does not
 - **AND** does not treat the populated minority as conforming the whole
+

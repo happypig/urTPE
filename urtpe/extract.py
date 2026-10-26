@@ -557,6 +557,7 @@ def _page_records(page, faults: list[Fault],
                   cell_faults: list[CellFault] | None = None,
                   corpus: list[dict] | None = None,
                   completions: list[CompletionResult] | None = None,
+                  retain_truncated: bool = False,
                   ) -> list[dict[str, str]]:
     """Read one page's table into record dicts, appending any located faults.
 
@@ -565,6 +566,11 @@ def _page_records(page, faults: list[Fault],
     ``corpus`` supplies another approval of the same unit that satisfies all three
     completion checks, in which case the record is emitted with the completed list and
     an audit entry naming the source.
+
+    ``retain_truncated`` (the --recover-truncated path) keeps a record no corpus
+    could complete instead of dropping it: it is returned marked as a source fault
+    with its surviving cells, for the recovery pass to resolve or abandon, and is
+    NOT reported as an exclusion — the recovery pass owns that outcome.
     """
     page_no = page.number + 1
     if cell_faults is None:
@@ -649,10 +655,6 @@ def _page_records(page, faults: list[Fault],
                     if completions is not None:
                         completions.append(done)
             if truncated:
-                # The publisher stopped drawing the parcel list at the printed row
-                # height; the remainder is not in the document, so the parcel set
-                # cannot be known. Drop the record and report it, naming which
-                # detector caught it.
                 if tail_fired:
                     cause, detail = "tail", (
                         "cell ends mid-enumeration; the publisher truncated it "
@@ -662,6 +664,27 @@ def _page_records(page, faults: list[Fault],
                         f"the parcel list stops at {parcel_token_count(land)} of the "
                         f"{declared} parcels the 案名 declares; the closing phrase is "
                         f"absent and the remainder is not in the PDF")
+                if retain_truncated:
+                    # The recovery flag: keep the row with its surviving cells and
+                    # let the recovery pass decide (recover-truncated-rows-via-api,
+                    # tasks 3.1/3.2). Not counted as an exclusion — the pass either
+                    # recovers it or abandons it, and the report says which.
+                    records.append({
+                        "recno": recno_text,
+                        "date": _clean_cell(row[1]),
+                        "district": _clean_cell(row[2]),
+                        "name": name,
+                        "land": land,
+                        "implementer": _clean_cell(row[5]),
+                        "planner": _clean_cell(row[6]),
+                        "source_fault": "truncated_land_cell",
+                        "fault_cause": cause,
+                    })
+                    continue
+                # The publisher stopped drawing the parcel list at the printed row
+                # height; the remainder is not in the document, so the parcel set
+                # cannot be known. Drop the record and report it, naming which
+                # detector caught it.
                 cell_faults.append(CellFault(
                     page=page_no, row=i, column="地號",
                     kind="source_truncated_land_cell", recno=recno_text,
@@ -730,8 +753,9 @@ def extract_pdf_with_faults(
     return records, cell_faults
 
 
-def _extract(path: str, *, strict: bool, corpus: list[dict] | None = None
-            ) -> tuple[list[dict[str, str]], int, list[CellFault], list[CompletionResult]]:
+def _extract(path: str, *, strict: bool, corpus: list[dict] | None = None,
+             retain_truncated: bool = False,
+             ) -> tuple[list[dict[str, str]], int, list[CellFault], list[CompletionResult]]:
     gazette_id = gazette_id_for(path)
     doc = pymupdf.open(path)
     faults: list[Fault] = []
@@ -740,7 +764,9 @@ def _extract(path: str, *, strict: bool, corpus: list[dict] | None = None
     records: list[dict[str, str]] = []
     try:
         for page in doc:
-            records.extend(_page_records(page, faults, cell_faults, corpus, completions))
+            records.extend(_page_records(page, faults, cell_faults, corpus,
+                                         completions,
+                                         retain_truncated=retain_truncated))
     finally:
         doc.close()
 
@@ -754,10 +780,17 @@ def _extract(path: str, *, strict: bool, corpus: list[dict] | None = None
 
 
 def extract_pdf_with_meta(path: str, *, strict: bool = True,
-                         corpus: list[dict] | None = None,
-                         ) -> tuple[list[dict[str, str]], dict[str, str]]:
-    """Extract records plus metadata: publication date, gazette_id, calendar mix."""
-    records, duplicates, cell_faults, completions = _extract(path, strict=strict, corpus=corpus)
+                          corpus: list[dict] | None = None,
+                          retain_truncated: bool = False,
+                          ) -> tuple[list[dict[str, str]], dict[str, str]]:
+    """Extract records plus metadata: publication date, gazette_id, calendar mix.
+
+    With ``retain_truncated`` the publisher-truncated rows come back marked as
+    source faults (see :func:`_page_records`); the meta then carries no
+    ``excluded_*`` keys for them, because the recovery pass owns that outcome.
+    """
+    records, duplicates, cell_faults, completions = _extract(
+        path, strict=strict, corpus=corpus, retain_truncated=retain_truncated)
     published = find_published_date(path)
     calendars = {calendar_of(r["date"]) for r in records}
     meta: dict[str, str] = {
@@ -791,7 +824,13 @@ def extract_pdf_with_meta(path: str, *, strict: bool = True,
 
 
 def to_raw_records(recs: list[dict[str, str]]) -> list:
-    """Convert extracted dicts into RawRecord, marking non-conforming rows."""
+    """Convert extracted dicts into RawRecord, marking non-conforming rows.
+
+    A retained publisher-truncated row (the recovery flag) is marked in
+    ``parse_error`` so raw.tsv names it, and carries ``source_fault`` so
+    :func:`urtpe.cleanse.cleanse_all` keeps it out of cleansing until the
+    recovery pass resolves or abandons it.
+    """
     from urtpe.models import RawRecord
 
     out = []
@@ -805,6 +844,10 @@ def to_raw_records(recs: list[dict[str, str]]) -> list:
             errors.append("實施者缺漏")
         if to_iso(rec.get("date", ""))[0] is None:
             errors.append("核定日期缺漏")
+        source_fault = rec.get("source_fault") or ""
+        if source_fault:
+            cause = rec.get("fault_cause") or "unknown"
+            errors.append(f"地號publisher-truncated(保留待復原:{cause})")
         out.append(
             RawRecord(
                 recno=int(rec.get("recno") or 0),
@@ -816,6 +859,8 @@ def to_raw_records(recs: list[dict[str, str]]) -> list:
                 planner=rec.get("planner", ""),
                 parse_error="；".join(errors),
                 gazette_id=rec.get("gazette_id", ""),
+                source_fault=source_fault,
+                recovery=rec.get("recovery") or {},
             )
         )
     return out

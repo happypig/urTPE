@@ -1,0 +1,21 @@
+tripwire: PASS
+  records: 8  projects: 8
+  calendar: gregorian  duplicate 編號: 0
+  INCOMPLETE: 16 record(s) excluded because the publisher truncated their 地號 cell — this gazette is NOT a faithful copy: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+
+reconcile: (none) -> 2026-10-15
+  no previous gazette archived; nothing to compare against
+
+解析缺漏記錄: 0 筆
+
+自動修正記錄: 0 筆
+
+需人工檢視記錄: 0 筆
+
+專案家族: 8 (單筆 8, 多筆 0)
+
+最大多筆家族（0 個，依成員數排序）:
+
+臨界對(相似度 0.5–0.7): 0 對
+
+門檻: link >= 0.7, flag >= 0.5

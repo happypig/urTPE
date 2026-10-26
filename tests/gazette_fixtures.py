@@ -142,6 +142,7 @@ def write_gazette(
     longest_land_row: int | None = None,
     footer_inside_last_cell: bool = False,
     land_without_terminator: int | None = None,
+    row_heights: dict[int, float] | None = None,
 ) -> str:
     """Write a ruled-table gazette PDF.
 
@@ -171,6 +172,12 @@ def write_gazette(
     ``land_without_terminator`` gives that row a 地號 cell carrying every parcel
     its 案名 declares but omitting the closing ``地號等N筆土地``, which is how the
     real gazettes lose only the closing phrase (1150827 編號 868 and 909).
+    ``row_heights`` maps a *global* row index to a taller band. The recovery
+    fixtures need a verbatim long 地號 fragment to survive intact — the real
+    gazette's truncated cells hold 100+ parcels because the city's rows are far
+    taller than the default 40pt — so the recovery tests give those rows a band
+    their whole fragment fits in, and the truncation is expressed by the
+    fragment's own dangling tail, not by clipping.
     """
     doc = pymupdf.open()
     edges = column_edges(TABLE_ORIGIN[0] - shift)
@@ -203,8 +210,12 @@ def write_gazette(
             # The defective export: the header band carries row 0's content.
             header_cells = list(_render_row(page_rows[0], calendar, 0)[:7])
 
-        heights = ([ROW_HEIGHT] * len(page_rows) if data_at == 0
-                   else [HEADER_HEIGHT] + [ROW_HEIGHT] * len(page_rows))
+        heights = ([HEADER_HEIGHT]
+                   + [((row_heights or {}).get(page_index * per_page + r, ROW_HEIGHT))
+                      for r in range(len(page_rows))]
+                   if data_at == 1
+                   else [((row_heights or {}).get(page_index * per_page + r, ROW_HEIGHT))
+                         for r in range(len(page_rows))])
         if borderless:
             ys = [TABLE_ORIGIN[1]]
             for h in heights:

@@ -25,6 +25,7 @@ header {
 }
 header h1 { font-size: 18px; margin: 0; }
 .meta { color: var(--muted); font-size: 12px; flex: 1; }
+.muted { color: var(--muted); font-size: 12px; }
 #filter {
   min-width: 260px;
   padding: 7px 10px;

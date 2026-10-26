@@ -104,6 +104,40 @@ def test_edited_historical_land_is_reported_separately():
     assert result.ok
 
 
+def test_a_reader_recovered_row_is_not_reported_as_a_publisher_edit():
+    """The predecessor is re-read without the recovery flag, so a row this run
+    completed from the city's APIs is absent from the previous side. It appeared
+    because of the reader, not because the city added or edited anything: measured
+    2026-10-26, all 4 recovered rows on 2026-10-06 and on 2026-10-15 were filed as
+    "edited" that the city never edited."""
+    old = [_rec(1, "115/8/27"), _sentinel()]
+    completed = _rec(2, "104/12/30",
+                     land="臺北市中正區永昌段四小段46-4、46-6地號等2筆土地")
+    new = [_rec(1, "115/8/27"), completed, _sentinel()]
+    result = reconcile(old, new, previous_id="a", current_id="b",
+                       recovered_records=[completed])
+    assert result.edited == []
+    assert len(result.recovered) == 1
+    assert "永昌段四小段46-4" in result.recovered[0][0]
+    report = result.report()
+    assert "recovered by this reader: 1" in report
+    assert "edited 0" in report
+
+
+def test_only_the_rows_recovery_actually_completed_leave_the_edit_count():
+    """A recovered row is exempted by its land key, not by the flag being on: an
+    ordinary historical edit in the same run stays an edit."""
+    old = [_rec(1, "115/8/27"), _sentinel()]
+    completed = _rec(2, "104/12/30", land="臺北市中正區A段1地號等2筆土地")
+    still_edited = _rec(3, "101/3/4", land="臺北市中正區B段2、9地號等2筆土地")
+    new = [_rec(1, "115/8/27"), completed, still_edited, _sentinel()]
+    result = reconcile(old, new, previous_id="a", current_id="b",
+                       recovered_records=[completed])
+    assert len(result.recovered) == 1
+    assert len(result.edited) == 1
+    assert "B段2、9" in result.edited[0][0]
+
+
 def test_redating_and_editing_are_told_apart_at_scale():
     old = [_rec(1, "115/1/2", land="臺北市A段1地號等1筆土地"),
            _rec(2, "115/1/2", land="臺北市B段2地號等1筆土地"),

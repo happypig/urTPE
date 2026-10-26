@@ -204,3 +204,26 @@ def test_the_authoritative_signals_are_separated_from_unresolvable_movement(stor
     assert set(stored["authoritative"]) == {"new_approvals", "net_change",
                                             "current_total", "previous_total"}
     assert set(stored["unresolvable"]) >= {"redated", "edited", "vanished"}
+    assert stored["recovered"] == 0, (
+        "a run that recovered nothing records that explicitly; an absent key would "
+        "read as 'not measured' instead of 'none'")
+
+
+def test_a_recovered_row_is_counted_apart_from_both_halves(store):
+    """The reader completing a truncated cell is not publisher movement, and it is not
+    unresolvable either — the cause is known exactly. Kept in `edited`, it asserts the
+    city changed a row it did not touch (2026-10-26: 4 such rows per new gazette)."""
+    prev = [_rec(1, "115/8/01")]
+    completed = _rec(2, "104/12/30",
+                     "臺北市中正區永昌段四小段46-4、46-6地號等2筆土地")
+    cur = [_rec(1, "115/8/01"), completed]
+    write_change_set(store, reconcile(prev, cur, previous_id="a", current_id="b",
+                                      recovered_records=[completed]))
+
+    stored = store.load("b")
+
+    assert stored["recovered"] == 1
+    assert stored["unresolvable"]["edited"] == 0
+    assert "recovered" not in stored["unresolvable"], (
+        "unresolvable means the data cannot resolve the observation; here the reason "
+        "the row appeared is recorded in full")

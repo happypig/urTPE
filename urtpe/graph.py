@@ -69,6 +69,11 @@ def build_project_graph(project: Project, implementer: str, name: str, published
         impl_snapshot = getattr(r, "implementation", None)
         if impl_snapshot:
             node["implementation"] = impl_snapshot
+        # Recovery provenance (additive, recovered rows only — the flag-less
+        # emission must stay byte-identical, so this key exists only here)
+        recovery = getattr(r, "recovery", None)
+        if recovery:
+            node["recovery"] = recovery
         nodes.append(node)
 
     edges: list[dict] = []

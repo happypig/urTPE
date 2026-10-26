@@ -401,9 +401,9 @@ def test_reconciliation_compares_two_publication_reads_built_the_same_way(tmp_pa
     seen: list[tuple[str, int]] = []
     real_extract = E.extract_pdf_with_meta
 
-    def _spy(path, *, strict=True, corpus=None):
+    def _spy(path, *, strict=True, corpus=None, **kw):
         seen.append((str(path), len(corpus or [])))
-        return real_extract(path, strict=strict, corpus=corpus)
+        return real_extract(path, strict=strict, corpus=corpus, **kw)
 
     monkeypatch.setattr(E, "extract_pdf_with_meta", _spy)
     cli._ingest_pdf(str(newer), str(out))

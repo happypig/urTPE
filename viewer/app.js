@@ -1086,9 +1086,30 @@ function init() {
     }
 
     // Detail table with tiered columns (essential + full)
-    const essentialCols = ["recno", "date", "stage", "track", "is_current", "case_name", "land", "section", "implementer", "planner", "review_flags", "auto_fixes", "milestones"];
+    const essentialCols = ["recno", "date", "stage", "track", "is_current", "case_name", "land", "section", "implementer", "planner", "review_flags", "auto_fixes", "recovery", "milestones"];
     const fullCols = ["parcels", "aliases", "land_count", "orig_count", "named_anchor", "area_section"];
     const allCols = [...essentialCols, ...fullCols];
+
+    // Recovery provenance (recover-truncated-rows-via-api): a row the publisher
+    // truncated and the pass re-identified via the city's APIs. The badges name
+    // what the viewer must not silently gloss over: a partial list, a repaired
+    // cell typo, an A/B zone attachment, a ±1-day date.
+    const recoveryBadges = (rec) => {
+      const r = rec.recovery;
+      if (!r) return "";
+      const f = r.flags || {};
+      const parts = ['<span class="badge">復原</span>'];
+      if (f.partial) parts.push('<span class="badge">部分清單</span>');
+      if ((f.normalized || []).length) {
+        parts.push('<span class="badge">修正 ' + f.normalized.map(escapeHtml).join("、") + '</span>');
+      }
+      if (f["ambiguous-zone"]) parts.push('<span class="badge">A/B併案</span>');
+      if (f["date-pm1"]) parts.push('<span class="badge">日期±1</span>');
+      if (f["similarity-band"]) parts.push('<span class="badge">相似度帶</span>');
+      const cases = (r.cases || []).join("、");
+      const list = r.list_source ? `<span class="muted">${escapeHtml(r.list_source)}</span>` : "";
+      return parts.join(" ") + (cases ? ` 案號 ${escapeHtml(cases)}` : "") + " " + list;
+    };
 
     let rows = nodes.map(n => {
       const rec = p.nodes.find(x => x.recno === n.recno);
@@ -1101,6 +1122,8 @@ function init() {
           val = (rec.review_flags || []).join("、");
         } else if (col === "auto_fixes") {
           val = (rec.auto_fixes || []).join("、");
+        } else if (col === "recovery") {
+          val = recoveryBadges(rec);
         } else if (col === "parcels" || col === "aliases") {
           val = JSON.stringify(rec[col] || []);
         } else if (col === "milestones") {
@@ -1121,6 +1144,7 @@ function init() {
         is_current: "現況", case_name: "案名", land: "地號", section: "區段",
         implementer: "實施者", planner: "更新規劃單位",
         review_flags: "審查標記", auto_fixes: "自動修正",
+        recovery: "復原",
         milestones: "里程碑",
         parcels: "地號清單", aliases: "地號別名", land_count: "地號數",
         orig_count: "原地號數", named_anchor: "命名錨點", area_section: "行政區段"

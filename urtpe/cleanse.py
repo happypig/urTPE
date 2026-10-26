@@ -319,8 +319,12 @@ def cleanse(rec: RawRecord) -> CleanRecord:
         planner=re.sub(r"\s+", "", rec.planner),
         auto_fixes=fixes,
         review_flags=flags,
+        recovery=rec.recovery,
     )
 
 
 def cleanse_all(records: list[RawRecord]) -> list[CleanRecord]:
-    return [cleanse(r) for r in records]
+    # Retained publisher-truncated rows bypass cleansing and merge (tasks 3.2);
+    # the recovery pass either resolved them (mark gone) or abandoned them (mark
+    # kept — they rejoin the plain exclusion path and are named in the report).
+    return [cleanse(r) for r in records if not r.source_fault]

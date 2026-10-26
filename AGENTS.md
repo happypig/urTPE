@@ -6,7 +6,7 @@ merged, per-project history graph plus a static viewer. Python, pymupdf, no web 
 ## Commands (verified on this machine)
 
 ```powershell
-python -m pytest                      # 667 tests, ~75s, fully offline
+python -m pytest                      # 706 tests, ~2min, fully offline
 python -m pytest tests/test_merge.py  # one file
 python -m pytest tests/test_merge.py::test_name -q
 python -m urtpe.cli source.pdf -o data --links
@@ -16,8 +16,8 @@ python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --
 - Use the **system** interpreter (`C:\Python314\python.exe`, pytest 9.0.1, pymupdf 1.28.2).
   `.venv/` exists but contains only pip — activating it leaves you unable to run tests.
 - The count in that first line goes stale whenever tests change. Refresh it with
-  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **667 collected**
-  while a full run reports **666 passed, 1 skipped** — the skip is deliberate, at
+  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **706 collected**
+  while a full run reports **705 passed, 1 skipped** — the skip is deliberate, at
   `tests/test_idempotent_flags.py:117`, because the node payload builder is not exposed and
   the graph test below it covers the behaviour. With no CI, an unnamed skip reads as a
   silently disabled guard.
@@ -168,7 +168,10 @@ Violating any of these corrupts output silently rather than raising.
   line numbers are cited from outside (`openspec/changes/archive/2026-10-05-no-silent-data-loss/proposal.md`
   pins line 83, and `scripts/baseline_silent_failures.py` asserts that row still reads
   "recommended"). **Append; do not insert above it.**
-- `docs/domain_model.md` — entity/mermaid model. `docs/cli_flow.archive.md` — dead, archived.
+- `docs/domain_model.md` — entity/mermaid model, in two blocks: the record→graph path, and
+  the gazette cadence layer (archive, ledger, poller, change sets).
+  `docs/domain-model.html` — its self-contained bilingual rendering (no CDN, opens from
+  `file://`). `docs/cli_flow.archive.md` — dead, archived.
 - `docs/gazette-churn.md`, `docs/stranded-cache-dirs.md` — generated; do not hand-edit.
 - `docs/sync_architecture.md` — the PDF-heartbeat + two-portals sync design; was the design
   `gazette-ingest-cadence` was cut from.

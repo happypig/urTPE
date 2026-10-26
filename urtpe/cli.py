@@ -159,7 +159,8 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
 
 def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool = True, ledger_path=None,
                 previous_projects: list[str] | None = None,
-                allow_reconcile_block: bool = False, strict_reconcile: bool = False) -> dict:
+                allow_reconcile_block: bool = False, strict_reconcile: bool = False,
+                recover_truncated: bool = False) -> dict:
     """Archive -> read -> tripwire -> reconcile -> cleanse -> ledger -> merge.
 
     Every gate runs before the first artifact is written, so a refused ingestion
@@ -224,7 +225,8 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
     except Exception as exc:  # an unreadable archive must not block ingestion
         print(f"[WARN] completion corpus unavailable: {exc}")
 
-    records, extract_meta = extract_mod.extract_pdf_with_meta(pdf, corpus=corpus)
+    records, extract_meta = extract_mod.extract_pdf_with_meta(
+        pdf, corpus=corpus, retain_truncated=recover_truncated)
     if not records:
         raise SystemExit("[ERROR] no records parsed")
     print(f"[INFO] read {len(records)} records ({extract_meta.get('calendar', '?')} calendar)")
@@ -240,13 +242,45 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
               f"({by_tail} caught by the cell tail, {by_count} by the declared "
               f"parcel count; 編號 {', '.join(str(v) for v in sorted(excluded_recnos))})")
 
+    # --- recovery pass (opt-in; recover-truncated-rows-via-api) -------------
+    # Retained truncated rows bypass cleansing/merge (tasks 3.2): the pass either
+    # resolves them — provenance attached, entering the flow as normal records —
+    # or abandons them back into the plain exclusion path, named in the report.
+    # A run without the flag never constructs a client and never sends a request.
+    recovery_outcome = None
+    if recover_truncated:
+        marked = [r for r in records if r.get("source_fault")]
+        if marked:
+            from urtpe import recovery_pass as recovery_pass_mod
+            ashx, geoserver = recovery_pass_mod.default_clients()
+            recovery_outcome = recovery_pass_mod.recover_marked_rows(
+                marked, ashx, geoserver)
+            records = [r for r in records if not r.get("source_fault")] \
+                + recovery_outcome.recovered
+            print(f"[INFO] recovery: {len(recovery_outcome.recovered)} recovered, "
+                  f"{len(recovery_outcome.residuals)} residual "
+                  f"of {len(marked)} truncated row(s)")
+            for line in recovery_outcome.audit:
+                print(f"  {line}")
+        else:
+            recovery_outcome = None
+
     # --- tripwire ----------------------------------------------------------
+    # Residual rows (the recovery pass abandoned them) rejoin the plain exclusion
+    # path: absent from `records`, their 編號 explained to the contiguity check.
+    if recovery_outcome is not None:
+        excluded_recnos |= {int(r["recno"]) for r in recovery_outcome.residuals
+                            if str(r.get("recno") or "").isdigit()}
     tw = tripwire_mod.Tripwire()
     pages = _page_count(pdf)
     faults = tw.check(records, pages=pages, tables_found=pages,
                       duplicate_recnos=int(extract_meta.get("duplicate_recnos", 0)),
                       excluded_recnos=excluded_recnos)
-    raw_recs = extract_mod.to_raw_records(records)
+    # raw.tsv carries every row the publication held: resolved recoveries as
+    # normal records, abandoned ones still marked (their parse_error names the
+    # fault), so the raw TSV stays a complete, honest reading of the PDF.
+    raw_recs = extract_mod.to_raw_records(
+        records + (recovery_outcome.residuals if recovery_outcome else []))
     clean = cleanse_mod.cleanse_all(raw_recs)
     projects = merge_mod.merge(clean)
     tw_result = tripwire_mod.TripwireResult(
@@ -297,6 +331,7 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
             previous_projects=previous_projects,
             current_projects=[p.project_id for p in projects],
             accepted_removals=ledger.accepted_removals() if ledger else set(),
+            recovered_records=recovery_outcome.recovered if recovery_outcome else None,
             strict=strict_reconcile,
             unavailable_note=unavailable_note,
         )
@@ -364,7 +399,7 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
 
     result.update(raw_recs=raw_recs, clean=clean, projects=projects, meta=meta,
                   tripwire=tw_result, reconciliation=reconciliation,
-                  ledger=ledger_outcome)
+                  ledger=ledger_outcome, recovery=recovery_outcome)
     return result
 
 
@@ -380,19 +415,21 @@ def _page_count(pdf: str) -> int:
 
 def _run(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None, links: bool = False, from_js: str | None = None, fresh: bool = False, playwright: bool = False,
          archive_root=None, use_archive: bool = True, ledger_path=None, allow_reconcile_block: bool = False,
-         previous_projects: list[str] | None = None, strict_reconcile: bool = False) -> None:
+         previous_projects: list[str] | None = None, strict_reconcile: bool = False,
+         recover_truncated: bool = False) -> None:
     # Single-writer rule (2026-08-24: four concurrent runs wiped 47 caches).
     # Taken before the first read so a losing run cannot populate the cache it is
     # about to destroy. Covers the archive and ledger as well as outdir.
     with lock_mod.SingleWriterLock(outdir):
         _run_locked(pdf, outdir, no_tsv, viewer_dir, links, from_js, fresh, playwright,
                     archive_root, use_archive, ledger_path, allow_reconcile_block,
-                    previous_projects, strict_reconcile)
+                    previous_projects, strict_reconcile, recover_truncated)
 
 
 def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = None, links: bool = False, from_js: str | None = None, fresh: bool = False, playwright: bool = False,
                 archive_root=None, use_archive: bool = True, ledger_path=None, allow_reconcile_block: bool = False,
-                previous_projects: list[str] | None = None, strict_reconcile: bool = False) -> None:
+                previous_projects: list[str] | None = None, strict_reconcile: bool = False,
+                recover_truncated: bool = False) -> None:
     # Load projects from JS (primary) or PDF
     if from_js:
         print(f"[INFO] Loading projects from {from_js}")
@@ -403,12 +440,14 @@ def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = No
         tripwire_result = None
         reconciliation = None
         ledger_outcome = None
+        recovery_outcome = None
     else:
         ingested = _ingest_pdf(pdf, outdir, archive_root=archive_root,
                                use_archive=use_archive, ledger_path=ledger_path,
                                previous_projects=previous_projects,
                                allow_reconcile_block=allow_reconcile_block,
-                               strict_reconcile=strict_reconcile)
+                               strict_reconcile=strict_reconcile,
+                               recover_truncated=recover_truncated)
         projects = ingested["projects"]
         meta = ingested["meta"]
         raw_recs = ingested["raw_recs"]
@@ -417,6 +456,7 @@ def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = No
         tripwire_result = ingested["tripwire"]
         reconciliation = ingested["reconciliation"]
         ledger_outcome = ingested["ledger"]
+        recovery_outcome = ingested.get("recovery")
 
     # Run link discovery if requested
     link_results = {}
@@ -448,6 +488,7 @@ def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = No
         ledger_outcome=ledger_outcome,
         reconciliation=reconciliation,
         tripwire=tripwire_result,
+        recovery=recovery_outcome if recover_truncated else None,
     )
     io_mod.write_text(f"{outdir}/review_report.txt", report)
 
@@ -518,6 +559,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="人工修正 ledger 路徑 (JSONL, append-only)")
     parser.add_argument("--allow-reconcile-block", action="store_true",
                         help="即使 reconciliation 發現未解釋的變更也繼續寫出 (危險)")
+    parser.add_argument("--recover-truncated", action="store_true",
+                        help="復原被出版方截斷的地號列：自 gis.uro ashx 與 UDD GeoServer "
+                             "以四項檢查重新識別並補全 (opt-in；不加此旗標輸出不變)")
     parser.add_argument("--strict-reconcile", action="store_true",
                         help="歷史列消失也視為阻擋 (需 ledger 已記錄接受)")
     parser.add_argument("--archive-only", action="store_true",
@@ -560,7 +604,8 @@ def main(argv: list[str] | None = None) -> int:
              archive_root=args.archive_root, use_archive=not args.no_archive,
              ledger_path=args.ledger,
              allow_reconcile_block=args.allow_reconcile_block,
-             previous_projects=previous_projects, strict_reconcile=args.strict_reconcile)
+             previous_projects=previous_projects, strict_reconcile=args.strict_reconcile,
+             recover_truncated=args.recover_truncated)
     except extract_mod.TableStructureError as exc:
         # The reader refused the document; nothing was written.
         print(str(exc), file=sys.stderr)

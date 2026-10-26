@@ -44,6 +44,12 @@ def change_set_payload(result, *, event: str = "first_ingest",
         "authoritative": {k: (result.net_change if k == "net_change" else row.get(k))
                            for k in AUTHORITATIVE},
         "unresolvable": {k: len(row.get(k) or []) for k in UNRESOLVABLE},
+        # Recovered rows belong to neither half: they are not publisher movement (the
+        # city's data did not change) and not unresolvable (the reason is known exactly —
+        # this reader completed a truncated cell from the city's APIs). They are counted
+        # separately rather than left in `edited`, where 4 reader completions were filed
+        # as publisher edits on both 2026-10-06 and 2026-10-15.
+        "recovered": len(row.get("recovered") or []),
         "calendar_previous": row.get("calendar_previous", ""),
         "calendar_current": row.get("calendar_current", ""),
         "total_rekey": bool(row.get("total_rekey")),

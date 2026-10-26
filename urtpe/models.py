@@ -17,6 +17,12 @@ class RawRecord:
     planner: str
     parse_error: str = ""
     gazette_id: str = ""
+    # The recovery pass's mark for a retained publisher-truncated row (in-memory
+    # only: raw.tsv rides the mark in parse_error, no extra column — the
+    # flag-less TSV bytes must not change).
+    source_fault: str = ""
+    # Provenance from a resolved recovery, threaded to the emitted node verbatim.
+    recovery: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -51,6 +57,9 @@ class CleanRecord:
     links: dict = field(default_factory=dict)
     stage_事業計畫: Optional[str] = None
     stage_權利變換: Optional[str] = None
+    # Provenance for a recovered publisher-truncated row (recovery pass); rides
+    # into the emitted node. Never serialized into the TSVs (positional writers).
+    recovery: dict = field(default_factory=dict)
 
     def parcel_set(self) -> set[str]:
         s = set(self.parcels)

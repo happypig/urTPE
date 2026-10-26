@@ -56,6 +56,9 @@ class ReconcileResult:
 
     redated: list[tuple[str, str]] = field(default_factory=list)
     edited: list[tuple[str, str]] = field(default_factory=list)
+    # Rows that appeared in the historical window because *this reader* completed cells
+    # the publisher truncated, not because the city added or edited anything.
+    recovered: list[tuple[str, str]] = field(default_factory=list)
     vanished: list[tuple[str, str]] = field(default_factory=list)
     accepted_removals: list[tuple[str, str]] = field(default_factory=list)
     withdrawn_recent: list[tuple[str, str]] = field(default_factory=list)
@@ -97,6 +100,9 @@ class ReconcileResult:
             f"edited {len(self.edited)}, vanished {len(self.vanished)} "
             f"(accepted: {len(self.accepted_removals)})")
         lines.append(
+            f"  recovered by this reader: {len(self.recovered)} "
+            f"(truncated cells the API completed; not publisher edits)")
+        lines.append(
             f"  project identities: moved {len(self.moved_project_ids)}, "
             f"unchanged {self.unchanged_project_ids}")
         if self.total_rekey:
@@ -105,6 +111,7 @@ class ReconcileResult:
         lines.append(f"  calendar: {self.calendar_previous} -> {self.calendar_current} ({cal})")
 
         for label, rows in (("re-dated", self.redated), ("edited", self.edited),
+                            ("recovered", self.recovered),
                             ("vanished", self.vanished), ("accepted removal", self.accepted_removals),
                             ("withdrawn recent approval", self.withdrawn_recent)):
             for item in rows[:10]:
@@ -153,6 +160,7 @@ def reconcile(previous: list[dict] | None, current: list[dict], *,
               previous_projects: list[str] | None = None,
               current_projects: list[str] | None = None,
               accepted_removals: set[str, str] | None = None,
+              recovered_records: list[dict] | None = None,
               strict: bool = False,
               unavailable_note: str = "") -> ReconcileResult:
     """Compare two publications and decide whether the ingest may proceed.
@@ -161,6 +169,13 @@ def reconcile(previous: list[dict] | None, current: list[dict], *,
     acceptance satisfies. ``previous_projects`` / ``current_projects`` enable the
     identity-move report; a total re-key is its own outcome because
     ``urtpe.coverage`` cannot express it.
+
+    ``recovered_records`` names the rows this run's recovery pass completed from the
+    city's APIs. The predecessor is re-read without that pass, so on a flagged run its
+    truncated rows are absent from the previous side and the rows would otherwise be
+    published as "edited" — a reader-side completion filed in the publisher's column.
+    Measured 2026-10-26: 4 of 4 recovered rows were misreported that way on both new
+    gazettes. They are counted under ``recovered`` instead, which is not movement.
 
     ``unavailable_note`` names why ``previous`` could not be read when it is not an
     absence of any earlier publication. A predecessor the index records but whose
@@ -172,6 +187,7 @@ def reconcile(previous: list[dict] | None, current: list[dict], *,
     rather than either publication.
     """
     accepted_removals = accepted_removals or set()
+    recovered_keys = {_land_key(r) for r in (recovered_records or [])}
     result = ReconcileResult(previous_id=previous_id, current_id=current_id)
     result.calendar_current = _calendar_of(current)
 
@@ -243,12 +259,15 @@ def reconcile(previous: list[dict] | None, current: list[dict], *,
             result.redated.append((_label(rec), key[1]))
 
     # Rows present now whose land did not exist before are edits or additions inside
-    # the historical window; count the net so the two effects can be told apart.
+    # the historical window; count the net so the two effects can be told apart. A row
+    # this run's recovery pass completed is neither: it was absent from the previous
+    # side only because that side was read without recovery.
     for land, curs in cur_by_land.items():
         if land in prev_by_land:
             continue
         for rec in curs:
-            result.edited.append((_label(rec), _iso(rec)))
+            bucket = result.recovered if land in recovered_keys else result.edited
+            bucket.append((_label(rec), _iso(rec)))
 
     if result.net_change < 0:
         result.blocking.append(

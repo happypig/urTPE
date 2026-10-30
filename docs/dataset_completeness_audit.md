@@ -9,6 +9,15 @@ commit `20a2c92`) and the emission it produced (`532236e`, 1,442 records / 694 p
 archived PDFs and the emitted files; nothing under `data/` or `viewer/` was written, so the
 single-writer lock and the ~23 MB emission diff were not touched.
 
+> **Amended 2026-10-30.** The audit was written on 2026-10-26 against the six gazettes the
+> archive held. The archive itself turned out to be incomplete: a seventh publication,
+> **2026-09-24**, was quarantined under `skipped since abnormal SN\` and was never a corpus
+> member when this audit ran (evidence in Appendix B). Three conclusions change:
+> the churn attributed to the 2026-10-01 transition happened **by 2026-09-24** (the
+> 09-24 → 10-01 step was a quiet +4); the 202 → 246 page growth belongs to **09-24**; and
+> 雙園段二小段505 is completable **from print** once 09-24 joins the corpus. The affected
+> sections carry inline notes; §7 lists the decision this forces.
+
 This consolidates five separate questions asked after the recovery change landed:
 
 | # | Question | Answer | Section |
@@ -16,7 +25,7 @@ This consolidates five separate questions asked after the recovery change landed
 | 1 | Is every printed record present in the emission for 2026-10-15? | Yes — 1,442 printed, 1,442 emitted, 0 missing, 0 extra | [§2](#2-records-2026-10-15-pdf-vs-emission) |
 | 2 | Does every record bind to a project family, in **each** gazette? | Yes — the partition is total and disjoint in all six; 0 unbound, 0 double | [§3](#3-projects-every-record-binds-to-exactly-one-family) |
 | 3 | Why did the first viewer show 718 projects? | 718 = 709 + 9 duplicate `-2` slugs, collapsed by `84f7a8a`; 709 → 691 is publication-driven | [§4](#4-why-the-first-viewer-said-718-and-why-the-count-kept-falling) |
-| 4 | How many records are new / deleted against the previous gazette? | 3, 5, **48 / 35**, 1, 1 — only the 2026-10-01 republication churns | [§5](#5-record-churn-between-consecutive-gazettes) |
+| 4 | How many records are new / deleted against the previous gazette? | 3, 5, **48 / 35**, 1, 1 — the churn belongs to the 08-27 → 09-24 gap, not the 10-01 step (2026-10-30 amendment) | [§5](#5-record-churn-between-consecutive-gazettes) |
 | 5 | Was any of this already recorded? | No — `docs/gazette-churn.md` stops at 2026-08-27 and `scripts/gazette_churn.py` excludes 1151002 by design | [§6](#6-what-the-churn-says) |
 
 ---
@@ -43,6 +52,11 @@ Rows whose 地號 cell the publisher truncated are **excluded from cleanse/merge
 (`to_raw_records` marks them `source_fault`), so they are counted and named separately
 rather than being allowed to look like deletions. The recovery pass owns them
 (`openspec/specs/truncated-row-recovery/spec.md`).
+
+A fourth check sits above all of these, and the original audit skipped it: **the archive
+itself**. Every measurement below is sound *given* its input set; the input set was assumed
+complete and was not (Appendix B). Rule for the next audit: census the archive before
+auditing what is in it.
 
 ---
 
@@ -84,8 +98,9 @@ enough to reach the printed row height that clips it.
 | Cell completed from the completion corpus | 18 | `raw.tsv` 地號 longer than the printed cell |
 | Row recovered through the case API | 4 | `projects.json` `recovery` node, `partial: true` |
 
-The four recovered rows are the ones no sibling gazette can complete — they are truncated
-in **every** publication that carries them:
+The four recovered rows are the ones no sibling gazette held at audit time can complete —
+they are truncated in **every publication the archive then held**. (The quarantined
+2026-09-24 edition is one more sibling; see the note below the table.)
 
 | recno | project | 案名 declares | recovered parcels | flag |
 |---|---|---|---|---|
@@ -96,6 +111,13 @@ in **every** publication that carries them:
 
 None is repaired by inference: the recovered list is what the API returned, marked
 `partial`, and the declared count is left disagreeing with it where it disagrees.
+
+**2026-10-30 note — one of the four changes with 09-24.** In the quarantined 2026-09-24
+edition, 雙園段二小段505's printed cell is **complete**: 編號 1105/1191 there carry the full
+77-parcel list ending `762地號等77筆土地`, closing phrase present. Restoring that edition to
+the corpus would complete 編號 1005 from print — strictly better than the partial
+75-parcel API recovery. The other three (南港720, 永昌46-4, 萬隆519) are truncated in 09-24
+as well, so their recoveries stand.
 
 Before the recovery emission the same document parsed as **1,427 rows with 15 exclusions**
 (`docs/urotpe_api_vs_pdf.md`, 2026-10-25). Fourteen of those fifteen are cells the
@@ -129,6 +151,11 @@ record in two families, no empty family).
 | 2026-10-15 | 246 | 1,442 | 4 | 1,438 | 691 | 0 | 0 | 0 | 0 / 0 |
 
 In every gazette `len(all family members) == len(cleaned records)` — measured, not assumed.
+
+One caveat carried from the archive finding: each read's completion corpus was built from
+the *other held* gazettes only. With 2026-09-24 restored as a member, 編號 1005 (雙園505)
+moves from the recovery column into the corpus column (§2), and a binding table for the
+09-24 edition itself still needs to be produced once it is restored.
 
 The current emission, checked the same way:
 
@@ -203,6 +230,9 @@ cause of the drop.
 
 **28 dead / 11 born / 1 merge** — 709 − 28 + 11 − 1 = 691.
 
+(Measured between the two *held* publications. The superseded change set records
+09-24 → 10-01 as +4 approvals and 0 edited, so all of it happened by 2026-09-24.)
+
 A family is *dead* when none of its rows survives into the next publication (matched on the
 printed identity, not on `project_id`); *born* when none of its rows existed before. All 28
 dead and all 11 born are listed here, because the split matters: only 23 of the 28 are real
@@ -270,9 +300,10 @@ the same publication adds 48 records: the 7 new families account for 7 of them, 
 
 `懷生段三小段-249地號等26筆` was carried as **two** projects in 08-27 because the
 2020-08-05 row's 行政區 cell read 中正區 while its 案名 said 大安區. `merge.score` returns 0
-on a district mismatch, so the mislabelled row could not join its own family. The
-republication corrects the cell to 大安區 and the two entries become one — a label fix, not a
-data change. That is the −1 in `709 − 28 + 11 − 1 = 691`.
+on a district mismatch, so the mislabelled row could not join its own family. A later
+edition corrected the cell to 大安區 and the two entries became one — a label fix, not a
+data change. That is the −1 in `709 − 28 + 11 − 1 = 691`. (The correction landed by
+2026-09-24: the superseded change set records 0 edited rows in 09-24 → 10-01.)
 
 ---
 
@@ -293,8 +324,15 @@ any gazette, so "unchanged" is exact rather than approximate.
 | 10-01 → 10-06 | 1,440 → 1,441 | 1,436 | 0 | 1 | 0 | **1** | **0** | +1 |
 | 10-06 → 10-15 | 1,441 → 1,442 | 1,437 | 0 | 1 | 0 | **1** | **0** | +1 |
 
-Four of the five transitions are pure append. All of the churn sits in the 2026-10-01
-republication, which grew from 202 to 246 pages.
+Four of the five *held* transitions are pure append. The churn the table attributes to the
+08-27 → 10-01 step is really the sum of everything published in between — and the held set
+is missing the one publication in between (**2026-09-24**, quarantined; Appendix B). The
+superseded change set for that step
+(`change_sets/2026-10-01.superseded-with-09-24.json`) records 09-24 → 10-01 as a quiet
+week: **+4 approvals, 0 removed, 0 edited**. So effectively all of the churn below happened
+by 2026-09-24, including the 202 → 246 page growth. Whether anything churned inside
+09-03 / 09-10 / 09-17 (if the city published them at all) is unknowable locally:
+`poll_log.jsonl` starts 2026-10-06.
 
 ### Truncation flips (2 of the raw 50 / 2 of the raw 37 are not churn)
 
@@ -314,8 +352,10 @@ So two rows printed in 08-27 become readable in 10-01 (they look "new") and two 
 - `− 2017-02-16 雙園段二小段505` — truncated as 10-01 編號 1003
 - `− 2024-12-30 永昌段四小段46-4` — truncated as 10-01 編號 186
 
-南港720 and 萬隆519 are truncated in all six publications and therefore never enter this
-comparison at all.
+南港720 and 萬隆519 are truncated in all six held publications **and in the quarantined
+09-24 edition**, and therefore never enter this comparison at all. The 09-24 edition adds
+one more datum to this section: 雙園段二小段505's cell is *complete* there (§2), so a
+restored 09-24 also removes one row from the flip set going forward.
 
 ### 2026-08-11 → 2026-08-20: 3 new, 0 deleted
 
@@ -475,9 +515,11 @@ whole small families, not single rows.
 ## 6. What the churn says
 
 - **The gazette is an append-only list except when it is republished.** Four of five
-  transitions add 1–5 rows and touch nothing historical; the 2026-10-01 republication
-  (202 → 246 pages) added 36 backfilled historical rows and 12 fresh approvals, dropped 16
-  事業概要 rows and 19 older rows, and corrected 14 existing rows in place.
+  held transitions add 1–5 rows and touch nothing historical; the 2026-08-27 → 09-24 gap
+  (the 246-page edition is 09-24) added 36 backfilled historical rows and 12 fresh
+  approvals, dropped 16 事業概要 rows and 19 older rows, and corrected 14 existing rows in
+  place. The 09-24 → 10-01 step itself added 4 approvals and touched nothing
+  (`change_sets/2026-10-01.superseded-with-09-24.json`).
 - **"Net +13" is the least informative number available.** The same transition is 48
   additions and 35 removals. Anything that reports only the net figure cannot distinguish a
   quiet week from a re-publication.
@@ -485,8 +527,12 @@ whole small families, not single rows.
   generated with `CUTOFF = "2026-08-11"` and lists only 1150820 / 1150827; its own comment
   says 1151002 is "deliberately excluded … carries 15 records whose 地號 cell the publisher
   truncated". That was true under the older classifier; with the corpus-completion and
-  recovery paths in place the same publication is readable, and it is the only one that
-  churns. Regenerating it is a code change (the cutoff and the exclusion), not a docs fix.
+  recovery paths in place that publication is readable — and it is the held transition where
+  the visible churn lands. Regenerating it is a code change (the cutoff and the exclusion),
+  not a docs fix. The chain must also insert 09-24:
+  `change_sets/2026-10-01.json` records `previous_id: 2026-08-27`, silently rewriting the
+  cadence around the quarantine (the superseded file already holds the correct
+  09-24 → 10-01 comparison).
 - **Truncation moves between publications.** Four rows clip at 08-27 that do not at 10-01,
   and vice versa. A cross-gazette diff built on the reader's output will invent two
   additions and two deletions unless the truncated sets are reconciled, which is why §5
@@ -496,11 +542,21 @@ whole small families, not single rows.
 
 | Item | Evidence | Status |
 |---|---|---|
+| **2026-09-24 gazette quarantined** | file SHA-256 matches the poller's 09-24; pre-rebuild index recorded 1,436 records / 692 projects; today's reader accepts the file (1,436 rows, 編號 1..1436, 0 gaps, 統計至 2026-09-24 Gregorian); superseded change set shows 09-24 → 10-01 was +4 / 0 / 0 | **decision pending**: restore via an openspec change with a ROC→Gregorian boundary regression test (Appendix B) |
+| Calendar boundary mis-stated | 09-24 is the first Gregorian-dated document held; "ROC until 1151002" (AGENTS.md, specs) is an artifact of the same gap | correct together with the restoration |
+| Acquisition stalled | `poll_state.json` last checked 2026-10-06; `核定案件-2026-10-30.pdf` on disk, never ingested; index and change_sets untouched since 10-26 | restart the poller or run an ingestion for 10-30 |
+| `corrections.jsonl` absent | the designed append-only ledger (AGENTS.md) exists nowhere in the repo or the archive | record as spec-vs-reality; wire it or annotate the design |
+| Link cache after the 10-26 re-keying | 724 cache dirs, 692 match current ids, 32 orphaned; 2 projects have no cache dir — both are the `等?筆` identities (寶清51-13, 崇仁711-3) | orphans → `scripts/stranded_report.py`; the 2 resolve with the V1 slug fix (`docs/inspection.md`) |
 | `index.jsonl` records 1,414 for 2026-08-11 | today's partition is 1,415 mergeable + 4 truncated = 1,419 printed | **1 row unexplained**, from the 2026-10-07 ingest; the other five entries match today's read or differ only by recovery |
 | `index.jsonl` records 1,439 for 2026-10-01 | 1,440 printed | consistent with **3 of 4** recovered rows landing at that publication; 10-06 and 10-15 match printed exactly |
-| 南港段一小段720, 萬隆段二小段519 | truncated in all six publications | stable publisher blind spot; both carry partial `recovery` nodes |
+| 南港段一小段720, 萬隆段二小段519 | truncated in every publication examined — the six held ones and 09-24 | stable publisher blind spot; both carry partial `recovery` nodes |
 | 14 two-entry land cores | §3 | under-merge, not loss; 11 carry `(原N筆)`, 1 is a bare count change (吉林段四小段676), 1 is a slug collision, 1 is a recovery artefact |
 | 19 non-概要 deletions | §5 | no same-land-core partner under any date or name; a name-similarity screen cannot separate a re-keyed row from boilerplate (64 spurious pairs at ≥ 0.75), so no re-keying is claimed |
+
+Closed on 2026-10-30 by the companion inspection (`docs/inspection.md`, standing checks):
+**deploy freshness** — all four live artifacts match `HEAD` (`scripts/check_deploy.py`);
+**viewer render path** — `scripts/viewer_smoke.js` exercises the real render path and
+passes.
 
 ---
 
@@ -536,18 +592,33 @@ The scripts were ad-hoc this session (`%TEMP%\gazette_audit.py`, `gazette_transi
 to rebuild from the snippet above. Promoting them to `scripts/` would be a code change with
 its own test, so it was not done here.
 
-## Appendix B — the six publications
+## Appendix B — the six held publications and one quarantined edition
 
 | gazette | archived file | pages | sha256 (first 16) |
 |---|---|---|---|
 | 2026-08-11 | `核定案件-2026-08-11.pdf` | 201 | `e85c497654983520` |
 | 2026-08-20 | `核定案件-2026-08-20.pdf` | 201 | `ed95e4297ccbd724` |
 | 2026-08-27 | `核定案件-2026-08-27.pdf` | 202 | `f09a25c7643e0286` |
+| **2026-09-24** | `skipped since abnormal SN\核定案件-2026-10-02.pdf` (**quarantined**) | 246 | `5066b1085f72898f` |
 | 2026-10-01 | `核定案件-2026-10-01.pdf` | 246 | `a3ad23b0c6b08fe5` |
 | 2026-10-06 | `核定案件-2026-10-06.pdf` | 246 | `045314464c5ef520` |
 | 2026-10-15 | `核定案件-2026-10-15.pdf` | 246 | `9b80a6bcbf7c18e0` |
 
-Two of the archived files were downloaded under a later date and filed by publication:
+The 2026-09-24 row was quarantined, not held: the file was refused with an "abnormal SN"
+verdict and moved to `skipped since abnormal SN\` under its download name. The evidence
+chain: its SHA-256 matches the poller's recorded `gazette_id 2026-09-24`
+(`poll_log.jsonl`, `poll_state.json`); the pre-rebuild index
+(`index.jsonl.pre-rebuild-20261007`) recorded it as 1,436 records / 692 projects before the
+2026-10-07 rebuild dropped the entry outright;
+`change_sets/2026-10-01.superseded-with-09-24.json` records the 09-24 → 10-01 step as
++4 approvals / 0 removed / 0 edited; and today's reader accepts the file — its 統計至 parses
+as **2026-09-24 (Gregorian)**, 246 pages, 1,436 rows, 編號 1..1436 with no gaps. The refusal
+is no longer reproducible. 09-24 is almost certainly where the ROC→Gregorian calendar
+boundary actually sits — 08-27 is the last ROC-dated document held, 09-24 already prints
+Gregorian — and the "abnormal SN" verdict was the old reader meeting exactly that boundary.
+
+Two of the held files were downloaded under a later date and filed by publication:
 `核定案件-2026-10-06.pdf` arrived as `核定案件-2026-10-13.pdf` and
 `核定案件-2026-10-15.pdf` as `核定案件-2026-10-23.pdf` (`index.jsonl`, `source_path`).
-The published date comes from each document's own 統計至 line, not from the download.
+The quarantined seventh arrived as `核定案件-2026-10-02.pdf` and was never filed. The
+published date comes from each document's own 統計至 line, not from the download.

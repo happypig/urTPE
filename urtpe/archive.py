@@ -209,19 +209,56 @@ class GazetteArchive:
         """Copy a quarantined candidate into the archive under its publication name.
 
         Identity is established by digest: the candidate must hash to a digest some
-        earlier index entry recorded for this ``gazette_id`` (the poller's ingest
-        record qualifies — it is an index entry). A candidate matching nothing is
-        refused rather than guessed at. The quarantine file is never deleted: the
-        quarantine directory is evidence of the old reader's failure, and this
-        entry's ``restored_from`` provenance is the audit trail's other half.
+        earlier record ties to this ``gazette_id``. Records consulted, in order:
+        the current index, the pre-rebuild index backup (``index.jsonl.pre-*`` —
+        the 2026-10-07 rebuild dropped 09-24's entries outright, so the current
+        index alone cannot prove a quarantined candidate the rebuild lost), and
+        the poll log (``poll_log.jsonl``), whose hash record is the acquisition
+        evidence. A candidate matching nothing is refused rather than guessed at.
+        The quarantine file is never deleted: the quarantine directory is evidence
+        of the old reader's failure, and this entry's ``restored_from`` provenance
+        is the audit trail's other half.
         """
         src = Path(quarantine_path)
         if not src.exists():
             raise FileNotFoundError(src)
         digest = _sha256(src)
-        known = [e for e in self.entries()
-                 if e.gazette_id == gazette_id and e.sha256]
-        if not known or digest not in {e.sha256 for e in known}:
+        known = {e.sha256 for e in self.entries()
+                 if e.gazette_id == gazette_id and e.sha256}
+        # Pre-rebuild index backups: entries the rebuild dropped still speak.
+        for backup in sorted(self.root.glob("index.jsonl.pre-*")):
+            try:
+                for line in backup.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        e = IndexEntry(**json.loads(line))
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+                    if e.gazette_id == gazette_id and e.sha256:
+                        known.add(e.sha256)
+            except OSError:
+                continue  # an unreadable backup is not proof either way
+        # The poll log: acquisition evidence keyed by content hash (design D1).
+        poll_log = self.root / "poll_log.jsonl"
+        if poll_log.exists():
+            try:
+                poll_lines = poll_log.read_text(encoding="utf-8").splitlines()
+            except OSError:
+                poll_lines = []  # an unreadable log is not proof either way
+            for line in poll_lines:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if (record.get("gazette_id") == gazette_id
+                        and record.get("sha256")):
+                    known.add(record["sha256"])
+        if not known or digest not in known:
             raise ValueError(
                 "%s does not match any digest previously recorded for gazette %s; "
                 "refusing to re-file an unidentified file" % (src.name, gazette_id))

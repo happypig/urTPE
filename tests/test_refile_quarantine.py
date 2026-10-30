@@ -10,6 +10,7 @@ nothing previously recorded.
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
 import tempfile
 from datetime import datetime
@@ -86,10 +87,48 @@ def test_refile_refuses_a_candidate_matching_nothing(tmp_path, quarantine):
 
 def test_refile_refuses_when_no_digest_was_ever_recorded(tmp_path, quarantine):
     quarantined = _candidate(tmp_path, "c", published="統計至115年9月24日")
-    archive = GazetteArchive(tmp_path / "gazettes")  # empty index
+    archive = GazetteArchive(tmp_path / "gazettes")  # empty index, no poll log
 
     with pytest.raises(ValueError, match="refusing to re-file"):
         archive.refile_from_quarantine(quarantined, "2026-09-24")
+
+
+def test_refile_accepts_a_digest_from_the_poll_log(tmp_path, quarantine):
+    """The 09-24 case exactly: the rebuild dropped the current index's entries,
+    but the poller's hash record (poll_log.jsonl) ties the digest to the
+    gazette_id. The refile path must consult it."""
+    quarantined = _candidate(tmp_path, "核定案件-2026-10-02",
+                             published="統計至115年9月24日")
+    digest = hashlib.sha256(quarantined.read_bytes()).hexdigest()
+    archive = GazetteArchive(tmp_path / "gazettes")
+    (archive.root / "poll_log.jsonl").write_text(
+        json.dumps({"status": "reuploaded", "gazette_id": "2026-09-24",
+                    "sha256": digest,
+                    "checked_at": "2026-10-06T06:08:42.938120+08:00"}),
+        encoding="utf-8")
+
+    dest, entry = archive.refile_from_quarantine(
+        quarantined, "2026-09-24", published_date="2026-09-24")
+    assert entry.event == "restored" and entry.sha256 == digest
+
+
+def test_refile_accepts_a_digest_from_the_pre_rebuild_index_backup(tmp_path, quarantine):
+    quarantined = _candidate(tmp_path, "c", published="統計至115年9月24日")
+    digest = hashlib.sha256(quarantined.read_bytes()).hexdigest()
+    archive = GazetteArchive(tmp_path / "gazettes")
+    # A full entry, as the real pre-rebuild backup carries them (the rebuild's
+    # dropped 09-24 lines were complete IndexEntry records).
+    (archive.root / "index.jsonl.pre-rebuild-20261007").write_text(
+        json.dumps({"gazette_id": "2026-09-24", "published_date": "2026-09-24",
+                    "ingested_at": "2026-10-06T06:08:42+08:00",
+                    "record_count": 1436, "project_count": 692,
+                    "reader_version": "table-lines-v1", "filename": "gone.pdf",
+                    "sha256": digest}),
+        encoding="utf-8")
+
+    dest, entry = archive.refile_from_quarantine(
+        quarantined, "2026-09-24", published_date="2026-09-24")
+    assert entry.event == "restored"
 
 
 def test_verify_reports_the_refiled_member_as_held(tmp_path, quarantine):

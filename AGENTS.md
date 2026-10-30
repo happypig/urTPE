@@ -102,8 +102,11 @@ Violating any of these corrupts output silently rather than raising.
   2026-10-26; census in `openspec/changes/check-declared-parcel-counts/poc_findings.md`).
 - **Never repair absent data by inference.** Truncated records are excluded and named,
   and the exclusion count is reported, so a short gazette never reads as a faithful copy.
-- **Calendars:** ROC (115/8/27) until the 1151002 gazette, Gregorian after. Both accepted
-  per cell, normalised to ISO. `published_date` comes from the document's 統計至 line.
+- **Calendars:** ROC (115/8/27) through the 2026-08-27 gazette; Gregorian from the
+  2026-09-24 gazette onward. (The boundary was once mislabelled 1151002 because the
+  09-24 document was quarantined on release and missing from the archive; it was
+  restored by `restore-2026-09-24-gazette` on 2026-10-31.) Both accepted per cell,
+  normalised to ISO. `published_date` comes from the document's 統計至 line.
 - **~70% of records are repeat stage approvals of the same unit.** Identity is found by
   similarity (`LINK_THRESHOLD = 0.7`, flag band 0.5–0.7), never by equality — parcel
   coverage changes (`13筆(原11筆)`) and renumbering (`689地號(原726地號)`) break exact keys.

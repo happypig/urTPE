@@ -1,27 +1,28 @@
 tripwire: PASS
-  records: 1442  projects: 694
+  records: 1441  projects: 693
   calendar: gregorian  duplicate 編號: 0
+  INCOMPLETE: 1 record(s) excluded because the publisher truncated their 地號 cell — this gazette is NOT a faithful copy: 188
 
 reconcile: 2026-10-06 -> 2026-10-15
   previous newest approval: 2026-10-06
-  new approvals: 1   net change: +5 (1437 -> 1442)
+  new approvals: 1   net change: +4 (1437 -> 1441)
   historical rows changed: re-dated 0, edited 0, vanished 0 (accepted: 0)
-  recovered by this reader: 4 (truncated cells the API completed; not publisher edits)
+  recovered by this reader: 3 (truncated cells the API completed; not publisher edits)
   project identities: moved 0, unchanged 0
   calendar: gregorian -> gregorian (unchanged)
-  ~ recovered: 中正區 臺北市中正區永昌段四小段46-4、46-6、46-7、46-8、46-9、46-10、4 @ 2024-12-30
   ~ recovered: 萬華區 臺北市萬華區雙園段二小段505、506、507、508、509、510、511-1、51 @ 2017-02-16
   ~ recovered: 南港區 臺北市南港區南港段一小段710-3、710-4、716、717、718-2、719、72 @ 2014-04-25
   ~ recovered: 文山區 臺北市文山區萬隆段二小段519、519-4、519-5、519-6、519-7、519- @ 2013-02-07
 
-RECOVERED: 4 筆 (publisher-truncated rows re-identified via the city's case APIs and map service)
-  編號 188: cases R089213-02, api 10403071, date exact (uro_chk_date), list gazette fragment (partial)
+RECOVERED: 3 筆 (publisher-truncated rows re-identified via the city's case APIs and map service)
   編號 1005: cases 09610235,09610236, api 09610235,09610236, date exact (uro_chk_date), list gazette fragment (partial), flags ambiguous-zone
-  編號 1131: cases R091007-02, api 09412311, date exact (uro_chk_date), list gazette fragment (partial)
+  編號 1131: cases 09412311, api 09412311, date exact (uro_chk_date), list gazette fragment (partial)
   編號 1206: cases 09611281, api 09611281, date exact (uro_chk_date), list gazette fragment (partial)
-INCOMPLETE: 0 筆 (still excluded; this gazette is NOT a faithful copy of the publication)
+INCOMPLETE: 1 筆 (still excluded; this gazette is NOT a faithful copy of the publication)
+  編號 188: 
 
-解析缺漏記錄: 0 筆
+解析缺漏記錄: 1 筆
+  編號 188: 地號publisher-truncated(保留待復原:tail)
 
 自動修正記錄: 12 筆
   編號 70: 行政區錯字→松山區
@@ -69,7 +70,7 @@ INCOMPLETE: 0 筆 (still excluded; this gazette is NOT a faithful copy of the pu
   編號 1325: 地號無法解析(缺少地號清單)
   編號 1326: 地號無法解析(缺少地號清單), 案名與地號段小段不一致(地號為東湖段)
 
-專案家族: 694 (單筆 269, 多筆 425)
+專案家族: 693 (單筆 268, 多筆 425)
 
 最大多筆家族（425 個，依成員數排序）:
   內湖區-潭美段四小段-579-2地號等21筆  [618,627,673,694,835,1052,1188]

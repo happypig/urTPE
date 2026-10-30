@@ -4,7 +4,7 @@ schema: spec-driven
 # This is shown to AI when creating artifacts.
 context: |
     Project: urTPE — turn the Taipei City Government's urban-renewal approved-cases
-    list (臺北市都市更新核定案件一覽表, 1,442 approvals as emitted from the 1151015
+    list (臺北市都市更新核定案件一覽表, 1,441 approvals as emitted from the 2026-10-15
     gazette, dated 2002-03-21–2026-10-15,
     統計至 2026-10-15) into a clean, merged dataset with per-project history.
     Pipeline: PDF (gov.taipei) -> ruled-table extraction (pymupdf find_tables,
@@ -15,8 +15,10 @@ context: |
     A structure the reader cannot interpret exactly (merged cell, page without a
     table, ragged row) aborts the run rather than producing partial output, and a
     completeness tripwire gates every emission.
-    Calendars: the city published ROC dates (115/8/27) until the 1151002 gazette,
-    which switched to Gregorian (2026/9/24); both are accepted per cell and
+    Calendars: the city published ROC dates (115/8/27) through the 2026-08-27
+    gazette; Gregorian from the 2026-09-24 gazette onward (the boundary was once
+    mislabelled 1151002 while the 09-24 document sat quarantined); both are accepted
+    per cell and
     normalized to ISO-8601. published_date is read from the document's 統計至 line.
     Every ingested gazette is archived outside the git working tree with an
     append-only index, and each ingestion is reconciled against its predecessor.

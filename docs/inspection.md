@@ -282,6 +282,18 @@ session's 2026-10-26 output. Committed together as `0bc6ed0` (2026-10-30), so th
 
 ## Archive findings — 2026-10-30 [peer amendment, independently verified]
 
+**RESOLVED 2026-10-31** by `restore-2026-09-24-gazette` (groups 4 executed): the
+quarantined file was re-filed as `核定案件-2026-09-24.pdf` (digest `5066b108…` matching
+the poller's record), ingested dual-path under `--recover-truncated` — tripwire PASS,
+1,436 records / 692 projects, **all 22 truncated rows recovered via the API pass, 0
+residual** — and the chain repaired: 08-27→09-24 change set written (+8/+13,
+roc→gregorian, blocking empty), 10-01 re-ingested so its change set re-derives against
+09-24 (new approvals = 4, matching the 2026-10-07 superseded file exactly; net +7 with
+the divergence explained), superseded file reconstructed. The calendar boundary in
+`AGENTS.md` and `openspec/config.yaml` now reads 2026-08-27 → 2026-09-24. The
+restoration and the 09-24 ingested view landed in `scratch_ingest_0924/`; the emitted
+dataset stays at 10-15 until the forward re-emission (task group 6).
+
 While committing step 1, an unattributed amendment to `dataset_completeness_audit.md`
 appeared in the shared working tree (describing a quarantined 2026-09-24 gazette).
 The peer session disclaimed authorship of the amendment; the user attributed it to a

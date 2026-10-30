@@ -414,6 +414,24 @@ Fix: one commit with all four files. Then the citation in `AGENTS.md` resolves.
 
 # Consolidated fix plan
 
+**2026-10-30, second update.** The plan below was extended the same day with the
+audit doc's data-layer findings. The canonical, current plan now lives in
+`docs/inspection.md`, section "Consolidated fix plan". Read that section. It adds:
+
+1. An openspec change to restore the quarantined 2026-09-24 gazette, bundled with
+   the superseded-digest fix and the calendar-boundary correction. Needs user
+   approval before any restore.
+2. An openspec change to wire the standing checks (the emission check plus a new
+   census-equality gate).
+3. An operational finding: the poller is stalled since 2026-10-06. Restarting it
+   is a user decision.
+4. A note that the manual-corrections ledger (`corrections.jsonl`) was designed
+   but never instantiated.
+5. Six new watch-list items from the audit. Record, do not fix.
+
+The steps below are the earlier version. They remain correct for the code fixes.
+The canonical section may re-order them.
+
 This plan merges both sessions' findings. Do the steps in this order.
 
 ## Step 1 — Commit the docs (F5)

@@ -322,38 +322,94 @@ Superseded by "Consolidated fix plan" below. Kept for reference.
 
 ## Consolidated fix plan — 2026-10-30
 
-Merged from both sessions. One baseline question is open with the peer session
-(suite count 652 vs 706 at the same commit); it gates nothing below.
+Merged from both sessions, then extended the same day with the audit doc's data-layer
+findings (§7, Appendix B — the quarantined 09-24 gazette, the stalled poller, the
+missing ledger, the strengthened V1 evidence). Status markers show what is already
+committed. One baseline: 689 collected / 688 passed, 1 skipped at `d6c77b3`.
 
 ### Commit 1 — docs (P5 + F5, one `docs:` commit)
 
 Add `AGENTS.md`, `docs/dataset_completeness_audit.md`, `docs/inspection.md`,
 `docs/inspection_STE.md` together, so the citation in `AGENTS.md` resolves.
 
-### Commit 2 — cleanup (F3 + F4, one `chore:` commit)
+### Commit 2 — cleanup (F3 + F4, one `chore:` commit) — **DONE** `d6c77b3`
 
-1. Check whether any spec cites `date_order_report`'s report shape. If none,
-   delete it; if one does, keep it as the spec's named entry point.
-2. Delete `classify_case_outcome` and `project_twur_class` with their tests
-   (≈16 tests gone; explain the count drop in the commit message).
-3. Delete the orphan-skip block at `urtpe/cli.py:72-75`.
-4. Re-run the suite; confirm the new count and refresh the number in `AGENTS.md`.
+Committed 2026-10-30: all three dead functions deleted with their tests, the
+orphan-skip block removed, `test_date_order.py` rewritten to pin only live behaviour,
+suite at 688 passed / 1 skipped (689 collected), AGENTS.md refreshed.
+
+### Commit 1 — docs (P5 + F5, one `docs:` commit) — **DONE** `0bc6ed0`
+
+Committed 2026-10-30. Follow-ups since: `601b9bb` (verified archive findings from the
+unattributed audit amendment) and the audit doc's own amendment commit `b5b1ed9`
+(OpenCode session, `recover-truncated-rows-via-api` scope).
+
+### Commit 3 — archive findings record — **DONE** `601b9bb`
+
+The two claims in the audit amendment were verified against the archive before being
+recorded: the quarantined file **is** the lost 2026-09-24 gazette (sha256
+`5066b108…` matches the poller's 09-24 record; 統計至 115/9/24 Gregorian; 246 pages;
+1,436 rows, 編號 1..1436 no gaps), and `核定案件-2026-10-30.pdf` is a byte-identical
+re-upload of the 10-15 gazette — a missed *check*, not a missed *gazette*.
+
+### Openspec change D — `restore-2026-09-24-gazette` (NEW, test-first, **user approval required before any restore/ingest**)
+
+The single highest-value data-layer action. Evidence in
+`docs/dataset_completeness_audit.md` §7 and Appendix B:
+
+- The quarantined file is 09-24 beyond doubt (hash, 統計至, row count, contiguity).
+- The pre-rebuild index recorded it as 1,436 records / 692 projects; the 2026-10-07
+  rebuild dropped the index entry outright — the P3.7 superseded-digest defect.
+- The superseded change set records 09-24 → 10-01 as +4 / 0 removed / 0 edited.
+- The "abnormal SN" refusal is not reproducible with today's reader; the refusal was
+  almost certainly the old reader meeting the ROC→Gregorian boundary.
+
+Scope, bundled (all touch the same seam — archive identity and its gates):
+
+1. Re-file as `核定案件-2026-09-24.pdf`, re-ingest, insert into the change-set chain.
+2. Reader regression test pinning the ROC→Gregorian boundary (09-24 is the first
+   Gregorian-dated document held).
+3. P3.7: record superseded digests on re-store; never drop an index entry on rebuild.
+4. Correct the calendar-boundary statement in `AGENTS.md` and the specs (item 6 of
+   the audit): the boundary sits at 09-24, and "ROC until 1151002" was an artifact
+   of the gap this restore closes.
+
+**Constraint:** do NOT run the ingestion or move the file without explicit user
+approval — single-writer lock, ~23 MB emission diff, and the OpenCode session may
+hold the scope.
+
+### Openspec change A′ — `wire-standing-checks` (P1 + NEW census-equality gate, test-first)
+
+P1 (wire `emission_faults` into `_run_locked`, warning not refusal) is now bundled
+with a second unwired check the audit surfaced: no gate enforces census-equality
+(PDF rows vs emission) or merge-partition totality — the tripwire checks
+contiguity/dates/empty pages, and `cli` only prints counts. The audit's Appendix A
+shows the partition assertion is three lines; wire it as a gate. Same test group,
+same file, same rationale: a check that exists but never runs is the 2026-08-24
+shape.
 
 ### Openspec change A — `emit-stage-index` (F1, test-first)
 
-Highest-value bug in the merged list. Emit `stage_index` from
+Highest-value code bug in the merged list. Emit `stage_index` from
 `build_project_graph`; derive it from stage text in `_load_projects_from_js` when
 the key is absent, so already-deployed `projects.data.js` files repair on load.
 Test first: a fixture family with 甲/A/B `area_section` across distinct stages
 must form section edges after a `--from-js` rebuild; assert emit→load→emit
 round-trip losslessness.
 
-### Openspec change B — `land-core-slug-fallback` (V1, test-first)
+### Openspec change B — `land-core-slug-fallback` (V1, test-first) — evidence strengthened
 
 Two `project_id`s contain `等?筆` because both anchors have `land_count: null`
 (`urtpe/merge.py:124`). Fall back to another family member's count before
 slugging; review-flag when no member carries a count. Delta touches
 `case-merging` (identity derivation is spec'd there).
+
+The audit adds the operational cost of leaving it: **the two projects with no
+`.link_cache` directory are exactly these two identities** (寶清51-13, 崇仁711-3) —
+discovery cannot cache them, so every `--links` run re-queries both. After the
+10-26 re-keying, 32 further cache dirs are orphaned; `scripts/stranded_report.py`
+reports them. The change should note the alias-migration path for the orphaned
+dirs (`data/project_aliases.json`).
 
 ### Openspec change C — `viewer-stage-chip-coverage` (V3 + V2 + V4, test-first)
 
@@ -361,34 +417,80 @@ V3 needs a spec delta (it contradicts `history-graph/spec.md:255` "SHALL show no
 badge"). Bundle V2 (raw JSON/`null` in table cells) and V4 (three date formats in
 one pane) — same test group, same file.
 
+### Operational finding — acquisition is stalled (USER DECISION REQUIRED)
+
+`poll_state.json` last checked **2026-10-06** (24 days). `poll_log.jsonl` stops at
+the same date. The poller process is not running. `核定案件-2026-10-30.pdf` sits in
+the archive root, never ingested — but it is a byte-identical re-upload of the
+already-ingested 10-15 gazette (verified `601b9bb`), so nothing data-bearing was
+lost *yet*. Every week of stall is a week a genuinely new gazette could arrive
+unnoticed.
+
+Options (user decides; AGENTS.md forbids wiring polling into ingestion):
+
+1. Restart `scripts/poll_gazette.py` on a schedule (it writes the dated D3 record
+   even on a quiet week).
+2. Run a one-off poll now to confirm the channel is healthy, and defer scheduling.
+3. Leave stalled; rely on manual `--archive-only` ingestion when a publication is
+   noticed.
+
+### Spec-vs-reality note — `corrections.jsonl` was never instantiated
+
+The designed append-only manual-correction ledger (AGENTS.md, `--ledger` flag,
+`urtpe/ledger.py`) exists as code and spec, but `corrections.jsonl` exists nowhere
+— no ledger has ever been written. Not a defect: the `--ledger` path is opt-in and
+no manual correction has been needed since the design landed. Record it so the next
+reader does not assume corrections are flowing. Resolution options (user decides,
+low priority): annotate AGENTS.md that the ledger is designed-but-unused, or write
+an empty ledger at the archive root on first `--ledger` use.
+
 ### Direct `fix:` commits (no spec delta needed)
 
-- P1: wire the emission check into `_run_locked` (the spec already requires the
-  report at `official-link-discovery/spec.md:253`; the gap is wiring).
 - P2.1: atomic lock acquire via `O_CREAT | O_EXCL`.
 - P2.2: `--fresh` renames to `.link_cache_backup_<date>` instead of rmtree.
 - P2.3: track + root-path `taipei_case_ids.json`, one shared constant.
-- P3.1–P3.6, P3.8–P3.10: exit-code docs, inert tripwire parameter, crawl
-  completeness warning, AGENTS.md viewer-test wording.
+- P3.1: exit-code table (add code 2; AGENTS.md).
+- P3.2: inert tripwire `tables_found` parameter — pass real counts or remove.
+- P3.3: portal-index crawl completeness warning (WAF-shortened crawl).
+- P3.4/P3.8: batch the AGENTS.md calendar-boundary correction (moves into
+  change D) and the viewer-test wording here if change D is deferred.
+- P3.9: commit the audit-doc amendment together with the OpenCode session's work
+  (their scope; coordinate before touching).
+- P3.10: `FALLBACK_MAPPING_FILE` single constant; `.corpus_cache/` pruning.
 
-### Watch, do not fix
+### Watch, do not fix (updated with the audit's additions)
 
 - F2 (one-time flake): comment on the test citing the observation; reproduce
   with a tight loop only if it fires again.
 - V5–V12 (viewer polish): fix opportunistically, lowest priority.
 - Peer-deferred items (no CI, no browser-render test, baseline item 6 numbers):
   recorded as by-design in both sessions.
+- **NEW (audit):** API→gazette reverse completeness check (a recovered case id
+  whose gazette row is absent would indicate the API holds more than the print).
+- **NEW (audit):** 概要-removal policy decision (19 non-概要 deletions have no
+  same-land-core partner; a name-similarity screen cannot separate re-keying from
+  boilerplate — 64 spurious pairs at ≥ 0.75).
+- **NEW (audit):** emission reproducibility — `tests/test_idempotent_flags.py:117`
+  deliberately skips the node-payload round-trip; the skip is named, not hidden.
+- **NEW (audit):** recovery-binding evidence standard — 1005 matched two case ids
+  with an `ambiguous-zone` flag; 1131 recovered only a partial 71/105 parcel list.
+  Both are honest; the standard for what counts as "recovered" deserves a written
+  rule before the next recovery change.
+- **NEW (audit):** 08-11 index records 1,414 vs today's 1,415 mergeable + 4
+  truncated = 1,419 printed — one row unexplained, from the 2026-10-07 ingest.
+- **NEW (audit):** 14 two-entry land cores are under-merges, not losses (§3 of the
+  audit); one is a bare count change (吉林段四小段676), one a slug collision, one a
+  recovery artefact.
 
 ### Open with the peer session
 
-All three questions answered 2026-10-30 (task `99fe037a`); the plan below stands
-unchanged:
+All questions answered and closed 2026-10-30 (tasks `99fe037a`, `2abddaf7`,
+`494f6747`):
 
-1. Suite baseline: the peer's 652 came from a tree state predating commits
-   `33ce713`/`b40bb15`. **706 collected (705 passed, 1 skipped) at `20a2c92` is the
-   canonical baseline**, confirmed by both sides.
-2. No live spec cites `date_order_report`'s shape — only prose in the archived
-   `2026-10-06-gazette-ingest-cadence` change. It is deletable; the dedup guarantee
-   it carried moved into the reader (`_dedupe_by_recno`, `extract.py:776`), verified
-   above.
-3. No objection to deleting `classify_case_outcome` / `project_twur_class`.
+1. Suite baseline: **689 collected (688 passed, 1 skipped) at `d6c77b3`** after the
+   cleanup commit; 706 was canonical at `20a2c92` before it. The peer's 652 was a
+   stale count, predating `33ce713`/`b40bb15`.
+2. No live spec cited `date_order_report`; deleted with the dedup rationale
+   recorded on `departures_from_descending`.
+3. No objection to the `links.py` pair; both deleted, liveness policy coverage
+   confirmed intact in `tests/test_fetch_remaining_portal.py`.

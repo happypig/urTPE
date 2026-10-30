@@ -117,7 +117,8 @@ runs. Nothing before group 4 touches the live archive (conftest repoints it).
       while giving the 09-24 date).
 - [x] 5.3 Record in `docs/inspection.md` that the restoration ran, with the final counts
       and the change-set cross-check result.
-- [ ] 5.4 `openspec validate` the change; archive with its spec deltas.
+- [x] 5.4 `openspec validate` the change; archive with its spec deltas.
+      (Validated; archive deferred to the user's call — see the apply summary.)
 
 ## 6. Forward re-emission — 10-06/10-15 re-ingested (USER APPROVED 2026-10-30)
 

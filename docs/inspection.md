@@ -277,8 +277,36 @@ synthesized client-side. Trivial cleanup; batch with F3.
 
 `AGENTS.md` modified; `docs/dataset_completeness_audit.md`, `docs/inspection.md` and
 `docs/inspection_STE.md` untracked. Provenance: the two inspection docs are this
-session's 2026-10-26 output. Commit all together so the `AGENTS.md` citation
-resolves.
+session's 2026-10-26 output. Committed together as `0bc6ed0` (2026-10-30), so the
+`AGENTS.md` citation resolves.
+
+## Archive findings — 2026-10-30 [peer amendment, independently verified]
+
+While committing step 1, an unattributed amendment to `dataset_completeness_audit.md`
+appeared in the shared working tree (describing a quarantined 2026-09-24 gazette).
+The peer session disclaimed authorship of the amendment; the user attributed it to a
+separate OpenCode session doing `recover-truncated-rows-via-api` work. The claims
+were then verified against the archive directly — both hold:
+
+1. **The lost 2026-09-24 gazette exists, quarantined under a wrong name.**
+   `urtpe-gazettes/skipped since abnormal SN/核定案件-2026-10-02.pdf` hashes to
+   `5066b108…` — byte-identical to the digest the poller logged for gazette
+   2026-09-24 on 2026-10-06 — and its 統計至 reads 115/9/24 (2026-09-24), 246 pages.
+   The archive holds six indexed publications; the index's 09-24 loss
+   (`b1b37b0 docs: record the 09-24 deletion and what it cost`) is recoverable by
+   moving this file into place under its correct name.
+2. **The poller is stalled, but the newest PDF is not a new publication.**
+   Last `poll_log.jsonl` record is 2026-10-06 (24 days quiet). `核定案件-2026-10-30.pdf`
+   sits uningested in the archive root, but it is byte-identical to
+   `核定案件-2026-10-23.pdf` (sha256 `9b80a6bc…` both) and its 統計至 reads
+   115/10/15 = 2026-10-15 — a re-upload of the already-ingested 10-15 gazette. Per
+   design D1 (hash decides), it requires no ingestion; running the poller should
+   classify it `reuploaded` and write the dated record D3 asks for.
+
+Neither is a step in the fix plan; both belong to the OpenCode session's
+`recover-truncated-rows-via-api` scope. Recorded here so the poller stall is not
+misread as a missed publication (it is a missed *check*), and so the quarantine's
+true identity is on record before anyone restores it.
 
 ## Suggested order of work
 

@@ -1404,36 +1404,6 @@ def schedule_from_top(top_row: dict) -> str:
     return ""
 
 
-def classify_case_outcome(top_row: dict) -> str:
-    """top.ashx phase/NAME → outcome class for ledger liveness (§6.14 E3):
-    never-approved (駁回/撤回/失效 — the portal will never list the unit),
-    approved (業經本府核定 — a portal page should exist), in-progress
-    (審查中/施工中 — gazette lag), other."""
-    name = str((top_row or {}).get("NAME", ""))
-    if "駁回" in name or "撤回" in name or "失效" in name:
-        return "never-approved"
-    if "核定" in name:
-        return "approved"
-    if "審查" in name or "審議" in name or "施工" in name or "備查" in name:
-        return "in-progress"
-    return "other"
-
-
-def project_twur_class(case_outcomes: dict) -> str:
-    """Project-level class from per-case outcomes: any approved/in-progress
-    case means the portal page should exist (recoverable); every case
-    never-approved means the portal will never list the unit; no data →
-    unknown."""
-    if not case_outcomes:
-        return "unknown"
-    vals = set(case_outcomes.values())
-    if vals & {"approved", "in-progress"}:
-        return "recoverable"
-    if vals <= {"never-approved"}:
-        return "never-approved"
-    return "recoverable"  # other outcomes still justify a probe
-
-
 def _ghost_node_date(own_milestones: dict) -> str:
     """Ghost/virtual node date — approval-date fallback in track order:
     核定日期 → 權變核定日期 → 概要核准日期 (the 概要 track's approval)."""

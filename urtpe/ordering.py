@@ -84,6 +84,13 @@ def departures_from_descending(
     ``is_sorted`` is False when fewer than two records carry a date, because a single date
     establishes no ordering at all — claiming otherwise is how an unreadable publication
     comes to look perfectly ordered.
+
+    The caller owns deduplication: ``urtpe.extract._dedupe_by_recno`` already ran on the
+    records these dates came from (first occurrence wins, extract.py), which is where the
+    repeated-page-head guarantee lives since 2026-10-06. ``date_order_report`` — the
+    PDF-level wrapper that deduplicated here — was deleted as dead code (2026-10-30
+    cleanup, docs/inspection.md F3): no live spec cites it and nothing in production
+    called it.
     """
     parsed = [(i, date.fromisoformat(d)) for i, d in enumerate(dates)
               if d and _is_iso(d)]
@@ -102,32 +109,3 @@ def _is_iso(value: str) -> bool:
     except ValueError:
         return False
     return True
-
-
-def date_order_report(pdf_path: str, *, strict: bool = False) -> DateOrderReport:
-    """Read a gazette and report how it orders itself.
-
-    Deduplicates on 編號 first, because the city repeats the newest record as a running
-    head on every page and those repeats are not additional approvals.
-    """
-    from urtpe.extract import extract_pdf, to_iso
-
-    rows = extract_pdf(str(pdf_path), strict=strict)
-
-    by_recno: dict[int, str] = {}
-    for row in rows:
-        raw = (row.get("recno") or "").strip()
-        if not raw.isdigit():
-            continue
-        iso, _ = to_iso(row.get("date", ""))
-        by_recno.setdefault(int(raw), iso or "")
-
-    ordered = [by_recno[k] for k in sorted(by_recno)]
-    violations, worst, _ = departures_from_descending(ordered)
-    dated = sum(1 for d in ordered if d)
-    return DateOrderReport(
-        violations=violations,
-        dated_records=dated,
-        total_records=len(by_recno),
-        max_inversion_days=worst,
-    )

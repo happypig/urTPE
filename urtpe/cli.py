@@ -70,9 +70,6 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
         project_district = pg["project_id"].split("-")[0] if "-" in pg["project_id"] else ""
         members = []
         for node in pg["nodes"]:
-            if (node.get("orphan") or node.get("recno", 0) < 0
-                    or node.get("stage") == "孤兒節點"):
-                continue
             # Fallback to project-level district if node lacks it
             node_district = node.get("district", "") or project_district
             node_district_land = node.get("district_land", "") or node_district

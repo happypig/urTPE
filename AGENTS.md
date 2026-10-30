@@ -173,6 +173,10 @@ Violating any of these corrupts output silently rather than raising.
   `docs/domain-model.html` — its self-contained bilingual rendering (no CDN, opens from
   `file://`). `docs/cli_flow.archive.md` — dead, archived.
 - `docs/gazette-churn.md`, `docs/stranded-cache-dirs.md` — generated; do not hand-edit.
+- `docs/dataset_completeness_audit.md` — the 2026-10-26 post-`recover-truncated-rows-via-api`
+  audit: per-gazette record→project binding, the 718→709→694 viewer-count history, and
+  record churn between consecutive publications (only 1151002 churns). Generated scripts
+  were ad-hoc; the method is reproduced in its Appendix A.
 - `docs/sync_architecture.md` — the PDF-heartbeat + two-portals sync design; was the design
   `gazette-ingest-cadence` was cut from.
 - `docs/temp.*` — ignored paste pad, deliberately untracked.

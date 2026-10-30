@@ -82,6 +82,13 @@ class IndexEntry:
     # records means the date parser failed, not that the publication is well ordered.
     date_order_violations: int = -1
     dated_records: int = -1
+    # The digest this entry's content replaced. Set only on a re-store of a publication
+    # whose held bytes differed: a corrected re-upload is then traceable, and verify()
+    # can distinguish a documented replacement from an undocumented substitution.
+    supersedes: str = ""
+    # Where a restored member came from: the quarantine path it was re-filed out of.
+    # The quarantine itself is never deleted, so the pair of paths is the audit trail.
+    restored_from: str = ""
 
     def is_verified(self) -> bool:
         """True only when a digest was recorded *and* the reader is precisely identified."""
@@ -123,7 +130,10 @@ class GazetteArchive:
         """Retain a verbatim copy of ``pdf_path``, named by publication date.
 
         Re-storing the same publication date replaces the copy only when the content
-        differs. A same-size collision is not treated as identity: ``verify`` compares
+        differs, and the replacement is recorded: an append-only re-store entry names
+        the digest it supersedes and the digest now held, so a corrected re-upload is
+        traceable and ``verify`` does not report the documented replacement as damage.
+        A same-size collision is not treated as identity: ``verify`` compares
         digests, so a truncated or swapped member is detectable.
         """
         src = Path(pdf_path)
@@ -132,9 +142,25 @@ class GazetteArchive:
         dest = self.path_for(gazette_id)
         if dest.exists() and _sha256(dest) == _sha256(src):
             return dest
+        superseded = _sha256(dest) if dest.exists() else ""
         tmp = dest.with_suffix(".pdf.part")
         shutil.copy2(src, tmp)
         os.replace(tmp, dest)
+        if superseded:
+            self.append_index(IndexEntry(
+                gazette_id=gazette_id,
+                published_date=published_date or gazette_id,
+                ingested_at=dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+                record_count=record_count,
+                project_count=project_count,
+                reader_version=READER_VERSION,
+                filename=dest.name,
+                calendar=calendar,
+                source_path=source_path or str(src),
+                sha256=_sha256(dest),
+                event="re-store",
+                supersedes=superseded,
+            ))
         return dest
 
     def append_index(self, entry: IndexEntry) -> None:
@@ -161,6 +187,8 @@ class GazetteArchive:
             publisher_stamp=kwargs.get("publisher_stamp", ""),
             date_order_violations=kwargs.get("date_order_violations", -1),
             dated_records=kwargs.get("dated_records", -1),
+            supersedes=kwargs.get("supersedes", ""),
+            restored_from=kwargs.get("restored_from", ""),
         )
         self.append_index(entry)
         return dest, entry
@@ -176,6 +204,35 @@ class GazetteArchive:
         tmp.write_bytes(body)
         _, entry = self.record_ingest(tmp, gazette_id, **kwargs)
         return entry
+
+    def refile_from_quarantine(self, quarantine_path: Path | str, gazette_id: str, **kwargs):
+        """Copy a quarantined candidate into the archive under its publication name.
+
+        Identity is established by digest: the candidate must hash to a digest some
+        earlier index entry recorded for this ``gazette_id`` (the poller's ingest
+        record qualifies — it is an index entry). A candidate matching nothing is
+        refused rather than guessed at. The quarantine file is never deleted: the
+        quarantine directory is evidence of the old reader's failure, and this
+        entry's ``restored_from`` provenance is the audit trail's other half.
+        """
+        src = Path(quarantine_path)
+        if not src.exists():
+            raise FileNotFoundError(src)
+        digest = _sha256(src)
+        known = [e for e in self.entries()
+                 if e.gazette_id == gazette_id and e.sha256]
+        if not known or digest not in {e.sha256 for e in known}:
+            raise ValueError(
+                "%s does not match any digest previously recorded for gazette %s; "
+                "refusing to re-file an unidentified file" % (src.name, gazette_id))
+        dest, entry = self.record_ingest(
+            src, gazette_id,
+            event="restored",
+            source_path=str(src),
+            restored_from=str(src),
+            sha256=digest,
+            **kwargs)
+        return dest, entry
 
     def has_hash(self, digest: str) -> bool:
         """Whether a document with this content hash is already archived."""
@@ -334,8 +391,18 @@ class GazetteArchive:
         A digest is compared where the index recorded one, so a member replaced by
         different content is reported rather than assumed intact. Entries written
         before digests were recorded fall back to existence only.
+
+        A mismatch is *not* reported when the index itself documents the replacement:
+        a re-store entry naming an older digest as superseded makes that older entry's
+        mismatch the expected consequence of a recorded replacement, not damage. An
+        undocumented substitution — bytes changed with no re-store entry — is still
+        reported, naming both digests.
         """
         problems: list[str] = []
+        superseded: set[tuple[str, str]] = set()
+        for entry in self.entries():
+            if entry.supersedes:
+                superseded.add((entry.gazette_id, entry.supersedes))
         indexed_ids = set()
         for entry in self.entries():
             indexed_ids.add(entry.gazette_id)
@@ -346,6 +413,8 @@ class GazetteArchive:
             if entry.sha256:
                 actual = _sha256(path)
                 if actual != entry.sha256:
+                    if (entry.gazette_id, entry.sha256) in superseded:
+                        continue  # documented replacement: the re-store entry owns it
                     problems.append(
                         f"{entry.gazette_id}: content differs from the indexed digest "
                         f"(indexed {entry.sha256[:12]}, found {actual[:12]})")

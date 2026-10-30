@@ -99,10 +99,15 @@ class ChangeSetStore:
             return None
 
     def all(self) -> list[dict]:
+        """Live change sets only: superseded copies carry the marker in their name
+        and are invisible to consumers, so exactly one change set per transition is
+        ever read."""
         if not self.root.exists():
             return []
         out = []
         for path in sorted(self.root.glob("*.json")):
+            if "superseded" in path.name:
+                continue
             try:
                 out.append(json.loads(path.read_text(encoding="utf-8")))
             except ValueError:

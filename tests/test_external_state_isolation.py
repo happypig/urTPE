@@ -73,15 +73,33 @@ def test_ledger_is_not_appended_to_by_a_plain_run(tmp_path):
 
 
 def test_archive_verify_detects_a_member_swapped_for_another(tmp_path):
+    """An *undocumented* substitution is damage; a recorded re-store is not.
+
+    restore-2026-09-24-gazette changed store() to append a re-store entry naming
+    the superseded digest, so a store() call no longer leaves verify() reporting
+    damage — the replacement is documented in the index. The damage path this
+    test guards is bytes changed with no such entry, which the second half pins.
+    """
     arch = GazetteArchive(tmp_path / "gazettes")
     pdf = tmp_path / "a.pdf"
     write_gazette(str(pdf), ROC_ROWS, published="統計至115年8月11日")
-    arch.record_ingest(str(pdf), "2026-08-11", record_count=5)
+    dest, _entry = arch.record_ingest(str(pdf), "2026-08-11", record_count=5)
 
     other = tmp_path / "b.pdf"
     write_gazette(str(other), ROC_ROWS[:2], published="統計至115年8月11日")
-    arch.store(other, "2026-08-11")  # same publication date, different content
-    assert arch.verify(), "a member replaced by different content must be reported"
+
+    # Through store(): a recorded re-store — verify() accepts it, the chain
+    # documents it.
+    arch.store(str(other), "2026-08-11")
+    assert not arch.verify(), (
+        "a recorded re-store is not damage; verify() must not cry wolf")
+
+    # Direct byte replacement with no re-store entry: still damage.
+    swapped = tmp_path / "c.pdf"
+    write_gazette(str(swapped), ROC_ROWS[:3], published="統計至115年8月11日",
+                  footer_inside_last_cell=True)
+    dest.write_bytes(swapped.read_bytes())
+    assert arch.verify(), "an undocumented substitution must be reported"
 
 
 def test_index_entries_are_never_rewritten(tmp_path):

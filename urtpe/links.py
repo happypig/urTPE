@@ -430,9 +430,19 @@ def build_portal_index(cache_dir: Path, fresh: bool = False) -> list[dict]:
     Returns list of index entries: {core, view_id, title, implementer, approval_date}."""
     index_file = cache_dir / "portal_index.json"
     if not fresh and index_file.exists():
-        return load_portal_index(cache_dir)
+        previous = load_portal_index(cache_dir)
+        if previous:
+            print(f"[INFO] portal index cached: {len(previous)} entries",
+                  file=sys.stderr)
+        return previous
 
     index_entries = []
+    previous_size = 0
+    if index_file.exists():
+        try:
+            previous_size = len(json.loads(index_file.read_text(encoding="utf-8")))
+        except (json.JSONDecodeError, OSError):
+            previous_size = 0
     page = 1
     base_url = "https://twur.nlma.gov.tw/zh/urban/rebuild/0"
 
@@ -478,6 +488,14 @@ def build_portal_index(cache_dir: Path, fresh: bool = False) -> list[dict]:
         time.sleep(0.5)
 
     save_portal_index(cache_dir, index_entries)
+    # Completeness signal (P3.3): a WAF-shortened crawl silently saves a smaller
+    # index — the only reachability path for the older identities. A big drop is
+    # reported loudly; the caller decides whether to proceed.
+    if previous_size and len(index_entries) < previous_size * 0.8:
+        print(f"[WARN] portal index shrank: {len(index_entries)} entries vs "
+              f"{previous_size} before — the crawl was likely cut short (WAF). "
+              f"Re-run --fresh or investigate before trusting portal joins.",
+              file=sys.stderr)
     return index_entries
 
 
@@ -1758,12 +1776,27 @@ class LinksDiscovery:
         self.cache_dir = Path(cache_dir)
         self.delay = delay
 
+    def _fresh_backup(self) -> None:
+        """A destructive --fresh renames the cache to a timestamped backup
+        instead of deleting it (P2.2): portal_index.json (the only reachability
+        path for the ~110 oldest portal entries), no_match_ledger.json, and the
+        per-project result.json dirs are durable state the coverage guard
+        cannot resurrect once gone. The five .link_cache_backup_* directories
+        in data/ exist because of this class of incident."""
+        if self.cache_dir.exists():
+            stamp = time.strftime("%Y%m%d_%H%M%S")
+            backup = self.cache_dir.parent / f".link_cache_backup_{stamp}"
+            suffix = 1
+            while backup.exists():          # two backups in the same second
+                suffix += 1
+                backup = self.cache_dir.parent / f".link_cache_backup_{stamp}_{suffix}"
+            self.cache_dir.rename(backup)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+
     def run(self, projects: list[Project], fresh: bool = False, use_playwright: bool = False) -> dict[str, DiscoveryResult]:
         """Run discovery for all projects."""
         if fresh:
-            if self.cache_dir.exists():
-                shutil.rmtree(self.cache_dir)
-            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            self._fresh_backup()
 
         portal_index = build_portal_index(self.cache_dir, fresh)
         multimap = build_index_multimap(portal_index)

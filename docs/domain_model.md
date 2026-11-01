@@ -352,7 +352,20 @@ The gazette and the portals do not agree on what a thing is. The gazette counts
 span several approvals. Nothing in the current model names that second thing, so it is
 carried as loose keys.
 
-**What it costs today, measured 2026-10-01 (one pass over the payload):**
+**What it costs today, measured 2026-11-01 on the post-restore payload
+(published_date 2026-10-15, 1,442 records / 694 projects, 1,430 case→record
+bindings, 4 recovered nodes — the recovery-four 188/1005/1131/1206, restored
+after the API outage; 編號 188's recovery carries the R-form id `R089213-02`,
+see the id-space note below):**
+
+> **Amended 2026-11-01 (post-restore).** Three facts the 2026-10-24 version
+> predates: (1) recovered rows are payload state — `node.recovery` with
+> `cases`/`api_cases`/`flags`; (2) `recovery.cases` spans two id spellings
+> (R-form vs numeric, `docs/urotpe_api.md` §4) — joins go through
+> `urtpe.case_join.normalise_case_id` (`case-record-join` spec); (3) the
+> case-record join is many-to-many by design (D2 of
+> `case-record-join-discriminator`): `recovery.cases` may select a subset of
+> `links.taipei`, and the precedence rule lives in that spec, not here.
 
 - A **virtual** case (no matching record) is a self-contained 11-field object in `orphan_nodes`.
 - A **real** case is scattered across four dictionaries — `case_milestones[case_id]` on the

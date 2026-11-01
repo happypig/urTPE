@@ -273,7 +273,8 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
                             if str(r.get("recno") or "").isdigit()}
     tw = tripwire_mod.Tripwire()
     pages = _page_count(pdf)
-    faults = tw.check(records, pages=pages, tables_found=pages,
+    faults = tw.check(records, pages=pages,
+                      tables_found=int(extract_meta.get("tables_found", "0") or 0),
                       duplicate_recnos=int(extract_meta.get("duplicate_recnos", 0)),
                       excluded_recnos=excluded_recnos)
     # raw.tsv carries every row the publication held: resolved recoveries as

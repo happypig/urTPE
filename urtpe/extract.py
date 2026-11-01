@@ -736,7 +736,7 @@ def extract_pdf(path: str, *, strict: bool = True) -> list[dict[str, str]]:
 
     Raises :class:`TableStructureError` when the document cannot be read exactly.
     """
-    records, _duplicates, _cell_faults, _done = _extract(path, strict=strict)
+    records, _duplicates, _cell_faults, _done, _tf = _extract(path, strict=strict)
     return records
 
 
@@ -749,7 +749,7 @@ def extract_pdf_with_faults(
     :class:`CellFault`, so a caller can report the shortfall rather than present a
     short gazette as a faithful copy.
     """
-    records, _duplicates, cell_faults, _done = _extract(path, strict=strict, corpus=corpus)
+    records, _duplicates, cell_faults, _done, _tf = _extract(path, strict=strict, corpus=corpus)
     return records, cell_faults
 
 
@@ -762,11 +762,21 @@ def _extract(path: str, *, strict: bool, corpus: list[dict] | None = None,
     cell_faults: list[CellFault] = []
     completions: list[CompletionResult] = []
     records: list[dict[str, str]] = []
+    tables_found = 0
     try:
         for page in doc:
+            before = len(records)
+            before_faults = len(faults)
             records.extend(_page_records(page, faults, cell_faults, corpus,
                                          completions,
                                          retain_truncated=retain_truncated))
+            # A page yielded a table unless the reader appended exactly the
+            # no-table fault and nothing else (P3.2: the tripwire's page check
+            # was inert because cli passed tables_found=pages).
+            no_table_only = (len(faults) == before_faults + 1
+                             and faults[-1].kind == "no table on page")
+            if len(records) > before or not no_table_only:
+                tables_found += 1
     finally:
         doc.close()
 
@@ -776,7 +786,7 @@ def _extract(path: str, *, strict: bool, corpus: list[dict] | None = None,
     records, duplicates = _dedupe_by_recno(records)
     for rec in records:
         rec["gazette_id"] = gazette_id
-    return records, duplicates, cell_faults, completions
+    return records, duplicates, cell_faults, completions, tables_found
 
 
 def extract_pdf_with_meta(path: str, *, strict: bool = True,
@@ -789,13 +799,14 @@ def extract_pdf_with_meta(path: str, *, strict: bool = True,
     source faults (see :func:`_page_records`); the meta then carries no
     ``excluded_*`` keys for them, because the recovery pass owns that outcome.
     """
-    records, duplicates, cell_faults, completions = _extract(
+    records, duplicates, cell_faults, completions, tables_found = _extract(
         path, strict=strict, corpus=corpus, retain_truncated=retain_truncated)
     published = find_published_date(path)
     calendars = {calendar_of(r["date"]) for r in records}
     meta: dict[str, str] = {
         "gazette_id": gazette_id_for(path),
         "duplicate_recnos": str(duplicates),
+        "tables_found": str(tables_found),
         "record_count": str(len(records)),
     }
     if completions:

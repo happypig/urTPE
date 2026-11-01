@@ -32,9 +32,11 @@ python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --
 | Code | Meaning | State on disk |
 | --- | --- | --- |
 | 0 | success | written |
+| 2 | reconcile-block: unexplained changes found, `--allow-reconcile-block` not given | archive/index written, **emission not written** |
 | 3 | `TableStructureError` — reader refused the document | **nothing written** |
-| 4 | `TripwireFailure` — not provably complete | **nothing written** |
+| 4 | `TripwireFailure` (incl. the census gate) — not provably complete | **nothing written** |
 | 5 | `LockHeld` — another run owns this output tree | **nothing written** |
+| 1 | anything else: "no records parsed", an unhandled exception | **not a contract** — diagnose before retrying |
 
 A non-zero exit is a refusal, not a flake. Don't retry past it, don't pass a flag to get
 around it. `--allow-reconcile-block` is marked 危險 and `--no-archive` 不建議 in the
@@ -71,6 +73,11 @@ help text for a reason.
   whoever runs second must respect the single-writer rule. Five `data/.link_cache_backup_*`
   directories (plus one `.link_cache_wip_*`) exist as a result of past incidents — do not
   delete them casually.
+- **The manual-correction ledger is designed but unused.** `--ledger`
+  (default `urtpe-gazettes/corrections.jsonl`, `urtpe/ledger.py`, the
+  `correction-ledger` spec) has never been written — no manual correction
+  has been needed; the file's absence is normal, not a defect
+  (user decision 2026-11-01).
 - **`data/project_aliases.json` is tracked configuration, not derived data.** It migrates
   `.link_cache` directories across `project_id` churn and refuses ambiguous pairs;
   regenerate with `scripts/build_project_aliases.py`.
@@ -141,8 +148,10 @@ Violating any of these corrupts output silently rather than raising.
   `poller.py` / `changeset.py` / `ordering.py` handle gazette cadence and are deliberately
   decoupled from the emitted dataset. Keep pure cleansing/merge/scoring logic separate
   from I/O adapters.
-- `viewer/` — a static `file://` site. No dev server, and **no browser test exists**, so
-  nothing automatically checks the page renders. It is also published to GitHub Pages at
+- `viewer/` — a static `file://` site. No dev server. The render path is
+  exercised by `node scriptsiewer_smoke.js` (a Node DOM-stub harness;
+  runs by hand — it reaches no network and is not a pytest case, so
+  nothing *automatically* checks it). It is also published to GitHub Pages at
   **`https://happypig.github.io/urTPE`** — the canonical address is recorded once in
   `viewer/deploy.json`, and that path is **case-sensitive**: `/urtPE/` is a different site
   that serves GitHub's "Page not found" document, which a browser will keep rendering over

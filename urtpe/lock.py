@@ -67,6 +67,8 @@ class SingleWriterLock:
         return _process_alive(info.pid)
 
     def acquire(self) -> "SingleWriterLock":
+        if self._held:
+            return self  # idempotent for the holder: the file is ours already
         self.root.mkdir(parents=True, exist_ok=True)
         existing = self._read()
         if existing is not None and self._alive(existing):
@@ -75,11 +77,33 @@ class SingleWriterLock:
                 f"(pid {existing.pid} on {existing.host or 'this host'}, "
                 f"{existing.age() / 60:.0f} min old). "
                 "The single-writer rule forbids concurrent runs over one output tree.")
-        # Write atomically so a crash mid-write cannot leave a half-parsed lock.
-        tmp = self.path.with_suffix(".lock.part")
-        tmp.write_text(json.dumps({"pid": os.getpid(), "started_at": time.time(),
-                                   "host": _hostname()}), encoding="utf-8")
-        os.replace(tmp, self.path)
+        # Create the final lock atomically (P2.1): O_CREAT|O_EXCL is the one
+        # call that is exclusive on every platform. The previous
+        # tmp-write-then-os.replace scheme raced — two simultaneous acquirers
+        # both passed the liveness check, and on Windows the loser crashed with
+        # PermissionError instead of getting the LockHeld contract.
+        while True:
+            try:
+                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                break
+            except FileExistsError:
+                # Lost the race: re-check liveness, then either respect the
+                # winner or reclaim a stale lock and try once more.
+                existing = self._read()
+                if existing is not None and self._alive(existing):
+                    raise LockHeld(
+                        f"another run holds {self.path} "
+                        f"(pid {existing.pid} on {existing.host or 'this host'}, "
+                        f"{existing.age() / 60:.0f} min old). "
+                        "The single-writer rule forbids concurrent runs over one "
+                        "output tree.")
+                try:
+                    self.path.unlink()
+                except OSError:
+                    pass
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps({"pid": os.getpid(), "started_at": time.time(),
+                                 "host": _hostname()}))
         self._held = True
         return self
 

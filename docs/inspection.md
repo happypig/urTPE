@@ -23,7 +23,7 @@ G1–G5.
 | Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |
 | Archive | 7 publications, chain whole, 09-24 restored |
 | Acquisition | **weekly scheduled task `urtpe-poll` live** (Mondays 06:30); channel verified healthy 2026-11-01 (`reuploaded`) |
-| Emission | 2026-10-15, 1,442 raw / 1,441 clean / 693 projects, 1 named residual (編號 188) |
+| Emission | 2026-10-15, 1,442 raw / 1,442 clean / 694 projects, 0 residuals (188 recovered 2026-11-01) |
 
 ## Execution order — the integrated plan
 
@@ -55,12 +55,15 @@ openspec change), and its gate.
    portal-history churn, documented in the regenerated
    `docs/stranded-cache-dirs.md`). The doc now says **1**, agreeing with the
    aliases file. `data/project_aliases.json` regenerated (committed).
-2. **Rerun the 10-15 ingestion when gis.uro recovers** (finding from the
-   restoration's group 6, recorded in §27 of `docs/portal_operations_log.md`).
-   `python -m urtpe.cli D:/project/urtpe-gazettes/核定案件-2026-10-15.pdf -o data
-   --links --recover-truncated` — unchanged. Restores 編號 188 (永昌段46-4, the
-   R-form carrier) and its family; moves the emission from 1,441/693 back to
-   1,442/694. Check the API first (it was timing out 4×90 s at 03:00 on 10-31).
+2. **Rerun the 10-15 ingestion when gis.uro recovers** — **DONE 2026-11-01.**
+   API probe passed (family returned 15 members instantly), ingestion exit 0:
+   **RECOVERED includes 編號 188** (`R089213-02`, api 10403071, date exact) —
+   all four recovery rows back (188/1005/1131/1206), **INCOMPLETE: 0**,
+   tripwire PASS, 1,442 records / 694 projects, partition total, smoke test
+   passing, links 686/8/0. G2's R-form evidence is back in the payload, as
+   predicted. Both G1 and G2 are now live observations again — Wave 5's
+   change D′ is fully evidenced.
+
 3. **P2.3 — track `taipei_case_ids.json`.** `.gitignore` negation + repo-root path +
    one shared constant between `cli.py` and `links.py` (P3.10's constant folds in
    here). Direct `fix:` commit with a test that the constant is the only definition.

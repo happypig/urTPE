@@ -19,7 +19,7 @@ you need the detail behind a finding.
 | Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |
 | Archive | 7 publications, chain whole, 09-24 restored |
 | Acquisition | **weekly scheduled task `urtpe-poll` live** (Mondays 06:30); channel verified healthy 2026-11-01 (`reuploaded`) |
-| Emission | 2026-10-15, 1,442 raw / 1,441 clean / 693 projects, 1 named residual (編號 188) |
+| Emission | 2026-10-15, 1,442 raw / 1,442 clean / 694 projects, 0 residuals (188 recovered 2026-11-01) |
 
 ## Execution order — the integrated plan
 
@@ -59,13 +59,14 @@ No gate. No user decision. Do these first.
    known portal-history churn, documented in the regenerated
    `docs/stranded-cache-dirs.md`). The doc now says **1**, agreeing with the
    aliases file. `data/project_aliases.json` regenerated (committed).
-2. **Rerun the 10-15 ingestion when gis.uro recovers.** This restores 編號 188
-   (永昌段46-4, the R-form carrier) and its family. It moves the emission from
-   1,441/693 back to 1,442/694. The API timed out 4×90 s at 03:00 on 10-31, so
-   check it first.
-   1. Probe the API. Healthy: continue. Timing out: wait a day, probe again.
-   2. Run `python -m urtpe.cli D:/project/urtpe-gazettes/核定案件-2026-10-15.pdf -o data --links --recover-truncated`.
-   3. Check the report: RECOVERED must include 編號 188. INCOMPLETE must be 0.
+2. **Rerun the 10-15 ingestion when gis.uro recovers.** — **DONE 2026-11-01.**
+   API probe passed (15 family members returned instantly). Ingestion exit 0:
+   **RECOVERED includes 編號 188** (`R089213-02`, api 10403071, date exact) —
+   all four recovery rows back (188/1005/1131/1206), **INCOMPLETE: 0**,
+   tripwire PASS, 1,442 records / 694 projects, partition total, smoke test
+   passing, links 686/8/0. G2's R-form evidence is back in the payload, as
+   predicted. Both G1 and G2 are now live observations again — Wave 5's
+   change D′ is fully evidenced.
 3. **P2.3 — track `taipei_case_ids.json` in git.** It is load-bearing and untracked.
    1. Add a `.gitignore` negation for the file.
    2. Resolve the path from the repo root, not the CWD.

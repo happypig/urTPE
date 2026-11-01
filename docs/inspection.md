@@ -487,12 +487,79 @@ an empty ledger at the archive root on first `--ledger` use.
 - **NEW (audit):** recovery-binding evidence standard — 1005 matched two case ids
   with an `ambiguous-zone` flag; 1131 recovered only a partial 71/105 parcel list.
   Both are honest; the standard for what counts as "recovered" deserves a written
-  rule before the next recovery change.
+  rule before the next recovery change. (Promoted to finding G1, 2026-11-01.)
 - **NEW (audit):** 08-11 index records 1,414 vs today's 1,415 mergeable + 4
   truncated = 1,419 printed — one row unexplained, from the 2026-10-07 ingest.
 - **NEW (audit):** 14 two-entry land cores are under-merges, not losses (§3 of the
   audit); one is a bare count change (吉林段四小段676), one a slug collision, one a
   recovery artefact.
+
+## TAB-2 session findings — 2026-11-01 [peer, verified on the post-restore payload]
+
+The OpenCode domain-model session (#w29-3) proposed five findings. All verified
+against the working tree at `bb93106` before folding in; two carry corrections
+noted below. Baseline measured on the post-restore payload: published_date
+2026-10-15, 1,441 records / 693 projects, 1,411 case→record bindings, 981 distinct
+cases on ≥1 record, 971 virtual entries / 951 distinct.
+
+### G1 — recno 1005: the graph's join and the recovery's choice disagree [peer] — P2
+
+`recovery.cases = ["09610235","09610236"]` (`ambiguous-zone: true`) while
+`links.taipei` carries six case ids **including both of those** plus 09610231/33/34/37.
+*Correction to the peer's report:* the id sets are **not disjoint** — their read had
+truncated `links.taipei` to its first element. The live concern is narrower but real:
+recovery selected 2 of the 6 cases the graph joins on, with no recorded precedence
+rule for which wins when they differ. Promoted from the watch item above (the
+"evidence standard" line), which under-described it.
+Fix: a precedence rule + test-first spec delta. Natural home: the future
+`case-record-join-discriminator` change.
+
+### G2 — R-form vs numeric dual id space in recovery bindings [peer] — P2, latent
+
+*Correction to the peer's report:* the current payload carries **no R-form cases** —
+`recovery.cases` is all-numeric, because 編號 188 (the R-form carrier, `R089213-02`)
+is the named residual and its family is absent from this emission. The dual id space
+is real and documented (`docs/urotpe_api.md` §4): pre-restore emissions held
+`R089213-02`/`R091007-02` on 188/1131 alongside numerics on 1005/1206 — same field,
+two id spaces, and 188 will carry R-form again the moment the API recovers and its
+recovery re-runs.
+Fix: normalise before any join keyed on case id + a test. Same spec delta as G1.
+
+### G3 — three stranded-count numbers disagree [peer] — P3
+
+`docs/stranded-cache-dirs.md` says 23; `data/project_aliases.json` `.orphaned` now
+holds 27; the plan's change-B note said 32; the live delta is 724 cache dirs vs 693
+live projects (31, minus the 2 `等?筆` projects that have no dir at all). Each number
+was true of a different moment and none is regenerated. Cheapest item on the board.
+Fix: re-run `scripts/stranded_report.py` on the current tree, trace what
+orphaned / unmatched / stranded-dirs each measure, regenerate the generated doc.
+No gate, no user decision.
+
+### G4 — `docs/domain_model.md` and `docs/domain-model.html` are stale [peer] — P3
+
+Both frozen 2026-10-24 ("measured 2026-10-01"); the post-restore baseline differs
+again. The TaipeiCase section also lacks three things now in the data: the
+recovered-node state, the R-form/numeric note (G2), and D2's many-to-many ruling.
+Fix: one `docs:` commit; re-measure against the post-restore payload first.
+
+### G5 — TAB-2 planning measurements predate the restore [peer] — watch
+
+474 inverted row pairs, 456 ambiguous markers (428 resolvable / 28 not), 102
+multi-track cases — all measured pre-10-15 and pre-restore. Re-measure before any
+TAB-2 spec cites them.
+
+**Resolution order** (peer-proposed, endorsed): G3 first (no gate), then G1+G2
+(record now; resolve via the join-discriminator spec), then G4+G5 (post-restore
+re-measure). Out of scope for this document: the six TAB-2 design decisions
+(`docs/graph-tabs-decision.html`; user decision pending) and the 11 lane-less
+records (a 2b lane-spec requirement, not a defect).
+
+### Watch, do not fix (additions)
+
+- **G2's dual id space** until the join-discriminator change lands: any new
+  consumer of `recovery.cases` must handle both spellings.
+- **G5's three numbers**: stale until re-measured; cite the re-measure, not the
+  session notes.
 
 ### Open with the peer session
 

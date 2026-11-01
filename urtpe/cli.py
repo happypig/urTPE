@@ -289,6 +289,26 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
     if faults:
         raise tripwire_mod.TripwireFailure(tw_result)
 
+    # --- census gate (wire-standing-checks) ---------------------------------
+    # The merge partition must be total and disjoint over the cleansed records,
+    # and the emitted count must agree with them. A violation is data
+    # corruption, not absence, so it blocks under the same exit-4 contract as
+    # the extraction faults — and it evaluates here, before any artifact is
+    # written (the audit's Appendix A assertion, wired as a gate).
+    census_faults = tw.check_partition(clean, projects)
+    if census_faults:
+        faults.extend(census_faults)
+        for f in census_faults:
+            print(f"[CENSUS] {f}", file=sys.stderr)
+        tw_result = tripwire_mod.TripwireResult(
+            ok=False, faults=faults,
+            calendar=extract_meta.get("calendar", "unknown"),
+            record_count=len(records), project_count=len(projects),
+            duplicate_recnos=int(extract_meta.get("duplicate_recnos", 0)),
+            excluded_recnos=sorted(excluded_recnos),
+        )
+        raise tripwire_mod.TripwireFailure(tw_result)
+
     # --- reconcile against the archived predecessor ------------------------
     reconciliation = None
     if archive is not None:
@@ -476,6 +496,17 @@ def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = No
         errors = sum(1 for r in link_results.values() if r.status == 'error')
         print(f"  Done: {resolved} resolved, {unresolved} unresolved, {errors} errors")
 
+    doc = graph_mod.build_graph_document(projects, meta, link_results)
+
+    # --- emission-fault check (wire-standing-checks) ------------------------
+    # Called on every emission path, after link data would have been attached
+    # and before anything is written. Wholesale absence of link data is a
+    # fault of the run; partial coverage is not. Warning, not refusal --
+    # --links stays advisory by design (D5).
+    emission_faults = emission_mod.emission_faults(doc["projects"])
+    for f in emission_faults:
+        print(f"[EMISSION] {f}", file=sys.stderr)
+
     report = report_mod.review_report(
         raw_recs, clean, projects,
         link_threshold=merge_mod.LINK_THRESHOLD,
@@ -484,10 +515,10 @@ def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = No
         reconciliation=reconciliation,
         tripwire=tripwire_result,
         recovery=recovery_outcome if recover_truncated else None,
+        emission=emission_faults,
     )
     io_mod.write_text(f"{outdir}/review_report.txt", report)
 
-    doc = graph_mod.build_graph_document(projects, meta, link_results)
     io_mod.write_json(f"{outdir}/projects.json", doc)
 
     if not no_tsv and not from_js:

@@ -52,11 +52,18 @@ def review_report(
     reconciliation=None,
     tripwire=None,
     recovery=None,
+    emission=None,
 ) -> str:
     lines: list[str] = []
 
     if tripwire is not None:
         lines.append(tripwire.report())
+        lines.append("")
+
+    if emission:
+        lines.append("[EMISSION] link/implementation data absent from this run:")
+        for f in emission:
+            lines.append(f"  - {f}")
         lines.append("")
 
     if reconciliation is not None:

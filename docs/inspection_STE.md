@@ -75,7 +75,8 @@ No gate. No user decision. Do these first.
    tracked-file-valid / loader-round-trip. config.yaml's approval count
    restored to 1,442 (caught by the deploy-target test).
 
-### Wave 2 — openspec change A′: `wire-standing-checks`
+### Wave 2 — openspec change A′: `wire-standing-checks` — **DONE 2026-11-01** (archived `2026-11-01-wire-standing-checks`)
+
 
 Test-first. Bundles two unwired checks into one change:
 

@@ -3,6 +3,10 @@ tripwire: PASS
   calendar: gregorian  duplicate 編號: 0
   INCOMPLETE: 16 record(s) excluded because the publisher truncated their 地號 cell — this gazette is NOT a faithful copy: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
 
+[EMISSION] link/implementation data absent from this run:
+  - no link data on any of 8 projects: none of twur, taipei, milestones_national, milestones_taipei is present on any project. This run did not execute link discovery (the --links run step), so the emitted viewer data cannot render milestone cards, portal badges or execution-stage labels. Re-run with --links
+  - no implementation data on any of 8 projects or their records. The implementation and reward cards cannot render. This run did not execute link discovery (the --links run step)
+
 reconcile: (none) -> 2026-10-15
   no previous gazette archived; nothing to compare against
 

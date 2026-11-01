@@ -72,7 +72,8 @@ openspec change), and its gate.
    tracked-file-valid / loader-round-trip. config.yaml's approval count
    restored to 1,442 (caught by the deploy-target test).
 
-### Wave 2 — openspec change A′: `wire-standing-checks` (test-first)
+### Wave 2 — openspec change A′: `wire-standing-checks` — **DONE 2026-11-01** (archived `2026-11-01-wire-standing-checks`)
+
 
 P1 (wire `emission_faults` into `_run_locked`, warning not refusal — the spec
 already requires the report at `official-link-discovery/spec.md:253`) bundled with

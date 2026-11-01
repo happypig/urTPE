@@ -99,6 +99,57 @@ class Tripwire:
 
         return faults
 
+    def check_partition(self, clean: list, projects: list,
+                        *, emitted_records: int | None = None) -> list[str]:
+        """The merge census: the partition must be total, disjoint, and agree with
+        the emitted count. Returns the same faults-list shape as :meth:`check`;
+        pure — domain objects in, strings out, no I/O.
+
+        A partition violation is data corruption, not absence, so the caller wires
+        it under the same exit-4 contract as the extraction faults. The audited
+        property (dataset-completeness audit, Appendix A): every cleansed record
+        belongs to exactly one project family, and the family members sum to the
+        cleansed record count.
+        """
+        faults: list[str] = []
+        owner: dict[int, str] = {}
+        for project in projects:
+            for member in project.members:
+                if member.recno in owner:
+                    faults.append(
+                        f"record {member.recno} appears in two families: "
+                        f"{owner[member.recno]} and {project.project_id}")
+                else:
+                    owner[member.recno] = project.project_id
+
+        clean_recnos = {r.recno for r in clean}
+        lost = sorted(clean_recnos - set(owner))
+        if lost:
+            preview = ", ".join(str(v) for v in lost[:20])
+            more = f" (+{len(lost) - 20} more)" if len(lost) > 20 else ""
+            faults.append(
+                f"merge partition not total: {len(lost)} cleansed record(s) in no "
+                f"family: {preview}{more}")
+
+        extra = sorted(set(owner) - clean_recnos)
+        if extra:
+            faults.append(
+                f"merge partition holds records that cleansing does not: "
+                f"{extra[:10]}")
+
+        members_total = sum(len(p.members) for p in projects)
+        if members_total != len(clean):
+            faults.append(
+                f"family members sum to {members_total}, but cleanse produced "
+                f"{len(clean)} records")
+
+        if emitted_records is not None and emitted_records != len(clean):
+            faults.append(
+                f"the document reports {emitted_records} records but cleanse "
+                f"produced {len(clean)}")
+
+        return faults
+
 
 def _parses(date_str: str) -> bool:
     from urtpe.extract import to_iso

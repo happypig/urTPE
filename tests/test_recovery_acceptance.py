@@ -11,9 +11,10 @@ responses recorded live on 2026-10-26:
 * the residual row stays excluded and named;
 * the report shows ``RECOVERED: 15 … / INCOMPLETE: 1 …`` and keeps the
   not-a-faithful-copy statement;
-* a run without the flag is byte-identical to the pre-change output
-  (``golden_unflagged/``, captured from the pre-change code before any
-  implementation) and makes no recovery request at all.
+* a run without the flag is byte-identical to the golden
+  (``golden_unflagged/``; re-captured 2026-11-01 when wire-standing-checks
+  added the [EMISSION] section to every unflagged report — the recovery flag
+  still changes nothing) and makes no recovery request at all.
 
 The expected live numbers for the real gazette (task 6.2): ~1,442 records
 (1,427 + the 15 recovered), +5 projects, RECOVERED: 15 / INCOMPLETE: 0.

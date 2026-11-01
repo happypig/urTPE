@@ -67,13 +67,13 @@ No gate. No user decision. Do these first.
    passing, links 686/8/0. G2's R-form evidence is back in the payload, as
    predicted. Both G1 and G2 are now live observations again — Wave 5's
    change D′ is fully evidenced.
-3. **P2.3 — track `taipei_case_ids.json` in git.** It is load-bearing and untracked.
-   1. Add a `.gitignore` negation for the file.
-   2. Resolve the path from the repo root, not the CWD.
-   3. Share one constant between `cli.py` and `links.py` (this also fixes P3.10's
-      duplicate constant).
-   4. Add a test that the constant is the only definition.
-   5. One `fix:` commit.
+3. **P2.3 — track `taipei_case_ids.json`** — **DONE 2026-11-01** (`e91788e`).
+   `.gitignore` negation added beside `twur_overrides.json`;
+   `urtpe/links.py` owns the single `FALLBACK_MAPPING_FILE` constant
+   (repo-rooted); `cli.py` imports it (hardcoded copy deleted);
+   `tests/test_fallback_mapping.py` pins one-definition / repo-rooted /
+   tracked-file-valid / loader-round-trip. config.yaml's approval count
+   restored to 1,442 (caught by the deploy-target test).
 
 ### Wave 2 — openspec change A′: `wire-standing-checks`
 

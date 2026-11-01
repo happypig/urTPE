@@ -64,9 +64,13 @@ openspec change), and its gate.
    predicted. Both G1 and G2 are now live observations again — Wave 5's
    change D′ is fully evidenced.
 
-3. **P2.3 — track `taipei_case_ids.json`.** `.gitignore` negation + repo-root path +
-   one shared constant between `cli.py` and `links.py` (P3.10's constant folds in
-   here). Direct `fix:` commit with a test that the constant is the only definition.
+3. **P2.3 — track `taipei_case_ids.json`** — **DONE 2026-11-01** (`e91788e`).
+   `.gitignore` negation added beside `twur_overrides.json`;
+   `urtpe/links.py` owns the single `FALLBACK_MAPPING_FILE` constant
+   (repo-rooted); `cli.py` imports it (hardcoded copy deleted);
+   `tests/test_fallback_mapping.py` pins one-definition / repo-rooted /
+   tracked-file-valid / loader-round-trip. config.yaml's approval count
+   restored to 1,442 (caught by the deploy-target test).
 
 ### Wave 2 — openspec change A′: `wire-standing-checks` (test-first)
 

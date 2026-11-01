@@ -274,13 +274,21 @@ function buildConstructionChain(p) {
     const nationalHit = !!(natLabel && national[natLabel]);
     if (!value && nationalHit) value = national[natLabel];
     if (!value) continue;
-    // national portal dates arrive in 民國 (110.10.25) — render western
-    // (115 → 2026) so display and chronological sorting stay consistent.
+    // national portal dates arrive in 民國 (110.10.25); taipei milestones in
+    // slash-western (2023/04/27). Normalise BOTH to ISO at build time
+    // (fix-graph-timeline-order D1): the timeline interleave compares date
+    // strings, and '/'(0x2F) > '-'(0x2D) in ASCII, so slash dates sorted after
+    // every ISO date of the same year — 建照/開工 landed at the newest end
+    // instead of between the approvals they follow. Display converts back via
+    // fmtDate at the render site.
     let dateStr = String(value);
-    if (nationalHit) {
+    {
       const roc = dateStr.match(/^(\d{2,3})\.(\d{1,2})\.(\d{1,2})$/);
+      const slash = dateStr.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
       if (roc) {
-        dateStr = `${1911 + Number(roc[1])}/${roc[2].padStart(2, "0")}/${roc[3].padStart(2, "0")}`;
+        dateStr = `${1911 + Number(roc[1])}-${roc[2].padStart(2, "0")}-${roc[3].padStart(2, "0")}`;
+      } else if (slash) {
+        dateStr = `${slash[1]}-${slash[2].padStart(2, "0")}-${slash[3].padStart(2, "0")}`;
       }
     }
     // provenance: implementation exact-match > milestones_source map >
@@ -401,6 +409,13 @@ function fmtCell(v) {
   }
   const s = String(v);
   return s === "" ? "—" : s;
+}
+
+// (fix-graph-timeline-order D2) the display form for execution dates: ISO
+// internal -> the established slash-western display. Pure display-time.
+function fmtDateReverse(text) {
+  const m = String(text || "").match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  return m ? `${m[1]}/${m[2]}/${m[3]}` : String(text || "");
 }
 
 // (viewer-stage-chip-coverage) fmtDate: every date renders ISO at display time,
@@ -1084,7 +1099,7 @@ function init() {
           ? `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${e.case}`
           : "";
         const inner = `<circle r="6"></circle>
-          <text class="event-label ${colorCls}" x="11" y="3">${escapeHtml(e.label)}：${escapeHtml(e.date)}</text>
+          <text class="event-label ${colorCls}" x="11" y="3">${escapeHtml(e.label)}：${escapeHtml(fmtDateReverse(e.date))}</text>
           ${e.prov ? `<text class="chain-prov" x="11" y="14">${escapeHtml(e.prov)}</text>` : ""}
           ${e.national ? `<foreignObject x="-5" y="-24" width="18" height="14"><div xmlns="http://www.w3.org/1999/xhtml"><span class="node-milestone-badge national" title="國土署里程碑">國</span></div></foreignObject>` : ""}`;
         s += `<g class="event-node" transform="translate(${b.x},${b.y})">` +

@@ -23,6 +23,19 @@
 
 ## 3. Acceptance
 
-- [ ] 3.1 Full suite green; the fixture-less emission (flag-less bytes) unchanged
+- [x] 3.1 Full suite green; the fixture-less emission (flag-less bytes) unchanged
       apart from the new node key.
-- [ ] 3.2 `openspec validate` passes; both boards updated; commit.
+- [x] 3.2 `openspec validate` passes; both boards updated; commit.
+
+---
+
+Completed 2026-11-01 (commit `9e553f1`): 3.1 ran at 725 passed / 1 skipped
+(726 collected); the flag-less emission changed only by the new node key,
+confirmed by the re-captured recovery-acceptance golden (which now carries
+stage_index — re-captured a second time for that key, after the first
+re-capture for wire-standing-checks' [EMISSION] section). 3.2: validate
+passed; both boards' Wave 3 entries marked done in the same commit. The
+archive also records the incident this change surfaced: b6b112b had
+committed the degraded no-links viewer (the _repo_viewer_dir side effect of
+the Wave 2 acceptance run); restored from a90c2a1 and the viewer-contract
+tests now guard it.

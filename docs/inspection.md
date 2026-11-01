@@ -114,7 +114,7 @@ New change, created when Waves 1–4 are done. Two requirements, one delta:
    from the current payload (188 is the residual) but returns with item 2 of
    Wave 1.
 
-### Wave 6 — openspec change C: `viewer-stage-chip-coverage` (V3 + V2 + V4, test-first)
+### Wave 6 — openspec change C: `viewer-stage-chip-coverage` — **DONE 2026-11-01** (archived `2026-11-01-viewer-stage-chip-coverage`; grey 審查中/撤回 chip shipped, fmtCell prose + em-dash cells, fmtDate ISO at all three date sites; both main specs synced)
 
 V3 needs a spec delta (it contradicts `history-graph/spec.md:255` "SHALL show no
 badge"). Bundle V2 (raw JSON/`null` in table cells) and V4 (three date formats in

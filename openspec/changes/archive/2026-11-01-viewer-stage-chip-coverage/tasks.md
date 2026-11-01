@@ -20,8 +20,8 @@
 
 ## 2. Implementation (after group 1 is fully checked)
 
-- [ ] 2.1 `viewer/app.js`: the status-chip derivation + render in `renderList`.
-- [ ] 2.2 `viewer/app.js`: `fmtCell` applied to the table columns; `fmtDate`
+- [x] 2.1 `viewer/app.js`: the status-chip derivation + render in `renderList`.
+- [x] 2.2 `viewer/app.js`: `fmtCell` applied to the table columns; `fmtDate`
       applied at the detail pane's date sites.
 
 ## 3. Acceptance

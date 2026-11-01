@@ -118,7 +118,12 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
                 named_anchor=node.get("named_anchor", ""),
                 area_section=node.get("area_section", ""),
                 stage=node.get("stage", ""),
-                stage_index=node.get("stage_index", -1),
+                # Derive on load when the key is absent (emit-stage-index): older
+                # emissions never wrote stage_index, so the -1 default collapsed
+                # section-branch grouping on every rebuild. Same rule as the
+                # cleanser (_stage), the same pattern as the ymd fix above.
+                stage_index=(node["stage_index"] if "stage_index" in node
+                             else (cleanse_mod._stage(node.get("stage") or "")[1])),
                 track=node.get("track", ""),
                 implementer=node.get("implementer", ""),
                 planner=node.get("planner", ""),

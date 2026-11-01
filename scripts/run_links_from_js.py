@@ -12,6 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from urtpe.cleanse import _stage
 from urtpe.links import LinksDiscovery
 from urtpe.models import CleanRecord, Project
 
@@ -49,7 +50,10 @@ def load_projects(js_path: str) -> list[Project]:
                 named_anchor=node.get("named_anchor", ""),
                 area_section=node.get("area_section", ""),
                 stage=node.get("stage", ""),
-                stage_index=node.get("stage_index", -1),
+                # Derive on load when absent (emit-stage-index): older emissions
+                # never wrote the key; same rule as the cleanser.
+                stage_index=(node["stage_index"] if "stage_index" in node
+                             else _stage(node.get("stage") or "")[1]),
                 track=node.get("track", ""),
                 implementer=node.get("implementer", ""),
                 planner=node.get("planner", ""),

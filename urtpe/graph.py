@@ -38,6 +38,10 @@ def build_project_graph(project: Project, implementer: str, name: str, published
             "stage": r.stage,
             "track": r.track,
             "area": r.area_section,
+            # The cleanser's stage index, emitted so a rebuild from emitted state
+            # groups section branches identically (emit-stage-index; the bug was
+            # the same class as the ymd one documented in cli.py).
+            "stage_index": r.stage_index,
             "is_current": r.recno == anchor_recno,
             # Full CleanRecord fields for detail table
             "case_name": r.name,

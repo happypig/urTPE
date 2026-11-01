@@ -82,7 +82,7 @@ totality — the audit's Appendix A shows the assertion is three lines). Same te
 group, same file. Rationale: a check that exists but never runs is the 2026-08-24
 shape.
 
-### Wave 3 — openspec change A: `emit-stage-index` (F1, test-first)
+### Wave 3 — openspec change A: `emit-stage-index` — **DONE 2026-11-01** (archived `2026-11-01-emit-stage-index`)
 
 The highest-value open code bug. Emit `stage_index` from `build_project_graph`;
 derive it from stage text in `_load_projects_from_js` when the key is absent, so

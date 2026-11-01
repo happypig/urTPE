@@ -120,7 +120,7 @@ V3 needs a spec delta (it contradicts `history-graph/spec.md:255` "SHALL show no
 badge"). Bundle V2 (raw JSON/`null` in table cells) and V4 (three date formats in
 one pane) — same test group, same file.
 
-### Wave 7 — direct `fix:` commits (no spec delta, any order)
+### Wave 7 — direct `fix:` commits — **DONE 2026-11-01** (`ddab3ba`: P2.1 atomic lock, P2.2 --fresh backup, P3.2 real table counts, P3.3 crawl warning, P3.1/P3.8/P3.11 AGENTS.md, G4 domain docs)
 
 - P2.1: atomic lock acquire via `O_CREAT | O_EXCL` (replaces the tmp-and-replace
   race; Windows loser currently crashes with `PermissionError` instead of exit 5).

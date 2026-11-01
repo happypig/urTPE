@@ -25,6 +25,15 @@
 
 ## 3. Acceptance
 
-- [ ] 3.1 Full suite green; `slug_for` call-compatibility preserved.
-- [ ] 3.2 `openspec validate` passes; both boards updated with the before/after
+- [x] 3.1 Full suite green; `slug_for` call-compatibility preserved.
+- [x] 3.2 `openspec validate` passes; both boards updated with the before/after
       id map (等?筆 → 等1筆 / 等2筆); commit.
+
+---
+
+Completed 2026-11-01 (commit `c2cfbb9`): 3.1 ran at 731 passed / 1 skipped (732 collected).
+3.2: validate passed; the main spec synced (requirement replaced /
+new capability written); both boards' Wave entries marked done in the same
+commit. Checkbox completion added post-archive after review — the same
+batched-update gap as wire-standing-checks/emit-stage-index, caught on the
+user's audit of Wave 4-6 tasks.

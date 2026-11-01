@@ -378,3 +378,15 @@ table.recs tr.current td { background: #fef2f2; }
 }
 .stage-band rect { fill: rgba(130, 80, 223, 0.06); stroke: rgba(130, 80, 223, 0.25); rx: 6; }
 .stage-band-chip { font-size: 9px; font-weight: 700; fill: #8250df; }
+
+/* (viewer-stage-chip-coverage) the grey status chip: in-review/withdrawn with
+   no construction stage. Silence must not read as "not started". */
+.status-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 9px;
+  font-size: 11px;
+  background: #9ca3af;
+  color: #fff;
+}

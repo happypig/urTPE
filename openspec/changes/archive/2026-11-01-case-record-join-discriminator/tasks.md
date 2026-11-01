@@ -23,5 +23,14 @@
 
 ## 3. Acceptance
 
-- [ ] 3.1 Full suite green; no emission change (the fields stay verbatim).
-- [ ] 3.2 `openspec validate` passes; both boards updated; commit.
+- [x] 3.1 Full suite green; no emission change (the fields stay verbatim).
+- [x] 3.2 `openspec validate` passes; both boards updated; commit.
+
+---
+
+Completed 2026-11-01 (commit `1c9082b`): 3.1 ran at 739 passed / 1 skipped (740 collected).
+3.2: validate passed; the main spec synced (requirement replaced /
+new capability written); both boards' Wave entries marked done in the same
+commit. Checkbox completion added post-archive after review — the same
+batched-update gap as wire-standing-checks/emit-stage-index, caught on the
+user's audit of Wave 4-6 tasks.

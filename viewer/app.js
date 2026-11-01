@@ -236,7 +236,7 @@ function renderObjectCard(title, badgeClass, badgeText, obj, labels) {
     const label = labels[key] || key;
     html += `<div class="milestone-row">
       <dt class="milestone-label">${escapeHtml(label)}</dt>
-      <dd class="milestone-date">${escapeHtml(String(val))}</dd>
+      <dd class="milestone-date">${escapeHtml(fmtDate(String(val)))}</dd>
     </div>`;
   }
   html += `</dl></details>`;
@@ -372,6 +372,55 @@ function perTrackStageText(n) {
 // 施工中/自行撤回/已失效/審查中) render as badges.
 const scheduleBadgeText = s => (!s || s === "已核准") ? "" : ` [${s}]`;
 
+// (viewer-stage-chip-coverage) the grey status chip: a project with no
+// construction stage but a known case state shows 審查中 or 撤回 instead of
+// silence — silence must not read as "not started" when the platform says
+// otherwise. Precedence: the construction badge wins (the later fact);
+// 審查中 beats 撤回 (one live application means the family is not withdrawn);
+// no schedules at all → no chip.
+function statusChip(p, construction) {
+  if (construction) return "";           // the construction badge wins
+  const scheds = Object.values((p.links || {}).case_schedules || {});
+  if (!scheds.length) return "";         // no data → honest silence
+  if (scheds.some(v => v === "審查中"))
+    return `<span class="status-chip">審查中</span>`;
+  if (scheds.every(v => v === "自行撤回" || v === "已駁回" || v === "已失效"))
+    return `<span class="status-chip">撤回</span>`;
+  return "";
+}
+
+// (viewer-stage-chip-coverage) fmtCell: the record table renders for human
+// reading — parcel lists as 、-joined prose; empty list/dict and absent values
+// as an em dash. Display-time only; the payload stays verbatim.
+function fmtCell(v) {
+  if (v === null || v === undefined) return "—";
+  if (Array.isArray(v)) return v.length ? v.join("、") : "—";
+  if (typeof v === "object") {
+    const keys = Object.keys(v);
+    return keys.length ? keys.map(k => `${k}:${fmtCell(v[k])}`).join("、") : "—";
+  }
+  const s = String(v);
+  return s === "" ? "—" : s;
+}
+
+// (viewer-stage-chip-coverage) fmtDate: every date renders ISO at display time,
+// converting the two non-ISO source forms. The ROC rule matches
+// urtpe/extract.to_iso (year < 1911 ⇒ +1911). Source strings stay verbatim in
+// the data; this is a render-time rule.
+function fmtDate(text) {
+  const s = String(text || "").trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);           // Taipei slash
+  if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  m = s.match(/^(\d{2,3})\.(\d{1,2})\.(\d{1,2})$/);          // ROC dots
+  if (m) {
+    const y = parseInt(m[1], 10);
+    return `${y < 1911 ? y + 1911 : y}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  }
+  return s;                                                   // unrecognised: verbatim
+}
+
 // D12-BEGIN (add-virtual-node-ordering-and-chain — pure helpers, node-tested)
 // Effective comparison key: real nodes use their ANCHORED case_id
 // (links.taipei[0]); virtual nodes their own case_id; case-less real nodes
@@ -483,7 +532,7 @@ function renderMilestones(project, nodes) {
     for (const [label, date] of Object.entries(national)) {
       html += `<div class="milestone-row">
         <dt class="milestone-label">${escapeHtml(label)}</dt>
-        <dd class="milestone-date">${escapeHtml(date)}</dd>
+        <dd class="milestone-date">${escapeHtml(fmtDate(date))}</dd>
         <span class="milestone-badge national">國</span>
       </div>`;
     }
@@ -501,7 +550,7 @@ function renderMilestones(project, nodes) {
     for (const [label, date] of Object.entries(taipei)) {
       html += `<div class="milestone-row">
         <dt class="milestone-label">${escapeHtml(label)}</dt>
-        <dd class="milestone-date">${escapeHtml(date)}</dd>
+        <dd class="milestone-date">${escapeHtml(fmtDate(date))}</dd>
         <span class="milestone-badge taipei">北</span>
       </div>`;
     }
@@ -688,7 +737,9 @@ function init() {
         ? ` · 基地面積 <span style="color:${areaStyle.color};font-weight:${areaStyle.fontWeight}">${escapeHtml(area)}</span>`
         : area ? ` · 基地面積 ${escapeHtml(area)}` : "";
       const orphanCount = ((p.links || {}).orphan_nodes || []).length;
-      el.innerHTML = `<div class="pid"><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}${stageChip(p)}${neverChip(p)}</div>
+      const construction = constructionStage(p);
+      const statusHtml = statusChip(p, construction);
+      el.innerHTML = `<div class="pid"><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}${stageChip(p)}${statusHtml}${neverChip(p)}</div>
         <div class="cnt">${p.member_recnos.length}${orphanCount ? `(+${orphanCount})` : ""} 筆 · ${escapeHtml(p.implementer)}${areaHtml}</div>`;
       el.onclick = () => { activePid = p.project_id; renderList(); renderDetail(p); };
       list.appendChild(el);
@@ -1125,7 +1176,10 @@ function init() {
         } else if (col === "recovery") {
           val = recoveryBadges(rec);
         } else if (col === "parcels" || col === "aliases") {
-          val = JSON.stringify(rec[col] || []);
+          // (viewer-stage-chip-coverage) human-readable: lists as prose, empty
+          // as an em dash — raw JSON literals undercut the "say what was read"
+          // surface.
+          val = fmtCell(rec[col]);
         } else if (col === "milestones") {
           val = getNodeMilestoneBadges(rec, p);
         } else {

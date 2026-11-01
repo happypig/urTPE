@@ -38,7 +38,7 @@ from urtpe.links import (  # noqa: E402
 
 CHONGREN = "崇仁新村青年段一小段"
 ANCHOR_NAME = "變更臺北市萬華區崇仁新村都市更新事業計畫及權利變換計畫案"  # the real gazette 案名 (clean.tsv)
-PID = "萬華區-崇仁新村青年段一小段-711-3地號等?筆"
+PID = "萬華區-崇仁新村青年段一小段-711-3地號等2筆"  # land-core-slug-fallback renamed it from 等?筆 (2026-11-01)
 
 # The three rows the live API returns for 青年段一小段 / 711, verbatim.
 LIVE = [

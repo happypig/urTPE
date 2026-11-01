@@ -1341,8 +1341,22 @@ def save_project_cache(cache_dir: Path, project_id: str, result: DiscoveryResult
 
 
 def _iso_date(s: str) -> str:
-    """Normalize '2016/07/05' or '2016-07-05' to '2016-07-05' ('' if empty)."""
-    return s.strip().replace("/", "-") if s else ""
+    """Normalize a date cell to zero-padded ISO-ish form ('' if empty).
+
+    '2016/07/05', '2016-07-05', and the PDF's own unpadded print '2016/8/23' all
+    become '2016-08-23'. The padding matters: the per-node case matcher compares
+    these strings against case-milestone dates, and before this fix
+    '2016/8/23' -> '2016-8-23' never equalled '2016-08-23', so the matcher missed
+    and the attach fell through to the positional fallback — measured as 484
+    date-matchable nodes bound to the wrong case (1,164 of 1,442 raw rows carry an
+    unpadded date). ROC cells ('115/8/27') keep their own year form; only the
+    month and day pad, because the ROC->ISO year conversion is the caller's job.
+    """
+    text = s.strip().replace("/", "-") if s else ""
+    m = re.fullmatch(r"(\d{2,4})-(\d{1,2})-(\d{1,2})", text)
+    if not m:
+        return text
+    return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
 
 
 def _shift_iso_date(iso: str, days: int) -> str:

@@ -100,7 +100,7 @@ exactly these two identities — discovery cannot cache them. Note the
 alias-migration path for the 31 orphaned dirs (`data/project_aliases.json`), and
 fold G3's regenerated numbers in.
 
-### Wave 5 — openspec change D′: `case-record-join-discriminator` (G1 + G2, test-first)
+### Wave 5 — openspec change D′: `case-record-join-discriminator` — **DONE 2026-11-01** (archived `2026-11-01-case-record-join-discriminator`; new spec `case-record-join`, 2 requirements)
 
 New change, created when Waves 1–4 are done. Two requirements, one delta:
 

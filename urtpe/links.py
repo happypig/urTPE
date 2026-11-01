@@ -411,8 +411,10 @@ def extract_taipei_stage_process(html: str) -> dict[str, str]:
     return parser.stages
 
 
-# Fallback mapping file path
-FALLBACK_MAPPING_FILE = Path("data/taipei_case_ids.json")
+# Fallback mapping file path — the single definition (P2.3): urtpe/cli.py imports
+# this constant rather than hardcoding a second copy. Resolved from the repository
+# root, not the CWD, so a clone in any working directory finds the tracked file.
+FALLBACK_MAPPING_FILE = Path(__file__).resolve().parents[1] / "data" / "taipei_case_ids.json"
 
 
 def load_fallback_mapping() -> dict:

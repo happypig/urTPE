@@ -4,7 +4,7 @@ schema: spec-driven
 # This is shown to AI when creating artifacts.
 context: |
     Project: urTPE — turn the Taipei City Government's urban-renewal approved-cases
-    list (臺北市都市更新核定案件一覽表, 1,441 approvals as emitted from the 2026-10-15
+    list (臺北市都市更新核定案件一覽表, 1,442 approvals as emitted from the 2026-10-15
     gazette, dated 2002-03-21–2026-10-15,
     統計至 2026-10-15) into a clean, merged dataset with per-project history.
     Pipeline: PDF (gov.taipei) -> ruled-table extraction (pymupdf find_tables,

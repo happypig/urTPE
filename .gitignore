@@ -28,6 +28,11 @@ data_test/*
 # re-deriving a person's reading of a portal page from nothing.
 !data/twur_overrides.json
 
+# ...and the curated fallback mapping (P2.3): human-verified land-core -> view/case
+# pairs, read by discover_project_links and written by --add-mapping-file. A clone
+# without it loses the mapping with no error. Same category as twur_overrides.json.
+!data/taipei_case_ids.json
+
 # data/projects.previous.json stays ignored. It is derived: the 8/11 baseline
 # re-ingested from source.pdf, which is tracked, so it is reproducible with
 #     python -m urtpe.cli source.pdf -o <tmp> --no-archive

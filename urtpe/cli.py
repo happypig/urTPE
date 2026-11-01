@@ -26,18 +26,16 @@ from urtpe import report as report_mod
 from urtpe import tripwire as tripwire_mod
 from urtpe import viewer as viewer_mod
 from urtpe.archive import GazetteArchive
+from urtpe.links import FALLBACK_MAPPING_FILE  # the single path definition (P2.3)
 from urtpe.models import CleanRecord, Project
-
-# Fallback mapping file path
-FALLBACK_MAPPING_FILE = Path("data/taipei_case_ids.json")
 
 
 def add_fallback_mapping(land_core: str, view_id: str, case_id: str) -> None:
     """Add a fallback mapping for land_core -> view_id + case_id."""
     mapping = {}
-    if Path("data/taipei_case_ids.json").exists():
+    if FALLBACK_MAPPING_FILE.exists():
         try:
-            mapping = json.loads(Path("data/taipei_case_ids.json").read_text(encoding="utf-8"))
+            mapping = json.loads(FALLBACK_MAPPING_FILE.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             pass
 
@@ -49,7 +47,7 @@ def add_fallback_mapping(land_core: str, view_id: str, case_id: str) -> None:
 
     mapping[land_core]["view_id"] = view_id
 
-    Path("data/taipei_case_ids.json").write_text(
+    FALLBACK_MAPPING_FILE.write_text(
         json.dumps(mapping, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     # Write to file instead of printing to avoid encoding issues

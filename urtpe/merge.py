@@ -119,13 +119,38 @@ def _clusters(records: list[CleanRecord], pairs: set[tuple[int, int]]) -> tuple[
     return [sorted(g, key=lambda r: r.recno) for g in groups.values()], borderline
 
 
-def slug_for(anchor: CleanRecord) -> str:
-    """project_id from the anchor's normalized name-core (append-friendly)."""
-    core = f"{anchor.district}-{anchor.section}-{anchor.first_parcel}地號等{anchor.land_count or '?'}筆"
+def slug_for(anchor: CleanRecord, family: list[CleanRecord] | None = None) -> str | tuple:
+    """project_id from the anchor's normalized name-core (append-friendly).
+
+    The count component falls back to the family when the anchor carries none
+    (land-core-slug-fallback): scan anchor first, then members by 編號 ascending;
+    the newest member with a count wins. When no member answers, the `?`
+    placeholder stands and the second return value is True — the caller
+    review-flags the anchor so an unresolved identity is visible.
+
+    Returns a str when no fallback question exists (call-compatible with callers
+    that ignore the signal), or a (slug, unresolved) tuple when the family was
+    consulted and no member carried a count.
+    """
+    # Scan the anchor first, then the rest by 編號 DESCENDING: the newest member
+    # with a count wins (design D1 — the family's latest statement of its own
+    # coverage, not merely the closest record that happens to answer).
+    members = [anchor] + sorted(
+        (m for m in (family or []) if m.recno != anchor.recno),
+        key=lambda m: -m.recno)
+    count = next((m.land_count for m in members if m.land_count), None)
+    core = f"{anchor.district}-{anchor.section}-{anchor.first_parcel}地號等{count or '?'}筆"
     core = core.replace("計劃", "計畫").replace("ㄧ", "一").replace(" ", "")
     if not anchor.section:
-        return f"未解析-{anchor.recno}"
-    return core
+        slug = f"未解析-{anchor.recno}"
+    else:
+        slug = core
+    if count is None:
+        # The unresolved case returns a tuple so the caller cannot miss it; the
+        # resolved path returns a bare str, keeping every existing caller
+        # (tests/test_merge.py, any script) working unchanged.
+        return slug, True
+    return slug
 
 
 def pick_anchor(members: list[CleanRecord]) -> CleanRecord:
@@ -143,8 +168,18 @@ def merge(records: list[CleanRecord]) -> list[Project]:
     recno_to_project: dict[int, Project] = {}
     for members in clusters:
         anchor = pick_anchor(members)
-        pid = slug_for(anchor)
-        p = Project(project_id=pid, anchor_recno=anchor.recno, members=members)
+        result = slug_for(anchor, family=members)
+        if isinstance(result, tuple):
+            slug, unresolved = result
+        else:
+            slug, unresolved = result, False
+        p = Project(project_id=slug, anchor_recno=anchor.recno, members=members)
+        if unresolved:
+            # No member of the family declares a count: the `?` placeholder
+            # stands honestly, and the flag makes the unresolved identity
+            # visible rather than silent (land-core-slug-fallback).
+            anchor.review_flags = list(anchor.review_flags) + [
+                "family carries no land count; project_id keeps the ? placeholder"]
         projects.append(p)
         for m in members:
             recno_to_project[m.recno] = p

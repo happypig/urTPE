@@ -90,7 +90,7 @@ already-deployed `projects.data.js` files repair on load. Test first: a fixture
 family with 甲/A/B `area_section` across distinct stages must form section edges
 after a `--from-js` rebuild; assert emit→load→emit losslessness.
 
-### Wave 4 — openspec change B: `land-core-slug-fallback` (V1, test-first)
+### Wave 4 — openspec change B: `land-core-slug-fallback` — **DONE 2026-11-01** (archived `2026-11-01-land-core-slug-fallback`); id map: 寶清段51-13 `等?筆`→`等1筆`, 崇仁新村711-3 `等?筆`→`等2筆` (member counts 1 and 2; the ids land in the next scheduled emission)
 
 Two `project_id`s contain `等?筆` because both anchors have `land_count: null`
 (`urtpe/merge.py:124`). Fall back to another family member's count before slugging;

@@ -18,6 +18,7 @@ you need the detail behind a finding.
 | Viewer render path | `node scripts\viewer_smoke.js` passes |
 | Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |
 | Archive | 7 publications, chain whole, 09-24 restored |
+| Acquisition | **weekly scheduled task `urtpe-poll` live** (Mondays 06:30); channel verified healthy 2026-11-01 (`reuploaded`) |
 | Emission | 2026-10-15, 1,442 raw / 1,441 clean / 693 projects, 1 named residual (編號 188) |
 
 ## Execution order — the integrated plan
@@ -140,24 +141,24 @@ Any order. Each with tests:
 - P3.3: portal-index crawl completeness warning (WAF-shortened crawl).
 - P3.8: AGENTS.md viewer-test wording (`scripts/viewer_smoke.js` exists; runs by
   hand).
+- P3.11: AGENTS.md annotation — the manual-correction ledger (`--ledger`, default
+  `urtpe-gazettes/corrections.jsonl`) is designed, spec'd, and unused; the file's
+  absence is normal, not a defect (user decision 2026-11-01: annotate, don't
+  create).
 - G4: `docs/domain_model.md` + `docs/domain-model.html` re-measured on the
   post-restore payload. One `docs:` commit.
 
-### Decisions waiting on the user
+### Decisions — resolved
 
-Nothing in this section proceeds without an answer.
-
-- **Poller restart.** Stalled since 2026-10-06. Nothing data-bearing lost yet
-  (the 10-30 PDF was a byte-identical re-upload). Each stalled week risks one new
-  gazette arriving unnoticed. Options:
-  1. Restart `scripts/poll_gazette.py` on a schedule.
-  2. Run a one-off poll now; defer scheduling.
-  3. Leave stalled; rely on manual `--archive-only`.
-- **`corrections.jsonl` never instantiated.** Designed, spec'd, coded — never
-  written. Low priority. Options: annotate AGENTS.md as designed-but-unused, or
-  create it on first `--ledger` use.
-- **TAB-2's six design decisions** (`docs/graph-tabs-decision.html`) and the
-  11 lane-less records. The TAB-2 session's own scope, pending the user.
+- ~~Poller restart~~ → **decided + executed 2026-11-01**: one-off poll now
+  (`reuploaded`, channel healthy; the 26.3-day stall written as the D3 warning)
+  + weekly scheduled task `urtpe-poll` created and test-run (Mondays 06:30,
+  interactive-only logon — acceptable on this workstation). Ops-log §28.
+  Residual: the task is machine-local; re-create it if the workstation changes.
+- ~~`corrections.jsonl`~~ → **decided: annotate, don't create.** Zero demand in
+  2+ months. The annotation itself is now Wave 7 item P3.11.
+- ~~TAB-2's six design decisions~~ / ~~11 lane-less records~~ → still pending
+  the user (TAB-2 session's own scope).
 
 ### Watch, do not fix
 

@@ -22,6 +22,7 @@ G1–G5.
 | Viewer render path | `node scripts\viewer_smoke.js` passes |
 | Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |
 | Archive | 7 publications, chain whole, 09-24 restored |
+| Acquisition | **weekly scheduled task `urtpe-poll` live** (Mondays 06:30); channel verified healthy 2026-11-01 (`reuploaded`) |
 | Emission | 2026-10-15, 1,442 raw / 1,441 clean / 693 projects, 1 named residual (編號 188) |
 
 ## Execution order — the integrated plan
@@ -112,19 +113,27 @@ one pane) — same test group, same file.
 - P3.3: portal-index crawl completeness warning (WAF-shortened crawl).
 - P3.8: AGENTS.md viewer-test wording (`scripts/viewer_smoke.js` exists, runs by
   hand).
+- P3.11: AGENTS.md annotation — the manual-correction ledger (`--ledger`, default
+  `urtpe-gazettes/corrections.jsonl`) is designed, spec'd, and unused; the file's
+  absence is normal, not a defect (user decision 2026-11-01: annotate, don't
+  create).
 - G4: `docs/domain_model.md` + `docs/domain-model.html` re-measured on the
   post-restore payload (one `docs:` commit).
 
-### Decisions waiting on the user (not waves — nothing proceeds without an answer)
+### Decisions waiting on the user
 
-- **Poller restart.** Stalled since 2026-10-06. Nothing data-bearing lost yet (the
-  10-30 PDF was a byte-identical re-upload), but each stalled week is a week a new
-  gazette could arrive unnoticed. Options: scheduled `scripts/poll_gazette.py`;
-  one-off poll now and defer scheduling; or leave stalled with manual
-  `--archive-only`.
-- **`corrections.jsonl` never instantiated.** Designed, spec'd, coded — never
-  written. Annotate AGENTS.md as designed-but-unused, or create it on first
-  `--ledger` use. Low priority.
+- ~~**Poller restart.**~~ **DECIDED + EXECUTED 2026-11-01**: one-off poll now
+  (channel healthy — `reuploaded`, gazette 2026-10-15, sha256 matches the held
+  member; the 26.3-day stall recorded as the D3 warning) **and** a weekly
+  scheduled task `urtpe-poll` created and test-run (Mondays 06:30,
+  interactive-only logon — acceptable on this workstation; next run 2026-11-02).
+  Recorded in `docs/portal_operations_log.md` §28. Residual item: the task is
+  machine-local; if this workstation changes, re-create it there.
+- **`corrections.jsonl`** — **DECIDED 2026-11-01: annotate, don't create.** Zero
+  demand in 2+ months (the 12 fixes this gazette needed are city-side typos
+  handled by `cleanse.py`; the 30 需人工檢視 rows are review flags, not
+  corrections). Wave 7 item: one-line AGENTS.md annotation ("designed, spec'd,
+  unused — the file's absence is normal").
 - **TAB-2's six design decisions** (`docs/graph-tabs-decision.html`) and the
   11 lane-less records — the TAB-2 session's own scope, pending the user.
 

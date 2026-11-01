@@ -42,13 +42,23 @@ These are complete. Recorded so the board shows the full history.
 
 No gate. No user decision. Do these first.
 
-1. **G3 — regenerate the stranded-count report.** Three numbers disagree (doc 23 /
-   `aliases.orphaned` 27 / old plan note 32; live delta 724 dirs vs 693 projects).
-   Steps:
-   1. Run `scripts/stranded_report.py` on the current tree.
-   2. Trace what each measure counts (orphaned / unmatched / stranded-dirs).
-   3. Regenerate the generated doc.
-   4. One `docs:` commit.
+1. **G3 — regenerate the stranded-count report.** — **DONE 2026-11-01.** The three
+   numbers were three different reference payloads, all correct for their moment:
+
+   - doc 23 = `aliases.unmatched`, measured against the fixed 8/11 baseline.
+   - `aliases.orphaned` 27 = built 2026-10-07 against the 10-01 payload, before
+     the forward re-emission.
+   - plan note 32 = a stale 2026-10-26 reading.
+
+   Regenerated against the current tree: the forward re-emission's `--links`
+   re-cached everything under current ids. So
+   `scripts/build_project_aliases.py` (prev = the pre-restore 10-15 payload at
+   `532236e`; current = live) now reports **1 orphaned/unmatched — 永昌段46-4,
+   the transient residual family**. The remaining 32 dirs-without-live-projects
+   are old-generation caches from identities that left the list long ago (the
+   known portal-history churn, documented in the regenerated
+   `docs/stranded-cache-dirs.md`). The doc now says **1**, agreeing with the
+   aliases file. `data/project_aliases.json` regenerated (committed).
 2. **Rerun the 10-15 ingestion when gis.uro recovers.** This restores 編號 188
    (永昌段46-4, the R-form carrier) and its family. It moves the emission from
    1,441/693 back to 1,442/694. The API timed out 4×90 s at 03:00 on 10-31, so

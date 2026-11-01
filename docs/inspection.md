@@ -42,10 +42,19 @@ openspec change), and its gate.
 
 ### Wave 1 — unblock the recovery follow-ups (no gate, no user decision)
 
-1. **G3 — regenerate the stranded-count report.** Three numbers disagree (doc 23 /
-   `aliases.orphaned` 27 / plan note 32; live delta 724 dirs vs 693 projects).
-   Re-run `scripts/stranded_report.py`, trace what each measure counts, regenerate
-   the generated doc. One `docs:` commit.
+1. **G3 — regenerate the stranded-count report.** — **DONE 2026-11-01.** The three
+   numbers were three different reference payloads, all correct for their moment:
+   doc 23 (aliases.unmatched, measured vs the 8/11 baseline), `aliases.orphaned` 27
+   (built 2026-10-07 vs the 10-01 payload, pre-forward-re-emission), plan note 32
+   (stale 10-26 reading). Regenerated against the current tree: the forward
+   re-emission's `--links` re-cached everything under current ids, so
+   `build_project_aliases.py` (prev = the pre-restore 10-15 payload at `532236e`,
+   current = live) now reports **1 orphaned/unmatched — 永昌段46-4, the transient
+   residual family**; the remaining 32 dirs-without-live-projects are
+   old-generation caches from identities that left the list long ago (the known
+   portal-history churn, documented in the regenerated
+   `docs/stranded-cache-dirs.md`). The doc now says **1**, agreeing with the
+   aliases file. `data/project_aliases.json` regenerated (committed).
 2. **Rerun the 10-15 ingestion when gis.uro recovers** (finding from the
    restoration's group 6, recorded in §27 of `docs/portal_operations_log.md`).
    `python -m urtpe.cli D:/project/urtpe-gazettes/核定案件-2026-10-15.pdf -o data

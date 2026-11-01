@@ -168,7 +168,7 @@ classDiagram
         str provenance "how the case was found"
         bool orphan "true ⇒ no record cites it"
     }
-    note for TaipeiCase "PROPOSED — not implemented.<br/>The join key between the gazette and both portals.<br/>Today: a virtual case is one self-contained object,<br/>a real case is four dictionaries plus a duplicate."
+    note for TaipeiCase "The JOIN has landed (case-record-join spec, urtpe/case_join.py).<br/>The unified per-case object is still proposed.<br/>A virtual case is one self-contained object;<br/>a real case is four dictionaries plus a duplicate.<br/>case_id has two source spellings - normalise only to join."
 
     %% ---- sources ----
     class PDFGazette
@@ -199,11 +199,16 @@ classDiagram
 
     ProjectGraph --> links : project-level twur + city links
 
-    %% ---- PROPOSED: the case layer --------------------------------------
-    %% One relation only, many-to-one, stored in that direction.
-    CleanRecord "*" --> "0..1" TaipeiCase : links.taipei
+    %% ---- the case layer: the JOIN has landed (case-record-join spec +
+    %% urtpe/case_join.py, Wave 5 2026-11-01); the unified per-case object
+    %% below is still proposed --------------------------------------------
+    %% Many-to-many by design (D2): recovery.cases may select a subset of the
+    %% discovery candidates. Precedence (recovery wins) and the read-side id
+    %% normalisation live in the case-record-join spec — stored spellings are
+    %% verbatim; normalise only to join.
+    CleanRecord "*" --> "0..*" TaipeiCase : joined via case_join
     %% Invariant 3: milestones live on the case; a node may reference them.
-    Node ..> TaipeiCase : renders (solid when cited, dashed when orphan)
+    Node ..> TaipeiCase : renders (solid · dashed orphan · recovered)
     TaipeiCase --> TaipeiMilestones : owns
 ```
 
@@ -353,10 +358,11 @@ span several approvals. Nothing in the current model names that second thing, so
 carried as loose keys.
 
 **What it costs today, measured 2026-11-01 on the post-restore payload
-(published_date 2026-10-15, 1,442 records / 694 projects, 1,430 case→record
-bindings, 4 recovered nodes — the recovery-four 188/1005/1131/1206, restored
-after the API outage; 編號 188's recovery carries the R-form id `R089213-02`,
-see the id-space note below):**
+(published_date 2026-10-15, 1,442 records / 694 projects, 1,412 case→record
+bindings counted as `links.taipei` pairs — both emitted artifacts agree; a
+Wave-7 note had recorded 1,430 under an unstated method, corrected here —
+4 recovered nodes, the recovery-four 188/1005/1131/1206; 編號 188's recovery
+carries the R-form id `R089213-02`, see the id-space note below):**
 
 > **Amended 2026-11-01 (post-restore).** Three facts the 2026-10-24 version
 > predates: (1) recovered rows are payload state — `node.recovery` with
@@ -366,27 +372,36 @@ see the id-space note below):**
 > case-record join is many-to-many by design (D2 of
 > `case-record-join-discriminator`): `recovery.cases` may select a subset of
 > `links.taipei`, and the precedence rule lives in that spec, not here.
+>
+> **Synced 2026-11-01 (TAB-2 review).** The join half of this proposal has
+> landed (Wave 5): `normalise_case_id` + `join_case_ids` exist, and the spec
+> fixes recovery-wins precedence with `ambiguous-zone` carried as provenance.
+> Still proposed: the unified per-case object itself. Measured corrections:
+> bindings 1,412 (not 1,430); 344 cases cover >1 record; 342 ambiguous markers
+> (320 resolvable / 22 not); 973 virtual entries / 953 distinct; total 1,926.
 
 - A **virtual** case (no matching record) is a self-contained 11-field object in `orphan_nodes`.
 - A **real** case is scattered across four dictionaries — `case_milestones[case_id]` on the
   project, `case_schedules[case_id]` beside it, `links.taipei` on the node — and the node
-  additionally carries a *flattened duplicate* of the milestones. 6 of 1,409 bindings have
-  no per-case object at all.
+  additionally carries a *flattened duplicate* of the milestones.
 - So drawing a virtual case is reading one object, and drawing a real case is joining four.
-  That asymmetry is why the viewer handles them differently, and why 456 progress markers
-  are anchored by a coin-flip: `anchoredByCase[cid] = n.recno` keeps whichever record was
-  written last, and 343 cases sit on more than one record.
+  That asymmetry is why the viewer handles them differently, and why 342 progress markers
+  are anchored ambiguously (their case sits on more than one of the 344 multi-record cases'
+  records) while a further 225 name a source case that is on no record at all.
 - Two integrity problems this shape would expose, both currently invisible because
   `orphan_nodes` is a flat list keyed by nothing: **20** virtual cases are listed more than
-  once (969 entries, 949 distinct case ids), and **9** case ids appear *both* as virtual and
-  as real — so the total is 1,921 or 1,912 depending on which wins.
+  once (973 entries, 953 distinct case ids), and **9** case ids appear *both* as virtual and
+  as real — so the total is 1,926 or 1,917 depending on which wins.
 
 **Three invariants, each of which a measurement supports:**
 
-1. **`record_recnos` is the only relation between a case and the gazette.** Measured: 1,409
-   bindings; 343 cases cover more than one record (up to 4); **0** records name more than one
-   case. The relation is many-to-one and must be stored in that direction — never inferred
-   from a shared name or a matching parcel.
+1. **The joined case set is the only relation between a case and the gazette.** Measured:
+   1,412 bindings via `links.taipei`; 344 cases cover more than one record (up to 4); **0**
+   records name more than one case *there* — but the relation is many-to-many by design:
+   `recovery.cases` may select a subset of the discovery candidates (recno 1005 selects
+   `09610235`/`09610236` against a `links.taipei` of `09610231`), and the spec fixes that
+   the recovery binding wins, with `ambiguous-zone` carried as provenance. Ids are stored
+   verbatim in their source spelling and normalised only to join.
 2. **`case_name` is parsed, never compared.** It self-declares 段, 首宗地號, 筆數, 階段
    and track. That is what separates the 493 groups of cases sharing 段 and 首宗地號 — 365
    differ on count or stage, and 128 are identical on both. Comparing the name for equality
@@ -400,13 +415,13 @@ see the id-space note below):**
 
 - *Anchor resolution.* When several records carry a case, a milestone attaches to **the
   latest record approved on or before the milestone's date** — not the last one iterated.
-  428 of 456 ambiguous markers resolve this way; 28 have no prior approval and should
+  320 of 342 ambiguous markers resolve this way; 22 have no prior approval and should
   stay unanchored rather than be attached to something.
 - *Discriminator.* When several cases share 段 and 首宗地號, separate them by declared
   count and stage. Where they are identical on both, **attach none** and report the group
   as ambiguous — a wrong attachment is worse than an admitted gap. 128 groups today.
 
-**Open question.** 191 of 949 virtual cases carry no date at all. They are retained today
-because `orphan_nodes` holds them, but a class with no position on the time axis needs a
-stated home — a gutter column, or listed beneath the graph. That is a decision, not a
+**Open question.** 194 of 953 distinct virtual cases carry no date at all. They are retained
+today because `orphan_nodes` holds them, but a class with no position on the time axis needs
+a stated home — a gutter column, or listed beneath the graph. That is a decision, not a
 default.

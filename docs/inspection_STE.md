@@ -1,522 +1,353 @@
-# Project inspection — 2026-10-26
+# Project inspection — 2026-10-26 · consolidated 2026-11-01
 
-This document records the result of an inspection of the whole project. The
-inspection looked at commit `20a2c92` and at the live viewer. Nothing is fixed yet.
-Each finding gives its location and its fix.
+This document is the execution board for the whole project. The top half tells you
+what to do, in what order. The appendices at the bottom hold the evidence. Read the
+"State of the board" and "Execution order" sections. Read the appendices only when
+you need the detail behind a finding.
 
-**Update 2026-10-30.** A second session inspected the same repo. We merged its five
-findings into this document. They are marked **[peer]**. The "Consolidated fix plan"
-section at the end tells you what to do, in what order. Read that section first. It
-replaces the older "Suggested order of work".
+**Update history:** 2026-10-26 original inspection (findings P1–P3, V1–V12) ·
+2026-10-30 peer session F1–F5, the audit findings, the archive verification ·
+2026-10-31 the 09-24 restoration executed · 2026-11-01 TAB-2 session G1–G5.
 
-## Method
+## State of the board
 
-The inspection did three things:
-
-1. Read the core modules. This includes `cli.py`, `lock.py`, `tripwire.py`,
-   `coverage.py`, `archive.py`, `extract.py`, `links.py`, `emission.py`,
-   `viewer.py`, `reconcile.py`, `poller.py`, `corpus.py`, `io.py`, `merge.py`,
-   and `graph.py`.
-2. Run the standing checks. See the table below.
-3. Probe each suspicious spot with a small script. Record the result.
-
-## Standing checks
-
-All checks pass.
-
-| Check | Command | Result |
-| --- | --- | --- |
-| Test suite | `python -m pytest` | 705 passed, 1 skipped, 75 s |
-| Deploy freshness | `python scripts\check_deploy.py` | all 4 artifacts fresh |
-| Viewer render path | `node scripts\viewer_smoke.js` | all checks passed |
-| Silent-failure baseline | `python scripts\baseline_silent_failures.py` | items 1–4 caught; item 5 "yes" by design (D5) |
-
-The gates that are wired all work. No data-corruption defect was found. One real
-gap exists: the emission check is not wired. See P1.
-
-# Part 1 — Pipeline findings
-
-## P1 — The emission gate exists, but no code calls it
-
-Priority 1. Fix this first.
-
-`urtpe/emission.py` is a check for one failure. A rebuild without `--links` makes
-a dataset with no link data. The run reports success. The viewer then shows the
-missing data as "no data" (`urtpe/emission.py:4`).
-
-The problem: `urtpe/cli.py:15` imports the module, but no code calls it. The
-function `emission_faults` does not appear in any code path in `urtpe/`. Today, a
-run without `--links` gives `links: {}` on all 694 projects and exits 0. The check
-runs only when a person runs `scripts/baseline_silent_failures.py` by hand. The
-unused import shows that someone planned this wiring and then lost it.
-
-Fix:
-
-1. Call `emission_faults(doc["projects"])` in `_run_locked`.
-2. Put the call after `build_graph_document`, before `write_json`.
-3. Report the faults in `review_report.txt`. Also print them.
-4. Keep it as a warning. Do not refuse the run. `--links` stays advisory by
-   design (D5).
-
-## P2 — Should fix soon
-
-### P2.1 — The lock has a race window
-
-`urtpe/lock.py:69` does read, then check, then write. No step is atomic. Two runs
-that start together both read "no lock". Then:
-
-- On POSIX, both runs win. Two writers hold the lock at the same time.
-- On Windows, one run crashes. `os.replace` gives `PermissionError` because both
-  use the name `.lock.part`.
-
-A two-thread probe reproduced the crash. Both outcomes break the contract: two
-holders, or exit 1 instead of exit 5.
-
-Fix: create the lock file with `os.open(path, O_CREAT | O_EXCL)`. This call is
-atomic on both platforms. Map `FileExistsError` to a liveness re-check, then to
-`LockHeld`. Remove the tmp-and-replace code.
-
-### P2.2 — `--fresh` deletes state that is hard to rebuild
-
-`urtpe/links.py:1791` calls `shutil.rmtree(self.cache_dir)` when you pass
-`--fresh`. This deletes:
-
-- `portal_index.json`. This file is the only path to the ~110 oldest portal
-  entries.
-- `no_match_ledger.json`.
-- The 724 per-project `result.json` directories.
-
-The coverage guard then refuses the run. But the delete has already happened. The
-five `.link_cache_backup_*` directories exist because of this type of incident.
-
-Fix: rename the cache to `.link_cache_backup_<date>`. Do not delete it.
-
-### P2.3 — `data/taipei_case_ids.json` is necessary, but git does not track it
-
-`discover_project_links` reads this file when the portal index has no match
-(`urtpe/links.py:625`). The flag `--add-mapping-file` writes it. The content is a
-curated, human-verified mapping. It is the same category as the tracked file
-`data/twur_overrides.json`. But git does not track it, and the code hardcodes a
-path relative to the current directory (`urtpe/cli.py:32`, `urtpe/links.py:415`).
-A clone loses the file. No error appears.
-
-Fix:
-
-1. Add a `.gitignore` negation for the file.
-2. Resolve the path from the repo root, or from `--outdir`.
-3. Share one constant between `cli.py` and `links.py`.
-
-## P3 — Housekeeping
-
-Fix these in any order.
-
-4. **The exit-code table is not complete.** Reconcile-block exits 2
-   (`urtpe/cli.py:356`). "No records parsed" exits 1 (`urtpe/cli.py:231`). An
-   unhandled exception exits 1. `AGENTS.md:30` gives only 0, 3, 4 and 5. Add
-   code 2 at minimum.
-5. **The tripwire page check can never fire.** `urtpe/cli.py:276` passes
-   `tables_found=pages`. So the check at `urtpe/tripwire.py:90` always sees equal
-   values. Real no-table detection lives in `TableStructureError`. Pass real
-   counts, or remove the parameter. `AGENTS.md` currently lists this as a
-   tripwire check. That is not correct.
-6. **The portal-index crawl gives no completeness signal**
-   (`urtpe/links.py:442`). A WAF-blocked crawl saves a smaller index with no
-   warning. This index is the only path to the older identities. Fix: print a
-   warning when the new index is much smaller than the old one.
-7. **A corrected re-upload makes `verify()` fail forever.** `store()` replaces
-   content with the same `gazette_id`. Then every older index entry fails its
-   digest check on every future run. Fix: record superseded digests. Or accept
-   the noise in code, with a comment that cites this finding.
-8. **`AGENTS.md` is wrong about the viewer test.** It says "no browser test
-   exists". But `scripts/viewer_smoke.js` tests the real render path, and it
-   passes. Fix: say the test exists, and say a person must run it by hand.
-9. **Uncommitted work names a file that git does not track.** The modified
-   `AGENTS.md` describes `docs/dataset_completeness_audit.md`. Git does not
-   track this file. Fix: commit both files together. Otherwise a clone gets an
-   `AGENTS.md` that points at nothing.
-10. **`FALLBACK_MAPPING_FILE` is defined twice.** `urtpe/cli.py:32` hardcodes the
-    path. It must use the constant in `urtpe/links.py:415`. Also `.corpus_cache/`
-    never deletes old member-set keys.
-
-# Part 2 — Viewer findings
-
-The live viewer at `https://happypig.github.io/urTPE/viewer/index.html` was
-inspected in Chrome. The inspection used DOM reads and small scripts, plus three
-screenshots.
-
-The deployed build matches `HEAD`. The page works:
-
-- Search works. All four filters work. Combined filters work.
-- The detail pane works. The counter tracks the filters.
-- No `undefined` or `NaN` text appears.
-- The render path does not blank. The smoke test result also holds on the live
-  build.
-- Links open with `rel="noopener"`.
-- The recovered rows (編號 188, 1005, 1131, 1206) show their provenance,
-  including the A/B併案 flag.
-
-## V1 — Two projects have a broken identity: `project_id` contains `等?筆`
-
-Priority 1 in the viewer findings.
-
-Two project ids are wrong:
-
-- `松山區-寶清段一小段-51-13地號等?筆`
-- `萬華區-崇仁新村青年段一小段-711-3地號等?筆`
-
-Both anchors (編號 838 and 1375) have `land_count: null`. So `slug_for` printed
-`?` (`urtpe/merge.py:124`). These ids go into `.link_cache/` directory names, the
-alias table keys, and every future diff. A `?` in a directory name is legal, but
-it is hostile. Also the identity is not the land core that the domain model
-needs. The second node of each project holds the true count (1 and 2).
-
-Fix:
-
-1. When the anchor count is missing, take the count from another member of the
-   family. Do this before you make the slug.
-2. Add a review flag when no member has a count.
-
-## V2 — The record table shows raw JSON and `null` in cells
-
-The 20-column detail table prints:
-
-- `地號清單` as `["336","336-1","339",…]`
-- `地號別名` as `{}`
-- `原地號數` as `null`
-
-Fix:
-
-1. Join the parcel list with `、` as prose.
-2. Remove empty dict cells.
-3. Show a missing count as an em dash (—).
-
-The table is the "say what was read" surface. Raw encodings work against it.
-
-## V3 — 195 cards show no stage chip
-
-The chips work for three stages: `開工` red, `使照` green, `建照` amber. But 195
-of 694 cards show no chip. A user reads this as "not started". That is wrong for
-2026 approvals that are in 審查中 or 自行撤回. The data holds `case_schedules`
-with 59 審查中 and 130 自行撤回.
-
-Fix: add a grey `審查中`/`撤回` chip. Or write in the docs that no chip means
-"no construction data", not "not started".
-
-Note: the 未核定 badge logic is correct. It was checked against
-`case_schedules` for all three cards where it fires.
-
-## V4 — Three date formats appear in one detail pane
-
-The pane shows three formats at the same time:
-
-| Source | Example |
+| Check | Result at last full run |
 | --- | --- |
-| Node dates | `2026-10-15` (ISO) |
-| Taipei milestones | `2011/11/27` |
-| National milestones | `100.12.20` (ROC) |
-
-The job of the pane is to compare across sources. Mixed formats make that hard.
-
-Fix: change all dates to ISO at render time. Keep the source strings verbatim in
-the data file. Or label the ROC dates as ROC.
-
-## V5 — A filter that hides the active project leaves the detail pane stale
-
-Do this: select a project. Then search or filter, so the project leaves the
-list. The detail pane still shows the excluded project. No message tells you.
-
-Fix: when `activePid` is filtered out, dim the pane header, or clear the
-selection. Low harm. But it reads as a bug.
-
-## V6 — The 20-column table has no sticky header
-
-The table is 4,400 px tall. It scrolls horizontally. But `<th>` has
-`position: static`. After the first screen, the columns have no names.
-
-Fix: set `position: sticky; top: 0` on `th`. Give it a solid background.
-
-## V7 — The milestone bars show no information
-
-Screenshots show what look like progress bars next to each milestone. In the DOM
-they are `<dt>`/`<dd>` rows. Every bar has the same full width. No bar encodes a
-date or a duration.
-
-Fix: make the bar extent meaningful. Use the min→max milestone span from the
-階段辦理過程 data. Or remove the bar shapes.
-
-## V8 — The list order is 編號 of the newest approval, ascending
-
-`renderList` sorts by the current node's `recno`. This is a gazette position. A
-user cannot predict it. A 2008 approval sits above a 2026 one, because its 編號
-is lower. Every re-ingestion re-orders the list. `AGENTS.md` says: 編號 is a
-coordinate, not an identity.
-
-Fix: sort by anchor date, descending. Newest first. Today 161 開工 cards sit
-above the fold by accident, not by design.
-
-## V9 — No keyboard or screen-reader access
-
-Every list item is a `<div onclick>`. There is no `tabindex`, no
-`role="button"`, no `aria-expanded` on the filter buttons, and no label on the
-search input. The whole list is unreachable by keyboard.
-
-Fix:
-
-1. Give each item `role="button" tabindex="0"`.
-2. Add an Enter and Space key handler to items.
-3. Add `aria-expanded` to the four dropdown buttons.
-4. Add `aria-label` to the search input.
-
-## V10 — The data file is 9.1 MB
-
-`projects.data.js` is 9.1 MB uncompressed. GitHub Pages serves it as 904 KB
-gzipped. Desktop is fine. First paint on a phone is slow.
-
-Fixes, cheapest first:
-
-1. Do nothing about gzip. GitHub Pages already compresses.
-2. Shorten numeric precision in fields such as `Base_Area`.
-3. Split per-project detail into chunks by district. Load on demand.
-
-## V11 — Stage chips and area colours have no accessible name
-
-The stage chip is a colour plus two characters. But its `title` attribute is
-`null`. Hover and screen readers get nothing. The base-area colour scale has the
-same problem.
-
-Fix: add `title` and `aria-label`. The text must name the stage and the date.
-
-## V12 — Each click re-renders all 694 list items
-
-`el.onclick` calls `renderList()`. This clears `innerHTML` and rebuilds all 694
-items. It does this only to move the `.active` class. This takes 73 ms. It is
-harmless today. But it adds to the V8 re-sort cost.
-
-Fix: change the class on two nodes only. Do not re-render.
-
-## What was checked and is sound
-
-- Header counts, 統計至 label, and cache-bust `?v=` on both scripts.
-- Search matches parcel, district, and implementer. `336地號` gives 1 result.
-  `永陞` gives 7.
-- All four filters. Combined filtering. Per-button count badge `地區（1）`.
-  Panel 全選/清除. The `顯示 N / 694` counter.
-- Detail pane: version graph with per-track chains, stage bands, construction
-  milestones with source badges (國/北), the 20-column record table, 相關連結
-  with `rel="noopener"`, and recovery provenance.
-- Console: no errors from page code. Three exceptions are browser-extension
-  noise.
-- No `undefined` or `NaN` text anywhere. No node lacks the `links` key.
-
-# Suggested order of work
-
-This section is old. Read the "Consolidated fix plan" below instead.
-
-1. Wire the emission check (P1). Write tests first, per the openspec gate.
-2. Fix the lock (P2.1). It guards every other fix.
-3. Make `--fresh` back up instead of delete (P2.2).
-4. Track `taipei_case_ids.json` (P2.3).
-5. Fix the housekeeping items (P3). Any order.
-6. Viewer: V1 first (identity corruption). Then V2 and V4 (wrong text shown).
-   Then V3, V5, V6, V7, V8. Then V9 to V12.
-
-# Peer-session findings — 2026-10-30 [peer]
-
-A second session inspected the same repo. We checked each item against the code.
-All are real. Here are the five findings, in priority order.
-
-## F1 — `stage_index` is read but never written [peer]
-
-Priority 1. This is a hidden bug.
-
-What happens:
-
-1. `urtpe/cli.py:126` and `scripts/run_links_from_js.py:52` read
-   `node["stage_index"]`. The default is `-1`.
-2. `urtpe/graph.py` never writes a `stage_index` key into the node. So a rebuild
-   with `--from-js` loads every node with `-1`.
-3. `urtpe/graph.py:108` groups nodes by `(stage_index, track)`. With `-1` on all
-   nodes, one track becomes one group. The 區段 branch edges can never form.
-
-We checked the emitted data. The payload has 0 section edges. Only 1 node in the
-whole dataset carries an `area_section`. So the bug is hidden today. It fires the
-first time the city publishes 甲/A/B區段 rows.
-
-Fix:
-
-1. Write the `stage_index` key from `build_project_graph`.
-2. Also derive the index from the stage text on load, when the key is missing.
-   This repairs the data files that already exist. The `ymd` fix at
-   `urtpe/cli.py:83` is the pattern to copy.
-3. Write the tests first. One test: a family with 甲/A/B `area_section` values on
-   different stages must form section edges after a `--from-js` rebuild. Another
-   test: emit, load, emit again. The two outputs must be identical.
-
-This fix needs an openspec change.
-
-## F2 — One test failed once, then passed four times [peer]
-
-Do not chase this now.
-
-`tests/test_viewer_degrades.py::test_dropping_an_optional_field_does_not_break_the_render[rewards]`
-failed on 2026-10-06. It passed the next four full runs. We re-ran it on
-2026-10-30. It passed. Nobody found the cause.
-
-What to do:
-
-1. Add a one-line comment on the test. Note the 2026-10-26 observation.
-2. If it fails again, run the file 50 times in a loop. Reproduce first. Then fix.
-
-## F3 — Three dead functions, but 34 green tests say they are alive [peer]
-
-Priority 3. Delete the code, delete the tests.
-
-| Function | Real location | Tests | Decision |
-| --- | --- | --- | --- |
-| `date_order_report` | `urtpe/ordering.py:107` | 18 refs | delete. No live spec cites it (checked 2026-10-30). |
-| `classify_case_outcome` | `urtpe/links.py:1407` | 9 refs | delete with its tests |
-| `project_twur_class` | `urtpe/links.py:1422` | 7 refs | delete with its tests |
-
-Note: the peer report said `date_order_report` is in `urtpe/links.py`. That is
-wrong. It is in `urtpe/ordering.py:107`.
-
-No production code calls any of the three. The green tests give a false sense of
-coverage. Fix: delete each function with its tests.
-
-Dedup check, done before the delete: `date_order_report` deduplicates on 編號 so
-repeated page heads do not inflate the count. The wired path keeps this. The reader
-deduplicates first (`_dedupe_by_recno`, `urtpe/extract.py:776`). So the records at
-`urtpe/cli.py:384` are already deduplicated before `departures_from_descending`
-counts. Deleting the function loses nothing.
-
-## F4 — A block that checks for data that never exists [peer]
-
-Priority 4. Trivial cleanup.
-
-`urtpe/cli.py:72-75` skips nodes marked `orphan`, `recno < 0`, or `孤兒節點`. The
-emitter never writes these markers. The 969 orphans live in `links.orphan_nodes`.
-The viewer makes those nodes itself. So the block never fires.
-
-Fix: delete the block. Batch this with F3 in one commit.
-
-## F5 — Work in the working tree that git does not hold [peer]
-
-Priority 5. Commit it first. It takes five minutes.
-
-The working tree holds:
-
-- `AGENTS.md`, modified. It cites the audit doc.
-- `docs/dataset_completeness_audit.md`, untracked.
-- `docs/inspection.md` and `docs/inspection_STE.md`, untracked. This document is
-  one of the two.
-
-Fix: one commit with all four files. Then the citation in `AGENTS.md` resolves.
-
-# Consolidated fix plan
-
-**2026-10-30, second update.** The plan below was extended the same day with the
-audit doc's data-layer findings. The canonical, current plan now lives in
-`docs/inspection.md`, section "Consolidated fix plan". Read that section. It adds:
-
-1. An openspec change to restore the quarantined 2026-09-24 gazette, bundled with
-   the superseded-digest fix and the calendar-boundary correction. Needs user
-   approval before any restore.
-2. An openspec change to wire the standing checks (the emission check plus a new
-   census-equality gate).
-3. An operational finding: the poller is stalled since 2026-10-06. Restarting it
-   is a user decision.
-4. A note that the manual-corrections ledger (`corrections.jsonl`) was designed
-   but never instantiated.
-5. Six new watch-list items from the audit. Record, do not fix.
-
-The steps below are the earlier version. They remain correct for the code fixes.
-The canonical section may re-order them.
-
-This plan merges both sessions' findings. Do the steps in this order.
-
-## Step 1 — Commit the docs (F5)
-
-One `docs:` commit. Add these four files: `AGENTS.md`,
-`docs/dataset_completeness_audit.md`, `docs/inspection.md`,
-`docs/inspection_STE.md`.
-
-## Step 2 — Delete dead code (F3 + F4)
-
-One `chore:` commit:
-
-1. Delete `date_order_report` with its tests. The dedup guarantee is safe: the
-   reader already deduplicates (`urtpe/extract.py:776`).
-2. Delete `classify_case_outcome` and `project_twur_class` with their tests.
-   About 16 tests go away. Say this in the commit message.
-3. Delete the block at `urtpe/cli.py:72-75`.
-4. Run the suite. Write the new test count into `AGENTS.md`.
-
-## Step 3 — Openspec change A: `emit-stage-index` (F1)
-
-This is the most valuable bug fix in the plan. Write the tests first. Then make
-the two changes in F1. Then apply the openspec flow: proposal, design, tasks,
-apply, archive.
-
-## Step 4 — Openspec change B: `land-core-slug-fallback` (V1)
-
-Two project ids contain `等?筆`. Both anchors have `land_count: null`
-(`urtpe/merge.py:124`). Write the tests first. Then:
-
-1. Before the code makes the slug, take the count from another member of the
-   family.
-2. Add a review flag when no member has a count.
-
-This needs a spec delta in `case-merging`. The spec pins how the code derives
-`project_id`.
-
-## Step 5 — Openspec change C: `viewer-stage-chip-coverage` (V3 + V2 + V4)
-
-V3 changes spec'd behaviour. The spec at `history-graph/spec.md:255` says:
-"Projects with none of the three dates SHALL show no badge". So V3 needs a spec
-delta. Bundle V2 (raw JSON in table cells) and V4 (three date formats) into the
-same change. They share the test group and the file.
-
-The work:
-
-1. V3: add a grey `審查中`/`撤回` chip. Update the spec scenario.
-2. V2: join the parcel list with `、`. Remove empty dict cells. Show a missing
-   count as an em dash (—).
-3. V4: change all dates to ISO at render time. Keep the source strings verbatim
-   in the data file.
-
-## Step 6 — Direct fixes, no spec delta
-
-These are ordinary `fix:` commits with tests:
-
-1. Wire the emission check into `_run_locked` (P1). The spec already asks for
-   this report. Only the wiring is missing.
-2. Fix the lock race with `O_CREAT | O_EXCL` (P2.1).
-3. Make `--fresh` rename to `.link_cache_backup_<date>` instead of delete
-   (P2.2).
-4. Track `taipei_case_ids.json` in git. Resolve its path from the repo root.
-   Share one constant (P2.3).
-5. Fix the housekeeping items P3.1 to P3.6 and P3.8 to P3.10.
-
-## Step 7 — Watch, do not fix
-
-1. F2, the one-time flake. See F2 above.
-2. V5 to V12, the viewer polish items. Fix them when you touch those files
-   anyway.
-3. The peer session deferred three items by design: no CI, no browser-render
-   test, and the baseline item 6 numbers. Do not treat them as oversights.
-
-## Open questions with the peer session
-
-All answered 2026-10-30. Nothing is open:
-
-1. Test count: the peer's 652 came from an older tree state. **706 collected
-   (705 passed, 1 skipped) is the trusted baseline.** Both sides confirmed.
-2. No live spec cites `date_order_report`. Delete is safe.
-3. No objection to deleting `classify_case_outcome` and `project_twur_class`.
-
-## Rules for every fix
-
-1. Write the test first. This is the openspec gate.
-2. Do not bypass a gate. Fix its blind spot, and add the test.
-3. Do not key anything durable on 編號. It is a coordinate, not an identity.
-4. Do not repair absent data by inference. Exclude and name it.
+| Test suite | 707 passed, 1 skipped (708 collected) |
+| Deploy freshness | all 4 artifacts fresh (`scripts\check_deploy.py`) |
+| Viewer render path | `node scripts\viewer_smoke.js` passes |
+| Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |
+| Archive | 7 publications, chain whole, 09-24 restored |
+| Emission | 2026-10-15, 1,442 raw / 1,441 clean / 693 projects, 1 named residual (編號 188) |
+
+## Execution order — the integrated plan
+
+Work from top to bottom. Each item names its finding, its form (direct commit or
+openspec change), and its gate.
+
+### Wave 0 — done
+
+These are complete. Recorded so the board shows the full history.
+
+| Item | Finding | Commit |
+| --- | --- | --- |
+| Docs tracking | F5 (uncommitted docs) | `0bc6ed0` |
+| Dead-code cleanup | F3 + F4 | `d6c77b3` |
+| Archive verification | the 09-24 identity + the 10-30 re-upload | `601b9bb` |
+| 09-24 restoration | Openspec change D (re-file, ingest, chain repair, calendar fix, superseded digests, forward re-emission) | `9ad2a9d`, `bb93106`, archive `9028780` |
+| TAB-2 findings recorded | G1–G5 | `4886252` |
+
+### Wave 1 — unblock the recovery follow-ups
+
+No gate. No user decision. Do these first.
+
+1. **G3 — regenerate the stranded-count report.** Three numbers disagree (doc 23 /
+   `aliases.orphaned` 27 / old plan note 32; live delta 724 dirs vs 693 projects).
+   Steps:
+   1. Run `scripts/stranded_report.py` on the current tree.
+   2. Trace what each measure counts (orphaned / unmatched / stranded-dirs).
+   3. Regenerate the generated doc.
+   4. One `docs:` commit.
+2. **Rerun the 10-15 ingestion when gis.uro recovers.** This restores 編號 188
+   (永昌段46-4, the R-form carrier) and its family. It moves the emission from
+   1,441/693 back to 1,442/694. The API timed out 4×90 s at 03:00 on 10-31, so
+   check it first.
+   1. Probe the API. Healthy: continue. Timing out: wait a day, probe again.
+   2. Run `python -m urtpe.cli D:/project/urtpe-gazettes/核定案件-2026-10-15.pdf -o data --links --recover-truncated`.
+   3. Check the report: RECOVERED must include 編號 188. INCOMPLETE must be 0.
+3. **P2.3 — track `taipei_case_ids.json` in git.** It is load-bearing and untracked.
+   1. Add a `.gitignore` negation for the file.
+   2. Resolve the path from the repo root, not the CWD.
+   3. Share one constant between `cli.py` and `links.py` (this also fixes P3.10's
+      duplicate constant).
+   4. Add a test that the constant is the only definition.
+   5. One `fix:` commit.
+
+### Wave 2 — openspec change A′: `wire-standing-checks`
+
+Test-first. Bundles two unwired checks into one change:
+
+- P1: call `emission_faults` in `_run_locked`, after `build_graph_document`, before
+  `write_json`. Warning, not refusal (`--links` stays advisory by design, D5).
+- The census gate: PDF rows vs emission, and merge-partition totality. The audit's
+  Appendix A shows the assertion is three lines. Wire it as a gate.
+
+Rationale for bundling: a check that exists but never runs is the 2026-08-24 shape.
+
+### Wave 3 — openspec change A: `emit-stage-index`
+
+Test-first. The highest-value open code bug (F1).
+
+1. Write the test: a fixture family with 甲/A/B `area_section` values on distinct
+   stages must form section edges after a `--from-js` rebuild. Assert
+   emit→load→emit losslessness.
+2. Emit `stage_index` from `build_project_graph`.
+3. Derive it from the stage text in `_load_projects_from_js` when the key is
+   missing. This repairs the already-deployed data files.
+
+### Wave 4 — openspec change B: `land-core-slug-fallback`
+
+Test-first. Fixes V1 (two `project_id`s contain `等?筆`; both anchors have
+`land_count: null`, `urtpe/merge.py:124`).
+
+1. Write the test: an anchor with no count takes the count from another family
+   member before slugging.
+2. Fall back to the family member's count.
+3. Add a review flag when no member carries a count.
+4. Delta touches `case-merging` (identity derivation is spec'd there).
+
+Cost of leaving it: the two projects with no `.link_cache` directory are exactly
+these two identities — discovery cannot cache them. Note the alias-migration path
+for the 31 orphaned dirs (`data/project_aliases.json`), with G3's regenerated
+numbers.
+
+### Wave 5 — openspec change D′: `case-record-join-discriminator`
+
+Test-first. New change. Two requirements, one delta:
+
+- **G1 — a precedence rule.** `recovery.cases` chose 2 of the 6 cases
+  `links.taipei` joins on. The sets overlap (the peer's disjointness claim was a
+  truncation artifact — corrected in Appendix E). A recorded rule decides which
+  wins. `ambiguous-zone` is part of the input, not a tiebreak by itself.
+- **G2 — id-space normalisation.** `recovery.cases` carries R-form and numeric
+  spellings across publications (`docs/urotpe_api.md` §4). Normalise before any
+  join keyed on case id. Absent from the current payload (188 is the residual)
+  but returns with Wave 1 item 2.
+
+Start this change after Waves 1–4 are done.
+
+### Wave 6 — openspec change C: `viewer-stage-chip-coverage`
+
+Test-first. Bundles V3 + V2 + V4 — same test group, same file.
+
+- V3 needs a spec delta: it contradicts `history-graph/spec.md:255` ("SHALL show
+  no badge"). Add the grey `審查中`/`撤回` chip.
+- V2: join the parcel list with `、`; remove empty dict cells; show a missing
+  count as an em dash.
+- V4: change all dates to ISO at render time. Keep the source strings verbatim in
+  the data file.
+
+### Wave 7 — direct `fix:` commits, no spec delta
+
+Any order. Each with tests:
+
+- P2.1: atomic lock acquire via `O_CREAT | O_EXCL`. Replaces the tmp-and-replace
+  race. (The Windows loser currently crashes with `PermissionError` instead of
+  exit 5.)
+- P2.2: `--fresh` renames to `.link_cache_backup_<date>` instead of rmtree.
+- P3.1: exit-code table — reconcile-block exits 2 (AGENTS.md).
+- P3.2: inert tripwire `tables_found` parameter — pass real counts or remove.
+- P3.3: portal-index crawl completeness warning (WAF-shortened crawl).
+- P3.8: AGENTS.md viewer-test wording (`scripts/viewer_smoke.js` exists; runs by
+  hand).
+- G4: `docs/domain_model.md` + `docs/domain-model.html` re-measured on the
+  post-restore payload. One `docs:` commit.
+
+### Decisions waiting on the user
+
+Nothing in this section proceeds without an answer.
+
+- **Poller restart.** Stalled since 2026-10-06. Nothing data-bearing lost yet
+  (the 10-30 PDF was a byte-identical re-upload). Each stalled week risks one new
+  gazette arriving unnoticed. Options:
+  1. Restart `scripts/poll_gazette.py` on a schedule.
+  2. Run a one-off poll now; defer scheduling.
+  3. Leave stalled; rely on manual `--archive-only`.
+- **`corrections.jsonl` never instantiated.** Designed, spec'd, coded — never
+  written. Low priority. Options: annotate AGENTS.md as designed-but-unused, or
+  create it on first `--ledger` use.
+- **TAB-2's six design decisions** (`docs/graph-tabs-decision.html`) and the
+  11 lane-less records. The TAB-2 session's own scope, pending the user.
+
+### Watch, do not fix
+
+- F2 (one-time flake): comment on the test citing the observation. Reproduce with
+  a tight loop only if it fires again.
+- V5–V12 (viewer polish): fix opportunistically, lowest priority.
+- Peer-deferred items (no CI, no browser-render test, baseline item 6 numbers):
+  recorded as by-design.
+- G5: the TAB-2 planning numbers (474 inverted pairs / 456 ambiguous markers /
+  102 multi-track) predate 10-15 and the restore. Re-measure before any spec
+  cites them.
+- API→gazette reverse completeness check (a recovered case id whose gazette row
+  is absent would indicate the API holds more than the print).
+- 概要-removal policy (19 non-概要 deletions, no same-land-core partner; 64
+  spurious name-similarity pairs at ≥ 0.75).
+- Emission reproducibility: `tests/test_idempotent_flags.py:117` deliberately
+  skips the node-payload round-trip; the skip is named, not hidden.
+- 08-11 index records 1,414 vs 1,415 mergeable + 4 truncated = 1,419 printed —
+  one row unexplained, from the 2026-10-07 ingest.
+- 14 two-entry land cores are under-merges, not losses; one bare count change
+  (吉林段四小段676), one slug collision, one recovery artefact.
+- G2's dual id space until Wave 5 lands: any new consumer of `recovery.cases`
+  must handle both spellings.
+
+# Appendices — evidence record
+
+Each finding above traces to one appendix. Read for detail or audit, not for
+execution.
+
+## Appendix A — original pipeline inspection (2026-10-26)
+
+Method: read the core modules (`cli.py`, `lock.py`, `tripwire.py`, `coverage.py`,
+`archive.py`, `extract.py`, `links.py`, `emission.py`, `viewer.py`,
+`reconcile.py`, `poller.py`, `corpus.py`, `io.py`, `merge.py`, `graph.py`); run
+the standing checks; probe each suspicious spot with a small script. Standing
+checks then: 705 passed / 1 skipped / 75 s; deploy fresh; smoke test passing;
+baseline items 1–4 caught, item 5 "yes" by design (D5). The gates that were wired
+all worked. No data-corruption defect was found.
+
+### P1 — the emission gate exists but is never called
+
+`urtpe/emission.py` checks one failure: a rebuild without `--links` emits a
+dataset with no link data, reports success, and the viewer presents absence as
+"no data" (`urtpe/emission.py:4`). Imported at `urtpe/cli.py:15`, never called —
+`emission_faults` appears nowhere in `urtpe/`. A no-`--links` run produced
+`links: {}` on all projects and exited 0. The dead import suggests the wiring was
+intended and lost. Absorbed into Wave 2 (change A′).
+
+### P2 findings
+
+1. **Lock race.** `urtpe/lock.py:69` does read → check → write with no atomicity.
+   Two simultaneous starters both read "no lock". On POSIX both win. On Windows
+   the loser crashes with `PermissionError` on the shared `.lock.part` name
+   (reproduced with two threads). Absorbed into Wave 7 (P2.1).
+2. **`--fresh` destroys durable state.** `urtpe/links.py:1791` calls
+   `shutil.rmtree(self.cache_dir)`: deletes `portal_index.json` (the only path to
+   the ~110 oldest portal entries), `no_match_ledger.json`, and the per-project
+   `result.json` dirs. The coverage guard refuses afterwards, but the wipe has
+   already happened. The five `.link_cache_backup_*` dirs exist because of this
+   class of incident. Absorbed into Wave 7 (P2.2).
+3. **`data/taipei_case_ids.json` untracked.** Read by `discover_project_links`
+   (`urtpe/links.py:625`), written by `--add-mapping-file`. Curated,
+   human-verified — the same category as tracked `twur_overrides.json`. The path
+   is CWD-relative (`urtpe/cli.py:32`, `urtpe/links.py:415`). A clone loses it
+   with no error. Absorbed into Wave 1 (item 3).
+
+### P3 findings (housekeeping)
+
+4. Exit-code table incomplete (reconcile-block exits 2, undocumented) → Wave 7
+   (P3.1).
+5. Tripwire's page check inert as wired (`tables_found=pages`) → Wave 7 (P3.2).
+6. Portal-index crawl has no completeness signal → Wave 7 (P3.3).
+7. Corrected re-upload poisons `verify()` forever → **resolved** inside change D
+   (superseded digests, archived `9028780`).
+8. AGENTS.md stale on the viewer test → Wave 7 (P3.8).
+9. Uncommitted work names an untracked file → **done** (`0bc6ed0`).
+10. `FALLBACK_MAPPING_FILE` defined twice; `.corpus_cache/` never prunes → the
+    constant folds into Wave 1 (item 3); pruning remains open, unqueued.
+
+## Appendix B — viewer inspection (2026-10-26, live)
+
+The deployed build matched `HEAD`. Search, all four filters, cross-filtering, the
+detail pane, the counter, `rel="noopener"` links, and the recovered rows'
+provenance all behaved. No page-code console errors. No `undefined`/`NaN` text.
+Sound and verified: header counts, 統計至 label, cache-bust `?v=`, search matching
+parcel/district/implementer, filter panels with count badges, the version graph
+with per-track chains and stage bands, milestones with 國/北 badges, the
+20-column table, recovery provenance.
+
+Findings (all verified live):
+
+- **V1 — broken identity `等?筆`** → Wave 4 (change B).
+- **V2 — raw JSON/`null` in table cells** (`地號清單` as `["336",…]`, `地號別名`
+  as `{}`, `原地號數` as `null`) → Wave 6 (change C).
+- **V3 — 195 cards show no stage chip** (reads as "not started"; the data holds
+  審查中/自行撤回) → Wave 6 (change C; needs the spec delta).
+- **V4 — three date formats in one pane** (ISO / `2011/11/27` / `100.12.20`) →
+  Wave 6 (change C).
+- V5 stale detail pane on a filtered-out active project; V6 no sticky header on
+  the 20-column table; V7 milestone bars decorative; V8 list sorted by 編號
+  ascending; V9 no keyboard/screen-reader access; V10 9.1 MB payload (904 KB
+  gzipped); V11 chips/area colours carry no accessible name; V12 73 ms full-list
+  re-render per click → all watch.
+
+## Appendix C — peer session F-findings (2026-10-30)
+
+All five verified against the working tree before merging.
+
+- **F1** (`stage_index` read, never emitted — the section-branch grouping
+  collapses when every node loads -1; 0 section edges in the payload, 1 node
+  carries `area_section`) → Wave 3 (change A).
+- **F2** (one-time flake) → watch.
+- **F3** (dead code: `date_order_report` at `ordering.py:107` — the peer's
+  `links.py` attribution corrected; the 編號-dedup guarantee lives in the reader
+  `_dedupe_by_recno` since 2026-10-06, verified before deletion;
+  `classify_case_outcome`; `project_twur_class`) and **F4** (vestigial
+  orphan-skip at `cli.py:72-75`) → **done** (`d6c77b3`).
+- **F5** (uncommitted docs) → **done** (`0bc6ed0`).
+
+## Appendix D — the 09-24 restoration (executed 2026-10-31)
+
+The audit amendment's two claims, verified against the archive before acting:
+
+1. The quarantined `skipped since abnormal SN\核定案件-2026-10-02.pdf` **is**
+   gazette 2026-09-24: sha256 `5066b108…` matches the poller's record; 統計至
+   115/9/24 Gregorian; 246 pages; 1,681 raw rows = 1,436 real + 245 exact-copy
+   page heads; 1,414 emitted + 22 named truncations.
+2. `核定案件-2026-10-30.pdf` was a byte-identical re-upload of 10-15 — a missed
+   *check*, not a missed *gazette*.
+
+Executed under openspec change D (archived
+`2026-11-01-restore-2026-09-24-gazette`; commits `9ad2a9d`, `bb93106`; archive
+commit `9028780`):
+
+- Re-filed with `restored_from` provenance. `refile_from_quarantine` widened to
+  accept the pre-rebuild index backup and the poll log as digest evidence (the
+  rebuild had dropped 09-24's entries).
+- Ingested dual-path: tripwire PASS, 1,436/692, **all 22 truncated rows
+  API-recovered, 0 residual**. The running page head (編號 1 on 245 pages)
+  dedupes by content — the boundary regression test pins this against the v2
+  positional skip.
+- 08-27→09-24 change set written (+8/+13, roc→gregorian, blocking empty).
+- 10-01 re-ingested: new approvals 4, matching the 2026-10-07 superseded file
+  exactly; net +7, the divergence explained. Protocol deviation recorded: the
+  re-ingestion overwrote the live change set before the rename; the withdrawn
+  comparison was reconstructed into
+  `2026-10-01.superseded-pre-09-24-restore.json`.
+- Calendar boundary corrected in `AGENTS.md` + `openspec/config.yaml` (ROC
+  through 08-27, Gregorian from 09-24).
+- P3.7 superseded digests shipped and spec'd.
+- Forward re-emission of 10-06 and 10-15: both exit 0, links 685/8/0, smoke
+  passing, partition census verified.
+
+Two findings from the forward re-emission, both named-not-silent:
+
+1. Print completion refuses the 雙園段505 row: the cut's dangling `579-`
+   tokenizes as `579` while the candidate's `579-2` is whole, so the subset
+   check fails despite prefix+count matching. The API-partial 75/77 recovery
+   stands for 1005/1004. Follow-up recorded; spec-owned by
+   `truncated-row-recovery`.
+2. 編號 188 degraded to residual: gis.uro began timing out 4×90 s mid-run; the
+   per-row degrade held → Wave 1 item 2 reruns when healthy.
+
+Full trail: `docs/portal_operations_log.md` §27; the two scratch runs' reports
+preserved as `docs/ingest_0924_review_report.txt` and
+`docs/ingest_1001_rereview_report.txt`.
+
+## Appendix E — TAB-2 session G-findings (2026-11-01, verified at `bb93106`)
+
+Post-restore baseline: 2026-10-15, 1,441 records / 693 projects, 1,411
+case→record bindings, 981 distinct cases, 971 virtual entries / 951 distinct.
+
+- **G1** (join precedence; the peer's disjointness claim corrected — the sets
+  overlap, `links.taipei` carries six ids including both recovery cases) →
+  Wave 5 (change D′).
+- **G2** (R-form/numeric dual id space, real per `docs/urotpe_api.md` §4; absent
+  from the current payload because 188 is the residual) → Wave 5 (change D′).
+- **G3** (stranded counts: doc 23 / aliases 27 / plan note 32 / live 31−2) →
+  Wave 1 item 1.
+- **G4** (domain-model docs stale) → Wave 7.
+- **G5** (TAB-2 planning numbers predate the restore) → watch.
+- Out of scope here: TAB-2's six design decisions
+  (`docs/graph-tabs-decision.html`, user decision pending) and the 11 lane-less
+  records (a 2b lane-spec requirement, not a defect).
+
+## Appendix F — closed peer questions (2026-10-30)
+
+Suite baseline settled: the peer's 652 was a stale count predating
+`33ce713`/`b40bb15`; 706→708 collected as tests landed. No live spec cited
+`date_order_report` (deleted; the dedup rationale recorded on
+`departures_from_descending`). No objection to the `links.py` pair (liveness
+coverage confirmed in `tests/test_fetch_remaining_portal.py`). Tasks `99fe037a`,
+`2abddaf7`, `494f6747`.

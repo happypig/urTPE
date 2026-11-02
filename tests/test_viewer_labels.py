@@ -8,6 +8,7 @@ English key, plus the construction-phase graph annotation constants
 (chain slots / national provenance / implementation callout).
 """
 import re
+import shutil
 from pathlib import Path
 
 APP_JS = Path(__file__).resolve().parents[1] / "viewer" / "app.js"
@@ -438,6 +439,42 @@ def test_stage_key_cluster_order_kept_bands_removed():
     assert "stage-band" not in js, "stage bands removed from rendering per spec §2.5"
     css = (APP_JS.parent / "app.css").read_text(encoding="utf-8")
     assert ".stage-band" not in css
+
+
+def test_national_label_key_binds_stage_and_track():
+    # §2: nationalLabelKey maps a national approval label to {stage, track}; application
+    # dates and 使用核發日期 bind nothing.
+    import subprocess, json
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    js = APP_JS.read_text(encoding="utf-8")
+    m = re.search(r"(const CHINESE_DIGIT = \{[\s\S]*?\};\nconst nationalLabelKey = label => \{[\s\S]*?\n\};)", js)
+    assert m, "nationalLabelKey must exist in app.js"
+    cases = [["事業計畫核定日期", "擬訂", "事業計畫"],
+             ["權利變換計畫核定日期", "擬訂", "權利變換"],
+             ["第一次變更事業計畫核定日期", "變更", "事業計畫"],
+             ["第一次變更權利變換計畫核定日期", "變更", "權利變換"],
+             ["使用核發日期", None, None],
+             ["申請計畫日期", None, None]]
+    arg = json.dumps(cases, ensure_ascii=False)
+    prog = (m.group(0) + "\nconst cases = " + arg + ";\n" +
+            "console.log(JSON.stringify(cases.map(([label, stage, track]) => {\n" +
+            "  const k = nationalLabelKey(label);\n" +
+            "  const ok = k == null ? stage == null && track == null\n" +
+            "             : k.stage === stage && k.track === track;\n" +
+            "  return [label, ok];\n" +
+            "})));\n")
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr
+    results = json.loads(r.stdout)
+    assert all(ok for _, ok in results), f"nationalLabelKey mismatches: {results}"
+
+
+def test_is_current_branch_removed_from_國_badge():
+    # §2: the 現況 rule no longer grants 國 alone.
+    js = APP_JS.read_text(encoding="utf-8")
+    assert "node.is_current" not in js, "國 badge must not be granted by is_current alone"
 
 
 def test_per_track_stage_helpers_present():

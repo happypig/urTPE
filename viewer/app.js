@@ -17,6 +17,23 @@ const CONSTRUCTION_CHAIN_SLOTS = ["建照核發日期", "開工日期", "使照�
 // Slot -> national-portal milestone label; a hit supplies the 國 badge (and the
 // fallback value for the 使照 slot when 使照核發日期 is absent).
 const NATIONAL_MAPPED_LABELS = { "使照核發日期": "使用核發日期" };
+
+// §2: a national approval label carries a stage (擬訂 / 第N次變更) and a track
+// (事業計畫 / 權利變換). A node gets 國 when a label binds to it by stage+track
+// (date tie-break when several nodes match). Returns null for labels that name no
+// stage (使用核發日期, …申請日期). Node stages render 第N次 as Chinese ordinals:
+// 第一次→變更, 第二次→變更(第二次), etc.
+const CHINESE_DIGIT = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 };
+const nationalLabelKey = label => {
+  const m = String(label).match(/^(第([一二三四五六\d]+)次變更)?(事業計畫|權利變換計畫)核定日期$/);
+  if (!m) return null;
+  const raw = m[2] || "";
+  const ordinal = raw === "" ? 0 : Number(raw) || CHINESE_DIGIT[raw] || 0;
+  const stage = ordinal === 0 ? "擬訂" : ordinal === 1 ? "變更" : `變更(${raw}次)`;
+  // label track 權利變換計畫 → node track 權利變換 (label keeps 計畫 for grammar)
+  const track = m[3] === "權利變換計畫" ? "權利變換" : m[3];
+  return { stage, track };
+};
 // Implementation summary callout on the anchor record.
 const IMPLEMENTATION_CALLOUT_FIELDS = {
   Exe_Way: "實施方式",
@@ -101,11 +118,38 @@ function byDateNodes(nodes) {
   });
 }
 
+// §2: 國 binds to the recno node whose stage+track match a national approval
+// label (date tie-break when several nodes match). view_verified_case_ids stays
+// as a second source; the current-node rule alone is removed.
+function trackMatches(nodeTrack, labelTrack) {
+  if (nodeTrack === labelTrack) return true;
+  const combined = "事業計畫、權利變換";
+  return nodeTrack === combined && (labelTrack === "事業計畫" || labelTrack === "權利變換");
+}
+
+function nationalBoundTo(node, national) {
+  let best = null;
+  for (const label of Object.keys(national || {})) {
+    const k = nationalLabelKey(label);
+    if (!k) continue;
+    if (node.stage !== k.stage) continue;
+    if (!trackMatches(node.track, k.track)) continue;
+    const iso = /^\d{2,3}\./.test(String(national[label] || ""))
+      ? `${1911 + Number(String(national[label]).match(/^(\d{2,3})\./)[1])}-${String(national[label]).match(/^(\d{2,3})\.(\d{1,2})\.(\d{1,2})$/)[2].padStart(2, "0")}-${String(national[label]).match(/^(\d{2,3})\.(\d{1,2})\.(\d{1,2})$/)[3].padStart(2, "0")}`
+      : String(national[label]);
+    const score = node.date === iso ? 2 : 1;
+    if (!best || score > best.score) best = { label, score, date: national[label] };
+  }
+  return best;
+}
+
 function getNodeMilestoneBadges(node, project) {
   // Portal links live on the nodes (相關連結 section retired): 北 → anchored
-  // Taipei case page; 國 → national view page on the 現況 node AND on nodes
-  // whose case the view page names (view_verified_case_ids — the portal's
-  // assertion, fix-row-order-tiebreak-and-view-badges D4). One 國 if both.
+  // Taipei case page; 國 → national view page on the node a national label binds
+  // to (stage+track match, date tie-break) AND on nodes whose case the view page
+  // names (view_verified_case_ids — the portal's assertion,
+  // fix-row-order-tiebreak-and-view-badges D4). One 國 if both. The 現況 rule
+  // (current-node rule alone) is removed.
   const badges = [];
   const cases = (node.links || {}).taipei || [];
   if (cases.length) {
@@ -114,7 +158,8 @@ function getNodeMilestoneBadges(node, project) {
   const twur = project && project.links && project.links.twur;
   const viewVerified = (project && project.links && project.links.view_verified_case_ids) || [];
   const anchoredViewVerified = cases.length && viewVerified.includes(cases[0]);
-  if (twur && (node.is_current || anchoredViewVerified)) {
+  const bound = twur ? nationalBoundTo(node, project.links && project.links.milestones_national) : null;
+  if (twur && (bound || anchoredViewVerified)) {
     const vm = twur.match(/view\/(\d+)/);
     const label = vm ? `view/${vm[1]}` : "國土署入口網";
     badges.push(`<a class="node-milestone-badge national badge-link" href="${escapeHtml(twur)}" target="_blank" rel="noopener" title="${escapeHtml(label)}">國</a>`);

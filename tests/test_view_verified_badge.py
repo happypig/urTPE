@@ -92,14 +92,16 @@ def test_a_non_view_verified_node_gains_no_national_badge():
         f"got {badges}")
 
 
-def test_the_current_node_keeps_its_national_badge():
-    """Node 5 (2026-09-30) is 現況 — its 國 badge is the existing rule,
-    unchanged by this change."""
+def test_the_current_node_no_longer_carries_national_badge_alone():
+    """§2: the 現況 rule is removed. Node 5 (2026-09-30) anchors 11505020 which
+    is not in view_verified_case_ids [10803151, 10105152], and the fixture has
+    no national milestones, so it carries no 國 badge."""
     lines = _probe_lines()
     y5 = _node_y_by_recno(lines)[5]
     national = _national_at(_badges_by_y(lines), y5)
-    assert national == ["view/621"], (
-        f"the 現況 node must keep exactly one 國 badge; got {national}")
+    assert national == [], (
+        f"the 現況 node whose case is not view-verified must carry no 國 badge; "
+        f"got {national}")
 
 
 def test_a_node_qualifying_both_ways_renders_one_badge():

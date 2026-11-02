@@ -47,17 +47,27 @@
 
 ## 3. Live acceptance
 
-- [ ] 3.1 Backup `data/.link_cache` → `data/.link_cache_backup_20261102_supersede`;
+- [x] 3.1 Backup `data/.link_cache` → `data/.link_cache_backup_20261102_supersede`;
       record counts (records, projects, never-approved, 審查中 chips, total
       `links.taipei` ids, orphan nodes).
-- [ ] 3.2 Live refresh: record added cases (per project, search status +
+- [x] 3.2 Live refresh: record added cases (per project, search status +
       NAME), superseded, no-successor, ambiguous; 11211211 → 11409026 and
       10806141 → 11510017 recorded; 11510017 added to 虎林38.
-- [ ] 3.3 Re-emit; records / projects / never-approved unchanged; `links.taipei`
+- [x] 3.3 Re-emit; records / projects / never-approved unchanged; `links.taipei`
       growth equals the added count; a dry-run shows fewer than 91 candidates.
-- [ ] 3.4 Chrome (local server): 立農163-2 has no 審查中 chip and 11211211 reads
+- [x] 3.4 Chrome (local server): 立農163-2 has no 審查中 chip and 11211211 reads
       `已由 11409026 取代`; 虎林38 shows 11510017 `[審查中]`, a 審查中 chip, and
       10806141 `已由 11510017 取代`.
+      Results (3.1-3.4): backup `.link_cache_backup_20261102_supersede`; live
+      refresh 90 projects / 0 failures — 4 added (吉林705-3 11503012, 福和472-1
+      11208191, 虎林38 11510017, 雅祥227-4 11510001), 2 superseded (as targeted),
+      2 無 without successor (雅祥227-4 11009142, 吉林705-3 10410012 — each has a
+      same-named newer case differing in one or two dates, refused by the strict
+      rule), 4 not searched (stranded cache ids absent from the payload), 0
+      conflicts. Re-emission exit 0, 1,442 / 693, never-approved 3 → 3,
+      links.taipei 1993 → 1997 (= 4 added), orphan nodes 593 → 596 (11208191
+      bound gazette node 219, which had no case before), dry-run 90 → 89. Chrome
+      on 127.0.0.1, DOM-verified, all targets met.
 - [ ] 3.5 Commit, push, `check_deploy.py` FRESH, repeat 3.4 on the live page.
 - [ ] 3.6 Books: archive with spec sync; §37 states that §36's "立農163-2
       correctly stays 審查中" was wrong and why; correct `docs/inspection.md`.

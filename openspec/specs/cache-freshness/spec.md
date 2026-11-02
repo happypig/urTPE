@@ -43,6 +43,10 @@ in the cache while the API reports 核定日期 2026/09/30). A case whose cached
 status is 自行撤回 / 已駁回 / 已失效 SHALL NOT make its project a candidate: such a
 case was closed without approval and will never gain an approval date
 (measured 2026-11-02: 85 of the 176 selected projects carried only such cases).
+Nor SHALL a case whose last-read platform header reads `無`, or a case recorded
+as superseded by another case: the city re-files an application under a new
+case id and leaves the old one with no current state (measured 2026-11-02:
+立農段五小段-163-2's 11211211 → 11409026, 虎林段四小段-38's 10806141 → 11510017).
 It SHALL re-fetch the milestones for exactly the selected projects, SHALL
 preserve every other field the cache already holds, SHALL re-run the national
 view-page absorb so the cache gains `view_verified_case_ids` and any case ids
@@ -62,11 +66,38 @@ The refresh SHALL also re-derive each refreshed case's status from the
 platform's case header (`get_project168_top.ashx` `NAME`) and SHALL report every
 status change with its old value, new value and the `NAME` it came from. The
 re-derived status SHALL NOT replace a cached later stage (施工中 / 已完工 /
-完成成果備查) with the approved state; an outcome-less `NAME` SHALL keep the
-cached status, except that a cached approved-family status (已核准 / 已核定) on a
-case whose own milestones carry no approval date SHALL be cleared, because the
-case's own record contradicts it. The run report SHALL list cases closed
-without approval separately from cases still awaiting approval.
+完成成果備查) with the approved state. A header that exists and reads `無` (or has
+an empty `NAME`) states that the case has no current state: it SHALL clear a
+cached 審查中 or approved-family status (已核准 / 已核定) and SHALL keep a terminal
+status (自行撤回 / 已駁回 / 已失效) or a later stage, because a withdrawn case stays
+withdrawn and clearing it could hide a project's never-approved reason. A header
+that names an unrecognised outcome SHALL keep the cached status, except that a
+cached approved-family status on a case whose own milestones carry no approval
+date SHALL be cleared. A missing header row is no evidence and SHALL change
+nothing. The refresh SHALL record the header `NAME` it read per case in the
+cache, so the offline selection can see it.
+
+For a case whose header reads `無`, the refresh SHALL record which case
+superseded it when exactly one other case of the project has the identical
+header case name, a numerically greater case id, and milestones containing every
+dated label of the `無` case with the same date, the `無` case carrying at least
+three dated labels. When several cases qualify the refresh SHALL report the case
+as ambiguous and record nothing. A `無` case with no qualifying case SHALL be
+reported by name as having no successor found.
+
+Before re-reading its cases, the refresh SHALL repeat the parcel search the
+project's discovery used — the anchor record's 地段, first 地號 and 案名, with the
+same name guard — and SHALL append every case id it returns that the cache does
+not hold to the end of the cache's case list, without re-ordering the existing
+ids, because the positional fallback binds by index. Each added case SHALL be
+re-read like the others and reported with its search status and header. A
+failed search SHALL be reported as a failure of that project, not as a search
+that found nothing; a project with no anchor 地段 / 地號 SHALL be reported as not
+searched.
+
+The run report SHALL list cases closed without approval, cases superseded (with
+their successor), `無` cases with no successor found, ambiguous cases, and added
+cases, each separately from cases still awaiting approval.
 
 #### Scenario: A project's case has since been approved
 
@@ -140,18 +171,86 @@ without approval separately from cases still awaiting approval.
 - **THEN** its refreshed status is 審查中
 - **AND** the report names the case, 已核准 → 審查中 and the `NAME`
 
-#### Scenario: An outcome-less NAME keeps a consistent cached status
+#### Scenario: A 無 header clears an in-review status
 
 - **WHEN** a cached case's status is 審查中 and its header `NAME` is `無`
   (立農段五小段-163-2 11211211)
+- **THEN** its status is cleared, and the report names the change and the `NAME`
+
+#### Scenario: A 無 header clears an approved status
+
+- **WHEN** a cached case's status is 已核准 and its header `NAME` is `無`
+  (虎林段四小段-38 10806141)
+- **THEN** its status is cleared
+
+#### Scenario: A 無 header keeps a terminal status
+
+- **WHEN** a cached case's status is 自行撤回 (or 已駁回 / 已失效) and its header
+  `NAME` is `無`
+- **THEN** its status stays 自行撤回
+
+#### Scenario: A missing header row changes nothing
+
+- **WHEN** the header call returns no row for a case
+- **THEN** its cached status is unchanged and no header is recorded
+
+#### Scenario: An outcome-less NAME keeps a consistent cached status
+
+- **WHEN** a cached case's status is 審查中 and its header `NAME` names no recognised
+  outcome (not `無` — a `無` header clears it, see above; this scenario's archived
+  form used 立農段五小段-163-2 11211211, whose `無` was later measured to mean a
+  superseded copy)
 - **THEN** its status stays 審查中
 
 #### Scenario: An outcome-less NAME clears a contradicted approved status
 
 - **WHEN** a cached case's status is 已核准, its own milestones carry an application
-  date and no approval date, and its header `NAME` is `無`
-  (虎林段四小段-38 10806141)
+  date and no approval date, and its header `NAME` names no recognised outcome
 - **THEN** its status is cleared, and the report names the change
+
+#### Scenario: A re-filed case is recorded as superseded
+
+- **WHEN** a case's header reads `無`, and one other case of the project has the same
+  header case name, a greater case id, and milestones containing all of the first
+  case's dated labels with the same dates (11211211 → 11409026)
+- **THEN** the cache records 11211211 as superseded by 11409026
+- **AND** the report lists 11211211 as superseded by 11409026, not as awaiting
+
+#### Scenario: A different case name is not a successor
+
+- **WHEN** a `無` case's milestones are contained in another case's, but the header
+  case names differ
+- **THEN** no successor is recorded and the case is reported as having none
+
+#### Scenario: Two qualifying successors are ambiguous
+
+- **WHEN** two cases qualify as the successor of one `無` case
+- **THEN** no successor is recorded and the case is reported as ambiguous
+
+#### Scenario: A sparse case is not matched
+
+- **WHEN** a `無` case carries fewer than three dated labels
+- **THEN** no successor is recorded
+
+#### Scenario: A 無 or superseded case does not make its project a candidate
+
+- **WHEN** a project's only awaiting case has a recorded header `無`, or is recorded
+  as superseded
+- **THEN** the project is not selected
+
+#### Scenario: The refresh finds a case filed after the cache was written
+
+- **WHEN** the parcel search for 虎林段四小段 38 returns 11510017, which the cache
+  does not hold
+- **THEN** 11510017 is appended after the existing case ids, in their old order
+- **AND** its milestones and header are read, its status is 審查中
+- **AND** 10806141 is recorded as superseded by 11510017
+- **AND** the report lists 11510017 as added
+
+#### Scenario: A failed search is a failure
+
+- **WHEN** the parcel search raises for a selected project
+- **THEN** the project is reported as failed, and its cache is unchanged
 
 #### Scenario: A later cached stage is never downgraded
 
@@ -163,6 +262,7 @@ without approval separately from cases still awaiting approval.
 
 - **WHEN** the refresh runs with its default platform adapters (no fetcher injected)
 - **THEN** the case status is re-derived from the case header, not only the milestones
+- **AND** the parcel search runs, so a newly filed case id is appended
 
 #### Scenario: The report separates closed cases from awaiting ones
 
@@ -201,5 +301,29 @@ cache) emits without the key.
 
 - **WHEN** a project's cache predates the field and carries no
   `view_verified_case_ids`
+- **THEN** the payload emits without the key and nothing fails
+
+### Requirement: The emitted payload carries the replaced-case map
+
+The pipeline SHALL emit `links.superseded_by` — `{old case_id: new case_id}` as
+the refresh recorded it — at project level beside `case_schedules`, and SHALL
+carry it unchanged through a `--from-js` reload, because the payload is both the
+viewer's input and the next run's input. A result without the map emits without
+the key.
+
+#### Scenario: A superseded case reaches the payload
+
+- **WHEN** a project's cache records 11211211 as superseded by 11409026
+- **THEN** the payload's `links.superseded_by` is `{"11211211": "11409026"}`
+
+#### Scenario: The map survives a reload
+
+- **WHEN** a payload carrying `links.superseded_by` is reloaded with `--from-js` and
+  emitted again
+- **THEN** the second payload carries the same `links.superseded_by`
+
+#### Scenario: A legacy cache without the map
+
+- **WHEN** a cache carries no `superseded_by`
 - **THEN** the payload emits without the key and nothing fails
 

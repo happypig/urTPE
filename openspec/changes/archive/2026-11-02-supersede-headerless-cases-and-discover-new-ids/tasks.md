@@ -68,6 +68,8 @@
       links.taipei 1993 → 1997 (= 4 added), orphan nodes 593 → 596 (11208191
       bound gazette node 219, which had no case before), dry-run 90 → 89. Chrome
       on 127.0.0.1, DOM-verified, all targets met.
-- [ ] 3.5 Commit, push, `check_deploy.py` FRESH, repeat 3.4 on the live page.
-- [ ] 3.6 Books: archive with spec sync; §37 states that §36's "立農163-2
+- [x] 3.5 Commit, push, `check_deploy.py` FRESH, repeat 3.4 on the live page.
+      Result: pushed 88d054c; all 4 FRESH (2nd poll); the live page renders the
+      same 立農163-2 / 虎林38 entries and chips as 3.4.
+- [x] 3.6 Books: archive with spec sync; §37 states that §36's "立農163-2
       correctly stays 審查中" was wrong and why; correct `docs/inspection.md`.

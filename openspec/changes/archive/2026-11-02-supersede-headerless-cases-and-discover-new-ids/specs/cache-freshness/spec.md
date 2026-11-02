@@ -165,12 +165,19 @@ cases, each separately from cases still awaiting approval.
 - **WHEN** the header call returns no row for a case
 - **THEN** its cached status is unchanged and no header is recorded
 
-#### Scenario: An unrecognised NAME clears only a contradicted approved status
+#### Scenario: An outcome-less NAME keeps a consistent cached status
+
+- **WHEN** a cached case's status is 審查中 and its header `NAME` names no recognised
+  outcome (not `無` — a `無` header clears it, see above; this scenario's archived
+  form used 立農段五小段-163-2 11211211, whose `無` was later measured to mean a
+  superseded copy)
+- **THEN** its status stays 審查中
+
+#### Scenario: An outcome-less NAME clears a contradicted approved status
 
 - **WHEN** a cached case's status is 已核准, its own milestones carry an application
   date and no approval date, and its header `NAME` names no recognised outcome
-- **THEN** its status is cleared
-- **AND** a cached 審查中 under the same header stays 審查中
+- **THEN** its status is cleared, and the report names the change
 
 #### Scenario: A re-filed case is recorded as superseded
 

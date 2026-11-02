@@ -344,7 +344,7 @@ table.recs tr.current td { background: #fef2f2; }
 }
 .impl-callout-row { display: flex; gap: 6px; line-height: 14px; }
 .impl-callout-row span { color: #57534e; }
-.impl-callout-row b { font-weight: 600; margin-inline-start: auto; }
+.impl-callout-row b { font-weight: 600; margin-inline-start: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 /* 案名 suffix in the 相關連結 section */
 .link-case-name { color: #52525b; font-size: 12px; }
@@ -376,8 +376,6 @@ table.recs tr.current td { background: #fef2f2; }
 @media (max-width: 767px) {
   #list { max-height: 32vh; overflow-y: auto; }
 }
-.stage-band rect { fill: rgba(130, 80, 223, 0.06); stroke: rgba(130, 80, 223, 0.25); rx: 6; }
-.stage-band-chip { font-size: 9px; font-weight: 700; fill: #8250df; }
 
 /* (viewer-stage-chip-coverage) the grey status chip: in-review/withdrawn with
    no construction stage. Silence must not read as "not started". */

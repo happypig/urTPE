@@ -1,6 +1,12 @@
 "use strict";
 
 const W = 960, PAD = 60, COL_W = 130, NODE_ROW = 64, EVENT_ROW = 32;
+// Reserved callout gutter left of the leftmost track column. Width is set per
+// project (from the widest callout box) up to this cap; 0 when no callouts.
+const CALLOUT_GUTTER_CAP = 160;
+const CALLOUT_MIN_W = 140;
+const CALLOUT_PAD = 8;
+const CALLOUT_GAP = 2; // px between stacked callout boxes
 const KIND_COLOR = { revision: "#1d4ed8", track: "#0f766e", section: "#b45309" };
 const KIND_LABEL = { revision: "版本", track: "事業種類", section: "區段" };
 
@@ -955,99 +961,129 @@ function init() {
       svgH = Math.max(svgH, posRaw[c.n.recno].y + 84);
     });
 
+    // ---------- callout box sizing (content-driven, then gutter clamp) ----------
+    const cjkWidth = (s) => String(s).replace(/[一-鿿぀-ヿ〇-〿]/g, "  ").length;
+    const labelRectOf = (n) => {
+      const q = pos[n.recno];
+      const head = `${n.virtual ? "" : n.recno + " · "}${n.date}${n.stage ? " " + n.stage : ""}`;
+      const areaTxt = n.area ? `（${n.area}區段）` : "";
+      const schedTxt = n.virtual
+        ? ""
+        : scheduleBadgeText(caseScheduleOf(p, ((n.links || {}).taipei || [])[0]));
+      const w = cjkWidth(head) + areaTxt.length * 11 + schedTxt.length * 6.5 + 14 + 12;
+      return { x: q.x + 14, y: q.y - 30, w, h: 50 };
+    };
+    const implLabelW = (label, value) => {
+      const s = String(label || "");
+      const v = String(value || "");
+      return 8 + cjkWidth(s) * 11 + 10 + cjkWidth(v) * 11;
+    };
+    const implBoxW = (c) => {
+      const w = Math.max(...c.rows.map(r => implLabelW(r.label, r.value)));
+      return Math.max(CALLOUT_MIN_W, Math.min(w + CALLOUT_PAD, CALLOUT_GUTTER_CAP));
+    };
+    const implBoxH = (c) => {
+      const lines = c.rows.reduce((acc, r) => acc + (String(r.value).length > 20 ? 2 : 1), 0);
+      return lines * 14 + 6;
+    };
+
+    callouts.forEach(c => {
+      c.boxW = implBoxW(c);
+      c.boxH = implBoxH(c);
+    });
+
+    // gutter width = widest callout box (0 when no callouts)
+    const gutterW = callouts.length ? Math.max(...callouts.map(c => c.boxW)) : 0;
+
+    // canvas width: at least W, plus gutter if present, plus ghost column / callouts.
+    // contentW already includes gutterW so tracks start right of the gutter.
+    svgW = svgMinW + gutterW;
+    if (hasEvents) svgW = Math.max(svgW, eventColX + 250);
+
+    callouts.forEach(c => {
+      svgH = Math.max(svgH, posRaw[c.n.recno].y + 84);
+    });
+
     // apply horizontal centering once svgW is final
     const xOffset = (svgW - contentW) / 2;
+    const gutterX = xOffset + PAD; // gutter starts after left padding
     const pos = {};
     const evPos = {};
-    Object.entries(posRaw).forEach(([k, v]) => { pos[k] = { x: xOffset + v.x, y: v.y }; });
-    Object.entries(evPosRaw).forEach(([k, v]) => { evPos[k] = { x: xOffset + v.x, y: v.y }; });
+    Object.entries(posRaw).forEach(([k, v]) => { pos[k] = { x: xOffset + gutterW + v.x, y: v.y }; });
+    Object.entries(evPosRaw).forEach(([k, v]) => { evPos[k] = { x: xOffset + gutterW + v.x, y: v.y }; });
     const ghostPos = {};
-    Object.entries(ghostPosRaw).forEach(([k, v]) => { ghostPos[k] = { x: xOffset + v.x, y: v.y }; });
+    Object.entries(ghostPosRaw).forEach(([k, v]) => { ghostPos[k] = { x: xOffset + gutterW + v.x, y: v.y }; });
 
-    // Callout placement: collision-dodging spots, clamped into the viewBox.
-    // Runs BEFORE the svg string is built so viewBox extensions take effect.
-    const evRects = events.map(e => {
+    // ---------- callout placement: top-to-bottom sweep in gutter ----------
+    // Each box starts at its node's row; moves down only when overlapping
+    // the box above (CALLOUT_GAP), never up. Leader connects box to node circle.
+    let lastBoxBottom = PAD; // y of last box bottom, relative to content area
+    callouts.forEach((c, ci) => {
+      const np = pos[c.n.recno];
+      const h = c.boxH;
+      let y = np.y - h / 2; // center box on node row
+      if (y < PAD) y = PAD;
+      if (lastBoxBottom && y < lastBoxBottom + CALLOUT_GAP) y = lastBoxBottom + CALLOUT_GAP;
+      const x = gutterX;
+      c.rect = { x, y, w: c.boxW, h };
+      lastBoxBottom = y + h;
+      svgH = Math.max(svgH, y + h + CALLOUT_PAD);
+      svgW = Math.max(svgW, gutterX + c.boxW + CALLOUT_PAD);
+    });
+
+    // layoutRects: every placed rectangle for the viewer smoke overlap guard.
+    // Kept here so renderer and guard share one geometry source.
+    const nodeLabelRect = (n) => {
+      const r = labelRectOf(n);
+      return { id: `node:${n.recno}`, x: r.x, y: r.y, w: r.w, h: r.h };
+    };
+    const eventRect = (e) => {
       const q = evPos[e.label];
-      return { x: q.x - 8, y: q.y - 12, w: 240, h: 26 };
-    });
-    if (hasGhosts) {
-      orphans.forEach(g => {
-        const q = ghostPos[`${g.case_id}::__node__`];
-        if (q) evRects.push({ x: q.x - 10, y: q.y - 16, w: 240, h: 32 });
-      });
-    }
-    const placedBoxes = [];
-    const hitsAny = (r, list) => list.some(o =>
-      r.x < o.x + o.w && o.x < r.x + r.w && r.y < o.y + o.h && o.y < r.y + r.h);
-    callouts.forEach(c => {
-      const ownRecno = c.n.recno;
-      const p2 = pos[ownRecno];
-      const w = 150, h = c.rows.length * 14 + 6;
-      // §5.3.6 collision boxes cover the node's full visual footprint
-      // (badge strip above the label + the two text lines).
-      const nodeRects = [...nodes, ...virtualNodes]
-        .filter(n => n.recno !== ownRecno && pos[n.recno])
-        .map(n => {
-          const q = pos[n.recno];
-          const headLen = (`${n.virtual ? "" : n.recno + " · "}${n.date}${n.stage ? " " + n.stage : ""}`).length;
-          return { x: q.x - 10, y: q.y - 30, w: 14 + headLen * 6.5 + 40, h: 50 };
-        });
-      const spots = [
-        { x: p2.x - 16 - w, y: p2.y + 20 },          // below-left
-        { x: p2.x + 16,     y: p2.y + 20 },          // below-right
-        { x: p2.x - 16 - w, y: p2.y - 10 - h },      // above-left
-        { x: p2.x + 16,     y: p2.y - 10 - h },      // above-right
-        { x: p2.x - 16 - w, y: p2.y + 46 },          // further below-left
-        { x: p2.x + 16,     y: p2.y + 46 },          // further below-right
-        { x: p2.x - 16 - w, y: p2.y + 72 },          // far below-left
-        { x: p2.x + 16,     y: p2.y + 72 },          // far below-right
-      ].map(s => ({
-        x: Math.min(Math.max(s.x, 4), Math.max(4, svgW - w - 4)),
-        y: Math.min(Math.max(s.y, 4), Math.max(4, svgH - h - 4)),
-      }));
-      let spot = spots.find(s => {
-        const r = { x: s.x, y: s.y, w, h };
-        return !hitsAny(r, nodeRects) && !hitsAny(r, evRects) && !hitsAny(r, placedBoxes);
-      });
-      if (!spot) {
-        // §5.3.6 canvas-extension fallback: grow the canvas instead of
-        // accepting an overlap.
-        spot = {
-          x: Math.min(Math.max(p2.x + 16, 4), Math.max(4, svgW - w - 4)),
-          y: svgH + 8, w, h,
-        };
-        svgH = spot.y + h + 16;
-      }
-      spot.w = w; spot.h = h;
-      placedBoxes.push(spot);
-      c.rect = spot;
-      svgH = Math.max(svgH, spot.y + h + 16);
-      svgW = Math.max(svgW, spot.x + w + 8);
-    });
+      return { id: `event:${e.label}`, x: q.x - 8, y: q.y - 12, w: 240, h: 26 };
+    };
+    const ghostRect = (g) => {
+      const q = ghostPos[`${g.case_id}::__node__`];
+      return { id: `ghost:${g.case_id}`, x: q.x - 10, y: q.y - 16, w: 240, h: 32 };
+    };
+    const calloutRect = (c) => {
+      const r = c.rect;
+      return { id: `callout:${c.n.recno}`, x: r.x, y: r.y, w: r.w, h: r.h };
+    };
+    const leaderSeg = (c) => {
+      const r = c.rect, np = pos[c.n.recno];
+      const x1 = r.x + r.w; // right edge of gutter box
+      const y1 = c.leadY != null ? c.leadY : r.y + c.boxH / 2;
+      const x2 = np.x - 7;
+      const y2 = y1;
+      return { id: `leader:${c.n.recno}`, x1, y1, x2, y2, owns: `callout:${c.n.recno}` };
+    };
+    window.__LAYOUT_RECTS = {
+      gutterX: xOffset + PAD,
+      gutterW,
+      callouts: callouts.map(calloutRect),
+      nodes: nodes.map(nodeLabelRect),
+      events: events.map(eventRect),
+      ghosts: interimOrphans.map(ghostRect),
+      leaders: callouts.map(leaderSeg),
+    };
 
-    // §5.2.6 stage-cluster bands: soft band + count chip behind clusters with
-    // ≥2 members. Span covers the members' full node footprint.
-    const bandHtml = clusters.filter(c => c.members.length >= 2).map(c => {
-      const ys = c.members.map(m => pos[m.recno]).filter(Boolean).map(q => q.y);
-      if (ys.length < 2) return "";
-      const top = Math.min(...ys) - 30, bottom = Math.max(...ys) + 26;
-      const label = `${c.stage} · ${c.members.length} 案` +
-        (c.undatedCount ? ` · ${c.undatedCount} 未核定` : "");
-      return `<g class="stage-band"><rect x="${PAD - 44}" y="${top}" width="${svgW - PAD * 2 + 88}" height="${bottom - top}"></rect>` +
-        `<text class="stage-band-chip" x="${PAD - 36}" y="${top + 12}">${escapeHtml(label)}</text></g>`;
-    }).join("");
+    // §2.5: stage bands and count chips removed from rendering (clash with
+    // the callout gutter). Stage clustering still orders rows and tags
+    // undated members as (未核定).
+    const bandHtml = "";
 
     let s = `<h2><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}</h2>
       <div class="district">${escapeHtml(p.district)} · ${escapeHtml(p.section)} · ${escapeHtml(p.implementer)} · 共 ${p.member_recnos.length} 筆</div>
       <div class="legend">
         <span class="rev">版本（核定時序）</span>
-        <span class="trk">事業種類</span>
         <span class="sec">區段</span>
       </div>
       <div class="graph-viewport"><div class="graph-zoom">
       <svg viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="xMidYMid meet">${bandHtml}`;
 
+    // §3: track edges remain in projects.json data but are not drawn.
     p.edges.forEach(e => {
+      if (e.kind === "track") return;
       const a = pos[e.from], b = pos[e.to];
       if (!a || !b) return;
       s += `<line class="edge ${e.kind}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
@@ -1160,21 +1196,41 @@ function init() {
       });
     }
 
-    // Per-record implementation callouts: render the pre-placed rects.
+    // Per-record implementation callouts: render the pre-placed rects in the gutter.
     callouts.forEach(c => {
       const r = c.rect;
       const np = pos[c.n.recno];
       const rowsHtml = c.rows.map(row =>
-        `<div class="impl-callout-row"><span>${escapeHtml(row.label)}</span><b class="${row.changed ? "callout-diff" : ""}">${escapeHtml(row.value)}</b></div>`
+        `<div class="impl-callout-row"><span>${escapeHtml(row.label)}</span><b class="${row.changed ? "callout-diff" : ""}" title="${escapeHtml(row.value)}">${escapeHtml(row.value)}</b></div>`
       ).join("");
-      const apex = { x: np.x - 7, y: np.y + 9 };
-      let tail;
-      if (r.x + r.w <= np.x) {          // box left of node → tail on right edge
-        tail = `${r.x + r.w},${r.y + 4} ${apex.x},${apex.y} ${r.x + r.w},${r.y + r.h - 4}`;
-      } else {                          // box right of node → tail on left edge
-        tail = `${r.x},${r.y + 4} ${apex.x + 14},${apex.y} ${r.x},${r.y + r.h - 4}`;
+      // Route the leader horizontally at a y that clears every neighbour node's
+      // label band across the gutter span; otherwise center on the box.
+      const leadX1 = r.x + r.w, leadX2 = np.x - 7;
+      const leaderOverlap = (cy) => {
+        for (const nn of nodes) {
+          if (nn.recno === c.n.recno) continue;
+          const lr = labelRectOf(nn);
+          if (!lr) continue;
+          const lo = lr.y, hi = lr.y + lr.h;
+          if (cy > lo && cy < hi && leadX1 < lr.x + lr.w && leadX2 > lr.x) {
+            return true;
+          }
+        }
+        return false;
+      };
+      // try the box center, then scan ys across the box height (every 2 px);
+      // fall back to placing the leader at the node's row so it enters the node
+      // circle perpendicularly rather than crossing a label band horizontally.
+      let leadY = r.y + c.boxH / 2;
+      if (leaderOverlap(leadY)) {
+        let found = false;
+        for (let cy = r.y + 4; cy <= r.y + c.boxH - 4 && !found; cy += 2) {
+          if (!leaderOverlap(cy)) { leadY = cy; found = true; }
+        }
+        if (!found) leadY = np.y + 9;
       }
-      s += `<polygon class="callout-tail" points="${tail}"></polygon>`;
+      c.leadY = leadY;
+      s += `<line class="callout-leader" x1="${leadX1}" y1="${leadY}" x2="${leadX2}" y2="${leadY}"></line>`;
       s += `<foreignObject x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"><div xmlns="http://www.w3.org/1999/xhtml" class="impl-callout">${rowsHtml}</div></foreignObject>`;
     });
     s += "</svg></div></div>";
@@ -1335,6 +1391,10 @@ function init() {
 
   filter.addEventListener("input", renderList);
   renderList();
+
+  // Exposed for the viewer smoke harness so it can recompute layout rects
+  // per project without re-clicking every item.
+  if (typeof window !== "undefined") window.renderDetail = renderDetail;
 }
 
 // §5.3.3 pinch-zoom + pan for the graph viewport. Two-finger pinch scales the

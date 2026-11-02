@@ -155,14 +155,18 @@ def test_implementation_callout_fields_exact():
 def test_annotation_leader_and_tail_present():
     js = _js()
     css = (APP_JS.parent / "app.css").read_text(encoding="utf-8")
-    # timeline-event redesign: per-event attribution edges + per-record tails
+    # timeline-event redesign: per-event attribution edges + per-record callout leaders
     assert "event-edge" in js, "app.js must draw source-colored attribution edges"
     assert "event-link" in js, "app.js must draw the 開工→使照 connector"
-    assert "callout-tail" in js, "app.js must draw per-record callout tails"
+    assert "callout-leader" in js, "app.js must draw per-record callout leaders"
     assert "callout-diff" in js, "app.js must red-highlight changed callout values"
     assert ".event-edge" in css and ".callout-diff" in css, (
         "app.css must style .event-edge/.callout-diff"
     )
+    # replaced by the gutter placement (spec §1)
+    assert "callout-tail" not in js, "callout-tail polygon replaced by callout-leader"
+    # replaced by the gutter placement (spec §1)
+    assert "canvas-extension fallback" not in js, "dodging fallback replaced by gutter sweep"
     # superseded by the timeline redesign
     assert "chain-leader" not in js, "lane leader must be gone"
     # 相關連結 survives only as a debug toggle, hidden by default
@@ -278,8 +282,9 @@ def test_callout_zone_row_and_selection():
     assert "Landkind" in m.group(0), "callout must include the 使用分區 row"
     assert "abbreviateZone" in js, "zone abbreviator must exist"
     assert "firstCarrier" in js, "callout selection must keep the first carrier"
-    assert "ownRecno" in js, "collision set must exclude the callout's own record"
-    assert "Math.min" in js, "candidate rects must clamp into the viewBox"
+    assert "callout-leader" in js, "callout must render a leader to its node"
+    assert "CALLOUT_GUTTER_CAP" in js, "callout gutter cap must be defined"
+    assert "lastBoxBottom" in js, "gutter sweep must track last box bottom"
 
 
 def test_list_stage_badge():
@@ -404,9 +409,9 @@ class TestConstructionEdgeSemantics:
         css = (APP_JS.parent / "app.css").read_text(encoding="utf-8")
         assert "max-width: 767px" in css and "max-height: 32vh" in css
 
-    def test_callout_canvas_extension_fallback(self):
+    def test_callout_gutter_present(self):
         js = self._js()
-        assert "canvas-extension fallback" in js
+        assert "callout-leader" in js, "callout leaders replace dodging fallback"
         assert re.search(r"y: q\.y - 30", js), "node boxes must cover the badge strip"
 
 
@@ -424,14 +429,15 @@ def test_section_token_extraction_wiring():
     assert "（西區）" not in js  # label is built from the token, not hard-coded
 
 
-def test_stage_key_cluster_bands():
+def test_stage_key_cluster_order_kept_bands_removed():
+    # clustering still orders rows & tags undated; stage-band rendering removed (spec §2.5)
     js = APP_JS.read_text(encoding="utf-8")
     assert "stageClusters" in js
     assert "clusterDate" in js
-    assert "stage-band" in js
     assert "未核定" in js
+    assert "stage-band" not in js, "stage bands removed from rendering per spec §2.5"
     css = (APP_JS.parent / "app.css").read_text(encoding="utf-8")
-    assert ".stage-band" in css
+    assert ".stage-band" not in css
 
 
 def test_per_track_stage_helpers_present():

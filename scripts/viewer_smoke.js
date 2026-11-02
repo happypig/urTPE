@@ -179,8 +179,84 @@ setTimeout(() => {
     detailEl.innerHTML = "";
   }
   check("every sampled project renders a detail pane", badProjects === 0,
-    firstErr ? `${firstErr.name}: ${firstErr.message}`
-             : `${clicked} clicked, shortest detail ${shortest} chars`);
+    firstErr ? `${firstErr.name}: ${firstErr.message}` : `${clicked} clicked`);
+
+  // ── overlap guard: every project with a callout ──────────────────────────
+  // layoutRects is populated by viewer/app.js renderDetail (window.__LAYOUT_RECTS).
+  // Checks run on every project that carries implementation callouts.
+  const renderDetailApp = context.window.renderDetail;
+  let calloutProjects = 0;
+  let guardFailures = 0;
+  for (const pp of doc.projects) {
+    const implNodes = (pp.nodes || []).filter((n) => n.implementation);
+    if (!implNodes.length) continue;
+    calloutProjects++;
+    renderDetailApp(pp);
+    const L = context.window.__LAYOUT_RECTS || { callouts: [], nodes: [], events: [], ghosts: [], leaders: [] };
+    const allRects = [].concat(L.nodes, L.events, L.ghosts, L.callouts);
+    // check 1: no two placed rectangles intersect
+    for (let i = 0; i < allRects.length; i++) {
+      for (let j = i + 1; j < allRects.length; j++) {
+        const a = allRects[i], b = allRects[j];
+        if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) {
+          guardFailures++;
+          console.log(`  FAIL  overlap ${pp.project_id}: rect${i}(${a.x},${a.y},${a.w},${a.h}) vs rect${j}(${b.x},${b.y},${b.w},${b.h})`);
+        }
+      }
+    }
+    // check 2: every callout box inside the gutter
+    for (const c of L.callouts) {
+      const gx = L.gutterX || 0;
+      const gw = L.gutterW || 0;
+      if (c.x < gx || c.x + c.w > gx + gw) {
+        guardFailures++;
+        console.log(`  FAIL  gutter ${pp.project_id}: callout(${c.x},${c.y},${c.w},${c.h}) outside gutter[${gx},${gw}]`);
+      }
+    }
+    // check 3: no leader crosses a callout box other than its own, or a node label
+    // other than its own node (leader legitimately ends at its own node circle)
+    for (const ld of L.leaders) {
+      const ownNodeId = `node:${ld.owns.split(":")[1]}`;
+      for (const c of L.callouts) {
+        if (ld.owns === c.id) continue;
+        if (segRectHit(ld, c)) {
+          guardFailures++;
+          console.log(`  FAIL  leader-box ${pp.project_id}: leader ${ld.id} crosses callout ${c.id}`);
+        }
+      }
+      for (const n of L.nodes) {
+        if (n.id === ownNodeId) continue;
+        if (segRectHit(ld, n)) {
+          guardFailures++;
+          console.log(`  FAIL  leader-node ${pp.project_id}: leader ${ld.id} crosses node ${n.id}`);
+        }
+      }
+    }
+  }
+
+  function segRectHit(s, r) {
+    // returns true if segment s crosses rect r (not just touches an endpoint)
+    const dx = s.x2 - s.x1, dy = s.y2 - s.y1;
+    const t0 = 0, t1 = 1;
+    let tmin = t0, tmax = t1;
+    const clip = (p, q) => {
+      if (Math.abs(p) < 1e-9) return q >= 0;
+      const t = q / p;
+      if (p < 0) { if (t > tmax) return false; if (t > tmin) tmin = t; }
+      else { if (t < tmin) return false; if (t < tmax) tmax = t; }
+      return true;
+    };
+    if (!clip(-dx, s.x1 - r.x) || !clip(dx, r.x + r.w - s.x1) ||
+        !clip(-dy, s.y1 - r.y) || !clip(dy, r.y + r.h - s.y1)) return false;
+    return tmin < tmax;
+  }
+
+  check("overlap guard: ran on projects with callouts",
+    calloutProjects > 0 || guardFailures === 0,
+    `${calloutProjects} projects, ${guardFailures} failures`);
+  check("overlap guard: no intersecting rects", guardFailures === 0,
+    `${guardFailures} failures`);
+  check("overlap guard: no leader crosses box/label", guardFailures === 0, "see above");
 
   console.log("");
   console.log(failures ? `${failures} check(s) FAILED` : "all checks passed");

@@ -117,4 +117,27 @@ setTimeout(() => {
   }
   pairs.sort((a, b) => a.y - b.y);
   for (const pr of pairs) console.log(`y=${pr.y} ${pr.text}`);
+  if (process.argv[4] === "badges") {
+    // Badge dump (fix-row-order-tiebreak-and-view-badges 1.6): every
+    // node-milestone-badge anchor with its node's y, class (taipei/national)
+    // and destination (case_id=NNN or view/NNN). One line per badge — a node
+    // carrying 北+國 yields two lines at the same y.
+    const groupRe = /translate\(([\d.]+),\s*([\d.]+)\)"[^]*?<\/g>/g;
+    const badgeAnchorRe = /<a class="node-milestone-badge (taipei|national)[^]*?href="([^"]*)"[^]*?title="([^"]*)"/g;
+    const badges = [];
+    let m3;
+    while ((m3 = groupRe.exec(svgHtml)) !== null) {
+      const y = parseFloat(m3[1 + 1]); // group 2: the y of translate(x, y)
+      let m4;
+      badgeAnchorRe.lastIndex = 0;
+      while ((m4 = badgeAnchorRe.exec(m3[0])) !== null) {
+        const href = m4[2];
+        const dest = href.includes("case_id=") ? "case_" + href.split("case_id=")[1]
+                   : "view/" + ((href.match(/view\/(\d+)/) || [null, ""])[1]);
+        badges.push({ y, cls: m4[1], dest, title: m4[3] });
+      }
+    }
+    badges.sort((a, b) => a.y - b.y);
+    for (const b of badges) console.log(`y=${b.y} BADGE ${b.cls} ${b.dest} ${b.title}`);
+  }
 }, 0);

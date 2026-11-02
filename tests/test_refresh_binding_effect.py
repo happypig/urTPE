@@ -63,3 +63,56 @@ def test_the_case_key_order_then_equals_the_date_order():
     keys = [cid for _d, cid in bound]
     assert keys == sorted(keys), f"case keys must ascend with the dates: {keys}"
     assert keys == ["10011271", "10011273", "11501034"]
+
+
+# --- the 303 shape (fix-row-order-tiebreak-and-view-badges task 1.3) --------
+# 北投區-關渡段二小段-303地號等5筆: node 5 (2026-09-30, 權利變換) must bind
+# 11505020 once the refresh recovers its 核定日期 2026/09/30 (live-verified on
+# the API 2026-11-02). Stale, it falls to the positional fallback
+# city_case_ids[1] = 10803151 — the case node 669 (2020-07-28) date-matched —
+# and the shared key renders node 5 above node 669.
+
+STALE_303 = {
+    "10105152": {"核定日期": "2019/02/14", "建照核發日期": "2021/04/26"},
+    "10803151": {"權變核定日期": "2020/07/28"},
+    "11503009": {"申請權變日期": "2025/10/15"},
+    "11505020": {"申請計畫日期": "2026/05/15", "申請權變日期": "2026/05/15"},
+}
+REFRESHED_303 = {
+    "10105152": {"核定日期": "2019/02/14", "建照核發日期": "2021/04/26"},
+    "10803151": {"權變核定日期": "2020/07/28"},
+    "11503009": {"申請權變日期": "2025/10/15"},
+    "11505020": {"申請計畫日期": "2026/05/15", "申請權變日期": "2026/05/15",
+                 "核定日期": "2026/09/30", "權變核定日期": "2026/09/30"},
+}
+
+
+def test_303_before_the_refresh_the_newest_node_has_no_match():
+    disc = _Disc(STALE_303)
+    disc.city_case_ids = ["10105152", "10803151", "11503009", "11505020"]
+    assert _match_case_by_date("2026-09-30", disc) == ""
+
+
+def test_303_after_the_refresh_the_newest_node_binds_by_date():
+    disc = _Disc(REFRESHED_303)
+    disc.city_case_ids = ["10105152", "10803151", "11503009", "11505020"]
+    assert _match_case_by_date("2026-09-30", disc) == "11505020"
+
+
+def test_303_the_older_nodes_were_already_correct():
+    disc = _Disc(REFRESHED_303)
+    disc.city_case_ids = ["10105152", "10803151", "11503009", "11505020"]
+    assert _match_case_by_date("2019-02-14", disc) == "10105152"
+    assert _match_case_by_date("2020-07-28", disc) == "10803151"
+
+
+def test_303_after_the_refresh_no_two_nodes_share_a_key():
+    """The whole failure was the shared key: node 5 fell back onto 10803151,
+    node 669's case. After the refresh each node carries its own key, so the
+    recno tie-break cannot invert the pair."""
+    disc = _Disc(REFRESHED_303)
+    disc.city_case_ids = ["10105152", "10803151", "11503009", "11505020"]
+    bound = [_match_case_by_date(d, disc)
+             for d in ("2019-02-14", "2020-07-28", "2026-09-30")]
+    assert bound == ["10105152", "10803151", "11505020"]
+    assert len(set(bound)) == 3

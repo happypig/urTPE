@@ -1365,8 +1365,17 @@ def cache_is_stale_for(cache_dir: Path, project_id: str, gazette_date: str) -> b
 # The moment a case is in between applying for approval and receiving it. A cache
 # holding such a case was written before the approval existed, so re-fetching it is
 # the only way the new 核定日期 can reach the payload.
+#
+# fix-row-order-tiebreak-and-view-badges D2: the application signal covers every
+# application track, not only approval applications — 北投區-關渡段二小段-303's
+# 11505020 carried only 申請計畫日期/申請權變日期 while the API already held its
+# 核定日期 2026/09/30, so the narrow list skipped the cache and node 5 stayed on
+# the positional fallback (the wrong badge + the inverted row).
+_APPLICATION_FIELDS = (
+    "申請核定日期", "權變申請核定日期",
+    "申請計畫日期", "申請權變日期", "申請概要核准日期",
+)
 _APPROVAL_FIELDS = ("核定日期", "權變核定日期", "概要核准日期")
-_APPLICATION_FIELDS = ("申請核定日期", "權變申請核定日期")
 
 
 def cached_cases_awaiting_approval(case_milestones: dict | None) -> bool:
@@ -1402,6 +1411,7 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None) -> dict:
                 "error": "no cache"}
     updated: list[dict] = []
     still_awaiting: list[str] = []
+    report_error = ""
     for cid in list(cached.case_milestones.keys()):
         before = cached.case_milestones.get(cid) or {}
         try:
@@ -1418,10 +1428,42 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None) -> dict:
             updated.append({"case_id": cid, "核定日期": new_ok, "was": old_ok})
         elif not new_ok and any(merged.get(f) for f in _APPLICATION_FIELDS):
             still_awaiting.append(cid)
-    if updated:
+        # fix-row-order-tiebreak-and-view-badges D3: re-run the national
+        # view-page absorb so a backfilled cache gains view_verified_case_ids
+        # (and any case id the page names that the parcel search missed). A
+        # milestone-only refresh could never add the field — most caches
+        # predate it — and the viewer's view-verified 國 badge reads it.
+        # Uses the same code path discovery does; delay=0 because the refresh
+        # already paced its own fetches and this adds one page fetch.
+        view_id = cached.twur_view_id or ""
+        if not view_id and cached.twur_url:
+            m = re.search(r"view/(\d+)", cached.twur_url)
+            view_id = m.group(1) if m else ""
+        if view_id:
+            try:
+                view_html = fetch_view_page(view_id, Path(cache_dir))
+                merged_ms: dict = {}
+                merged_src: dict = {}
+                prior_verified = list(cached.view_verified_case_ids)
+                _absorb_view_case_ids(None, cached, view_html, 0.0,
+                                      merged_ms, merged_src)
+                # Merge, never replace: the absorb overwrites the list with the
+                # page order, and an already-complete cache must not lose or
+                # reorder its entries (test_refresh_view_absorb pins this).
+                combined = prior_verified + [
+                    c for c in cached.view_verified_case_ids
+                    if c not in prior_verified]
+                cached.view_verified_case_ids = combined
+            except Exception as exc:
+                if not report_error:
+                    report_error = f"view absorb: {type(exc).__name__}: {exc}"
+    # Persist when the milestones changed OR the absorb touched state — the
+    # backfill is the point of the absorb, and a field-only change must not
+    # be dropped.
+    if updated or cached.view_verified_case_ids:
         save_project_cache(Path(cache_dir), project_id, cached)
     return {"project_id": project_id, "updated": updated,
-            "still_awaiting": still_awaiting, "error": ""}
+            "still_awaiting": still_awaiting, "error": report_error}
 
 
 def _iso_date(s: str) -> str:
@@ -1669,7 +1711,12 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             obj.search_rejected = v.get("search_rejected", {})
             obj.candidate_names = v.get("candidate_names", {})
             obj.case_schedules = v.get("case_schedules", {})
-            obj.view_verified_case_ids = v.get("view_verified_case_ids", [])
+            # Pass through only when the payload carries it: a legacy payload
+            # without the key must emit without the key (the viewer cannot
+            # distinguish "no ids" from "never recorded"), and the orphan gate
+            # reads it via getattr(..., None).
+            if "view_verified_case_ids" in v:
+                obj.view_verified_case_ids = v["view_verified_case_ids"]
             disc_by_pid[k] = obj
 
     for project in projects:
@@ -1702,6 +1749,14 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             project.links["candidate_names"] = dict(disc.candidate_names)
         if getattr(disc, "case_schedules", None):
             project.links["case_schedules"] = dict(disc.case_schedules)
+        # fix-row-order-tiebreak-and-view-badges D4: the cases the project's
+        # own national view page names in 相關連結 — the portal's assertion —
+        # reach the payload so the viewer can badge those nodes 國. A legacy
+        # result without the field emits without the key; an empty list is a
+        # discovery fact (page had no ids) and is emitted as it is.
+        if hasattr(disc, "view_verified_case_ids") and                 disc.view_verified_case_ids is not None:
+            project.links["view_verified_case_ids"] = list(
+                disc.view_verified_case_ids)
 
         # Implementation (third.ashx) / rewards (fourth.ashx): project-level
         # attachment with case provenance (design D2/D5). Date fields surface as

@@ -97,15 +97,18 @@ function byDateNodes(nodes) {
 
 function getNodeMilestoneBadges(node, project) {
   // Portal links live on the nodes (相關連結 section retired): 北 → anchored
-  // Taipei case page; 國 (現況 node only) → national view page. Tooltips name
-  // the destination (案<case_id> / view/<id>).
+  // Taipei case page; 國 → national view page on the 現況 node AND on nodes
+  // whose case the view page names (view_verified_case_ids — the portal's
+  // assertion, fix-row-order-tiebreak-and-view-badges D4). One 國 if both.
   const badges = [];
   const cases = (node.links || {}).taipei || [];
   if (cases.length) {
     badges.push(`<a class="node-milestone-badge taipei badge-link" href="https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cases[0]}" target="_blank" rel="noopener" title="案${cases[0]}">北</a>`);
   }
   const twur = project && project.links && project.links.twur;
-  if (node.is_current && twur) {
+  const viewVerified = (project && project.links && project.links.view_verified_case_ids) || [];
+  const anchoredViewVerified = cases.length && viewVerified.includes(cases[0]);
+  if (twur && (node.is_current || anchoredViewVerified)) {
     const vm = twur.match(/view\/(\d+)/);
     const label = vm ? `view/${vm[1]}` : "國土署入口網";
     badges.push(`<a class="node-milestone-badge national badge-link" href="${escapeHtml(twur)}" target="_blank" rel="noopener" title="${escapeHtml(label)}">國</a>`);
@@ -832,12 +835,21 @@ function init() {
     // all members (real + virtual) flatten into ONE row sequence by effective
     // case_id ascending, reproducing the 相關連結 order; cluster bands/chips
     // still render around each member via its stage cluster membership.
-    const rowKeyOf = m => effectiveCaseKey(m) || "\uffff" + String(m.recno);
+    // fix-row-order-tiebreak-and-view-badges D1: two real nodes sharing one
+    // case_id used to tie-break on String(recno) — and 編號 is a newest-first
+    // coordinate, so the newer gazette row rendered ABOVE the older one
+    // (corpus: 30 of 39 same-case groups inverted; reported on 關渡段二小段-303:
+    // node 5 (2026-09-30) above node 669 (2020-07-28)). The tie-break now
+    // compares node dates ascending first; the recno comparison decides only
+    // between equal-or-absent dates. Cross-key order is untouched — the 603
+    // pinned interleave and the 336 target never reach this layer.
     const allMembers = [...nodes, ...virtualNodes]
       .slice()
       .sort((a, b) => {
         const ka = effectiveCaseKey(a), kb = effectiveCaseKey(b);
         if (ka !== kb) return ka < kb ? -1 : 1;
+        const da = a.date || "", db = b.date || "";
+        if (da !== db) return da < db ? -1 : 1;
         return String(a.recno).localeCompare(String(b.recno));
       });
     const clusterOfRecno = {};

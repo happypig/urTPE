@@ -17,7 +17,7 @@ G1–G5.
 
 | Check | Result at last full run |
 | --- | --- |
-| Test suite | 707 passed, 1 skipped (708 collected) |
+| Test suite | 795 passed, 1 skipped (796 collected) |
 | Deploy freshness | all 4 artifacts fresh (`scripts\check_deploy.py`) |
 | Viewer render path | `node scripts\viewer_smoke.js` passes |
 | Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |
@@ -121,6 +121,10 @@ badge"). Bundle V2 (raw JSON/`null` in table cells) and V4 (three date formats i
 one pane) — same test group, same file.
 
 ### Wave 7 — direct `fix:` commits — **DONE 2026-11-01** (`ddab3ba`: P2.1 atomic lock, P2.2 --fresh backup, P3.2 real table counts, P3.3 crawl warning, P3.1/P3.8/P3.11 AGENTS.md, G4 domain docs)
+
+### Post-wave — `fix-graph-timeline-order` then `refresh-awaiting-approval-caches` — **DONE 2026-11-02** (archived; §29–§33)
+
+### Post-wave — `fix-row-order-tiebreak-and-view-badges` — **DONE 2026-11-02** (archived; §34). 30 same-case row inversions fixed viewer-side (tie-break by node date before recno — 37 same-case groups remain, all date-ascending); the refresh selector widened to plan-change applications (177 candidates, 2 approval dates recovered: 314's 11507024 → 2026/09/17, 303's 11505020 → 2026/09/30); `refresh_project` re-absorbs the view page (140 caches backfilled with `view_verified_case_ids`); the 國 badge renders on view-verified nodes (view/621 ↔ 10105152). Residual watch: the 17 drift families whose older node's gazette date matches no approval (±2–7 days) — their render order is fixed, their binding is not; a matcher-tolerance decision is recorded in the archived design's Open Questions.
 
 - P2.1: atomic lock acquire via `O_CREAT | O_EXCL` (replaces the tmp-and-replace
   race; Windows loser currently crashes with `PermissionError` instead of exit 5).

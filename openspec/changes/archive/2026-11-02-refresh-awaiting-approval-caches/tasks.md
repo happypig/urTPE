@@ -59,8 +59,15 @@ the user's target — 453 (2022-08-02) -> 10011271, 370 (2023-03-21) -> 10011273
 1 (2026-10-15) -> 11501034; rendered top-to-bottom 453, 370, 建照 2023/04/27,
 開工 2023/07/03, 1. The CLI reported "684 of 694 link caches predate this
 gazette", the new freshness line.
-3.4: live-viewer check pending the push (the deploy is fresh at fbece0c; this
-emission's viewer bytes are uncommitted until the closing commit).
+3.4: done 2026-11-02, after the push. Deploy verified fresh by
+`scripts/check_deploy.py` (all 4 artifacts match HEAD, now ad6b767). Live page
+https://happypig.github.io/urTPE/viewer/ shows 694/1442, 統計至 2026-10-15; the
+336 graph renders top-to-bottom 453 → 370 → 建照 2023/04/27 → 開工 2023/07/03
+→ 1, same as the local emission. All three approval nodes carry a
+node-milestone-badge linking its case — 453→10011271, 370→10011273,
+1→11501034 (the 1 node also carries the national badge) — verified in the DOM
+plus one screenshot. Note: the site root `/urTPE/` serves GitHub's 404
+(no index.html at the repo root); the viewer lives at `/urTPE/viewer/`.
 3.5: validate passes; spec synced; boards updated; closing commit.
 
 Design correction recorded: D3's first draft compared a stored `published_date`,

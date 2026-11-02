@@ -96,6 +96,30 @@ def test_the_selector_picks_a_case_awaiting_approval():
     assert cached_cases_awaiting_approval(ms) is True
 
 
+def test_the_selector_picks_a_plan_change_application_awaiting_approval():
+    """The 303 shape (fix-row-order-tiebreak-and-view-badges 1.2): the case was
+    filed as a plan change — only 申請計畫日期/申請權變日期 in the cache — and the
+    API now reports 核定日期 2026/09/30 for 11505020. The archived selector
+    (approval applications only) skipped this cache and left node 5 (2026-09-30)
+    on the positional fallback."""
+    ms = {"11505020": {"申請計畫日期": "2026/05/15", "申請權變日期": "2026/05/15"}}
+    assert cached_cases_awaiting_approval(ms) is True
+
+
+def test_the_selector_picks_a_concept_application_awaiting_approval():
+    ms = {"11507024": {"申請概要核准日期": "2026/06/01"}}
+    assert cached_cases_awaiting_approval(ms) is True
+
+
+def test_the_selector_still_skips_resolved_cases():
+    """A case with ANY approval date is resolved, whatever application fields
+    it also carries — the selector must not re-fetch settled caches."""
+    ms = {"10011271": {"核定日期": "2022/08/02", "申請核定日期": "2022/04/29"}}
+    assert cached_cases_awaiting_approval(ms) is False
+    ms2 = {"10803151": {"申請計畫日期": "2019/04/16", "權變核定日期": "2020/07/28"}}
+    assert cached_cases_awaiting_approval(ms2) is False
+
+
 def test_the_selector_skips_resolved_cases():
     ms = {"10011271": {"核定日期": "2022/08/02", "申請核定日期": "2022/04/29"}}
     assert cached_cases_awaiting_approval(ms) is False

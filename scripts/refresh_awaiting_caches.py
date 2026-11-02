@@ -47,7 +47,10 @@ def select_candidates(cache_dir: Path) -> list[str]:
             data = json.loads(rf.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        if cached_cases_awaiting_approval(data.get("case_milestones")):
+        # refresh-case-status D5: a case closed without approval is no reason to
+        # re-fetch, so the cached statuses go to the selector too.
+        if cached_cases_awaiting_approval(data.get("case_milestones"),
+                                          data.get("case_schedules")):
             out.append(str(data.get("project_id") or entry.name))
     return out
 
@@ -72,22 +75,39 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     failures = 0
-    total_updated = 0
+    totals = {"updated": 0, "status_changes": 0, "removed": 0, "conflicts": 0,
+              "closed": 0, "still_awaiting": 0}
     for pid in candidates:
         report = refresh_project(cache_dir, pid)
         if report.get("error"):
             failures += 1
             print(f"  FAILED {pid}: {report['error']}", file=sys.stderr)
             continue
-        if report["updated"]:
-            total_updated += len(report["updated"])
-            for u in report["updated"]:
-                print(f"  {pid}\n    {u['case_id']}: {u['was'] or '(none)'} -> {u['核定日期']}")
+        for key in totals:
+            totals[key] += len(report.get(key) or [])
+        for u in report["updated"]:
+            print(f"  {pid}\n    {u['case_id']}: {u['was'] or '(none)'} -> {u['核定日期']}")
+        # refresh-case-status-and-drop-withdrawn-fields: each status change names
+        # the header NAME it came from; each dropped date and each kept
+        # approval-date conflict is printed — the effect must be auditable.
+        for c in report.get("status_changes") or []:
+            print(f"  {pid}: status {c['case_id']}: {c['was'] or '(none)'} -> "
+                  f"{c['now'] or '(cleared)'}  [NAME {c['name'] or '(empty)'}]")
+        for r in report.get("removed") or []:
+            print(f"  {pid}: removed {r['case_id']} {r['label']} {r['was']} "
+                  f"(no longer on the platform)")
+        for r in report.get("conflicts") or []:
+            print(f"  {pid}: CONFLICT {r['case_id']} {r['label']} {r['was']} "
+                  f"absent from the platform reply; kept")
+        if report.get("closed"):
+            print(f"  {pid}: closed without approval: {', '.join(report['closed'])}")
         if report["still_awaiting"]:
             print(f"  {pid}: still awaiting approval: {', '.join(report['still_awaiting'])}")
 
-    print(f"\nupdated {total_updated} case approval date(s) across "
-          f"{len(candidates)} project(s); {failures} failure(s)")
+    print(f"\n{len(candidates)} project(s); {totals['updated']} approval date(s) updated; "
+          f"{totals['status_changes']} status change(s); {totals['removed']} date(s) removed; "
+          f"{totals['conflicts']} conflict(s); {totals['closed']} case(s) closed without "
+          f"approval; {totals['still_awaiting']} case(s) still awaiting; {failures} failure(s)")
     return 1 if failures else 0
 
 

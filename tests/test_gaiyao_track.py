@@ -127,6 +127,20 @@ class TestScheduleFromTop:
         assert schedule_from_top({"NAME": "執行階段_更新案施工中"}) == "施工中"
         assert schedule_from_top({}) == ""
 
+    def test_a_case_waiting_for_approval_is_in_review(self):
+        """refresh-case-status-and-drop-withdrawn-fields D1: 申請報府核定中 contains
+        核定, so the approved test fired first and an in-review case read 已核准 —
+        whose badge the viewer omits. Measured 2026-11-02: 中正段一小段-68's
+        10406283 carries this NAME and the city's own search list says 審查中."""
+        from urtpe.links import schedule_from_top
+
+        assert schedule_from_top({"NAME": "權利變換計畫階段─申請報府核定中"}) == "審查中"
+        assert schedule_from_top(
+            {"NAME": "事業計畫及權利變換計畫階段─申請報府核定中"}) == "審查中"
+        # the approved and outcome-less forms are unchanged
+        assert schedule_from_top({"NAME": "事業計畫階段─業經本府核定"}) == "已核准"
+        assert schedule_from_top({"NAME": "無"}) == ""
+
 
 class TestAttachEmitsSchedules:
     """7.2.2 — case_schedules round-trips through the dict shim and emits."""

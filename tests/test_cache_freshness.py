@@ -135,6 +135,26 @@ def test_the_selector_accepts_the_quanbian_application_field():
     assert cached_cases_awaiting_approval(ms) is True
 
 
+def test_the_selector_skips_a_project_whose_awaiting_cases_were_closed():
+    """refresh-case-status-and-drop-withdrawn-fields D5: a withdrawn or rejected
+    case never gains an approval date, yet every refresh re-selected it (85 of
+    176 selected projects, 2026-11-02). Shapes: 南海段一小段-687 11012301 and
+    信義段二小段-142 11105301 (自行撤回), 三玉段一小段-672 09812232 (已駁回)."""
+    ms = {"11012301": {"申請核定日期": "2021/12/29", "權變申請核定日期": "2021/12/29"}}
+    assert cached_cases_awaiting_approval(ms, {"11012301": "自行撤回"}) is False
+    ms = {"09812232": {"申請核定日期": "2012/01/03"}}
+    assert cached_cases_awaiting_approval(ms, {"09812232": "已駁回"}) is False
+    ms = {"X": {"申請計畫日期": "2020/01/01"}}
+    assert cached_cases_awaiting_approval(ms, {"X": "已失效"}) is False
+
+
+def test_one_open_awaiting_case_keeps_the_project_selected():
+    ms = {"A": {"申請核定日期": "2021/12/29"}, "B": {"申請核定日期": "2026/06/09"}}
+    assert cached_cases_awaiting_approval(ms, {"A": "自行撤回", "B": "審查中"}) is True
+    # an unknown status is not terminal
+    assert cached_cases_awaiting_approval(ms, {"A": "自行撤回"}) is True
+
+
 def test_refresh_merges_the_new_approval_and_preserves_other_fields(tmp_path):
     pid = "大安區-通化段四小段-336地號等26筆"
     _write_cache(tmp_path, pid, published="2026-08-30", case_milestones={

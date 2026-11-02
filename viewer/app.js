@@ -380,8 +380,10 @@ function perTrackStageText(n) {
   return ` ${s1}/${s2}`;
 }
 // 已核准 is the default focus state — only exceptional schedules (已駁回/
-// 施工中/自行撤回/已失效/審查中) render as badges.
-const scheduleBadgeText = s => (!s || s === "已核准") ? "" : ` [${s}]`;
+// 施工中/自行撤回/已失效/審查中) render as badges. The city's search list writes
+// an approved case as 已核准 or 已核定 (cache 2026-11-02: 739 / 14), so both
+// are the default (refresh-case-status-and-drop-withdrawn-fields D6).
+const scheduleBadgeText = s => (!s || s === "已核准" || s === "已核定") ? "" : ` [${s}]`;
 
 // (viewer-stage-chip-coverage) the grey status chip: a project with no
 // construction stage but a known case state shows 審查中 or 撤回 instead of

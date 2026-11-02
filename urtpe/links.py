@@ -1378,14 +1378,21 @@ _APPLICATION_FIELDS = (
 _APPROVAL_FIELDS = ("核定日期", "權變核定日期", "概要核准日期")
 
 
-def cached_cases_awaiting_approval(case_milestones: dict | None) -> bool:
+def cached_cases_awaiting_approval(case_milestones: dict | None,
+                                   case_schedules: dict | None = None) -> bool:
     """Whether any cached case carries an approval application and no approval.
 
     Pure, offline: computable from the cache alone, so the refresh pass can
-    select its candidates without a single API call.
+    select its candidates without a single API call. A case whose cached status
+    is terminal (自行撤回 / 已駁回 / 已失效) does not count: it was closed without
+    approval and will never gain an approval date, yet it made 85 of 176
+    projects candidates on 2026-11-02 (refresh-case-status D5).
     """
-    for _cid, ms in (case_milestones or {}).items():
+    schedules = case_schedules or {}
+    for cid, ms in (case_milestones or {}).items():
         if not isinstance(ms, dict):
+            continue
+        if schedules.get(cid) in TERMINAL_SCHEDULES:
             continue
         approved = any(ms.get(f) for f in _APPROVAL_FIELDS)
         applied = any(ms.get(f) for f in _APPLICATION_FIELDS)
@@ -1394,40 +1401,102 @@ def cached_cases_awaiting_approval(case_milestones: dict | None) -> bool:
     return False
 
 
-def refresh_project(cache_dir: Path, project_id: str, fetch=None) -> dict:
-    """Re-fetch the milestones of a cache's cases, merging in place.
+def fetch_taipei_case_header_api(case_id: str) -> dict:
+    """Fetch the 基本資料 case header row via get_project168_top.ashx ({} if none).
 
-    Thin driver over the existing adapters: ``fetch(case_id) -> {label: date}``
-    (defaults to :func:`fetch_taipei_milestones_api`). Every other cached field is
-    preserved — the merge takes only the milestone map — and the returned report
-    names each case's old and new approval date so the effect is auditable.
+    Its ``NAME`` is the platform's 目前辦理情形; measured identical to the data1
+    辦理進度 (Get_project168_First ``name_progress_no``) on all 13 cases checked
+    2026-11-02, so one call per case suffices."""
+    body = _post_taipei_api(TAIPEI_TOP_API, {"case_id": case_id})
+    try:
+        rows = json.loads(body)
+    except json.JSONDecodeError:
+        return {}
+    row = rows[0] if isinstance(rows, list) and rows else rows
+    return row if isinstance(row, dict) else {}
+
+
+def refresh_project(cache_dir: Path, project_id: str, fetch=None,
+                    fetch_status=None) -> dict:
+    """Re-fetch the milestones and status of a cache's cases, in place.
+
+    Thin driver over the platform adapters: ``fetch(case_id) -> {label: date}``
+    (default :func:`fetch_taipei_milestones_api`) and ``fetch_status(case_id) ->
+    header row`` (default :func:`fetch_taipei_case_header_api`). The status
+    adapter defaults on only when ``fetch`` does too — the production call — so a
+    caller injecting a milestone fetcher alone stays offline (refresh-case-status
+    D4). Every other cached field is preserved, and the report names each
+    approval-date change, status change, removed label and conflict so the effect
+    is auditable.
+
+    A non-empty milestone reply REPLACES the case's milestones (D3): the old
+    ``{**before, **fetched}`` merge kept dates the city withdrew forever
+    (光華段四小段-282 11408032's 申請核定日期). A withdrawn approval date is the one
+    exception — it decides the node binding, so it is kept and reported as a
+    conflict rather than dropped silently. An empty reply changes nothing.
     """
-    import dataclasses as _dc
-
-    fetch = fetch or fetch_taipei_milestones_api
+    if fetch is None:
+        fetch = fetch_taipei_milestones_api
+        if fetch_status is None:
+            fetch_status = fetch_taipei_case_header_api
     cached = load_project_cache(Path(cache_dir), project_id)
+    report: dict = {"project_id": project_id, "updated": [], "still_awaiting": [],
+                    "closed": [], "status_changes": [], "removed": [],
+                    "conflicts": [], "error": ""}
     if cached is None:
-        return {"project_id": project_id, "updated": [], "still_awaiting": [],
-                "error": "no cache"}
-    updated: list[dict] = []
-    still_awaiting: list[str] = []
+        report["error"] = "no cache"
+        return report
+    updated = report["updated"]
+    still_awaiting = report["still_awaiting"]
+    changed = False
     report_error = ""
     for cid in list(cached.case_milestones.keys()):
         before = cached.case_milestones.get(cid) or {}
         try:
-            fetched = fetch(cid) or {}
+            fetched = {k: v for k, v in (fetch(cid) or {}).items() if v}
+            header = fetch_status(cid) if fetch_status else None
         except Exception as exc:  # a source failure leaves the cache untouched
-            return {"project_id": project_id, "updated": updated,
-                    "still_awaiting": still_awaiting,
-                    "error": f"{cid}: {type(exc).__name__}: {exc}"}
-        merged = {**before, **{k: v for k, v in fetched.items() if v}}
-        cached.case_milestones[cid] = merged
+            report["error"] = f"{cid}: {type(exc).__name__}: {exc}"
+            return report
+        if fetched:
+            new = dict(fetched)
+            for label, was in before.items():
+                if label in new or not was:
+                    continue
+                if label in _APPROVAL_FIELDS:
+                    new[label] = was
+                    report["conflicts"].append(
+                        {"case_id": cid, "label": label, "was": was})
+                else:
+                    report["removed"].append(
+                        {"case_id": cid, "label": label, "was": was})
+        else:
+            new = dict(before)
+        if new != before:
+            changed = True
+        cached.case_milestones[cid] = new
+        status = cached.case_schedules.get(cid, "")
+        if header is not None:
+            name = str(header.get("NAME", ""))
+            status = refreshed_schedule(status, schedule_from_top(header), new)
+            was_status = cached.case_schedules.get(cid, "")
+            if status != was_status:
+                report["status_changes"].append(
+                    {"case_id": cid, "was": was_status, "now": status, "name": name})
+                if status:
+                    cached.case_schedules[cid] = status
+                else:
+                    cached.case_schedules.pop(cid, None)
+                changed = True
         old_ok = next((before.get(f) for f in _APPROVAL_FIELDS if before.get(f)), "")
-        new_ok = next((merged.get(f) for f in _APPROVAL_FIELDS if merged.get(f)), "")
+        new_ok = next((new.get(f) for f in _APPROVAL_FIELDS if new.get(f)), "")
         if new_ok and new_ok != old_ok:
             updated.append({"case_id": cid, "核定日期": new_ok, "was": old_ok})
-        elif not new_ok and any(merged.get(f) for f in _APPLICATION_FIELDS):
-            still_awaiting.append(cid)
+        elif not new_ok and any(new.get(f) for f in _APPLICATION_FIELDS):
+            if status in TERMINAL_SCHEDULES:
+                report["closed"].append(cid)
+            else:
+                still_awaiting.append(cid)
         # fix-row-order-tiebreak-and-view-badges D3: re-run the national
         # view-page absorb so a backfilled cache gains view_verified_case_ids
         # (and any case id the page names that the parcel search missed). A
@@ -1460,10 +1529,10 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None) -> dict:
     # Persist when the milestones changed OR the absorb touched state — the
     # backfill is the point of the absorb, and a field-only change must not
     # be dropped.
-    if updated or cached.view_verified_case_ids:
+    if changed or updated or cached.view_verified_case_ids:
         save_project_cache(Path(cache_dir), project_id, cached)
-    return {"project_id": project_id, "updated": updated,
-            "still_awaiting": still_awaiting, "error": report_error}
+    report["error"] = report_error
+    return report
 
 
 def _iso_date(s: str) -> str:
@@ -1555,6 +1624,12 @@ def schedule_from_top(top_row: dict) -> str:
         return "自行撤回"
     if "失效" in name:
         return "已失效"
+    # refresh-case-status-and-drop-withdrawn-fields D1: a case WAITING for
+    # approval (…申請報府核定中) contains 核定 too, so this must precede the
+    # approved test — otherwise an in-review case reads 已核准, whose badge the
+    # viewer omits (中正段一小段-68 10406283; the city's search list says 審查中).
+    if "核定中" in name:
+        return "審查中"
     if "核定" in name:
         return "已核准"
     if "審查" in name or "審議" in name:
@@ -1562,6 +1637,40 @@ def schedule_from_top(top_row: dict) -> str:
     if "施工" in name or "備查" in name:
         return "施工中"
     return ""
+
+
+# Case statuses that close a case without approval: it never gains an approval
+# date, so the awaiting-approval refresh must not keep re-selecting it.
+TERMINAL_SCHEDULES = ("自行撤回", "已駁回", "已失效")
+# The city's search list writes an approved case as 已核准 or 已核定 (cache,
+# 2026-11-02: 739 / 14); stages after approval are more specific than either.
+_APPROVED_FAMILY = ("已核准", "已核定")
+_LATER_THAN_APPROVED = ("施工中", "已完工", "完成成果備查")
+
+
+def refreshed_schedule(cached: str, derived: str, milestones: dict | None) -> str:
+    """The status a refreshed case should carry (refresh-case-status D2). Pure.
+
+    ``derived`` is :func:`schedule_from_top` of the case header the refresh just
+    read. The header is the platform's current per-case word, so a terminal /
+    in-review / construction reading wins. An "approved" header never
+    downgrades a later stage the search list already recorded (施工中 beats a
+    bare 業經本府核定). An outcome-less header (無, empty) is no evidence, so the
+    cached word stays — except an approved word the case's own milestones
+    contradict (no approval date: 虎林段四小段-38 10806141), which is cleared to
+    honest silence rather than kept as a wrong badge.
+    """
+    cached = cached or ""
+    if derived and derived != "已核准":
+        return derived
+    if derived == "已核准":
+        if cached in _APPROVED_FAMILY or cached in _LATER_THAN_APPROVED:
+            return cached
+        return derived
+    ms = milestones or {}
+    if cached in _APPROVED_FAMILY and not any(ms.get(f) for f in _APPROVAL_FIELDS):
+        return ""
+    return cached
 
 
 def _ghost_node_date(own_milestones: dict) -> str:

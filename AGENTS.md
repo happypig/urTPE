@@ -191,6 +191,9 @@ Violating any of these corrupts output silently rather than raising.
   were ad-hoc; the method is reproduced in its Appendix A.
 - `docs/sync_architecture.md` — the PDF-heartbeat + two-portals sync design; was the design
   `gazette-ingest-cadence` was cut from.
+- `docs/viewer-UX.md` — viewer improvement backlog, one numbered entry (`viewer-UX §N`)
+  per proposal with problem, design, trade-offs and spec impact. Append; do not renumber.
+  An entry is a candidate — open an openspec change before implementing it.
 - `docs/temp.*` — ignored paste pad, deliberately untracked.
 
 ## Conventions

@@ -1340,6 +1340,90 @@ def save_project_cache(cache_dir: Path, project_id: str, result: DiscoveryResult
     # Taipei case pages are cached by fetch_url automatically
 
 
+def cache_is_stale_for(cache_dir: Path, project_id: str, gazette_date: str) -> bool:
+    """Whether a project cache was last written before ``gazette_date``.
+
+    The signal is the cache file's mtime, not a stored field: no project cache
+    carries a publication date (measured 2026-11-02 on all 726), so a check
+    phrased on one would be inert in production. A cache whose milestones were
+    captured before an approval was published cannot know that approval — the
+    refresh-awaiting-approval-caches change; see also
+    ``cached_cases_awaiting_approval`` for the targeted selector.
+    """
+    rf = resolve_cache_dir(Path(cache_dir), project_id) / "result.json"
+    if not rf.exists():
+        return False
+    try:
+        import datetime as _dt
+        written = _dt.date.fromtimestamp(rf.stat().st_mtime)
+        published = _dt.date.fromisoformat(str(gazette_date)[:10])
+    except (ValueError, OSError):
+        return False
+    return written < published
+
+
+# The moment a case is in between applying for approval and receiving it. A cache
+# holding such a case was written before the approval existed, so re-fetching it is
+# the only way the new 核定日期 can reach the payload.
+_APPROVAL_FIELDS = ("核定日期", "權變核定日期", "概要核准日期")
+_APPLICATION_FIELDS = ("申請核定日期", "權變申請核定日期")
+
+
+def cached_cases_awaiting_approval(case_milestones: dict | None) -> bool:
+    """Whether any cached case carries an approval application and no approval.
+
+    Pure, offline: computable from the cache alone, so the refresh pass can
+    select its candidates without a single API call.
+    """
+    for _cid, ms in (case_milestones or {}).items():
+        if not isinstance(ms, dict):
+            continue
+        approved = any(ms.get(f) for f in _APPROVAL_FIELDS)
+        applied = any(ms.get(f) for f in _APPLICATION_FIELDS)
+        if applied and not approved:
+            return True
+    return False
+
+
+def refresh_project(cache_dir: Path, project_id: str, fetch=None) -> dict:
+    """Re-fetch the milestones of a cache's cases, merging in place.
+
+    Thin driver over the existing adapters: ``fetch(case_id) -> {label: date}``
+    (defaults to :func:`fetch_taipei_milestones_api`). Every other cached field is
+    preserved — the merge takes only the milestone map — and the returned report
+    names each case's old and new approval date so the effect is auditable.
+    """
+    import dataclasses as _dc
+
+    fetch = fetch or fetch_taipei_milestones_api
+    cached = load_project_cache(Path(cache_dir), project_id)
+    if cached is None:
+        return {"project_id": project_id, "updated": [], "still_awaiting": [],
+                "error": "no cache"}
+    updated: list[dict] = []
+    still_awaiting: list[str] = []
+    for cid in list(cached.case_milestones.keys()):
+        before = cached.case_milestones.get(cid) or {}
+        try:
+            fetched = fetch(cid) or {}
+        except Exception as exc:  # a source failure leaves the cache untouched
+            return {"project_id": project_id, "updated": updated,
+                    "still_awaiting": still_awaiting,
+                    "error": f"{cid}: {type(exc).__name__}: {exc}"}
+        merged = {**before, **{k: v for k, v in fetched.items() if v}}
+        cached.case_milestones[cid] = merged
+        old_ok = next((before.get(f) for f in _APPROVAL_FIELDS if before.get(f)), "")
+        new_ok = next((merged.get(f) for f in _APPROVAL_FIELDS if merged.get(f)), "")
+        if new_ok and new_ok != old_ok:
+            updated.append({"case_id": cid, "核定日期": new_ok, "was": old_ok})
+        elif not new_ok and any(merged.get(f) for f in _APPLICATION_FIELDS):
+            still_awaiting.append(cid)
+    if updated:
+        save_project_cache(Path(cache_dir), project_id, cached)
+    return {"project_id": project_id, "updated": updated,
+            "still_awaiting": still_awaiting, "error": ""}
+
+
 def _iso_date(s: str) -> str:
     """Normalize a date cell to zero-padded ISO-ish form ('' if empty).
 

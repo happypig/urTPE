@@ -497,6 +497,21 @@ def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = No
             with coverage_guard(Path(f"{outdir}/.link_cache"), [p.project_id for p in projects]):
                 link_results = discovery.run(projects, fresh=fresh)
         discovery.write_crawl_log(link_results, f"{outdir}/crawl_log.tsv")
+        # Cache-freshness report (refresh-awaiting-approval-caches D3): a cache
+        # written before this gazette cannot know an approval published since, so
+        # the lag is named once here rather than discovered in the viewer. The
+        # signal is the cache file's mtime — no cache stores a publication date.
+        gazette_date = meta.get("published_date") or meta.get("gazette_id") or ""
+        if gazette_date:
+            stale = sum(
+                1 for p in projects
+                if links_mod.cache_is_stale_for(f"{outdir}/.link_cache",
+                                                p.project_id, gazette_date))
+            if stale:
+                print(f"[INFO] {stale} of {len(projects)} link caches predate this "
+                      f"gazette ({gazette_date}); their cases' newer approvals may be "
+                      f"missing — run scripts/refresh_awaiting_caches.py to re-fetch "
+                      f"the affected ones")
         resolved = sum(1 for r in link_results.values() if r.status != 'unresolved')
         unresolved = sum(1 for r in link_results.values() if r.status == 'unresolved')
         errors = sum(1 for r in link_results.values() if r.status == 'error')

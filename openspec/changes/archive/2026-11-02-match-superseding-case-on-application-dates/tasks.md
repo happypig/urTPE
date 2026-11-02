@@ -34,6 +34,7 @@
       ambiguous, nothing else changed. Re-emission exit 0, 1,442 / 693,
       never-approved 3, links.taipei 1997, orphan nodes 596 — all unchanged;
       superseded 2 → 4. Local Chrome check: both read 已由 … 取代.
-- [ ] 3.4 Chrome (local server, then live after push + `check_deploy.py`): both
-      entries read `已由 … 取代`.
-- [ ] 3.5 Archive with spec sync; §38 in the ops log; board entry.
+- [x] 3.4 Chrome (local server, then live after push + `check_deploy.py`): both
+      entries read `已由 … 取代`. Result: pushed 767bc81; check_deploy all 4
+      FRESH (4th poll); the live page shows all four superseded cases.
+- [x] 3.5 Archive with spec sync; §38 in the ops log; board entry.

@@ -79,9 +79,15 @@ cache, so the offline selection can see it.
 
 For a case whose header reads `無`, the refresh SHALL record which case
 superseded it when exactly one other case of the project has the identical
-header case name, a numerically greater case id, and milestones containing every
-dated label of the `無` case with the same date, the `無` case carrying at least
-three dated labels. When several cases qualify the refresh SHALL report the case
+header case name, a numerically greater case id, and the same date for every
+application date the `無` case carries (`申請核定日期` / `權變申請核定日期` /
+`申請計畫日期` / `申請權變日期` / `申請概要核准日期`), the `無` case carrying at
+least one application date and at least three dated labels. Other dates MAY
+differ, because a re-filed case re-runs later steps (measured 2026-11-02:
+雅祥段一小段-227-4's 11009142 → 11510001 held its public exhibition again;
+吉林段四小段-705-3's 10410012 → 11503012 records a different 召開幹事會日期); the
+report SHALL name every dated label of the `無` case whose date the successor
+does not share. When several cases qualify the refresh SHALL report the case
 as ambiguous and record nothing. A `無` case with no qualifying case SHALL be
 reported by name as having no successor found.
 
@@ -226,6 +232,24 @@ cases, each separately from cases still awaiting approval.
 
 - **WHEN** two cases qualify as the successor of one `無` case
 - **THEN** no successor is recorded and the case is reported as ambiguous
+
+#### Scenario: A re-filed case whose later steps were re-run is recorded as superseded
+
+- **WHEN** a case's header reads `無`, and one other case of the project has the same
+  header case name, a greater case id and the same 申請計畫日期 / 申請權變日期, but
+  different 公告公展日期 (11009142 → 11510001)
+- **THEN** the cache records 11009142 as superseded by 11510001
+- **AND** the report names 公告公展日期 among the dates that differ
+
+#### Scenario: A different application date is not a successor
+
+- **WHEN** a `無` case and a same-named, newer case differ in 申請計畫日期
+- **THEN** no successor is recorded
+
+#### Scenario: A case without an application date is not matched
+
+- **WHEN** a `無` case carries no application date
+- **THEN** no successor is recorded
 
 #### Scenario: A sparse case is not matched
 

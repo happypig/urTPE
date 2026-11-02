@@ -17,7 +17,7 @@ G1–G5.
 
 | Check | Result at last full run |
 | --- | --- |
-| Test suite | 838 passed, 1 skipped (839 collected) |
+| Test suite | 842 passed, 1 skipped (843 collected) |
 | Deploy freshness | all 4 artifacts fresh (`scripts\check_deploy.py`) |
 | Viewer render path | `node scripts\viewer_smoke.js` passes |
 | Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |
@@ -128,7 +128,7 @@ one pane) — same test group, same file.
 
 ### Post-wave — `refresh-case-status-and-drop-withdrawn-fields` — **DONE 2026-11-02** (archived; §36). The 13 "still awaiting" cases checked against 基本資料/data1/data2: 8 badge errors corrected (in-review cases read 已核准 by `schedule_from_top`), 3 closed cases (2 自行撤回, 1 駁回) no longer selected (selector 176 → 91), 南港671-6 correctly stays 審查中 (立農163-2 was recorded here as correctly 審查中 — wrong, see the next entry and §37); the refresh now re-derives case status from the case header and drops dates the city withdrew (6 removed, 0 conflicts); the viewer hides 已核定 like 已核准. Residual watch: status is re-derived only for refresh-selected projects — 4 cached 審查中 on since-approved cases and 3 cached 已核准 with no dates wait for a corpus-wide status pass; a cleared status is removed (not stored as ""), so a project whose last non-terminal status clears would read never-approved (measured 3 → 3 this run).
 
-### Post-wave — `supersede-headerless-cases-and-discover-new-ids` — **DONE 2026-11-02** (archived; §37). A `無` case header clears an in-review/approved status; re-filed cases are recorded as superseded (立農163-2 11211211 → 11409026, now with no 審查中 chip; 虎林38 10806141 → 11510017); the refresh repeats discovery's parcel search and appended 4 case ids (incl. 虎林38's real pending case 11510017). Residual watch: 2 `無` cases with a probable but non-exact successor (雅祥227-4 11009142, 吉林705-3 10410012) await a rule decision; new-case discovery covers selected projects only; 4 stranded cache dirs are re-selected every run.
+### Post-wave — `supersede-headerless-cases-and-discover-new-ids` — **DONE 2026-11-02** (archived; §37). A `無` case header clears an in-review/approved status; re-filed cases are recorded as superseded (立農163-2 11211211 → 11409026, now with no 審查中 chip; 虎林38 10806141 → 11510017); the refresh repeats discovery's parcel search and appended 4 case ids (incl. 虎林38's real pending case 11510017). The 2 `無` cases with a non-exact successor (雅祥227-4 11009142, 吉林705-3 10410012) were matched by `match-superseding-case-on-application-dates` (§38, the maintainer's decision: match on application dates). Residual watch: new-case discovery covers selected projects only; 4 stranded cache dirs are re-selected every run.
 
 - P2.1: atomic lock acquire via `O_CREAT | O_EXCL` (replaces the tmp-and-replace
   race; Windows loser currently crashes with `PermissionError` instead of exit 5).

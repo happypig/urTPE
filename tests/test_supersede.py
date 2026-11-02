@@ -45,38 +45,83 @@ HULIN_MS = {"權變公聽會日期": "2019/06/14", "申請權變日期": "2019/0
 def test_a_refiled_case_finds_its_successor():
     ms = {"11211211": OLD_LINONG, "11409026": NEW_LINONG}
     names = {"11211211": NAME_LINONG, "11409026": NAME_LINONG}
-    assert find_superseding_case("11211211", ms, names) == ("11409026", "")
+    assert find_superseding_case("11211211", ms, names) == ("11409026", "", [])
 
 
 def test_an_identical_history_finds_its_successor():
     ms = {"10806141": HULIN_MS, "11510017": dict(HULIN_MS), "11502012": {"核定日期": "2026/03/12"}}
     names = {"10806141": NAME_HULIN, "11510017": NAME_HULIN, "11502012": "變更…事業計畫案"}
-    assert find_superseding_case("10806141", ms, names) == ("11510017", "")
+    assert find_superseding_case("10806141", ms, names) == ("11510017", "", [])
 
 
 def test_a_different_case_name_is_not_a_successor():
     ms = {"11211211": OLD_LINONG, "11409026": NEW_LINONG}
     names = {"11211211": NAME_LINONG, "11409026": "變更" + NAME_LINONG}
-    assert find_superseding_case("11211211", ms, names) == ("", "none")
+    assert find_superseding_case("11211211", ms, names) == ("", "none", [])
 
 
 def test_two_qualifying_successors_are_ambiguous():
     ms = {"11211211": OLD_LINONG, "11409026": NEW_LINONG, "11409027": NEW_LINONG}
     names = {k: NAME_LINONG for k in ms}
-    assert find_superseding_case("11211211", ms, names) == ("", "ambiguous")
+    assert find_superseding_case("11211211", ms, names) == ("", "ambiguous", [])
 
 
 def test_a_sparse_case_is_not_matched():
     sparse = {"申請計畫日期": "2024/02/06", "申請核定日期": "2026/03/04"}
     ms = {"11211211": sparse, "11409026": NEW_LINONG}
     names = {k: NAME_LINONG for k in ms}
-    assert find_superseding_case("11211211", ms, names) == ("", "none")
+    assert find_superseding_case("11211211", ms, names) == ("", "none", [])
 
 
 def test_an_older_id_is_not_a_successor():
     ms = {"11409026": OLD_LINONG, "11211211": NEW_LINONG}
     names = {k: NAME_LINONG for k in ms}
-    assert find_superseding_case("11409026", ms, names) == ("", "none")
+    assert find_superseding_case("11409026", ms, names) == ("", "none", [])
+
+
+# ── match-superseding-case-on-application-dates (1.1) ──────────────────────
+# The maintainer's decision (2026-11-02): a re-filed case restates its
+# application dates and re-runs later steps, so only the application dates
+# must agree. Both shapes are live measurements the strict rule refused.
+
+NAME_YAXIANG = "擬訂臺北市信義區雅祥段一小段227-4地號等10筆土地都市更新事業計畫及權利變換計畫案"
+OLD_YAXIANG = {"計畫公聽會日期": "2024/03/18", "申請計畫日期": "2024/05/09",
+               "申請權變日期": "2024/05/09", "公告公展日期": "2025/05/07",
+               "權變公告公展日期": "2025/05/07"}
+NEW_YAXIANG = {**OLD_YAXIANG, "公告公展日期": "2026/10/13", "權變公告公展日期": "2026/10/13"}
+
+NAME_JILIN = "變更臺北市中山區吉林段四小段705-3地號等14筆土地都市更新事業計畫及權利變換計畫案"
+OLD_JILIN = {"計畫公聽會日期": "2023/12/03", "申請計畫日期": "2024/02/07",
+             "申請權變日期": "2024/02/07", "召開幹事會日期": "2026/01/27"}
+NEW_JILIN = {**OLD_JILIN, "召開幹事會日期": "2026/01/09", "召開幹事複審日期": "2026/09/29"}
+
+
+def test_a_refiled_case_with_a_re_held_exhibition_matches():
+    ms = {"11009142": OLD_YAXIANG, "11510001": NEW_YAXIANG}
+    names = {k: NAME_YAXIANG for k in ms}
+    assert find_superseding_case("11009142", ms, names) == (
+        "11510001", "", ["公告公展日期", "權變公告公展日期"])
+
+
+def test_a_refiled_case_with_a_corrected_committee_date_matches():
+    ms = {"10410012": OLD_JILIN, "11503012": NEW_JILIN}
+    names = {k: NAME_JILIN for k in ms}
+    assert find_superseding_case("10410012", ms, names) == (
+        "11503012", "", ["召開幹事會日期"])
+
+
+def test_a_different_application_date_is_not_a_successor():
+    ms = {"11009142": OLD_YAXIANG, "11510001": {**NEW_YAXIANG, "申請計畫日期": "2026/01/01"}}
+    names = {k: NAME_YAXIANG for k in ms}
+    assert find_superseding_case("11009142", ms, names) == ("", "none", [])
+
+
+def test_a_case_without_an_application_date_is_not_matched():
+    no_app = {"計畫公聽會日期": "2024/03/18", "公告公展日期": "2025/05/07",
+              "公展公聽會日期": "2025/05/23"}
+    ms = {"11009142": no_app, "11510001": dict(no_app)}
+    names = {k: NAME_YAXIANG for k in ms}
+    assert find_superseding_case("11009142", ms, names) == ("", "none", [])
 
 
 # ── shared cache writer ─────────────────────────────────────────────────────
@@ -157,7 +202,7 @@ def test_the_refresh_appends_a_new_case_and_records_the_successor(tmp_path):
     assert "10806141" not in saved["case_schedules"]
     assert report["added"] == [{"case_id": "11510017", "schedule": "審查中",
                                 "name": "事業計畫及權利變換計畫階段─申請報府核定中"}]
-    assert report["superseded"] == [{"case_id": "10806141", "by": "11510017"}]
+    assert report["superseded"] == [{"case_id": "10806141", "by": "11510017", "differs": []}]
     assert report["still_awaiting"] == ["11510017"]
 
 

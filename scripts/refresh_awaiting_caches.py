@@ -136,7 +136,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {pid}: ADDED {a['case_id']} [{a['schedule'] or '(no status)'}] "
                   f"[NAME {a['name'] or '(empty)'}]")
         for sp in report.get("superseded") or []:
-            print(f"  {pid}: superseded {sp['case_id']} -> {sp['by']} (header 無, re-filed)")
+            diff = ", ".join(sp.get("differs") or []) or "none"
+            print(f"  {pid}: superseded {sp['case_id']} -> {sp['by']} "
+                  f"(header 無, re-filed; dates that differ: {diff})")
         if report.get("no_successor"):
             print(f"  {pid}: header 無, no successor found: {', '.join(report['no_successor'])}")
         if report.get("ambiguous"):

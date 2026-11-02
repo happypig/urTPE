@@ -1425,24 +1425,34 @@ SUPERSEDE_MIN_LABELS = 3
 
 
 def find_superseding_case(cid: str, case_milestones: dict,
-                          header_names: dict) -> tuple[str, str]:
-    """The case the city re-filed ``cid`` as, or why none (supersede D2). Pure.
+                          header_names: dict) -> tuple[str, str, list[str]]:
+    """The case the city re-filed ``cid`` as, or why none. Pure.
 
     A successor has the identical header case name, a numerically greater id,
-    and milestones containing every dated label of ``cid`` with the same date;
-    ``cid`` must carry at least SUPERSEDE_MIN_LABELS dated labels, because a date
-    subset alone can match by accident on a sparse case. Exactly one candidate
-    → ``(succ, "")``; none → ``("", "none")``; several → ``("", "ambiguous")``.
-    Measured 2026-11-02: 11211211 → 11409026 and 10806141 → 11510017.
+    and the same date for every application date ``cid`` carries (the five
+    ``_APPLICATION_FIELDS``; at least one required). ``cid`` must also carry at
+    least SUPERSEDE_MIN_LABELS dated labels. Other dates may differ: a re-filed
+    case restates its filing and re-runs later steps
+    (match-superseding-case-on-application-dates, the maintainer's decision
+    2026-11-02 — 雅祥227-4's 11009142 → 11510001 held its exhibition again;
+    吉林705-3's 10410012 → 11503012 records another 召開幹事會日期). The strict
+    every-date rule (supersede D2) refused both.
+
+    Returns ``(succ, "", differs)`` for exactly one candidate, where ``differs``
+    lists ``cid``'s dated labels the successor does not share (so the looser
+    match stays auditable); ``("", "none", [])`` or ``("", "ambiguous", [])``
+    otherwise. Measured: 11211211 → 11409026 and 10806141 → 11510017 differ in
+    nothing.
     """
     own = {k: v for k, v in (case_milestones.get(cid) or {}).items() if v}
+    applied = {k: own[k] for k in _APPLICATION_FIELDS if own.get(k)}
     name = (header_names.get(cid) or "").strip()
-    if len(own) < SUPERSEDE_MIN_LABELS or not name:
-        return "", "none"
+    if len(own) < SUPERSEDE_MIN_LABELS or not applied or not name:
+        return "", "none", []
     try:
         own_no = int(cid)
     except ValueError:
-        return "", "none"
+        return "", "none", []
     hits = []
     for other, ms in case_milestones.items():
         if other == cid or (header_names.get(other) or "").strip() != name:
@@ -1453,12 +1463,12 @@ def find_superseding_case(cid: str, case_milestones: dict,
         except ValueError:
             continue
         ms = ms or {}
-        if all(ms.get(k) == v for k, v in own.items()):
+        if all(ms.get(k) == v for k, v in applied.items()):
             hits.append(other)
     if len(hits) == 1:
-        return hits[0], ""
-    return "", ("ambiguous" if hits else "none")
-
+        succ_ms = case_milestones.get(hits[0]) or {}
+        return hits[0], "", [k for k, v in own.items() if succ_ms.get(k) != v]
+    return "", ("ambiguous" if hits else "none"), []
 
 def fetch_taipei_case_header_api(case_id: str) -> dict:
     """Fetch the 基本資料 case header row via get_project168_top.ashx ({} if none).
@@ -1610,12 +1620,14 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
 
     # ── the twin pass: which case did the city re-file a 無 case as? ─────────
     for cid in sorted(no_state):
-        succ, why = find_superseding_case(cid, cached.case_milestones, header_names)
+        succ, why, differs = find_superseding_case(cid, cached.case_milestones,
+                                                   header_names)
         if succ:
             if cached.superseded_by.get(cid) != succ:
                 cached.superseded_by[cid] = succ
                 changed = True
-            report["superseded"].append({"case_id": cid, "by": succ})
+            report["superseded"].append({"case_id": cid, "by": succ,
+                                         "differs": differs})
         elif why == "ambiguous":
             report["ambiguous"].append(cid)
         elif any((cached.case_milestones.get(cid) or {}).get(f) for f in _APPLICATION_FIELDS):

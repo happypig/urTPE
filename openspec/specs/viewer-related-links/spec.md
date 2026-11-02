@@ -47,7 +47,7 @@ When rendering the 相關連結 debug section, the system SHALL resolve the case
 5. Project-level `links.search_rejected`: if the case_id exists in `links.search_rejected`, use the stored case_name
 6. If no name found, render the case_id without a name (current fallback)
 
-When a case's `schedule` is known (from the search response or `top.ashx`, via `links.case_schedules`), the 相關連結 entry SHALL append the status badge — 已駁回 / 自行撤回 / 已失效 / 審查中 / 施工中 (已核准 is the default focus state and its badge is omitted) — so the case state is visible without leaving the viewer. A project whose every case is 已駁回 / 自行撤回 / 業已失效 SHALL surface "never approved — no national-portal page" as the reason it has no twur link.
+When a case's `schedule` is known (from the search response or `top.ashx`, via `links.case_schedules`), the 相關連結 entry SHALL append the status badge — 已駁回 / 自行撤回 / 已失效 / 審查中 / 施工中 / 已完工 / 完成成果備查 (已核准 and 已核定 are the approved-family default focus state and their badge is omitted — the city's search list uses both words for an approved case, measured 739 / 14 in the cache on 2026-11-02, so hiding only one rendered the same status two ways) — so the case state is visible without leaving the viewer. A project whose every case is 已駁回 / 自行撤回 / 業已失效 SHALL surface "never approved — no national-portal page" as the reason it has no twur link.
 
 #### Scenario: Orphan case_id in search_rejected gets its case name
 - **WHEN** `links.search_rejected` contains `{"09907221": "擬訂臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫案"}`
@@ -68,6 +68,14 @@ When a case's `schedule` is known (from the search response or `top.ashx`, via `
 #### Scenario: Orphan with no fallback shows raw case_id
 - **WHEN** an orphan case_id is absent from nodes, orphan_nodes, candidate_names, case_milestones, and search_rejected
 - **THEN** 相關連結 shows "臺北市都市更新審議服務平台 (case_id: 09907223)" without a case name (current fallback behavior)
+
+#### Scenario: Both approved-family words omit the badge
+- **WHEN** `links.case_schedules` = `{"10406282": "已核定", "10011271": "已核准"}`
+- **THEN** neither 相關連結 entry carries a status badge
+
+#### Scenario: An in-review case shows its badge
+- **WHEN** `links.case_schedules` = `{"10406283": "審查中"}`
+- **THEN** the 相關連結 entry for 10406283 carries the badge `[審查中]`
 
 ### Requirement: 相關連結 lists case_ids in ascending order
 

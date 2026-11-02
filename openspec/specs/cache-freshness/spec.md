@@ -32,20 +32,41 @@ emission.
 ### Requirement: The targeted refresh selects caches awaiting an approval
 
 The refresh pass SHALL select a project cache when at least one of its cases
-carries an application-for-approval date and no approval date (`核定日期` /
-`權變核定日期` / `概要核准日期`). The application signal SHALL cover every
-application track — `申請核定日期` / `權變申請核定日期` (approval
-applications) and `申請計畫日期` / `申請權變日期` / `申請概要核准日期`
-(plan-change applications) — because a plan-change case approved after the
-cache was written leaves the same absence (measured 2026-11-02:
-北投區-關渡段二小段-303's 11505020 carries only 申請計畫日期/申請權變日期 in
-the cache while the API reports 核定日期 2026/09/30). It SHALL re-fetch the
-milestones for exactly those projects, SHALL preserve every other field the
-cache already holds, SHALL re-run the national view-page absorb so the cache
-gains `view_verified_case_ids` and any case ids the page names that the
-parcel search missed, and SHALL report each project's before/after approval
-dates so the effect is auditable. It SHALL NOT re-crawl projects whose cached
-cases are all resolved.
+carries an application-for-approval date, no approval date (`核定日期` /
+`權變核定日期` / `概要核准日期`), and a cached status that is not terminal. The
+application signal SHALL cover every application track — `申請核定日期` /
+`權變申請核定日期` (approval applications) and `申請計畫日期` / `申請權變日期` /
+`申請概要核准日期` (plan-change applications) — because a plan-change case
+approved after the cache was written leaves the same absence (measured
+2026-11-02: 北投區-關渡段二小段-303's 11505020 carries only 申請計畫日期/申請權變日期
+in the cache while the API reports 核定日期 2026/09/30). A case whose cached
+status is 自行撤回 / 已駁回 / 已失效 SHALL NOT make its project a candidate: such a
+case was closed without approval and will never gain an approval date
+(measured 2026-11-02: 85 of the 176 selected projects carried only such cases).
+It SHALL re-fetch the milestones for exactly the selected projects, SHALL
+preserve every other field the cache already holds, SHALL re-run the national
+view-page absorb so the cache gains `view_verified_case_ids` and any case ids
+the page names that the parcel search missed, and SHALL report each project's
+before/after approval dates so the effect is auditable. It SHALL NOT re-crawl
+projects whose cached cases are all resolved.
+
+A successful, non-empty milestone reply SHALL replace the case's cached
+milestones, so a date the city has withdrawn leaves the cache (measured
+2026-11-02: 士林區-光華段四小段-282's 11408032 kept 申請核定日期 2026/08/18 after the
+platform dropped it). Every removed label SHALL be reported per case. A
+removed **approval** date SHALL NOT be applied silently: it SHALL be kept and
+reported as a conflict, because it decides a node's case binding. An empty
+reply or a failed fetch SHALL leave the case's milestones unchanged.
+
+The refresh SHALL also re-derive each refreshed case's status from the
+platform's case header (`get_project168_top.ashx` `NAME`) and SHALL report every
+status change with its old value, new value and the `NAME` it came from. The
+re-derived status SHALL NOT replace a cached later stage (施工中 / 已完工 /
+完成成果備查) with the approved state; an outcome-less `NAME` SHALL keep the
+cached status, except that a cached approved-family status (已核准 / 已核定) on a
+case whose own milestones carry no approval date SHALL be cleared, because the
+case's own record contradicts it. The run report SHALL list cases closed
+without approval separately from cases still awaiting approval.
 
 #### Scenario: A project's case has since been approved
 
@@ -70,7 +91,7 @@ cases are all resolved.
 
 - **WHEN** a cached case holds an application date, no approval date, and the API still
   reports none
-- **THEN** the cache is left unchanged
+- **THEN** the case's approval state is unchanged
 - **AND** the project is reported as still awaiting approval
 
 #### Scenario: The refresh backfills the view-verified case list
@@ -81,6 +102,73 @@ cases are all resolved.
   page's 相關連結 block names
 - **AND** any named case the parcel search missed is added to `city_case_ids` with its
   milestones fetched
+
+#### Scenario: A project whose awaiting cases were all closed is not selected
+
+- **WHEN** a project's only awaiting cases are cached as 自行撤回 or 已駁回
+  (南海段一小段-687 11012301, 信義段二小段-142 11105301, 三玉段一小段-672 09812232)
+- **THEN** the project is not selected and is not re-fetched
+
+#### Scenario: One open awaiting case keeps the project selected
+
+- **WHEN** a project has one awaiting case cached as 自行撤回 and another awaiting
+  case cached as 審查中
+- **THEN** the project is selected
+
+#### Scenario: A date the city withdrew leaves the cache
+
+- **WHEN** a cached case holds 申請計畫日期 and 申請核定日期, and the API now reports
+  only 申請計畫日期 (光華段四小段-282 shape)
+- **THEN** the refreshed case holds only 申請計畫日期
+- **AND** the report names 申請核定日期 as removed for that case
+
+#### Scenario: A withdrawn approval date is a conflict, not an edit
+
+- **WHEN** a cached case holds 核定日期 and the API's non-empty reply lacks it
+- **THEN** the cached 核定日期 is kept
+- **AND** the report names the case and the date as a conflict
+
+#### Scenario: An empty reply changes nothing
+
+- **WHEN** the API returns no milestones for a cached case, or the fetch fails
+- **THEN** the case's cached milestones are unchanged
+
+#### Scenario: An in-review case's stale approved status is corrected
+
+- **WHEN** a cached case's status is 已核准, it has no approval date, and its header
+  `NAME` is `權利變換計畫階段─申請報府核定中` (中正段一小段-68 10406283)
+- **THEN** its refreshed status is 審查中
+- **AND** the report names the case, 已核准 → 審查中 and the `NAME`
+
+#### Scenario: An outcome-less NAME keeps a consistent cached status
+
+- **WHEN** a cached case's status is 審查中 and its header `NAME` is `無`
+  (立農段五小段-163-2 11211211)
+- **THEN** its status stays 審查中
+
+#### Scenario: An outcome-less NAME clears a contradicted approved status
+
+- **WHEN** a cached case's status is 已核准, its own milestones carry an application
+  date and no approval date, and its header `NAME` is `無`
+  (虎林段四小段-38 10806141)
+- **THEN** its status is cleared, and the report names the change
+
+#### Scenario: A later cached stage is never downgraded
+
+- **WHEN** a cached case's status is 施工中 (or 已完工 / 完成成果備查) and its header
+  `NAME` is `事業計畫階段─業經本府核定`
+- **THEN** its status stays 施工中
+
+#### Scenario: The production refresh re-derives the status
+
+- **WHEN** the refresh runs with its default platform adapters (no fetcher injected)
+- **THEN** the case status is re-derived from the case header, not only the milestones
+
+#### Scenario: The report separates closed cases from awaiting ones
+
+- **WHEN** a selected project's refreshed case header reads `…實施者自行撤回`
+- **THEN** the run report lists that case as closed without approval, not as still
+  awaiting approval
 
 ### Requirement: The refreshed binding replaces the positional fallback for the affected nodes
 

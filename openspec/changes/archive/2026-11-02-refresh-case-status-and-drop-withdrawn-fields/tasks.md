@@ -71,7 +71,9 @@
       shows 11012301 `[自行撤回]`. Done on a 127.0.0.1 server (the extension
       refuses file://), DOM-verified; also 光華282 11408032 `[審查中]` and 虎林38
       10806141 with no badge.
-- [ ] 3.5 Commit, push, `python scripts/check_deploy.py` all FRESH, and repeat
+- [x] 3.5 Commit, push, `python scripts/check_deploy.py` all FRESH, and repeat
       3.4 on `https://happypig.github.io/urTPE/viewer/` after a force-reload.
-- [ ] 3.6 Books: archive with spec sync; append §35 to
+      Result: pushed f439a48; check_deploy all 4 FRESH (2nd poll); the live page
+      serves the new `scheduleBadgeText` and renders the same badges as 3.4.
+- [x] 3.6 Books: archive with spec sync; append §35 to
       `docs/portal_operations_log.md`.

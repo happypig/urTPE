@@ -17,7 +17,7 @@ G1–G5.
 
 | Check | Result at last full run |
 | --- | --- |
-| Test suite | 803 passed, 1 skipped (804 collected) |
+| Test suite | 820 passed, 1 skipped (821 collected) |
 | Deploy freshness | all 4 artifacts fresh (`scripts\check_deploy.py`) |
 | Viewer render path | `node scripts\viewer_smoke.js` passes |
 | Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |
@@ -125,6 +125,8 @@ one pane) — same test group, same file.
 ### Post-wave — `fix-graph-timeline-order` then `refresh-awaiting-approval-caches` — **DONE 2026-11-02** (archived; §29–§33)
 
 ### Post-wave — `fix-row-order-tiebreak-and-view-badges` — **DONE 2026-11-02** (archived; §34). 30 same-case row inversions fixed viewer-side (tie-break by node date before recno — 37 same-case groups remain, all date-ascending); the refresh selector widened to plan-change applications (177 candidates, 2 approval dates recovered: 314's 11507024 → 2026/09/17, 303's 11505020 → 2026/09/30); `refresh_project` re-absorbs the view page (140 caches backfilled with `view_verified_case_ids`); the 國 badge renders on view-verified nodes (view/621 ↔ 10105152). Residual watch: the 17 drift families whose older node's gazette date matches no approval (±2–7 days) — their render order is fixed, their binding is not; a matcher-tolerance decision is recorded in the archived design's Open Questions.
+
+### Post-wave — `refresh-case-status-and-drop-withdrawn-fields` — **DONE 2026-11-02** (archived; §36). The 13 "still awaiting" cases checked against 基本資料/data1/data2: 8 badge errors corrected (in-review cases read 已核准 by `schedule_from_top`), 3 closed cases (2 自行撤回, 1 駁回) no longer selected (selector 176 → 91), 立農163-2 and 南港671-6 correctly stay 審查中; the refresh now re-derives case status from the case header and drops dates the city withdrew (6 removed, 0 conflicts); the viewer hides 已核定 like 已核准. Residual watch: status is re-derived only for refresh-selected projects — 4 cached 審查中 on since-approved cases and 3 cached 已核准 with no dates wait for a corpus-wide status pass; a cleared status is removed (not stored as ""), so a project whose last non-terminal status clears would read never-approved (measured 3 → 3 this run).
 
 - P2.1: atomic lock acquire via `O_CREAT | O_EXCL` (replaces the tmp-and-replace
   race; Windows loser currently crashes with `PermissionError` instead of exit 5).

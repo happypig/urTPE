@@ -17,7 +17,7 @@ G1–G5.
 
 | Check | Result at last full run |
 | --- | --- |
-| Test suite | 795 passed, 1 skipped (796 collected) |
+| Test suite | 803 passed, 1 skipped (804 collected) |
 | Deploy freshness | all 4 artifacts fresh (`scripts\check_deploy.py`) |
 | Viewer render path | `node scripts\viewer_smoke.js` passes |
 | Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |

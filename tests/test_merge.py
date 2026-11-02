@@ -181,3 +181,33 @@ def test_empty_parcels_different_first_or_count_not_linked():
     assert score(a, c) < LINK_THRESHOLD
     projects = merge([a, b, c])
     assert len(projects) == 3
+
+def test_repaired_contradiction_merges_615_family():
+    """repair-contradicted-single-parcel-cell acceptance: with cleansing having
+    repaired recno 759's cell (`… 1 地號1筆土地` under a 615地號1筆 案名), the
+    2019 row links to its three siblings — the `-2` twin never forms. Before
+    the repair the same pair scores 0.65 (flag band) and the family dedup
+    emits a separate …-615地號等1筆-2 project."""
+    recs = [
+        cleanse(_raw(759, "108/10/16",
+                     "擬訂臺北市內湖區文德段二小段615地號1筆土地都市更新事業計畫案",
+                     "臺北市內湖區文德段二小段 1 地號1筆土地",
+                     imp="廣宇建設實業股份有限公司", district="內湖區")),
+        cleanse(_raw(536, "110/11/11",
+                     "擬訂臺北市內湖區文德段二小段615地號1筆土地都市更新權利變換計畫案",
+                     "臺北市內湖區文德段二小段 615 地號1筆土地",
+                     imp="廣宇建設實業股份有限公司", district="內湖區")),
+        cleanse(_raw(314, "112/9/5",
+                     "變更臺北市內湖區文德段二小段615地號1筆土地都市更新事業計畫及權利變換計畫案",
+                     "臺北市內湖區文德段二小段 615 地號1筆土地",
+                     imp="廣宇建設實業股份有限公司", district="內湖區")),
+        cleanse(_raw(84, "113/12/30",
+                     "變更(第二次)臺北市內湖區文德段二小段615地號1筆土地都市更新權利變換計畫案",
+                     "臺北市內湖區文德段二小段 615 地號1筆土地",
+                     imp="廣宇建設實業股份有限公司", district="內湖區")),
+    ]
+    assert score(recs[0], recs[1]) >= LINK_THRESHOLD
+    projects = merge(recs)
+    assert len(projects) == 1
+    assert projects[0].project_id == "內湖區-文德段二小段-615地號等1筆"
+    assert {m.recno for m in projects[0].members} == {759, 536, 314, 84}

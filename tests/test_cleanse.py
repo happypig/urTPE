@@ -193,6 +193,92 @@ def test_land_recovered_from_name_tail_when_land_cell_empty():
 
 
 
+class TestContradictedSingleParcelCell:
+    """repair-contradicted-single-parcel-cell: a 地號 cell that prints exactly
+    one parcel token while the 案名 declares 1 筆 and names a different exact
+    parcel is a publisher typo (recno 759: 案名 615地號1筆, cell `… 1
+    地號1筆土地`; the platform and national portal both print 615). The parcel
+    set follows the 案名 — the identity authority the record already trusts for
+    section/first_parcel/land_count."""
+
+    def test_contradicted_cell_follows_name(self):
+        rec = RawRecord(759, "108/10/16", "內湖區",
+                        "擬訂臺北市內湖區文德段二小段615地號1筆土地都市更新事業計畫案",
+                        "臺北市內湖區文德段二小段 1 地號1筆土地", "廣宇建設實業股份有限公司",
+                        "財團法人都市更新研究發展基金會")
+        r = cleanse(rec)
+        assert r.parcels == ["615"]
+        assert r.first_parcel == "615"
+        assert r.land_count == 1
+        assert any("地號欄單筆地號與案名矛盾" in f for f in r.auto_fixes)
+        assert any("1" in f and "615" in f for f in r.review_flags)
+
+    def test_generalizes_to_any_numbers(self):
+        """The rule is structural, not keyed to 615: any future PDF with the
+        same typo shape (count==1, single differing token) fires it."""
+        rec = RawRecord(5001, "115/2/3", "大同區",
+                        "變更臺北市大同區大橋段一小段77地號1筆土地都市更新權利變換計畫案",
+                        "臺北市大同區大橋段一小段 9 地號1筆土地", "某建設", "某規劃")
+        r = cleanse(rec)
+        assert r.parcels == ["77"]
+        assert any("地號欄單筆地號與案名矛盾" in f for f in r.auto_fixes)
+
+    def test_cross_section_multi_token_cell_untouched(self):
+        """recno 269 shape: 1 筆 named on 446-1, cell lists 40 parcels across
+        two sections — a different shape, never repaired."""
+        rec = RawRecord(269, "99/5/7", "中正區",
+                        "擬訂臺北市中正區中正段一小段446-1地號1筆土地及中正段三小段21地號等39筆土地都市更新事業計畫案",
+                        "臺北市中正區中正段一小段 446-1地號、臺北市中正區中正段三小段 21、21-1、22-1、22-2、22-4、22-5、22-6、22-7、22-10、24、24-1、24-2、24-3、24-4、24-5、24-6、24-7、24-8、24-9、24-10、24-11、24-12、24-13、24-14、24-15、24-16、24-17、24-18、24-19、24-20、24-21、24-22、24-23、25 、82、82-2、82-3、82-7、82-9 地號等40筆土地",
+                        "某建設", "某規劃")
+        r = cleanse(rec)
+        # the standing chunk-stripper consumes the bare `21、` before the 地號
+        # closing phrase (verified against the emitted clean.tsv row — it has
+        # 39 tokens, no bare 21); the shape under test is "many tokens", which
+        # is what keeps this record outside the repair rule
+        assert len(r.parcels) > 1 and "446-1" in r.parcels
+        assert not any("地號欄單筆地號與案名矛盾" in f for f in r.auto_fixes)
+
+    def test_merge_history_cell_untouched(self):
+        """recno 957 shape: 518地號1筆(原15筆) whose cell lists the absorbed
+        parcels — the cell is a faithful record of the merge, never repaired."""
+        rec = RawRecord(957, "105/3/11", "大安區",
+                        "變更臺北市大安區辛亥段三小段518地號1筆(原15筆)土地都市更新事業計畫案",
+                        "臺北市大安區辛亥段三小段 518 地號土地(原 518、519、520、521、522、523、524、525、526、527、528、529、535、536、537 地號等 15 筆土地",
+                        "某建設", "某規劃")
+        r = cleanse(rec)
+        assert "519" in r.parcels and "537" in r.parcels
+        assert not any("地號欄單筆地號與案名矛盾" in f for f in r.auto_fixes)
+
+    def test_agreeing_cell_gains_nothing(self):
+        rec = RawRecord(758, "108/10/2", "內湖區",
+                        "擬訂臺北市內湖區文德段二小段615地號1筆土地都市更新權利變換計畫案",
+                        "臺北市內湖區文德段二小段 615 地號1筆土地", "某建設", "某規劃")
+        r = cleanse(rec)
+        assert r.parcels == ["615"]
+        assert not any("地號欄單筆地號與案名矛盾" in f for f in r.auto_fixes)
+        assert not any("地號欄單筆" in f for f in r.review_flags)
+
+    def test_multi_count_name_untouched(self):
+        """等N筆 with N>1: a first-token mismatch is a coverage shape, not the
+        contradiction class."""
+        rec = RawRecord(9, "113/1/1", "松山區",
+                        "擬訂臺北市松山區西松段二小段54地號等9筆土地都市更新事業計畫案",
+                        "臺北市松山區西松段二小段 55、56、57 地號等9筆土地", "某建設", "某規劃")
+        r = cleanse(rec)
+        assert r.parcels == ["55", "56", "57"]
+        assert not any("地號欄單筆地號與案名矛盾" in f for f in r.auto_fixes)
+
+    def test_unparseable_name_untouched(self):
+        """No 案名 identity → no authority to repair against; the record stays
+        as parsed (and flagged by the standing rules)."""
+        rec = RawRecord(632, "104/2/14", "萬華區",
+                        "變更臺北市萬華區崇仁新村都市更新事業計畫及權利變換計畫案",
+                        "臺北市萬華區崇仁新村青年段一小段 1 地號1筆土地", "某建設", "某規劃")
+        r = cleanse(rec)
+        assert r.parcels == ["1"]
+        assert not any("地號欄單筆地號與案名矛盾" in f for f in r.auto_fixes)
+
+
 class TestPlanAbbreviationNormalization:
     """normalize-plan-abbreviation: 案名 土地都市更新計畫案 is a PDF-era
     abbreviation of 土地都市更新事業計畫案 (platform cross-ref 18/18 spells

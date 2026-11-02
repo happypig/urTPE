@@ -259,6 +259,20 @@ def cleanse(rec: RawRecord) -> CleanRecord:
         parcels = pl["parcels"]
     first_parcel = np or (parcels[0] if parcels else "")
     land_count = nc if nc is not None else pl["land_count"]
+    # repair-contradicted-single-parcel-cell (recno 759, 2026-10-15 gazette):
+    # the city printed `… 1 地號1筆土地` under the 案名 …615地號1筆土地… — the
+    # publisher typoed the single parcel (verified in the source PDF; the
+    # platform API and national portal both print 615 for case 10410272).
+    # The 案名 is the identity authority the record already trusts for
+    # section/first_parcel/land_count (land-identity-fallback); a single-count
+    # 案名 that names its exact parcel fully determines the parcel set, so a
+    # one-token cell contradicting it is repaired — never multi-token cells
+    # (cross-section lists, merge histories: different shapes). Structural, not
+    # keyed to 615: any future PDF with the same typo shape fires the rule.
+    if (nc == 1 and np and len(parcels) == 1 and parcels[0] != np):
+        flags.append(f"地號欄單筆地號與案名矛盾(地號欄印{parcels[0]}，案名為{np})")
+        fixes.append("地號欄單筆地號與案名矛盾→依案名")
+        parcels = [np]
     if ns and pl["section"] and ns != pl["section"]:
         flags.append(f"案名與地號段小段不一致(地號為{pl['section']})")
 

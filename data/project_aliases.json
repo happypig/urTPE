@@ -8,13 +8,15 @@
   "overlap_threshold": 0.5,
   "previous_published_date": "2026-10-15",
   "current_published_date": "2026-10-15",
-  "aliases": {},
-  "alias_basis": {},
+  "aliases": {
+    "內湖區-文德段二小段-615地號等1筆-2": "內湖區-文德段二小段-615地號等1筆"
+  },
+  "alias_basis": {
+    "內湖區-文德段二小段-615地號等1筆-2": "exact"
+  },
   "ambiguous": {},
-  "unmatched": [
-    "中正區-永昌段四小段-46-4地號等117筆"
-  ],
+  "unmatched": [],
   "orphaned": [
-    "中正區-永昌段四小段-46-4地號等117筆"
+    "內湖區-文德段二小段-615地號等1筆-2"
   ]
 }

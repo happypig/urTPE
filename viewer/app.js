@@ -1257,8 +1257,13 @@ function init() {
           const url = `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cid}`;
           const nm = linkLabels.byCase[cid] || "";
           const sched = schedules[cid] || "";
-          const schedBadge = scheduleBadgeText(sched);
-          s += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">臺北市都市更新審議服務平台 (case_id: ${cid})</a>${nm ? ` — <span class="link-case-name">${escapeHtml(nm)}</span>` : ""}${schedBadge ? ` <span class="link-schedule">${escapeHtml(schedBadge.trim())}</span>` : ""}</li>`;
+          // (supersede-headerless-cases-and-discover-new-ids D6) the city re-filed
+          // this case under a new id and left it with no current state — name the
+          // successor instead of a status badge (11211211 → 11409026).
+          const succ = (links.superseded_by || {})[cid] || "";
+          const schedBadge = succ ? "" : scheduleBadgeText(sched);
+          const succNote = succ ? ` <span class="link-schedule">已由 ${escapeHtml(succ)} 取代</span>` : "";
+          s += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">臺北市都市更新審議服務平台 (case_id: ${cid})</a>${nm ? ` — <span class="link-case-name">${escapeHtml(nm)}</span>` : ""}${schedBadge ? ` <span class="link-schedule">${escapeHtml(schedBadge.trim())}</span>` : ""}${succNote}</li>`;
         });
         // never-approved: every case 駁回/撤回/失效 and no national page —
         // the portal will never list this unit, so the absence is explained.

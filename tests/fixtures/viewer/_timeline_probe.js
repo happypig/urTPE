@@ -117,6 +117,18 @@ setTimeout(() => {
   }
   pairs.sort((a, b) => a.y - b.y);
   for (const pr of pairs) console.log(`y=${pr.y} ${pr.text}`);
+  if (process.argv[4] === "related") {
+    // 相關連結 dump (supersede-headerless-cases-and-discover-new-ids 1.7): one
+    // line per case entry, tags stripped, so a test can assert the badge or
+    // the 已由 … 取代 note a case renders with.
+    const sec = (svgHtml.split('id="links-section"')[1] || "").split("</ul>")[0];
+    const liRe = /<li[^>]*>([^]*?)<\/li>/g;
+    let m5;
+    while ((m5 = liRe.exec(sec)) !== null) {
+      const t = m5[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+      if (t.includes("case_id")) console.log(`REL ${t}`);
+    }
+  }
   if (process.argv[4] === "badges") {
     // Badge dump (fix-row-order-tiebreak-and-view-badges 1.6): every
     // node-milestone-badge anchor with its node's y, class (taipei/national)

@@ -155,6 +155,18 @@ def test_one_open_awaiting_case_keeps_the_project_selected():
     assert cached_cases_awaiting_approval(ms, {"A": "自行撤回"}) is True
 
 
+def test_the_selector_skips_a_headerless_or_superseded_case():
+    """supersede-headerless-cases-and-discover-new-ids D5: 11211211 (header 無,
+    re-filed as 11409026) and 10806141 (re-filed as 11510017) carry an
+    application and no approval forever; each refresh re-selected them."""
+    ms = {"11211211": {"申請核定日期": "2026/03/04"}}
+    assert cached_cases_awaiting_approval(ms, {}, {"11211211": "無"}) is False
+    assert cached_cases_awaiting_approval(ms, {}, {}, {"11211211": "11409026"}) is False
+    # an unrelated open case keeps the project selected
+    ms2 = {**ms, "11510017": {"權變申請核定日期": "2026/07/31"}}
+    assert cached_cases_awaiting_approval(ms2, {}, {"11211211": "無"}) is True
+
+
 def test_refresh_merges_the_new_approval_and_preserves_other_fields(tmp_path):
     pid = "大安區-通化段四小段-336地號等26筆"
     _write_cache(tmp_path, pid, published="2026-08-30", case_milestones={

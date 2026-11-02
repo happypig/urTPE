@@ -34,19 +34,38 @@ def test_a_stale_approved_status_takes_the_header_in_review():
     assert refreshed_schedule("已核准", "審查中", PENDING) == "審查中"
 
 
-def test_an_outcome_less_header_keeps_a_consistent_status():
-    """立農段五小段-163-2 11211211: header 無, cache and search list both 審查中."""
+def test_a_none_header_clears_an_in_review_status():
+    """supersede-headerless-cases-and-discover-new-ids D1 — this REVERSES the
+    archived rule on purpose. 立農段五小段-163-2's 11211211 reads 無 because the
+    city re-filed it as 11409026 (核定 2026/08/18); keeping the cached 審查中 put
+    a 審查中 chip on an approved unit. A header that exists and says 無 states
+    the case has no current state."""
+    assert refreshed_schedule("審查中", "", PENDING, no_state=True) == ""
+
+
+def test_a_none_header_clears_an_approved_status():
+    """虎林段四小段-38 10806141 (re-filed as 11510017)."""
+    assert refreshed_schedule("已核准", "", PENDING, no_state=True) == ""
+    assert refreshed_schedule("已核定", "", APPROVED, no_state=True) == ""
+
+
+def test_a_none_header_keeps_a_terminal_or_later_status():
+    """A withdrawn case stays withdrawn — clearing it could hide a project's
+    never-approved reason."""
+    for kept in ("自行撤回", "已駁回", "已失效", "施工中", "已完工", "完成成果備查"):
+        assert refreshed_schedule(kept, "", PENDING, no_state=True) == kept
+
+
+def test_an_unrecognised_header_keeps_a_consistent_status():
     assert refreshed_schedule("審查中", "", PENDING) == "審查中"
 
 
-def test_an_outcome_less_header_clears_a_contradicted_approved_status():
-    """虎林段四小段-38 10806141: header 無, not in the search list, cached 已核准
-    while its own milestones carry an application and no approval date."""
+def test_an_unrecognised_header_clears_a_contradicted_approved_status():
     assert refreshed_schedule("已核准", "", PENDING) == ""
     assert refreshed_schedule("已核定", "", PENDING) == ""
 
 
-def test_an_outcome_less_header_keeps_an_approved_status_the_milestones_support():
+def test_an_unrecognised_header_keeps_an_approved_status_the_milestones_support():
     assert refreshed_schedule("已核准", "", APPROVED) == "已核准"
 
 

@@ -318,6 +318,12 @@ class DiscoveryResult:
     # identity-verified by the portal itself, exempt from the landcore
     # similarity gate in ghost creation (parcel-less case names score 0.0).
     view_verified_case_ids: list[str] = field(default_factory=list)
+    # supersede-headerless-cases-and-discover-new-ids D3: the case header
+    # (基本資料 目前辦理情形, get_project168_top NAME) the last refresh read per
+    # case, so the offline selector can see a 無 case; and {old: new} for a case
+    # the city re-filed under a new id (11211211 → 11409026).
+    case_headers: dict[str, str] = field(default_factory=dict)
+    superseded_by: dict[str, str] = field(default_factory=dict)
     status: str = "unresolved"  # resolved, unresolved, multi-case, error
     error: str = ""
 
@@ -1379,7 +1385,9 @@ _APPROVAL_FIELDS = ("核定日期", "權變核定日期", "概要核准日期")
 
 
 def cached_cases_awaiting_approval(case_milestones: dict | None,
-                                   case_schedules: dict | None = None) -> bool:
+                                   case_schedules: dict | None = None,
+                                   case_headers: dict | None = None,
+                                   superseded_by: dict | None = None) -> bool:
     """Whether any cached case carries an approval application and no approval.
 
     Pure, offline: computable from the cache alone, so the refresh pass can
@@ -1389,16 +1397,67 @@ def cached_cases_awaiting_approval(case_milestones: dict | None,
     projects candidates on 2026-11-02 (refresh-case-status D5).
     """
     schedules = case_schedules or {}
+    headers = case_headers or {}
+    replaced = superseded_by or {}
     for cid, ms in (case_milestones or {}).items():
         if not isinstance(ms, dict):
             continue
         if schedules.get(cid) in TERMINAL_SCHEDULES:
+            continue
+        # supersede D5: a re-filed case (header 無, or recorded as superseded)
+        # carries an application and no approval forever.
+        if cid in replaced or str(headers.get(cid, "x")).strip() in ("", "無"):
             continue
         approved = any(ms.get(f) for f in _APPROVAL_FIELDS)
         applied = any(ms.get(f) for f in _APPLICATION_FIELDS)
         if applied and not approved:
             return True
     return False
+
+
+def header_has_no_state(header: dict | None) -> bool:
+    """A header row that exists and whose NAME is 無 or empty. A missing row
+    ({} / None) is no evidence and is NOT this."""
+    return bool(header) and str(header.get("NAME", "")).strip() in ("", "無")
+
+
+SUPERSEDE_MIN_LABELS = 3
+
+
+def find_superseding_case(cid: str, case_milestones: dict,
+                          header_names: dict) -> tuple[str, str]:
+    """The case the city re-filed ``cid`` as, or why none (supersede D2). Pure.
+
+    A successor has the identical header case name, a numerically greater id,
+    and milestones containing every dated label of ``cid`` with the same date;
+    ``cid`` must carry at least SUPERSEDE_MIN_LABELS dated labels, because a date
+    subset alone can match by accident on a sparse case. Exactly one candidate
+    → ``(succ, "")``; none → ``("", "none")``; several → ``("", "ambiguous")``.
+    Measured 2026-11-02: 11211211 → 11409026 and 10806141 → 11510017.
+    """
+    own = {k: v for k, v in (case_milestones.get(cid) or {}).items() if v}
+    name = (header_names.get(cid) or "").strip()
+    if len(own) < SUPERSEDE_MIN_LABELS or not name:
+        return "", "none"
+    try:
+        own_no = int(cid)
+    except ValueError:
+        return "", "none"
+    hits = []
+    for other, ms in case_milestones.items():
+        if other == cid or (header_names.get(other) or "").strip() != name:
+            continue
+        try:
+            if int(other) <= own_no:
+                continue
+        except ValueError:
+            continue
+        ms = ms or {}
+        if all(ms.get(k) == v for k, v in own.items()):
+            hits.append(other)
+    if len(hits) == 1:
+        return hits[0], ""
+    return "", ("ambiguous" if hits else "none")
 
 
 def fetch_taipei_case_header_api(case_id: str) -> dict:
@@ -1417,39 +1476,84 @@ def fetch_taipei_case_header_api(case_id: str) -> dict:
 
 
 def refresh_project(cache_dir: Path, project_id: str, fetch=None,
-                    fetch_status=None) -> dict:
+                    fetch_status=None, search=None, search_key=None) -> dict:
     """Re-fetch the milestones and status of a cache's cases, in place.
 
     Thin driver over the platform adapters: ``fetch(case_id) -> {label: date}``
-    (default :func:`fetch_taipei_milestones_api`) and ``fetch_status(case_id) ->
-    header row`` (default :func:`fetch_taipei_case_header_api`). The status
-    adapter defaults on only when ``fetch`` does too — the production call — so a
-    caller injecting a milestone fetcher alone stays offline (refresh-case-status
-    D4). Every other cached field is preserved, and the report names each
-    approval-date change, status change, removed label and conflict so the effect
-    is auditable.
+    (default :func:`fetch_taipei_milestones_api`), ``fetch_status(case_id) ->
+    header row`` (default :func:`fetch_taipei_case_header_api`) and
+    ``search(section, parcel, dropped_out=, anchor_name=)`` (default
+    :func:`search_taipei_cases_api`). The status and search adapters default on
+    only when ``fetch`` does too — the production call — so a caller injecting a
+    milestone fetcher alone stays offline (refresh-case-status D4, supersede D4).
+    Every other cached field is preserved, and the report names each change so
+    the effect is auditable.
 
-    A non-empty milestone reply REPLACES the case's milestones (D3): the old
+    A non-empty milestone reply REPLACES the case's milestones: the old
     ``{**before, **fetched}`` merge kept dates the city withdrew forever
     (光華段四小段-282 11408032's 申請核定日期). A withdrawn approval date is the one
     exception — it decides the node binding, so it is kept and reported as a
     conflict rather than dropped silently. An empty reply changes nothing.
+
+    supersede-headerless-cases-and-discover-new-ids: before the per-case pass the
+    parcel search discovery used is repeated with ``search_key = (section,
+    first_parcel, anchor_name)``, and every case id it returns that the cache
+    lacks is APPENDED to ``city_case_ids`` — never re-ordered, the positional
+    fallback binds by index — because a case filed after the cache was written
+    was otherwise invisible (虎林段四小段-38's 11510017). After the pass, a case
+    whose header reads 無 is matched to the case the city re-filed it as
+    (:func:`find_superseding_case`).
     """
     if fetch is None:
         fetch = fetch_taipei_milestones_api
         if fetch_status is None:
             fetch_status = fetch_taipei_case_header_api
+        if search is None:
+            search = search_taipei_cases_api
     cached = load_project_cache(Path(cache_dir), project_id)
     report: dict = {"project_id": project_id, "updated": [], "still_awaiting": [],
                     "closed": [], "status_changes": [], "removed": [],
-                    "conflicts": [], "error": ""}
+                    "conflicts": [], "added": [], "superseded": [],
+                    "no_successor": [], "ambiguous": [], "not_searched": False,
+                    "error": ""}
     if cached is None:
         report["error"] = "no cache"
         return report
-    updated = report["updated"]
-    still_awaiting = report["still_awaiting"]
     changed = False
     report_error = ""
+
+    # ── the parcel search, before anything is read or written ───────────────
+    search_status: dict[str, str] = {}
+    if search and search_key and all(search_key[:2]):
+        section, parcel, anchor_name = (list(search_key) + [""])[:3]
+        try:
+            entries = search(section, parcel, dropped_out={},
+                             anchor_name=anchor_name or "") or []
+        except Exception as exc:  # a failed search is a failure, not "nothing new"
+            report["error"] = f"search: {type(exc).__name__}: {exc}"
+            return report
+        known = set(cached.city_case_ids) | set(cached.case_milestones)
+        for e in entries:
+            cid = str(e.get("case_id") or "")
+            if not cid or cid in known:
+                continue
+            known.add(cid)
+            cached.city_case_ids.append(cid)
+            cached.case_milestones[cid] = {}
+            if e.get("case_name"):
+                cached.candidate_names[cid] = e["case_name"]
+            if e.get("schedule"):
+                cached.case_schedules[cid] = e["schedule"]
+                search_status[cid] = e["schedule"]
+            else:
+                search_status[cid] = ""
+            changed = True
+    elif search:
+        report["not_searched"] = True
+
+    # ── the per-case pass ──────────────────────────────────────────────────
+    header_names: dict[str, str] = {}
+    no_state: set[str] = set()
     for cid in list(cached.case_milestones.keys()):
         before = cached.case_milestones.get(cid) or {}
         try:
@@ -1475,11 +1579,22 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
         if new != before:
             changed = True
         cached.case_milestones[cid] = new
-        status = cached.case_schedules.get(cid, "")
-        if header is not None:
-            name = str(header.get("NAME", ""))
-            status = refreshed_schedule(status, schedule_from_top(header), new)
+        old_ok = next((before.get(f) for f in _APPROVAL_FIELDS if before.get(f)), "")
+        new_ok = next((new.get(f) for f in _APPROVAL_FIELDS if new.get(f)), "")
+        if new_ok and new_ok != old_ok:
+            report["updated"].append({"case_id": cid, "核定日期": new_ok, "was": old_ok})
+        if header:  # a missing row ({} / None) is no evidence
+            name = str(header.get("NAME", "")).strip()
+            header_names[cid] = str(header.get("CASE_NAME", "") or "").strip()
+            if cached.case_headers.get(cid) != name:
+                cached.case_headers[cid] = name
+                changed = True
+            empty = header_has_no_state(header)
+            if empty:
+                no_state.add(cid)
             was_status = cached.case_schedules.get(cid, "")
+            status = refreshed_schedule(was_status, schedule_from_top(header), new,
+                                        no_state=empty)
             if status != was_status:
                 report["status_changes"].append(
                     {"case_id": cid, "was": was_status, "now": status, "name": name})
@@ -1488,48 +1603,58 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                 else:
                     cached.case_schedules.pop(cid, None)
                 changed = True
-        old_ok = next((before.get(f) for f in _APPROVAL_FIELDS if before.get(f)), "")
+        if cid in search_status:
+            report["added"].append({"case_id": cid,
+                                    "schedule": cached.case_schedules.get(cid, ""),
+                                    "name": cached.case_headers.get(cid, "")})
+
+    # ── the twin pass: which case did the city re-file a 無 case as? ─────────
+    for cid in sorted(no_state):
+        succ, why = find_superseding_case(cid, cached.case_milestones, header_names)
+        if succ:
+            if cached.superseded_by.get(cid) != succ:
+                cached.superseded_by[cid] = succ
+                changed = True
+            report["superseded"].append({"case_id": cid, "by": succ})
+        elif why == "ambiguous":
+            report["ambiguous"].append(cid)
+        elif any((cached.case_milestones.get(cid) or {}).get(f) for f in _APPLICATION_FIELDS):
+            report["no_successor"].append(cid)
+
+    # ── classification ──────────────────────────────────────────────────────
+    for cid in cached.case_milestones:
+        new = cached.case_milestones[cid]
         new_ok = next((new.get(f) for f in _APPROVAL_FIELDS if new.get(f)), "")
-        if new_ok and new_ok != old_ok:
-            updated.append({"case_id": cid, "核定日期": new_ok, "was": old_ok})
-        elif not new_ok and any(new.get(f) for f in _APPLICATION_FIELDS):
-            if status in TERMINAL_SCHEDULES:
-                report["closed"].append(cid)
-            else:
-                still_awaiting.append(cid)
-        # fix-row-order-tiebreak-and-view-badges D3: re-run the national
-        # view-page absorb so a backfilled cache gains view_verified_case_ids
-        # (and any case id the page names that the parcel search missed). A
-        # milestone-only refresh could never add the field — most caches
-        # predate it — and the viewer's view-verified 國 badge reads it.
-        # Uses the same code path discovery does; delay=0 because the refresh
-        # already paced its own fetches and this adds one page fetch.
-        view_id = cached.twur_view_id or ""
-        if not view_id and cached.twur_url:
-            m = re.search(r"view/(\d+)", cached.twur_url)
-            view_id = m.group(1) if m else ""
-        if view_id:
-            try:
-                view_html = fetch_view_page(view_id, Path(cache_dir))
-                merged_ms: dict = {}
-                merged_src: dict = {}
-                prior_verified = list(cached.view_verified_case_ids)
-                _absorb_view_case_ids(None, cached, view_html, 0.0,
-                                      merged_ms, merged_src)
-                # Merge, never replace: the absorb overwrites the list with the
-                # page order, and an already-complete cache must not lose or
-                # reorder its entries (test_refresh_view_absorb pins this).
-                combined = prior_verified + [
-                    c for c in cached.view_verified_case_ids
-                    if c not in prior_verified]
-                cached.view_verified_case_ids = combined
-            except Exception as exc:
-                if not report_error:
-                    report_error = f"view absorb: {type(exc).__name__}: {exc}"
-    # Persist when the milestones changed OR the absorb touched state — the
-    # backfill is the point of the absorb, and a field-only change must not
-    # be dropped.
-    if changed or updated or cached.view_verified_case_ids:
+        if new_ok or not any(new.get(f) for f in _APPLICATION_FIELDS):
+            continue
+        if cid in no_state or cid in cached.superseded_by:
+            continue  # reported as superseded / no_successor / ambiguous
+        if cached.case_schedules.get(cid, "") in TERMINAL_SCHEDULES:
+            report["closed"].append(cid)
+        else:
+            report["still_awaiting"].append(cid)
+
+    # fix-row-order-tiebreak-and-view-badges D3: re-run the national view-page
+    # absorb so a backfilled cache gains view_verified_case_ids (and any case id
+    # the page names that the parcel search missed). Once per project — it ran
+    # once per case before supersede-headerless-cases (§36 residual).
+    view_id = cached.twur_view_id or ""
+    if not view_id and cached.twur_url:
+        m = re.search(r"view/(\d+)", cached.twur_url)
+        view_id = m.group(1) if m else ""
+    if view_id:
+        try:
+            view_html = fetch_view_page(view_id, Path(cache_dir))
+            prior_verified = list(cached.view_verified_case_ids)
+            _absorb_view_case_ids(None, cached, view_html, 0.0, {}, {})
+            # Merge, never replace: the absorb overwrites the list with the page
+            # order, and an already-complete cache must not lose or reorder its
+            # entries (test_refresh_view_absorb pins this).
+            cached.view_verified_case_ids = prior_verified + [
+                c for c in cached.view_verified_case_ids if c not in prior_verified]
+        except Exception as exc:
+            report_error = f"view absorb: {type(exc).__name__}: {exc}"
+    if changed or report["updated"] or cached.view_verified_case_ids:
         save_project_cache(Path(cache_dir), project_id, cached)
     report["error"] = report_error
     return report
@@ -1648,7 +1773,8 @@ _APPROVED_FAMILY = ("已核准", "已核定")
 _LATER_THAN_APPROVED = ("施工中", "已完工", "完成成果備查")
 
 
-def refreshed_schedule(cached: str, derived: str, milestones: dict | None) -> str:
+def refreshed_schedule(cached: str, derived: str, milestones: dict | None,
+                       no_state: bool = False) -> str:
     """The status a refreshed case should carry (refresh-case-status D2). Pure.
 
     ``derived`` is :func:`schedule_from_top` of the case header the refresh just
@@ -1661,6 +1787,14 @@ def refreshed_schedule(cached: str, derived: str, milestones: dict | None) -> st
     honest silence rather than kept as a wrong badge.
     """
     cached = cached or ""
+    if no_state:
+        # supersede-headerless-cases D1: a header that exists and reads 無 says the
+        # case has no current state (measured: the city re-filed 11211211 as
+        # 11409026 and 10806141 as 11510017). Keeping a cached 審查中 put a 審查中
+        # chip on 立農163-2, an approved unit. A terminal or later word is kept: a
+        # withdrawn case stays withdrawn, and clearing it could hide a project's
+        # never-approved reason.
+        return "" if cached in ("審查中",) + _APPROVED_FAMILY else cached
     if derived and derived != "已核准":
         return derived
     if derived == "已核准":
@@ -1826,6 +1960,10 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             # reads it via getattr(..., None).
             if "view_verified_case_ids" in v:
                 obj.view_verified_case_ids = v["view_verified_case_ids"]
+            # supersede-headerless-cases D6: this object is built field by
+            # field, so a field missing here is dropped on the next --from-js
+            # run without any error (test_supersede pins the round trip).
+            obj.superseded_by = v.get("superseded_by", {})
             disc_by_pid[k] = obj
 
     for project in projects:
@@ -1858,6 +1996,10 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             project.links["candidate_names"] = dict(disc.candidate_names)
         if getattr(disc, "case_schedules", None):
             project.links["case_schedules"] = dict(disc.case_schedules)
+        # supersede-headerless-cases D6: {old: new} for a case the city re-filed
+        # under a new id; the viewer names the successor in 相關連結.
+        if getattr(disc, "superseded_by", None):
+            project.links["superseded_by"] = dict(disc.superseded_by)
         # fix-row-order-tiebreak-and-view-badges D4: the cases the project's
         # own national view page names in 相關連結 — the portal's assertion —
         # reach the payload so the viewer can badge those nodes 國. A legacy

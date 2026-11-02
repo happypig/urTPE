@@ -887,28 +887,31 @@ function init() {
     // virtual node's own grid position.
     const hasGhosts = interimOrphans.length > 0;
     const ghostColX = eventColX + COL_W;
-    const ghostPos = {};
+    const ghostPosRaw = {};
     interimOrphans.forEach((g, i) => {
-      ghostPos[`${g.case_id}::__node__`] = { x: ghostColX, y: PAD + i * NODE_ROW };
+      ghostPosRaw[`${g.case_id}::__node__`] = {
+        x: ghostColX,
+        y: PAD + i * NODE_ROW,
+      };
     });
     const ghostRows = interimOrphans.length;
     const orphanSources = {};
     interimOrphans.forEach(g => {
-      const q = ghostPos[`${g.case_id}::__node__`];
+      const q = ghostPosRaw[`${g.case_id}::__node__`];
       if (q) orphanSources[g.case_id] = q;
     });
 
-    const pos = {};
-    const evPos = {};
+    const posRaw = {};
+    const evPosRaw = {};
     timeline.forEach((t, i) => {
       if (t.kind === "approval") {
-        pos[t.n.recno] = { x: PAD + colOf(t.n) * COL_W + COL_W / 2, y: rowYs[i] };
+        posRaw[t.n.recno] = { x: PAD + colOf(t.n) * COL_W + COL_W / 2, y: rowYs[i] };
       } else {
-        evPos[t.e.label] = { x: eventColX, y: rowYs[i] };
+        evPosRaw[t.e.label] = { x: eventColX, y: rowYs[i] };
       }
     });
     virtualNodes.forEach(v => {
-      if (pos[v.recno]) orphanSources[v.case_id] = pos[v.recno];
+      if (posRaw[v.recno]) orphanSources[v.case_id] = posRaw[v.recno];
     });
 
     // Callout selection: first carrying record + diff-triggered records only.
@@ -933,7 +936,15 @@ function init() {
       rows.forEach(r => { prevVals[r.label] = r.value; });
     });
 
-    let svgW = Math.max(W, (colKeys.length + (hasEvents ? 1 : 0)) * COL_W + PAD * 2);
+    // §5.3.3 center the graph content horizontally. contentW is the graph's
+    // own width; svgW keeps a minimum W so narrow graphs are not scaled up.
+    // xOffset = (svgW - contentW) / 2 centers all content in the canvas.
+    const contentW =
+      PAD * 2 + colKeys.length * COL_W + (hasEvents ? COL_W + 250 : 0);
+    const svgMinW = Math.max(W, contentW);
+
+    // canvas width: at least W, and large enough for ghost column / callouts.
+    let svgW = svgMinW;
     if (hasEvents) svgW = Math.max(svgW, eventColX + 250);
     let svgH = PAD * 2 + contentH;
     if (hasGhosts) {
@@ -941,8 +952,17 @@ function init() {
       svgH = Math.max(svgH, PAD * 2 + Math.max(0, ghostRows - 1) * NODE_ROW + 80);
     }
     callouts.forEach(c => {
-      svgH = Math.max(svgH, pos[c.n.recno].y + 84);
+      svgH = Math.max(svgH, posRaw[c.n.recno].y + 84);
     });
+
+    // apply horizontal centering once svgW is final
+    const xOffset = (svgW - contentW) / 2;
+    const pos = {};
+    const evPos = {};
+    Object.entries(posRaw).forEach(([k, v]) => { pos[k] = { x: xOffset + v.x, y: v.y }; });
+    Object.entries(evPosRaw).forEach(([k, v]) => { evPos[k] = { x: xOffset + v.x, y: v.y }; });
+    const ghostPos = {};
+    Object.entries(ghostPosRaw).forEach(([k, v]) => { ghostPos[k] = { x: xOffset + v.x, y: v.y }; });
 
     // Callout placement: collision-dodging spots, clamped into the viewBox.
     // Runs BEFORE the svg string is built so viewBox extensions take effect.

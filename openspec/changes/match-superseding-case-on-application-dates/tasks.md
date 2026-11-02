@@ -21,12 +21,19 @@
 
 ## 3. Live acceptance
 
-- [ ] 3.1 Backup `data/.link_cache` → `data/.link_cache_backup_20261102_appdates`;
+- [x] 3.1 Backup `data/.link_cache` → `data/.link_cache_backup_20261102_appdates`;
       record the payload counts.
-- [ ] 3.2 Live refresh: 雅祥227-4 11009142 → 11510001 and 吉林705-3 10410012 →
+- [x] 3.2 Live refresh: 雅祥227-4 11009142 → 11510001 and 吉林705-3 10410012 →
       11503012 recorded with their differing labels; nothing else newly
       superseded.
-- [ ] 3.3 Re-emit: records / projects / never-approved unchanged; superseded 2 → 4.
+- [x] 3.3 Re-emit: records / projects / never-approved unchanged; superseded 2 → 4.
+      Results 3.1-3.3: backup `.link_cache_backup_20261102_appdates`; refresh 89
+      projects / 0 failures — 吉林705-3 10410012 → 11503012 (differ: 召開幹事會日期,
+      權變召開幹事會日期), 雅祥227-4 11009142 → 11510001 (differ: the four 公展
+      dates), 虎林38 re-confirmed (differ: none); 0 無 without successor, 0
+      ambiguous, nothing else changed. Re-emission exit 0, 1,442 / 693,
+      never-approved 3, links.taipei 1997, orphan nodes 596 — all unchanged;
+      superseded 2 → 4. Local Chrome check: both read 已由 … 取代.
 - [ ] 3.4 Chrome (local server, then live after push + `check_deploy.py`): both
       entries read `已由 … 取代`.
 - [ ] 3.5 Archive with spec sync; §38 in the ops log; board entry.

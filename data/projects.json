@@ -17045,6 +17045,9 @@
           "10410011": "已核准",
           "11503012": "審查中"
         },
+        "superseded_by": {
+          "10410012": "11503012"
+        },
         "view_verified_case_ids": [],
         "orphan_nodes": [
           {
@@ -82756,6 +82759,9 @@
         },
         "case_schedules": {
           "11510001": "審查中"
+        },
+        "superseded_by": {
+          "11009142": "11510001"
         },
         "view_verified_case_ids": [],
         "orphan_nodes": [

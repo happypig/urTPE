@@ -20,7 +20,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from urtpe.links import refresh_project, refreshed_schedule  # noqa: E402
+from urtpe.links import (refresh_project, refreshed_schedule,
+                         state_of_header, header_has_no_state)  # noqa: E402
+
+
+# ── 0.0  state_of_header: split 無 vs empty for the per-case badge (§7 viewer-UX) ──
+
+
+def test_state_of_header_maps_wu_to_wu():
+    assert state_of_header({"NAME": "無"}) == "無"
+
+
+def test_state_of_header_maps_empty_to_na():
+    assert state_of_header({"NAME": ""}) == "NA"
+
+
+def test_state_of_header_maps_missing_row_to_empty():
+    assert state_of_header(None) == ""
+    assert state_of_header({}) == ""
+
+
+def test_state_of_header_maps_other_states_to_empty():
+    assert state_of_header({"NAME": "審查中"}) == ""
+    assert state_of_header({"NAME": "已核准"}) == ""
 
 
 # ── 1.2  the pure status rule (D2) ──────────────────────────────────────────
@@ -34,13 +56,32 @@ def test_a_stale_approved_status_takes_the_header_in_review():
     assert refreshed_schedule("已核准", "審查中", PENDING) == "審查中"
 
 
-def test_a_none_header_clears_an_in_review_status():
-    """supersede-headerless-cases-and-discover-new-ids D1 — this REVERSES the
-    archived rule on purpose. 立農段五小段-163-2's 11211211 reads 無 because the
-    city re-filed it as 11409026 (核定 2026/08/18); keeping the cached 審查中 put
-    a 審查中 chip on an approved unit. A header that exists and says 無 states
-    the case has no current state."""
-    assert refreshed_schedule("審查中", "", PENDING, no_state=True) == ""
+def test_a_none_header_stores_wu_as_its_own_state():
+    """§7 viewer-UX decision 2: a header reading 無 is stored as [無], not cleared.
+    This overrides the old supersede-headerless-cases D1 silence."""
+    assert refreshed_schedule("審查中", "", PENDING, header_state="無") == "無"
+    assert refreshed_schedule("已核准", "", PENDING, header_state="無") == "無"
+    assert refreshed_schedule("", "", PENDING, header_state="無") == "無"
+
+
+def test_a_none_header_stores_empty_as_na():
+    """§7 viewer-UX decision 2: an empty NAME reads as [NA]."""
+    assert refreshed_schedule("審查中", "", PENDING, header_state="NA") == "NA"
+    assert refreshed_schedule("", "", PENDING, header_state="NA") == "NA"
+
+
+def test_a_none_header_clears_an_in_review_status_wu():
+    """supersede-headerless-cases D1 reversed (see §7 viewer-UX decision 2):
+    a header reading 無 stores [無], even for a cached 審查中 on an approved unit."""
+    assert refreshed_schedule("審查中", "", PENDING, header_state="無") == "無"
+    assert refreshed_schedule("已核准", "", PENDING, header_state="無") == "無"
+
+
+def test_a_none_header_overrides_terminal_with_wu():
+    """§7 viewer-UX decision 2: 無 shows on every case, even a cached terminal
+    status — reversing supersede D1's silence so the platform's current word wins."""
+    for before in ("自行撤回", "已駁回", "已失效", "施工中", "已完工", "完成成果備查"):
+        assert refreshed_schedule(before, "", PENDING, header_state="無") == "無"
 
 
 def test_a_none_header_clears_an_approved_status():

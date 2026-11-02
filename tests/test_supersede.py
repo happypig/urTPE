@@ -199,7 +199,9 @@ def test_the_refresh_appends_a_new_case_and_records_the_successor(tmp_path):
     assert saved["case_schedules"]["11510017"] == "審查中"
     assert saved["superseded_by"] == {"10806141": "11510017"}
     assert saved["case_headers"]["10806141"] == "無"
-    assert "10806141" not in saved["case_schedules"]
+    # §7 viewer-UX decision 2: 無 stores as its own state ([無]), so 10806141 keeps
+    # it instead of being cleared (reversing supersede D1's silence).
+    assert saved["case_schedules"]["10806141"] == "無"
     assert report["added"] == [{"case_id": "11510017", "schedule": "審查中",
                                 "name": "事業計畫及權利變換計畫階段─申請報府核定中"}]
     assert report["superseded"] == [{"case_id": "10806141", "by": "11510017", "differs": []}]
@@ -216,7 +218,8 @@ def test_a_headerless_case_without_a_successor_is_named(tmp_path):
         search=lambda *a, **k: [], search_key=("立農段五小段", "163-2", NAME_LINONG))
     assert report["no_successor"] == ["11211211"]
     assert report["still_awaiting"] == []
-    assert _saved(tmp_path, pid)["case_schedules"] == {}
+    # §7 viewer-UX decision 2: header 無 stores [無] even without a successor.
+    assert _saved(tmp_path, pid)["case_schedules"] == {"11211211": "無"}
 
 
 def test_a_failed_search_is_a_failure_and_writes_nothing(tmp_path):

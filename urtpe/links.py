@@ -1421,6 +1421,24 @@ def header_has_no_state(header: dict | None) -> bool:
     return bool(header) and str(header.get("NAME", "")).strip() in ("", "無")
 
 
+def state_of_header(header: dict | None) -> str:
+    """Map a case header's 目前辦理情形 (NAME) to a per-case badge state.
+
+    Returns "無" when NAME reads 無, "NA" when NAME is empty, or "" when the row
+    is missing or reads anything else. header_has_no_state keeps the broader
+    no-state notion (無 and empty) for the supersede trigger; this helper splits
+    them so the viewer badge can label each honestly.
+    """
+    if not header:
+        return ""
+    name = str(header.get("NAME", "")).strip()
+    if name == "無":
+        return "無"
+    if name == "":
+        return "NA"
+    return ""
+
+
 SUPERSEDE_MIN_LABELS = 3
 
 
@@ -1599,12 +1617,12 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             if cached.case_headers.get(cid) != name:
                 cached.case_headers[cid] = name
                 changed = True
-            empty = header_has_no_state(header)
-            if empty:
+            header_state = state_of_header(header)
+            if header_state:
                 no_state.add(cid)
             was_status = cached.case_schedules.get(cid, "")
             status = refreshed_schedule(was_status, schedule_from_top(header), new,
-                                        no_state=empty)
+                                        header_state=header_state)
             if status != was_status:
                 report["status_changes"].append(
                     {"case_id": cid, "was": was_status, "now": status, "name": name})
@@ -1786,26 +1804,27 @@ _LATER_THAN_APPROVED = ("施工中", "已完工", "完成成果備查")
 
 
 def refreshed_schedule(cached: str, derived: str, milestones: dict | None,
-                       no_state: bool = False) -> str:
+                       no_state: bool = False, header_state: str = "") -> str:
     """The status a refreshed case should carry (refresh-case-status D2). Pure.
 
     ``derived`` is :func:`schedule_from_top` of the case header the refresh just
     read. The header is the platform's current per-case word, so a terminal /
     in-review / construction reading wins. An "approved" header never
     downgrades a later stage the search list already recorded (施工中 beats a
-    bare 業經本府核定). An outcome-less header (無, empty) is no evidence, so the
-    cached word stays — except an approved word the case's own milestones
-    contradict (no approval date: 虎林段四小段-38 10806141), which is cleared to
-    honest silence rather than kept as a wrong badge.
+    bare 業經本府核定). A header that reads 無 or empty states the case has no
+    current state: the viewer labels it [無] / [NA] instead of showing 審查中.
+    (The stand-alone rule was once reversed to silence 立農163-2's 11211211; that
+    decision is now overridden — see docs/viewer-UX.md §7 decision 2.)
     """
     cached = cached or ""
+    if header_state == "無":
+        return "無"
+    if header_state == "NA":
+        return "NA"
     if no_state:
-        # supersede-headerless-cases D1: a header that exists and reads 無 says the
-        # case has no current state (measured: the city re-filed 11211211 as
-        # 11409026 and 10806141 as 11510017). Keeping a cached 審查中 put a 審查中
-        # chip on 立農163-2, an approved unit. A terminal or later word is kept: a
-        # withdrawn case stays withdrawn, and clearing it could hide a project's
-        # never-approved reason.
+        # supersede-headerless-cases D1: header exists and reads 無 or empty.
+        # Keeping a cached 審查中 put a chip on an approved unit; clear those,
+        # keep terminal/later statuses (withdrawn stays withdrawn).
         return "" if cached in ("審查中",) + _APPROVED_FAMILY else cached
     if derived and derived != "已核准":
         return derived

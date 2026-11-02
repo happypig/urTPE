@@ -368,7 +368,7 @@ function zoneBase(x) {
 // 駁回/撤回/失效 and there is no national page — the unit will never appear
 // on the portal (§6.14 E2/E3).
 function neverApproved(p) {
-  const scheds = Object.values((p.links || {}).case_schedules || {});
+  const scheds = familyScheds(p);
   return scheds.length > 0
     && scheds.every(v => v === "已駁回" || v === "自行撤回" || v === "已失效")
     && !(p.links || {}).twur;
@@ -389,7 +389,19 @@ function perTrackStageText(n) {
 // 施工中/自行撤回/已失效/審查中) render as badges. The city's search list writes
 // an approved case as 已核准 or 已核定 (cache 2026-11-02: 739 / 14), so both
 // are the default (refresh-case-status-and-drop-withdrawn-fields D6).
-const scheduleBadgeText = s => (!s || s === "已核准" || s === "已核定") ? "" : ` [${s}]`;
+// 無 / NA mean the platform has no current state for the case: render them
+// honestly as [無] / [NA] instead of silence (§7 viewer-UX).
+const scheduleBadgeText = s => (!s || s === "已核准" || s === "已核定") ? "" : s === "無" ? " [無]" : s === "NA" ? " [NA]" : ` [${s}]`;
+
+// states that are honest "no current state" readings: they render as their own
+// per-case badge, but must not move the family-level chip or the never-approved
+// classification (§7 viewer-UX).
+const NO_STATE_FAMILY = new Set(["無", "NA"]);
+
+function familyScheds(p) {
+  return Object.values((p.links || {}).case_schedules || {}).filter(
+    v => !NO_STATE_FAMILY.has(v));
+}
 
 // (viewer-stage-chip-coverage) the grey status chip: a project with no
 // construction stage but a known case state shows 審查中 or 撤回 instead of
@@ -399,7 +411,7 @@ const scheduleBadgeText = s => (!s || s === "已核准" || s === "已核定") ? 
 // no schedules at all → no chip.
 function statusChip(p, construction) {
   if (construction) return "";           // the construction badge wins
-  const scheds = Object.values((p.links || {}).case_schedules || {});
+  const scheds = familyScheds(p);
   if (!scheds.length) return "";         // no data → honest silence
   if (scheds.some(v => v === "審查中"))
     return `<span class="status-chip">審查中</span>`;

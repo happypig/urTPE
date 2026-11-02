@@ -70,19 +70,29 @@
 
 ## 3. Acceptance
 
-- [ ] 3.1 Full suite green; `node scripts/viewer_smoke.js` passes.
-- [ ] 3.2 Run the widened refresh against the live cache; report the
-      per-project before/after; confirm 303's 11505020 gains 核定日期
-      2026/09/30 and 303's cache gains `view_verified_case_ids:
-      ["10803151", "10105152"]` (plus 大業段314's 11507024 → 權變核定
-      2026/09/17).
-- [ ] 3.3 Re-emit with `--links`: 303's rows render 829 (2019-02-14) → 669
-      (2020-07-28) → 5 (2026-09-30) with badges 北10105152 / 北10803151 /
-      北11505020 and 國 on 829 + 669; the 336 order stays 453 → 370 → 1.
-- [ ] 3.4 Live-viewer check on the deployed page after the push: 303's
-      order, the three 北 badges, and 地 on the view-verified nodes.
-- [ ] 3.5 `openspec validate` passes; the four main specs synced; both
-      boards updated; commit.
+- [x] 3.1 Full suite green (795 passed / 1 skipped); smoke passes (live data
+      and the badge fixture).
+- [x] 3.2 Refresh run 2026-11-02: 177 candidates, **2 approval dates
+      recovered, 0 failures** — 大業段314 `11507024: (none) -> 2026/09/17`,
+      303 `11505020: (none) -> 2026/09/30`; 303's cache now carries
+      `view_verified_case_ids: ["10803151", "10105152"]` (view/621's own
+      list), 314's carries `["10012272"]`. 140 of 177 caches rewritten
+      (absorb backfills); 139 carry a view-verified list.
+- [x] 3.3 Re-emission exit 0 (686 resolved / 8 unresolved; freshness line
+      "547 of 694 predate"). Live probe: 303 renders 829 (2019-02-14) → 669
+      (2020-07-28) → 建照 2021/04/26 → 開工 2022/01/18 → (未核定) 11503009 →
+      5 (2026-09-30), badges 北10105152+國 / 北10803151+國 / 北11503009 /
+      北11505020+國; 314 renders 933 → 714 → 45 → 10 ascending; the 336
+      order stays 453 → 370 → 建照 → 開工 → 1.
+- [x] 3.4 Live-viewer check after the push (87165f0): `check_deploy.py` all
+      4 FRESH; served app.js carries the new rule; the 303 graph reads
+      829 → 669 → 5 with 國→view/621 on 829 + 669 + 5 (現況), 北 badges
+      naming the three cases; 336 unchanged (453/370/1, 國 on 1 only —
+      its cache keeps `view_verified: []` until a full absorb). DOM-verified
+      plus one screenshot.
+- [x] 3.5 `openspec validate --all` passes (25 items); the four main specs
+      synced; both boards updated (inspection.md suite row + post-wave
+      entry; ops log §34); committed 87165f0, pushed.
 
 ---
 

@@ -53,20 +53,24 @@
 
 ## 3. Live acceptance
 
-- [ ] 3.1 Back up `data/.link_cache` to `data/.link_cache_backup_20261102_status`;
+- [x] 3.1 Back up `data/.link_cache` to `data/.link_cache_backup_20261102_status`;
       record the `statusChip` / never-approved project counts from the current
       payload.
-- [ ] 3.2 Live `scripts/refresh_awaiting_caches.py` (single writer): record the
+- [x] 3.2 Live `scripts/refresh_awaiting_caches.py` (single writer): record the
       candidate count, every status change with its NAME, removed labels,
       conflicts, the closed bucket; confirm the 13 cases match the 2026-11-02
       manual check (8 status corrections incl. 68/128 → 審查中, 光華282 drops
       申請核定日期, 南海687/信義142/三玉672 not selected).
-- [ ] 3.3 Re-emit (`--from-js viewer/projects.data.js -o data --viewer viewer
+- [x] 3.3 Re-emit (`--from-js viewer/projects.data.js -o data --viewer viewer
       --links --recover-truncated`): exit 0, tripwire PASS, record/project counts
       unchanged (1,442 / 694); the never-approved count does not rise.
-- [ ] 3.4 Chrome over `file://`: 中正段一小段-68 相關連結 shows 10406283 `[審查中]`
+      Result: exit 0, 1,442 / 693 (the payload already read 693 before this
+      run), never-approved 3 → 3, 審查中-chip projects 56 → 67, links 685 / 8 / 0.
+- [x] 3.4 Chrome over `file://`: 中正段一小段-68 相關連結 shows 10406283 `[審查中]`
       and 10406282 no badge; 振興段一小段-128 shows 10304127 `[審查中]`; 南海段一小段-687
-      shows 11012301 `[自行撤回]`.
+      shows 11012301 `[自行撤回]`. Done on a 127.0.0.1 server (the extension
+      refuses file://), DOM-verified; also 光華282 11408032 `[審查中]` and 虎林38
+      10806141 with no badge.
 - [ ] 3.5 Commit, push, `python scripts/check_deploy.py` all FRESH, and repeat
       3.4 on `https://happypig.github.io/urTPE/viewer/` after a force-reload.
 - [ ] 3.6 Books: archive with spec sync; append §35 to

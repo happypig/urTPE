@@ -518,7 +518,7 @@ latent risk.
 | S12 | P2 | C8 (b) | discovery finds the cases the parcel search misses: a sibling-id probe over each cached case's 10-id batch, accepted at land-core similarity ≥ 0.85, every find reported. Measured: 7 missing 擬訂 plan cases + 2 missing 變更 siblings; 3 plan cases need a second source (national 相關連結 or a section name search). Folds into R | S11 |
 | S13 | P2 | C9 | openspec change `merge-across-count-shrink` — `(原M筆)` bridges a site shrink; re-merge, aliases, cache migration | S0 |
 | S14 | P1 | C6 (types 5–6) | store the case header's `uro_chk_date`/`uro_chk_date2` as an approval source beside data2; the date matcher reads both. Folds into R | S12 |
-| S15 | P3 | C5 | explore a building-authority adapter (使用執照 record) as the third source for the 21 undecided 使照 disagreements; see "S15 exploration" | — |
+| S15 | P2 | C5 | openspec change `building-permit-adapter` — a third source for 使照: the building authority's 使用執照摘要 on data.taipei, matched by parcel. Explored 2026-11-04: it decides 17 of 22 disagreements (8 city right, 9 national right) and confirms 12 of 13 national-only dates; see "S15 exploration" | S7 |
 
 **R change detection (design, recorded 2026-11-04).** No city endpoint
 returns a per-case "last modified" date. The 40 endpoints in
@@ -544,6 +544,58 @@ A finished case (已完工 / 完成成果備查, with a 使照) skips data2/data
 step 2 or 3 moves. Estimated effect: from about 5,500 requests (726 caches,
 2,057 cases) to about 2,000–2,500. Every skip is counted in the run report, so
 "not fetched because unchanged" never reads as "fetched and empty".
+
+**S15 exploration (2026-11-04).** The 使照 is issued by the building
+authority (臺北市建築管理工程處). It publishes its permit summaries as open
+data on data.taipei (XML, no key):
+
+| Dataset | Resource id | Size | Cover | Update |
+| --- | --- | --- | --- | --- |
+| 臺北市歷年使用執照摘要 | `0f3f9675-8356-4f1a-9908-1ce8892012fa` | 65.25 MB | ROC 90–114 | yearly |
+| 臺北市115年度使用執照摘要 | `74a8b311-906e-44c4-91fb-7f413842d4e1` | 2.01 MB | current year, to last month | monthly |
+
+Download: `https://data.taipei/api/frontstage/tpeod/dataset/resource.download?rid=<id>`.
+Each `<Data>` record carries 執照號碼, 發照日期 (ROC `YYYMMDD`), 原核發執照
+(the 建照 number), 開工日期, 竣工日期, 地址, and every 地段號 in the form
+`臺北市中山區吉林段三小段0811-0000號`. Matching key: section + parcel against
+each project's own parcel list. 8,946 permits, ROC 090–115. Matching
+building-permit datasets exist too (歷年 / 115年度 建造執照摘要).
+
+Tested against the payload at `HEAD`, by parcel overlap:
+
+| Group | Projects | Result |
+| --- | --- | --- |
+| Control: city = national (every 12th) | 22 | 22 of 22: the permit date equals both. The match is reliable |
+| Disagreements | 22 | **city confirmed 8**, **national confirmed 9**, permit date matches neither 4, no permit 1 |
+| National only (city blank) | 13 | national confirmed 12, no permit 1 |
+
+So neither portal is the better one. The city is right on the large gaps
+and the year/month typos (虎林310, 莒光466, 玉成180-1, 崇仰68, 橋北574-1). The
+national page is right on the 1-day cases (all 5) and on 吉林811, 奇岩13,
+龍泉712, 寶清678. Four cases are new shapes:
+
+- **2 permits on one site.** 奇岩13 (2012-06-08 and 2014-06-19), 龍泉712
+  (2005-11-04 and a 2006 雜字 permit), 懷生931 (2015-05-22 and 2016-05-17),
+  仁愛54 (2003 雜字, 2005 建字). The first 建字 permit is the building's 使照;
+  a later one is a 雜項 (minor work) or a second building. Each portal copied a
+  different one. Rule: take the permit whose 原核發執照 is a 建字 number, and
+  for an area split (懷生931 東區/西區) keep one per area.
+- **玉泉91**: the permit says 2020-11-11; the city says 11-12, the national
+  page 07-30. The national 07-30 equals the permit's 竣工日期, not its 發照日期.
+- **No permit found**: 榮星306 (both portals carry 09-23; the permit
+  111使字第0119號 sits on parcel 660 of the same section, which is outside the
+  project's parcel list) and 德惠573 (104使字第0181號, 2015-07-13, sits on
+  parcels 1048/1049, which the gazette lists under another number). A
+  parcel-list miss, not a missing permit; an address or 建照-number key would
+  catch both.
+
+Design for the adapter: download both files (monthly cadence, cached under
+the archive root like the gazettes, keyed by SHA-256 per `AGENTS.md`); index
+by (section, parcel); for each project pick the 建字-origin permit(s) whose
+parcels overlap most; emit it as a third witness with its permit number. The
+viewer shows the permit date when it exists and flags the portal value that
+disagrees. Never repair by inference: when the permit is missing, keep both
+portal dates and the flag.
 
 **Why this order.**
 

@@ -127,27 +127,57 @@ function trackMatches(nodeTrack, labelTrack) {
   return nodeTrack === combined && (labelTrack === "事業計畫" || labelTrack === "權利變換");
 }
 
-function nationalBoundTo(node, national) {
-  let best = null;
-  for (const label of Object.keys(national || {})) {
+function nationalRocToIso(v) {
+  const s = String(v || "");
+  const m = s.match(/^(\d{2,3})\.(\d{1,2})\.(\d{1,2})$/);
+  if (!m) return s;
+  return `${1911 + Number(m[1])}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+}
+
+const _shiftIsoDay = (iso, days) => {
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return iso;
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+
+// §2 / C1 (bind-national-label-once): binding is per label, decided once per
+// project — not per node. Scoring each node on its own badged every candidate
+// of a multi-match label (19 labels, 41 badged nodes, 16 unearned 國). Each
+// label's candidates are the nodes of its stage+track; one candidate binds
+// whatever the date, several resolve by exact date, then ±1 day (the
+// 公告-vs-committee offset the 北 matcher allows); 0 or 2+ survivors bind
+// nothing.
+function bindNationalLabels(project) {
+  const national = (project.links || {}).milestones_national || {};
+  const nodes = (project.nodes || []).filter(n => n.recno != null);
+  const out = {}; // recno -> [labels]
+  for (const label of Object.keys(national)) {
     const k = nationalLabelKey(label);
-    if (!k) continue;
-    if (node.stage !== k.stage) continue;
-    if (!trackMatches(node.track, k.track)) continue;
-    const iso = /^\d{2,3}\./.test(String(national[label] || ""))
-      ? `${1911 + Number(String(national[label]).match(/^(\d{2,3})\./)[1])}-${String(national[label]).match(/^(\d{2,3})\.(\d{1,2})\.(\d{1,2})$/)[2].padStart(2, "0")}-${String(national[label]).match(/^(\d{2,3})\.(\d{1,2})\.(\d{1,2})$/)[3].padStart(2, "0")}`
-      : String(national[label]);
-    const score = node.date === iso ? 2 : 1;
-    if (!best || score > best.score) best = { label, score, date: national[label] };
+    if (!k) continue; // 使用核發日期 / application dates never bind
+    let candidates = nodes.filter(n => n.stage === k.stage && trackMatches(n.track, k.track));
+    if (!candidates.length) continue;
+    if (candidates.length > 1) {
+      const iso = nationalRocToIso(national[label]);
+      const near = new Set([iso, _shiftIsoDay(iso, 1), _shiftIsoDay(iso, -1)]);
+      let hits = candidates.filter(n => n.date === iso);
+      if (hits.length !== 1) {
+        hits = candidates.filter(n => near.has(n.date));
+      }
+      if (hits.length !== 1) continue; // 0 or 2+ survivors: the label binds nothing
+      candidates = hits;
+    }
+    const recno = String(candidates[0].recno);
+    (out[recno] = out[recno] || []).push(label);
   }
-  return best;
+  return out;
 }
 
 function getNodeMilestoneBadges(node, project) {
   // Portal links live on the nodes (相關連結 section retired): 北 → anchored
-  // Taipei case page; 國 → national view page on the node a national label binds
-  // to (stage+track match, date tie-break) AND on nodes whose case the view page
-  // names (view_verified_case_ids — the portal's assertion,
+  // Taipei case page; 國 → national view page on the node a national label
+  // binds to (per-label binding, bindNationalLabels) AND on nodes whose case
+  // the view page names (view_verified_case_ids — the portal's assertion,
   // fix-row-order-tiebreak-and-view-badges D4). One 國 if both. The 現況 rule
   // (current-node rule alone) is removed.
   const badges = [];
@@ -158,8 +188,8 @@ function getNodeMilestoneBadges(node, project) {
   const twur = project && project.links && project.links.twur;
   const viewVerified = (project && project.links && project.links.view_verified_case_ids) || [];
   const anchoredViewVerified = cases.length && viewVerified.includes(cases[0]);
-  const bound = twur ? nationalBoundTo(node, project.links && project.links.milestones_national) : null;
-  if (twur && (bound || anchoredViewVerified)) {
+  const boundLabels = (twur && project.__nationalBindings) ? project.__nationalBindings[String(node.recno)] : null;
+  if (twur && ((boundLabels && boundLabels.length) || anchoredViewVerified)) {
     const vm = twur.match(/view\/(\d+)/);
     const label = vm ? `view/${vm[1]}` : "國土署入口網";
     badges.push(`<a class="node-milestone-badge national badge-link" href="${escapeHtml(twur)}" target="_blank" rel="noopener" title="${escapeHtml(label)}">國</a>`);
@@ -836,6 +866,9 @@ function init() {
   function renderDetail(p) {
     const detail = document.getElementById("detail");
     const nodes = byDateNodes(p.nodes);
+    // C1 (bind-national-label-once): the per-label 國 binding is computed once
+    // per project, before any node asks for its badges.
+    p.__nationalBindings = bindNationalLabels(p);
     // §5.2 virtual orphan nodes: harvested name → stage/track (+node_date when
     // the platform records an approval date). Undated named orphans join their
     // stage cluster tagged (未核定) instead of the interim column.

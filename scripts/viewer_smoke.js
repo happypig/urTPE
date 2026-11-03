@@ -281,6 +281,41 @@ setTimeout(() => {
   check("overlap guard: every named orphan has a dotted edge orphan line", missingOrphanEdges === 0,
     `${missingOrphanEdges} missing orphan edges`);
 
+  // ── C1 (bind-national-label-once): the per-label 國 binding ────────────────
+  // Each label with stage+track candidates must badge at most one node. Count,
+  // per project, the 國 badges rendered from label binding (not from
+  // view_verified_case_ids) and compare with the number of bound labels.
+  const bindNationalLabels = context.bindNationalLabels;
+  let checkedBind = 0, bindFailures = 0;
+  if (typeof bindNationalLabels === "function") {
+    for (const pp of doc.projects) {
+      if (!(pp.links || {}).twur) continue;
+      if (!(pp.links || {}).milestones_national ||
+          !Object.keys(pp.links.milestones_national).length) continue;
+      checkedBind++;
+      const binding = bindNationalLabels(pp);
+      const boundCount = Object.values(binding).reduce((a, l) => a + l.length, 0);
+      const multi = Object.keys(binding).filter((r) => binding[r].length > 1);
+      // a recno carrying 2+ labels is legitimate (one node, several labels of
+      // its stage+track); what must never happen is a label bound to 2 recnos.
+      const seenLabels = new Set();
+      for (const labels of Object.values(binding)) {
+        for (const lb of labels) {
+          if (seenLabels.has(lb)) { bindFailures++; console.log(`  FAIL  bind ${pp.project_id}: label ${lb} bound twice`); }
+          seenLabels.add(lb);
+        }
+      }
+      const badged = (pp.nodes || []).filter((n) =>
+        (binding[String(n.recno)] || []).length > 0).length;
+      if (badged > boundCount) { bindFailures++; console.log(`  FAIL  bind ${pp.project_id}: ${badged} badged nodes for ${boundCount} bound labels`); }
+      if (multi.length > 1 && boundCount > Object.keys(binding).length) { /* informational only */ }
+    }
+  }
+  // checkedBind > 0 only when the dataset carries twur links; a degraded
+  // dataset without links must degrade, not fail (test_viewer_degrades).
+  check("national label binding: one badge per bound label", bindFailures === 0,
+    `${checkedBind} project(s) with a national page checked, ${bindFailures} failures`);
+
   console.log("");
   console.log(failures ? `${failures} check(s) FAILED` : "all checks passed");
   process.exit(failures ? 1 : 0);

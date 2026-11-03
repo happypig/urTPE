@@ -27,7 +27,7 @@ G1–G5 · 2026-11-03 Batch B, the §37/§38 residuals collected for batch treat
 | Emission | 2026-10-15, 1,442 raw / 1,442 clean / 693 projects, 0 residuals |
 | Batch B | 8 findings queued, 0 executed (§37/§38 residuals) |
 | Batch C | 7 findings queued, 0 executed (post-viewer-UX gaps; C6 rule decided, C7 added) |
-| Batch B + C plan | reviewed 2026-11-03: 12 steps (S0–S10 + R), 4 user decisions open |
+| Batch B + C plan | reviewed 2026-11-03: 15 steps (S0–S13 + R); C8, C9 added 2026-11-04 |
 | openspec | 4 changes done but unarchived; 3 fail `openspec validate` (fixed by S0) |
 
 ## Execution order — the integrated plan
@@ -217,6 +217,8 @@ holds what the gate removed.
 | C4 | `extract_landcore_from_case_name` returns "" for 3 name shapes, and the orphan gate (`urtpe/links.py:2162`) then drops the case | 33 cached cases have an unparseable city name. 21 are anchored on a recno node anyway. **12 are dropped**: 4 崇仁新村 (the parcel-less rule, by design) and **8 real cases** — 華中247's 6 A區/B區 cases (09305081/82, 09407301–04), 長安709's 概要 09205060, 南港531-4's 概要 09406102. Shapes: 、-list before 地號 (`709、711地號`), 號 without 地號, `(原NNN)` inside the parcel, compatibility chars (U+F963 北) | openspec change | — |
 | C5 | 使照 disagreement between the two portals is not flagged | 282 projects hold 使用核發/使照核發 from both portals: 260 agree, 22 differ (吉林811 2013-09-11 vs 2013-11-12; 榮星306 year; 虎林310 month). 13 projects hold it national-only, 32 city-only. 橋北574-1's national `291.08.02` renders as 2202-08-02 in the 推動歷程 card (`fmtDate`); the 使照 slot and the stage chip use the city's 2022/08/02 | openspec change | user scope decision |
 | C6 | The 北 positional fallback binds 71 nodes on 51 projects, unmarked | re-run of the pipeline's own `_match_case_by_date` over the payload: 1,356 nodes match by date, 71 do not, 15 have no case. **Rule decided 2026-11-03 for the area-split ties (see "C6 in detail"):** one approved recno binds every same-date case of its area split. That covers 31 of the 71 nodes (56 cases, 15 projects) and folds their twin orphan nodes into the recno. Examples: 吉林508 (view/1062) recno 259 → 11011241 A區 + 11011242 B區; 榮星53 (view/25) 4 recnos, each → its 北區 + 南區 pair. The other 40 nodes are recorded by type and stay open | openspec change | S0 |
+| C8 | The construction dates (建照 / 開工 / 使照) do not follow the case that owns them | **Rule decided 2026-11-04 (the user):** the city keeps 建照核發日期 (data2) and 開工日期 / 使照核發日期 (data3) on the **first 擬訂 plan case** — the one named 擬訂…都市更新事業計畫案 or 擬訂…都市更新事業計畫及權利變換計畫案. Two defects break it. (a) `select_best_payload` (`urtpe/links.py:1971`) keeps one data3 payload per project, chosen by key count, so the plan case's 開工/使照 are dropped when a later case has more statistics: 9 of the 13 "national-only 使照" projects (德惠573 09710240: 開工 2012/07/13, 使照 2015/07/13 cached, not emitted). (b) Discovery misses the 擬訂 plan case itself: 新光101 (09703181), 寶清599 (09303270), 敦化585-11 (10210171) — the parcel search does not return them; they were found by probing sibling case ids. See "C8 in detail" | openspec change | — |
+| C9 | A parcel-count shrink (`等N筆(原M筆)`) splits one project in two | 吳興790-6: recno 978 (變更(第三次), 等4筆(原29筆)) scores 0.639 against recno 1157 (等29筆): same section and first parcel, count bridge 0.8, but the parcel sets share 1 of 32 (Jaccard 0.03). **11 project pairs** split this way, and 10 of them share one national page (view/118, 319, 321, 637, 84, 281, 718, 276, 231, 358) and their case ids. See "C9 in detail" | openspec change (`case-merging`) + re-emit + aliases | — |
 | C7 | The 相關連結 label of an anchored case shows the gazette 案名, not the city's own case name | `buildRelatedLinkLabels` (`viewer/app.js:563`) labels each case a node anchors with that node's `case_name` (the gazette row). It reads `candidate_names` only for cases no node anchors. 307 anchored cases show a label that differs from their city name: 20 lose an area suffix (吉林508's 11011241 shows without "-A區"), 48 show another stage word (中山202 node 699: gazette 擬訂, case 變更), 8 show other parcel counts (文林176: 等13筆 vs 等14筆), 231 differ in other wording. With C6, one node carries 2+ cases, so the gazette label cannot tell them apart | direct `fix:` (viewer) + a review list for the 48 | — |
 
 **C1 in detail (corrected 2026-11-03).** The first version of this row said
@@ -321,6 +323,86 @@ nodes fold into their recno. The other 40 nodes keep the positional fallback
 until their types are decided; the open question is whether the viewer marks
 a guessed badge or removes it until R finds the case.
 
+**C8 in detail (rule decided 2026-11-04).** The user's rule: 建照, 開工 and
+使照 always live on the first 擬訂 plan case (`^擬訂.*都市更新(事業計畫|事業計畫及權利變換計畫)案`).
+Measured over all 726 caches:
+
+| Where a construction date sits | Case dates |
+| --- | --- |
+| On the first 擬訂 plan case | 535 |
+| On a later 擬訂 plan case of the same approval (area split: -A區/-B區, 北區/南區) | 14 |
+| On another case, as an echo of the plan case's date | 16 |
+| On another case, no plan case carries the field | 3 (仁愛114's 08610011 is a pre-2000 name with no 擬訂/案; 永吉44 and 潭美579-2 carry a 權利變換 plan case) |
+
+So the rule holds, with one extension that C6 already needs: in an area
+split, each area's 擬訂 plan case carries its own building's dates
+(榮星53 北區 09001120 and 南區 09001123; 萬慶6 A區/B區).
+
+The 13 projects whose 使照 came only from the national page, re-checked:
+
+| Project | First 擬訂 plan case | 開工 / 使照 on it | Cause |
+| --- | --- | --- | --- |
+| 德惠573 | 09710240 | 2012/07/13 / 2015/07/13 | (a) selector chose 09710242 |
+| 吳興790-6 (both ids, see C9) | 09712050 | 2014/11/26 / 2017/09/07 | (a) chose 09712053 |
+| 永吉44 | 08911251 | 2018/02/08 / 2021/01/19 | (a) chose 09511041 |
+| 潭美579-2 | 09809151 | 2017/03/13 / 2020/06/12 | (a) chose 10209171 |
+| 玉成158 | 10406103 | 2018/11/21 / 2020/10/26 | (a) chose 10406104 |
+| 大龍265-7 | 09603212 | 2011/03/21 / 2012/09/18 | (a) chose 10908271 |
+| 興隆377 | 09609171 | 2010/12/24 / 2013/08/12 | (a) chose 09609172 |
+| 敦化404 | 10310211 | 2020/09/10 / 2023/01/17 | (a) chose 10905072 |
+| 新光101 | **09703181**, not cached | 2009/10/16 / 2012/03/14 (建照 2009/08/31) | (b) discovery missed it |
+| 寶清599 | **09303270**, not cached | 2006/10/17 / 2009/03/31 (建照 2006/05/12) | (b) |
+| 敦化585-11 | **10210171**, not cached | 2017/02/18 / 2020/01/02 (建照 2016/11/30) | (b) |
+| 玉成729 | 10812181 | 2020/11/30 / — | the city has no 使照 yet |
+
+Every recovered 使照 equals the national 使用核發日期 to the day. The three
+missing plan cases were found live on 2026-11-04 by probing the case ids next
+to the cached ones (`get_project168_top`): the parcel search
+(`Get_updcase_list`) returns only the later 變更 cases for these parcels. So
+discovery needs a second path for the plan case, for example a sibling-id
+probe bounded to the cached batch, accepted only when the city name equals
+the project's land core. 大龍265-7 also stops being "out of order": its 2012
+使照 belongs to plan case 09603212 (the first phase, 等8筆), and the 2022
+建照/開工 belong to the later A區/B區 plan cases.
+
+Fix: take each construction date from the first 擬訂 plan case of its node
+(per area in an area split), with that case as `milestones_source`; keep D5's
+one-payload rule for the statistics only; fall back to another case's date
+only when no plan case carries the field, and flag it.
+
+**C9 in detail.** `urtpe/merge.py:40` scores two records by section (.35),
+first parcel (.2), parcel Jaccard (.3) and count (.1). A plan change that
+shrinks the site (`等4筆(原29筆)`) keeps the first parcel and earns the
+count bridge (`orig_count == land_count` → 0.8), but its new parcel set
+barely overlaps the old one, so the score stays near 0.64 and the merge
+splits the family. The second project then carries the same national page,
+the same case ids and the same construction dates as the first, so the
+viewer shows one development twice. The 11 split pairs:
+
+| New id (after the shrink) | Old id | National page |
+| --- | --- | --- |
+| 吳興段二小段-790-6地號等4筆 | …等29筆 | view/118 |
+| 中山段二小段-202地號等1筆 | …等12筆 | view/319 |
+| 中正段一小段-44地號等1筆 | …等5筆 | view/321 |
+| 犁和段三小段-89地號等1筆 | …等16筆 | view/637 |
+| 桃源段二小段-251地號等2筆 | …等17筆 | view/84 |
+| 立農段一小段-513地號等3筆 | …等17筆 | view/281 |
+| 南港段四小段-566地號等1筆 | …等6筆 | — |
+| 玉成段三小段-545地號等4筆 | …等8筆 | view/718 |
+| 芝蘭段四小段-130地號等1筆 | …等9筆 | view/276 |
+| 玉泉段二小段-91地號等7筆 | …等42筆 | view/231 |
+| 金華段一小段-719地號等1筆 | …等11筆 | view/358 |
+
+`docs/dataset_completeness_audit.md:184` already listed 吳興790-6 as a land
+core with two entries ("second row says `(原29筆)`") and classed the 14 such
+cores as under-merges, not losses (the "Watch, do not fix" list). C9 is that
+watch item, now measured. Fix: when the first parcel matches and one record's
+`orig_count` equals the other's `land_count`, the declared history bridges
+the pair; link it (score ≥ 0.7) without the Jaccard term, the way the
+empty-parcel rule at `merge.py:73` already redistributes weight. Re-merge,
+then run `scripts/build_project_aliases.py`: the newer id merges into the
+older family, and its cache dir must migrate.
+
 **C7 in detail.** The label fix is viewer-only: label each case_id with its
 own `candidate_names` entry, which the payload already carries, and fall back
 to the node's 案名 only when the city name is missing. The 48 stage-word
@@ -367,6 +449,9 @@ latent risk.
 | S8 | P1 | C6 (types 1–2) | openspec change `bind-area-split-cases` — a recno binds every same-date case of its area split; their twin orphans fold in. Pipeline (`urtpe/links.py:2073`) + re-emit; 31 nodes, 56 cases, 15 projects | S0 |
 | S9 | P1 | C7 | direct `fix:` — `buildRelatedLinkLabels` labels each case with its own city name; ships with or before S8, so two cases on one node read apart | — |
 | S10 | P2 | C6 (types 3–6) | openspec change — the remaining 40 fallback nodes | user decision, R |
+| S11 | P2 | C8 (a) | openspec change `dates-follow-plan-case` — construction dates come from the first 擬訂 plan case (per area); D5 keeps the statistics only. Emit-side, no fetch: recovers 開工/使照 on 8 national-only projects at once | S0 |
+| S12 | P2 | C8 (b) | discovery finds the 擬訂 plan case the parcel search misses (sibling-id probe, name-checked). Folds into R | S11 |
+| S13 | P2 | C9 | openspec change `merge-across-count-shrink` — `(原M筆)` bridges a site shrink; re-merge, aliases, cache migration | S0 |
 
 **Why this order.**
 
@@ -385,6 +470,9 @@ latent risk.
   viewer must label two cases on one node apart.
 - S8 runs before R, so R's new-case discovery binds new area splits by the
   same rule.
+- S11 is emit-only and needs no network, so it can run right after S0.
+  S12 needs network and joins R. S13 changes project ids, so it runs before R,
+  or R refreshes 11 caches that are about to merge.
 - S7 and S10 wait on the decisions below; S10 also waits on R, because types
   5–6 need cases that only discovery can find.
 

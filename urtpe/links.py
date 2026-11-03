@@ -324,6 +324,18 @@ class DiscoveryResult:
     # the city re-filed under a new id (11211211 → 11409026).
     case_headers: dict[str, str] = field(default_factory=dict)
     superseded_by: dict[str, str] = field(default_factory=dict)
+    # §8 viewer-UX (reject-foreign-view-cases): the header row's CASE_NAME —
+    # the city's own case name, distinct from the NAME state field — persisted
+    # per case, so the view-verified verification and the offer step can decide
+    # offline after the run.
+    case_case_names: dict[str, str] = field(default_factory=dict)
+    # §8: view-verified ids the city's own case name rejected
+    # {case_id: {reason, shape, label_ok, city_ok}} — named, never dropped
+    # silently (the truncated-records rule).
+    view_rejected: dict[str, dict] = field(default_factory=dict)
+    # §8: rejected ids this project ADOPTED from their wrong holder
+    # {case_id: source_project_id} — the offer step's provenance record.
+    adopted_from_view: dict[str, str] = field(default_factory=dict)
     status: str = "unresolved"  # resolved, unresolved, multi-case, error
     error: str = ""
 
@@ -1029,6 +1041,172 @@ def compute_landcore_similarity(a: str, b: str) -> float:
     return 0.35 * sec_score + 0.2 * fp + 0.3 * jac + 0.1 * cnt
 
 
+# ── §8 viewer-UX (reject-foreign-view-cases): view-verified ownership gate ───
+
+
+def _link_threshold() -> float:
+    """The merge similarity threshold, imported lazily: merge.py and links.py
+    stay import-order independent."""
+    from urtpe.merge import LINK_THRESHOLD
+    return LINK_THRESHOLD
+
+
+class ViewVerifiedDecision:
+    """Outcome of the §8 decision pass over one cache's view-verified ids.
+
+    kept / rejected / not_confirmed / label_errors are parallel views of the
+    same id list: kept ids stay view-verified, rejected ids carry their reason
+    ({reason, shape, label_ok, city_ok}), not_confirmed ids had no city name
+    available (missing header = no evidence — the header_has_no_state rule),
+    and label_errors are row-4 accepts whose 相關連結 label named another
+    project.
+    """
+
+    def __init__(self):
+        self.kept: list[str] = []
+        self.rejected: dict[str, dict] = {}
+        self.not_confirmed: list[str] = []
+        self.label_errors: list[str] = []
+
+
+def verify_view_verified_ids(own_land_core: str, ids: list[str],
+                             city_names: dict, labels: dict) -> ViewVerifiedDecision:
+    """§8 decision 1 (docs/viewer-UX.md §8): the city's own case name decides.
+
+    | label (check 1) | city name (check 2) | result | reason |
+    | --- | --- | --- | --- |
+    | match | match | accept | — |
+    | no match | no match | reject | label and city name name another project (shape A) |
+    | match | no match | reject | label is right, id is wrong (shape B) |
+    | no match | match | accept | — (the label error is logged) |
+
+    The label and the city name are compared by land core at
+    merge.LINK_THRESHOLD (extract_landcore_from_case_name +
+    compute_landcore_similarity). A
+    parcel-less name (崇仁新村 — no 地號) is not decidable by land core and
+    does NOT reject. A missing city name is no evidence and does NOT reject;
+    with a mismatching label the id is reported as "label not confirmed" — the
+    label alone never rejects.
+    """
+    out = ViewVerifiedDecision()
+    for cid in ids:
+        city_name = (city_names.get(cid) or "").strip()
+        label = (labels.get(cid) or "").strip()
+        city_lc = extract_landcore_from_case_name(city_name) if city_name else ""
+        label_lc = extract_landcore_from_case_name(label) if label else ""
+        # land cores equal by string identity also count as a match: both sides
+        # are built the same way (build_land_core_key format), so equality is
+        # the 1.0 case of compute_landcore_similarity.
+        threshold = _link_threshold()
+        label_ok = (label_lc == own_land_core
+                    or compute_landcore_similarity(own_land_core, label_lc) >= threshold)
+        if not city_lc:
+            # No city name at all (missing header), or a parcel-less city name
+            # (崇仁新村 — no 地號): neither is evidence of a foreign unit.
+            # §8 open question 3 default + the parcel-less rule. The label
+            # alone never rejects.
+            out.kept.append(cid)
+            if not label_ok:
+                out.not_confirmed.append(cid)
+            continue
+        city_ok = (city_lc == own_land_core
+                   or compute_landcore_similarity(own_land_core, city_lc) >= threshold)
+        if city_ok:
+            out.kept.append(cid)
+            if not label_ok:
+                out.label_errors.append(cid)
+        else:
+            out.rejected[cid] = {
+                "reason": ("label and city name name another project (shape A)"
+                           if not label_ok else
+                           "label is right, id is wrong (shape B)"),
+                "shape": "A" if not label_ok else "B",
+                "label_ok": label_ok,
+                "city_ok": city_ok,
+            }
+    return out
+
+
+def offer_rejected_ids(cache_dir: Path, rejected: dict[str, dict[str, str]]) -> list[tuple[str, str, str]]:
+    """§8 decision 2 (docs/viewer-UX.md §8): offer a rejected id to its own project.
+
+    ``rejected`` maps {source_project_id: {case_id: city_case_name}}. For each
+    rejected id, the land core of its city case name is matched against every
+    cache's stored ``land_core`` at LINK_THRESHOLD:
+    - exactly one other cache matches → append the id to that cache's
+      ``city_case_ids`` (append-only: the positional fallback binds by index),
+      record ``adopted_from_view[cid] = source_project_id`` on the target,
+      fetch its milestones when absent, and report the move;
+    - zero matches → no move (the id stays only in ``view_rejected``);
+    - more than one → no guess, the same rule data/project_aliases.json
+      applies to ambiguous pairs.
+
+    Matching uses the land core, never 編號 or project_id (both churn).
+    Returns the moves as (source, target, case_id).
+    """
+    cache_dir = Path(cache_dir)
+    cores: dict[str, str] = {}
+    for entry in sorted(cache_dir.iterdir()):
+        rf = entry / "result.json"
+        if not rf.is_file():
+            continue
+        try:
+            data = json.loads(rf.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if data.get("land_core"):
+            cores[str(data.get("project_id") or entry.name)] = data["land_core"]
+
+    moves: list[tuple[str, str, str]] = []
+    for src_pid, cases in rejected.items():
+        for cid, city_name in cases.items():
+            lc = extract_landcore_from_case_name(city_name or "")
+            if not lc:
+                continue  # parcel-less name: not decidable, no offer
+            hits = [pid for pid, core in cores.items()
+                    if pid != src_pid
+                    and (core == lc
+                         or compute_landcore_similarity(core, lc) >= _link_threshold())]
+            if len(hits) != 1:
+                continue  # zero or ambiguous: never guess
+            target_pid = hits[0]
+            target = load_project_cache(cache_dir, target_pid)
+            if target is None:
+                continue
+            changed = False
+            if cid not in target.city_case_ids:
+                target.city_case_ids.append(cid)
+                changed = True
+                if cid not in target.case_milestones:
+                    try:
+                        ms = fetch_taipei_milestones_api(cid)
+                        if ms:
+                            target.case_milestones[cid] = ms
+                            changed = True
+                    except Exception:
+                        pass  # a failed fetch leaves the id appended; the
+                        # next refresh re-reads it like any other case
+            if target.adopted_from_view.get(cid) != src_pid:
+                target.adopted_from_view[cid] = src_pid
+                changed = True
+            # the source keeps the rejection recorded: the audit trail lives on
+            # both caches (§8 design 3 — view_rejected on the source,
+            # adopted_from_view on the target). The refresh pass writes it in
+            # the normal flow; this backfill covers a direct offer call.
+            source = load_project_cache(cache_dir, src_pid)
+            if source is not None and cid not in source.view_rejected:
+                source.view_rejected[cid] = {
+                    "reason": "moved to its own project (adopted_from_view)",
+                    "shape": "offer",
+                    "adopted_by": target_pid,
+                }
+                save_project_cache(cache_dir, src_pid, source)
+            if changed:
+                save_project_cache(cache_dir, target_pid, target)
+            moves.append((src_pid, target_pid, cid))
+    return moves
+
+
 def _case_name_carries_parcel(case_name: str, parcel: str) -> bool:
     """True when the case's own name declares the searched parcel.
 
@@ -1543,7 +1721,8 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                     "closed": [], "status_changes": [], "removed": [],
                     "conflicts": [], "added": [], "superseded": [],
                     "no_successor": [], "ambiguous": [], "not_searched": False,
-                    "error": ""}
+                    "view_rejected_ids": [], "view_label_errors": [],
+                    "view_not_confirmed": [], "error": ""}
     if cached is None:
         report["error"] = "no cache"
         return report
@@ -1613,9 +1792,15 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             report["updated"].append({"case_id": cid, "核定日期": new_ok, "was": old_ok})
         if header:  # a missing row ({} / None) is no evidence
             name = str(header.get("NAME", "")).strip()
-            header_names[cid] = str(header.get("CASE_NAME", "") or "").strip()
+            case_name = str(header.get("CASE_NAME", "") or "").strip()
+            header_names[cid] = case_name
             if cached.case_headers.get(cid) != name:
                 cached.case_headers[cid] = name
+                changed = True
+            # §8: persist the city's own case name beside the state, so the
+            # view-verified verification and the offer step decide offline.
+            if cached.case_case_names.get(cid) != case_name:
+                cached.case_case_names[cid] = case_name
                 changed = True
             header_state = state_of_header(header)
             if header_state:
@@ -1684,10 +1869,66 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                 c for c in cached.view_verified_case_ids if c not in prior_verified]
         except Exception as exc:
             report_error = f"view absorb: {type(exc).__name__}: {exc}"
+
+    # ── §8 viewer-UX (reject-foreign-view-cases): the view-verified gate ─────
+    # The 相關連結 assertion was treated as unconditional, so case ids of OTHER
+    # projects entered the cache as view-verified and rendered as nameless 孤
+    # anchors carrying the other project's 建照 / 開工 dates (§8; board B7+B8).
+    # The city's own case name decides (§8 decision 1). Runs on every cache
+    # holding view-verified ids — the defect does not depend on the awaiting
+    # state (中山254 holds none). A rejected id is named in view_rejected,
+    # never dropped silently; the driver's offer step moves it to its own
+    # project afterwards (the refresh's unit is one project's cache).
+    if cached.view_verified_case_ids:
+        labels: dict[str, str] = {}
+        view_html_path = Path(cache_dir) / resolve_cache_dir(Path(cache_dir), project_id).name / "view.html"
+        try:
+            if view_html_path.is_file():
+                labels = _view_labels_for(view_html_path.read_text(encoding="utf-8"),
+                                          cached.view_verified_case_ids)
+        except OSError:
+            labels = {}
+        decision = verify_view_verified_ids(
+            own_land_core=cached.land_core,
+            ids=cached.view_verified_case_ids,
+            city_names=cached.case_case_names,
+            labels=labels,
+        )
+        if decision.rejected:
+            cached.view_verified_case_ids = list(decision.kept)
+            for cid, rec in decision.rejected.items():
+                cached.view_rejected[cid] = rec
+                # a rejected id must not keep anchoring milestones to this
+                # project's timeline: drop it from city_case_ids too (the
+                # offer step re-adds it on the owning project's cache).
+                if cid in cached.city_case_ids:
+                    cached.city_case_ids.remove(cid)
+                changed = True
+            report["view_rejected_ids"] = sorted(decision.rejected)
+        if decision.label_errors:
+            report["view_label_errors"] = list(decision.label_errors)
+        if decision.not_confirmed:
+            report["view_not_confirmed"] = list(decision.not_confirmed)
+
     if changed or report["updated"] or cached.view_verified_case_ids:
         save_project_cache(Path(cache_dir), project_id, cached)
     report["error"] = report_error
     return report
+
+
+def _view_labels_for(view_html: str, ids: list[str]) -> dict[str, str]:
+    """{case_id: 相關連結 label} for the given ids from a view page.
+
+    The label is the anchor text of the r_progress_detail link — the other
+    project's name in the §8 defect shapes, compared only for the reason text
+    (§8 decision 1: the city's own case name decides).
+    """
+    out: dict[str, str] = {}
+    for cid in ids:
+        m = re.search(r"case_id=" + re.escape(cid) + r"[^>]*>([^<]*)<", view_html)
+        if m:
+            out[cid] = m.group(1).strip()
+    return out
 
 
 def _iso_date(s: str) -> str:
@@ -1995,6 +2236,12 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             # field, so a field missing here is dropped on the next --from-js
             # run without any error (test_supersede pins the round trip).
             obj.superseded_by = v.get("superseded_by", {})
+            # §8 (reject-foreign-view-cases): the same round-trip contract for
+            # the ownership-gate fields.
+            obj.case_headers = v.get("case_headers", {})
+            obj.case_case_names = v.get("case_case_names", {})
+            obj.view_rejected = v.get("view_rejected", {})
+            obj.adopted_from_view = v.get("adopted_from_view", {})
             disc_by_pid[k] = obj
 
     for project in projects:
@@ -2039,6 +2286,13 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
         if hasattr(disc, "view_verified_case_ids") and                 disc.view_verified_case_ids is not None:
             project.links["view_verified_case_ids"] = list(
                 disc.view_verified_case_ids)
+        # §8 (reject-foreign-view-cases): the ownership-gate records ride the
+        # payload beside case_schedules, so a rejection is auditable offline.
+        # Legacy results without the fields emit without the keys.
+        for _f in ("view_rejected", "adopted_from_view"):
+            _v = getattr(disc, _f, None)
+            if _v:
+                project.links[_f] = dict(_v)
 
         # Implementation (third.ashx) / rewards (fourth.ashx): project-level
         # attachment with case provenance (design D2/D5). Date fields surface as

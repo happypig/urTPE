@@ -903,6 +903,81 @@ class TestDiscoveryFetchesThirdFourth:
         assert result.rewards["09811141"]["F0"] == "8,982.01"
         assert "09811141" in result.error
 
+class TestFreshKeepsRefreshState:
+    """B3 (Batch B): a fresh=True re-discovery must keep the refresh-only state.
+
+    discover_project_links writes case_headers / superseded_by / case_case_names /
+    view_rejected / adopted_from_view only during refresh_project. A --fresh run
+    re-runs discovery, which previously started from a bare DiscoveryResult and
+    saved it — silently wiping those fields (measured 2026-11-03: 628 caches had
+    no case_headers; a --fresh run would have dropped the 99 that had them)."""
+
+    def _project(self):
+        from urtpe.models import Project, RawRecord
+        from urtpe.cleanse import cleanse
+        raw = RawRecord(991, "115/8/11", "中山區", "擬訂中山中山段一小段254地號等13筆事業計畫案",
+                        "中山區中山段一小段254地號等13筆", "聖得福建設", "某規劃")
+        return Project(
+            project_id="中山區-中山段一小段-254地號等13筆",
+            anchor_recno=991,
+            members=[cleanse(raw)],
+        )
+
+    def _seed_refresh_state(self, tmp_path, project_id):
+        from urtpe.links import load_project_cache, save_project_cache
+        cached = load_project_cache(tmp_path, project_id)
+        assert cached is not None
+        cached.case_headers = {"09811141": "無"}
+        cached.case_case_names = {"09811141": "擬訂臺北市中山區中山段一小段254地號等13筆土地都市更新事業計畫案"}
+        cached.superseded_by = {"11211211": "11409026"}
+        cached.view_rejected = {"10202065": {"reason": "foreign land core"}}
+        cached.adopted_from_view = {}
+        save_project_cache(tmp_path, project_id, cached)
+
+    def test_fresh_rediscovery_keeps_case_headers_and_superseded_by(self, tmp_path, monkeypatch):
+        import json as jsonlib
+        import urtpe.links as links
+
+        monkeypatch.setattr(links, "_post_taipei_api", lambda url, params, max_retries=3: "[]")
+        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel, dropped_out=None, anchor_name="": [
+            {"case_id": "09811141", "case_name": "x", "schedule": ""}])
+
+        project = self._project()
+        discover_project_links(project, tmp_path, fresh=True, delay=0)
+        self._seed_refresh_state(tmp_path, project.project_id)
+
+        result = discover_project_links(project, tmp_path, fresh=True, delay=0)
+
+        assert result.case_headers == {"09811141": "無"}
+        assert result.case_case_names and "09811141" in result.case_case_names
+        assert result.superseded_by == {"11211211": "11409026"}
+        assert result.view_rejected == {"10202065": {"reason": "foreign land core"}}
+
+        # and the state survives the cache round-trip
+        cached = links.load_project_cache(tmp_path, project.project_id)
+        assert cached.case_headers == {"09811141": "無"}
+        assert cached.superseded_by == {"11211211": "11409026"}
+
+    def test_fresh_rediscovery_drops_state_for_gone_cases(self, tmp_path, monkeypatch):
+        """A superseded_by entry naming a case the city no longer returns is stale
+        evidence; keep it — the refresh re-derives supersession and its own gate
+        decides. Only fields keyed on the *found* case ids could be trimmed; the
+        conservative rule keeps everything (never drop silently, AGENTS.md)."""
+        import json as jsonlib
+        import urtpe.links as links
+
+        monkeypatch.setattr(links, "_post_taipei_api", lambda url, params, max_retries=3: "[]")
+        monkeypatch.setattr(links, "search_taipei_cases_api", lambda section, parcel, dropped_out=None, anchor_name="": [
+            {"case_id": "09811141", "case_name": "x", "schedule": ""}])
+
+        project = self._project()
+        discover_project_links(project, tmp_path, fresh=True, delay=0)
+        self._seed_refresh_state(tmp_path, project.project_id)
+
+        result = discover_project_links(project, tmp_path, fresh=True, delay=0)
+        # kept: the refresh's own re-derivation is what may clear these, not discovery
+        assert "11211211" in result.superseded_by
+
 class TestOrphanGhostAnchoring:
     """§6.8 orphan ghost nodes: city_case_ids that no node anchors become
     ghost nodes when a landcore-similar case_name exists (search_rejected)

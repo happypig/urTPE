@@ -588,7 +588,25 @@ def discover_project_links(
         if cached:
             return cached
 
+    # B3 (Batch B): a fresh re-discovery starts from a bare DiscoveryResult, so
+    # saving it would silently wipe the fields only refresh_project writes
+    # (case_headers, superseded_by, case_case_names, view_rejected,
+    # adopted_from_view). Carry them forward from the prior cache: they are the
+    # refresh's evidence, and dropping them would make one --fresh run erase
+    # what the last refresh read (628 of 726 caches lack case_headers; a fresh
+    # run would also have emptied the 99 that hold them). The refresh's own
+    # re-derivation is what may clear these, not discovery.
+    prior = None
+    if cache_dir and fresh:
+        prior = load_project_cache(cache_dir, project.project_id)
+
     result = DiscoveryResult(project_id=project.project_id, land_core=land_core)
+    if prior is not None:
+        result.case_headers = dict(prior.case_headers)
+        result.superseded_by = dict(prior.superseded_by)
+        result.case_case_names = dict(prior.case_case_names)
+        result.view_rejected = {k: dict(v) for k, v in prior.view_rejected.items()}
+        result.adopted_from_view = dict(prior.adopted_from_view)
 
     # ── Step 1: Taipei platform search by section + parcel ──────────────────
     city_entries: list[dict] = []

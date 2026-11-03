@@ -41,3 +41,29 @@ When a case's `schedule` is known (from the search response or `top.ashx`, via `
 #### Scenario: No cached page — the 國 label falls back
 - **WHEN** `links.twur_name` is absent
 - **THEN** the 國 entry is labelled with the current node's `case_name` as before
+
+#### Scenario: Rejected/withdrawn 概要 attempts show their status
+- **WHEN** `links.case_schedules` = `{"11207021": "已駁回", "11302031": "自行撤回"}` (民生段140-9 shape)
+- **THEN** 相關連結 shows "…土地事業概要案 — 已駁回" and "…土地事業概要案 — 自行撤回"
+
+#### Scenario: Never-approved project explains its missing twur link
+- **WHEN** every case of the project is 已駁回 / 自行撤回 / 業已失效 and `links.twur` is empty
+- **THEN** the detail pane surfaces "never approved — no national-portal page" instead of an unexplained absence
+
+#### Scenario: Orphan with no fallback shows raw case_id
+- **WHEN** an orphan case_id is absent from nodes, orphan_nodes, candidate_names, case_milestones, and search_rejected
+- **THEN** 相關連結 shows "臺北市都市更新審議服務平台 (case_id: 09907223)" without a case name (current fallback behavior)
+
+#### Scenario: Both approved-family words omit the badge
+- **WHEN** `links.case_schedules` = `{"10406282": "已核定", "10011271": "已核准"}`
+- **THEN** neither 相關連結 entry carries a status badge
+
+#### Scenario: An in-review case shows its badge
+- **WHEN** `links.case_schedules` = `{"10406283": "審查中"}`
+- **THEN** the 相關連結 entry for 10406283 carries the badge `[審查中]`
+
+#### Scenario: A superseded case names its successor
+
+- **WHEN** `links.superseded_by` = `{"11211211": "11409026"}`
+- **THEN** the 相關連結 entry for 11211211 reads `已由 11409026 取代`
+- **AND** it carries no status badge

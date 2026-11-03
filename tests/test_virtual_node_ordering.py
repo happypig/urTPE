@@ -113,3 +113,19 @@ class TestChainEdges:
         ]
         out = _run_scenario(json.dumps({"clusters": [{"stage": "擬訂", "members": members}]}))
         assert out["chainPairs"] == []
+
+    def test_real_virtual_pair_never_chained(self):
+        # §4 amendment: the attempt-succession chain is virtual↔virtual only.
+        # A real↔virtual consecutive pair (南海段-687: cluster [變更] holds
+        # 393 real + 11012301 withdrawn-orphan virtual) gains no chain edge —
+        # its only recno connector is the §4 dotted edge to the branch-off
+        # node (734). A chain edge here reads as "the approval leads to the
+        # withdrawn application" and duplicates or contradicts the §4 edge:
+        # corpus 2026-11-04: 67 pairs stacked on the §4 edge, 30 to the row
+        # below (dead end flows onward), 22 to a wrong branch point.
+        members = [
+            _make({"stage": "變更", "date": "2022-12-29", "recno": 393, "track": "事業計畫、權利變換"}, anchored=["11012302"]),
+            _make({"stage": "變更", "date": "", "track": "事業計畫、權利變換"}, virtual=True, cid="11012301"),
+        ]
+        out = _run_scenario(json.dumps({"clusters": [{"stage": "變更", "members": members}]}))
+        assert out["chainPairs"] == []

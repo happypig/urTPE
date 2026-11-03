@@ -114,7 +114,7 @@ For virtual nodes sharing a real node's date, the virtual's 北 link badge SHALL
 
 ### Requirement: Virtual nodes chain row-by-row within a cluster
 
-Consecutive virtual nodes within a stage cluster (the case_id-ascending row order above) SHALL be connected by a **dashed virtual revision edge** directed along the row (earlier attempt → later attempt), rendering the platform's application-succession sequence. Same-date pairs in *different* stage clusters SHALL NOT be chained (parallel tracks — e.g., a 擬訂 概要案 cluster and a 擬訂 事業計畫案 cluster on one date are not revisions of each other). Only pairs involving at least one virtual node SHALL gain an edge from this rule; real↔real pairs remain covered by the existing revision edges without duplication. Chain edges SHALL use a dashed line style consistent with the virtual nodes' dashed circles.
+Consecutive virtual nodes within a stage cluster (the case_id-ascending row order above) SHALL be connected by a **dashed virtual revision edge** directed along the row (earlier attempt → later attempt), rendering the platform's application-succession sequence. Same-date pairs in *different* stage clusters SHALL NOT be chained (parallel tracks — e.g., a 擬訂 概要案 cluster and a 擬訂 事業計畫案 cluster on one date are not revisions of each other). Only pairs where BOTH members are virtual SHALL gain an edge from this rule; real↔real pairs remain covered by the existing revision edges, and real↔virtual pairs gain no chain edge — a virtual orphan's only recno connector is its dotted orphan edge to the branch-off node (§4, orphan-case-anchoring). Chain edges SHALL use a dashed line style consistent with the virtual nodes' dashed circles.
 
 #### Scenario: Attempt pair is chained
 - **WHEN** a cluster holds virtual nodes 09902261 and 10201171 (withdrawn 概要 → resubmitted 概要, 吉林段三小段1021)
@@ -127,4 +127,8 @@ Consecutive virtual nodes within a stage cluster (the case_id-ascending row orde
 #### Scenario: Real↔real pairs are not duplicated
 - **WHEN** a cluster's row order places two real members consecutively
 - **THEN** no chain edge is added between them (their revision edge from graph.py remains the single connector)
+
+#### Scenario: Real↔virtual pairs are not chained
+- **WHEN** a cluster's row order places a real member next to a withdrawn-orphan virtual member (南海段一小段-687: cluster [變更] holds 393 real and 11012301 virtual)
+- **THEN** no chain edge is added between them — the orphan's dotted edge runs to its branch-off node 734, and the live path keeps its solid revision edge 734 → 393
 

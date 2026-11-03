@@ -523,18 +523,22 @@ function compareClusterMembers(a, b) {
   if (ka !== kb) return ka < kb ? -1 : 1;              // D12: attempt order
   return _secTokenOf(a).localeCompare(_secTokenOf(b), "zh-Hant");  // 區段 tie only
 }
-// Attempt-succession chain pairs: consecutive members inside one cluster where
-// at least one is virtual AND the 事業種類 matches (概要 vs 計畫 same-day pairs
-// are parallel applications, not revisions — 吉林段676 09601260/09601262 stay
-// unchained). real↔real pairs keep graph.py's revision edges; cross-cluster
-// pairs are parallel tracks, never chained.
+// Attempt-succession chain pairs: consecutive VIRTUAL members inside one
+// cluster with matching 事業種類 (概要 vs 計畫 same-day pairs are parallel
+// applications, not revisions — 吉林段676 09601260/09601262 stay unchained).
+// §4 amendment (2026-11-04): virtual↔virtual only. A real↔virtual pair gains
+// no chain edge — the orphan's only recno connector is the §4 dotted edge to
+// its branch-off node; a chain edge would stack on it (67 pairs), flow the
+// dead end onward to the row below (30, 南海段-687 393→11012301), or pick a
+// wrong branch point (22), and the cluster's dated-first sort would read the
+// approval as leading to the withdrawn application.
 function virtualChainPairs(clusters) {
   const pairs = [];
   (clusters || []).forEach(c => {
     const ms = c.members || [];
     for (let i = 1; i < ms.length; i++) {
       const a = ms[i - 1], b = ms[i];
-      if (!a.virtual && !b.virtual) continue;
+      if (!a.virtual || !b.virtual) continue;
       if ((a.track || "") !== (b.track || "")) continue;
       pairs.push([a, b, c.stage]);
     }

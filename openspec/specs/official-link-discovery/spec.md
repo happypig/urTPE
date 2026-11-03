@@ -279,6 +279,20 @@ review, not as approved: a `NAME` ending in a pending phrase (`…申請報府�
 the platform and 審查中 in the city's own search list). A `NAME` that states no
 outcome (`無`, empty) SHALL derive no schedule rather than a guessed one.
 
+The implementation (third.ashx) construction dates — 開工日期 and 使照核發日期 —
+SHALL follow the first 擬訂 plan case of the project (a case named
+`擬訂…都市更新事業計畫案` or `擬訂…都市更新事業計畫及權利變換計畫案`), with that case as the
+`milestones_source` of each date it supplies (the user rule 2026-11-04; the
+city keeps 建照/開工/使照 on the plan case — measured on all 726 caches: 535 on
+the first plan case, 14 on a later plan case of an area split, 16 echoed). In
+an area split each area's 擬訂 plan case SHALL supply its own building's dates
+(榮星53: 北區 09001120, 南區 09001123). The one-payload statistics rule (D5)
+SHALL keep governing the statistics fields — the emitted `implementation`
+object stays the best-populated payload with its own `case_id`. A date field
+no plan case carries SHALL fall back to the best-populated payload's value
+with a review flag naming the carrier (3 cases corpus-wide); a field carried
+by 2+ plan cases with differing values SHALL surface a conflict flag.
+
 #### Scenario: Rejected and withdrawn 概要 attempts keep their status
 - **WHEN** a project's parcel search returns 11207021 (已駁回) and 11302031
   (自行撤回) for the same 概要 unit (民生段140-9 shape)
@@ -292,17 +306,34 @@ outcome (`無`, empty) SHALL derive no schedule rather than a guessed one.
   than as an unexplained no-match
 
 #### Scenario: A case waiting for approval derives 審查中
-- **WHEN** a case's `get_project168_top.ashx` `NAME` is
-  `權利變換計畫階段─申請報府核定中` or `事業計畫及權利變換計畫階段─申請報府核定中`
-- **THEN** its derived schedule is 審查中, not 已核准
+- **WHEN** a case's `get_project168_top.ashx` `NAME` is 權利變換計畫階段─申請報府核定中
+- **THEN** the case's derived schedule is 審查中
 
 #### Scenario: An approved case still derives the approved state
-- **WHEN** a case's `NAME` is `事業計畫階段─業經本府核定`
-- **THEN** its derived schedule is 已核准
+- **WHEN** a case's `NAME` ends 業經本府核定
+- **THEN** the case's derived schedule is the approved state
 
 #### Scenario: A NAME with no outcome derives nothing
-- **WHEN** a case's `NAME` is `無` or empty
-- **THEN** no schedule is derived from it
+- **WHEN** a case's `NAME` reads 無 or is empty
+- **THEN** no schedule is derived for the case
+
+#### Scenario: The plan case's 開工/使照 are emitted with the plan case as source
+- **WHEN** a project's data3 payloads hold 開工日期 2012/07/13 and 使照核發日期
+  2015/07/13 on the first 擬訂 plan case 09710240, and a later 變更 case
+  09710242 carries more statistics
+- **THEN** `milestones_taipei` carries 開工日期 2012/07/13 and 使照核發日期
+  2015/07/13 with `milestones_source` naming 09710240 (德惠573 shape —
+  previously dropped, the project read as national-only)
+
+#### Scenario: An area split takes each area's plan case dates
+- **WHEN** two 擬訂 plan cases -A區 and -B區 exist and -A區 carries 開工日期
+- **THEN** the date comes from -A區's payload; -B區's differing own dates join
+  theirs (榮星53 shape)
+
+#### Scenario: A date no plan case carries falls back with a flag
+- **WHEN** no 擬訂 plan case payload carries 使照核發日期 and a 權利變換 case does
+- **THEN** the date is taken from that case with a review flag naming it
+  (pre-2000 仁愛114 shape)
 
 ### Requirement: Report link data that a run failed to attach
 

@@ -478,7 +478,7 @@ latent risk.
 | S3 | P1 | C3 (= B7, B8) | **DONE 2026-11-04** — `reject-foreign-view-cases` implemented (`ba2700b`), re-emitted (`f961f6a`), archived (`e5a5986`, 23/23 tasks). Re-checked 2026-11-04: the gate runs after the absorb on every refresh, so a rejected id stays rejected (verified offline on a copy of 中山254: a second refresh keeps 10202065 out of `view_verified_case_ids` and `city_case_ids`). **Residual S3a (P3):** the absorb does not skip `view_rejected`, so each refresh re-fetches the rejected id's milestones and leaves them in `case_milestones` — all 4 rejected ids sit there in the payload today (10202065, 09608220, 09511211, 09807161). They reach no node, orphan, edge or 北 badge; only the 相關連結 label fallback reads `case_milestones`, and that path never sees a rejected id. Fix: the absorb skips `view_rejected` ids and the gate drops their `case_milestones` entry; add the second-refresh test | done; S3a = direct `fix:` |
 | S4 | P1 | C1 | openspec change `bind-national-label-once` — per-label binding, exact then ±1-day tie-break, never guess; delta MODIFIES the archived §2 requirement. Viewer only, no re-emit | S0 |
 | S5 | P2 | C4 | openspec change `parse-listed-parcel-names` — extractor learns the 、-list, `(原NNN)`, spaced and 號 shapes plus NFKC; unparseable names are reported, not dropped. Re-emit only (no fetch): the 8 dropped cases come back as orphans | S0 |
-| R | P2 | B1, B5, B6, C2, §7 4.1 | openspec change `refresh-whole-corpus` — one resumable, rate-limited refresh of all 726 caches: new-case discovery (B1), status re-derivation (B5), cleared status kept as a value (B6), the view backfill (C2, now gated by S3), and the missing headers (§7). Estimate the request count first | S3, S5 |
+| R | P2 | B1, B5, B6, C2, §7 4.1 | openspec change `refresh-whole-corpus` — one resumable, rate-limited refresh of all 726 caches: new-case discovery (B1), status re-derivation (B5), cleared status kept as a value (B6), the view backfill (C2, now gated by S3), and the missing headers (§7). Estimate the request count first; change detection decides what to fetch (see "R change detection") | S3, S5 |
 | S6 | P2 | B2 | openspec change, small — a superseded case's undated orphan node is hidden or chained to its successor | R |
 | S7 | P2 | C5 | openspec change — review flag on 使照 disagreement; range guard on ROC years > the current year | user decision |
 | S8 | P1 | C6 (types 1–2) | openspec change `bind-area-split-cases` — a recno binds every same-date case of its area split; their twin orphans fold in. Pipeline (`urtpe/links.py:2073`) + re-emit; 31 nodes, 56 cases, 15 projects | S0 |
@@ -487,6 +487,31 @@ latent risk.
 | S11 | P2 | C8 (a) | openspec change `dates-follow-plan-case` — construction dates come from the first 擬訂 plan case (per area); D5 keeps the statistics only. Emit-side, no fetch: recovers 開工/使照 on 8 national-only projects at once | S0 |
 | S12 | P2 | C8 (b) | discovery finds the cases the parcel search misses: a sibling-id probe over each cached case's 10-id batch, accepted at land-core similarity ≥ 0.85, every find reported. Measured: 7 missing 擬訂 plan cases + 2 missing 變更 siblings; 3 plan cases need a second source (national 相關連結 or a section name search). Folds into R | S11 |
 | S13 | P2 | C9 | openspec change `merge-across-count-shrink` — `(原M筆)` bridges a site shrink; re-merge, aliases, cache migration | S0 |
+
+**R change detection (design, recorded 2026-11-04).** No city endpoint
+returns a per-case "last modified" date. The 40 endpoints in
+`docs/urotpe_api.md` §3 carry event dates only; `get_Updated.ashx` returns one
+date for the whole site (`2024/12/9` when probed). The national page does
+carry one: every cached `view.html` (642 of 642) prints 資料更新日期 —
+本專案資料最後更新於 YYY.MM.DD (2019–2022: 77, 2023: 260, 2024: 37, 2025: 196,
+2026: 72). That date covers the national page only. It says nothing about the
+city side, where R does most of its work: new 變更 cases appear in the city
+first (玉成166 11412011, 吉林508 11508022/23), status changes appear there
+first, and data3 dates appear there first. A date is also a hint, not proof:
+the city re-uploads unchanged content with a new timestamp (`AGENTS.md`,
+gazette detection). So R uses one cheap signal per source and fetches in full
+only when the signal moves:
+
+| Step | Source | Cheap signal | Full fetch only when |
+| --- | --- | --- | --- |
+| 1 | National page | 最後更新於, one request per project | the date is later than the cached page's |
+| 2 | City parcel search | one search per project (already in the refresh); compare case ids and `schedule` with the cache | a case id is new, or a `schedule` differs |
+| 3 | City case header | `get_project168_top` per case; compare `NAME`, `uro_chk_date`, `uro_chk_date2` | a value differs, or the case is still open (no 使照) |
+
+A finished case (已完工 / 完成成果備查, with a 使照) skips data2/data3 unless
+step 2 or 3 moves. Estimated effect: from about 5,500 requests (726 caches,
+2,057 cases) to about 2,000–2,500. Every skip is counted in the run report, so
+"not fetched because unchanged" never reads as "fetched and empty".
 
 **Why this order.**
 

@@ -12,8 +12,8 @@ as `viewer-UX §N`.
 | --- | --- | --- | --- | --- |
 | 1 | Callout gutter: no-overlap implementation callouts | P2 | openspec change A | design settled |
 | 2 | 國 badges and national edges bind to the recno node they name | P1 | openspec change C | design settled |
-| 3 | Execution events start ½ node row under the nearest node | P3 | openspec change D | design settled |
-| 4 | Orphan nodes join the timeline with a dotted edge | P3 | openspec change D | design settled |
+| 3 | Execution events start ½ node row under the nearest node | P3 | openspec change D | done (wave 5) |
+| 4 | Orphan nodes join the timeline with a dotted edge | P3 | openspec change D | done (wave 5) |
 | 5 | Center the graph in the panel | P3 | direct `fix:` commit | ready |
 | 6 | Remove the 事業種類 legend item and track edges | P3 | openspec change A | ready |
 | 7 | Show [無] / [NA] for a case with no 目前辦理情形 | P1 | openspec change B | design settled |

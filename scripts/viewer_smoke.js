@@ -181,19 +181,26 @@ setTimeout(() => {
   check("every sampled project renders a detail pane", badProjects === 0,
     firstErr ? `${firstErr.name}: ${firstErr.message}` : `${clicked} clicked`);
 
-  // ── overlap guard: every project with a callout ──────────────────────────
+  // ── overlap guard: every project with a callout or an orphan ─────────────────
   // layoutRects is populated by viewer/app.js renderDetail (window.__LAYOUT_RECTS).
-  // Checks run on every project that carries implementation callouts.
+  // Checks run on every project that carries implementation callouts or orphan
+  // nodes (named virtual nodes or nameless anchors).
   const renderDetailApp = context.window.renderDetail;
   let calloutProjects = 0;
+  let orphanProjects = 0;
   let guardFailures = 0;
+  let missingOrphanEdges = 0;
   for (const pp of doc.projects) {
     const implNodes = (pp.nodes || []).filter((n) => n.implementation);
-    if (!implNodes.length) continue;
-    calloutProjects++;
+    const orphans = (pp.links || {}).orphan_nodes || [];
+    if (!implNodes.length && !orphans.length) continue;
+    if (implNodes.length) calloutProjects++;
+    if (orphans.length) orphanProjects++;
     renderDetailApp(pp);
-    const L = context.window.__LAYOUT_RECTS || { callouts: [], nodes: [], events: [], ghosts: [], leaders: [] };
-    const allRects = [].concat(L.nodes, L.events, L.ghosts, L.callouts);
+    const L = context.window.__LAYOUT_RECTS || {
+      callouts: [], nodes: [], events: [], orphans: [], leaders: [], orphanEdges: [],
+    };
+    const allRects = [].concat(L.nodes, L.events, L.orphans, L.callouts);
     // check 1: no two placed rectangles intersect
     for (let i = 0; i < allRects.length; i++) {
       for (let j = i + 1; j < allRects.length; j++) {
@@ -232,6 +239,19 @@ setTimeout(() => {
         }
       }
     }
+    // check 4: every named orphan renders a dotted edge orphan line to its nearest
+    // recno node (the SVG line with class "edge orphan" between orphan and recno).
+    // layoutRects.orphanEdges lists each orphan→recno pair; confirm each orphan in
+    // the data has a corresponding edge.
+    const orphanEdges = L.orphanEdges || [];
+    for (const g of orphans) {
+      if (!g.case_name) continue; // nameless anchors render no row (§4 decision 4)
+      const hasEdge = orphanEdges.some(d => d.id.includes(`orphan-edge:v${g.case_id}->`));
+      if (!hasEdge) {
+        missingOrphanEdges++;
+        console.log(`  FAIL  orphan-edge ${pp.project_id}: case ${g.case_id} has no dotted edge to nearest recno node`);
+      }
+    }
   }
 
   function segRectHit(s, r) {
@@ -251,12 +271,14 @@ setTimeout(() => {
     return tmin < tmax;
   }
 
-  check("overlap guard: ran on projects with callouts",
-    calloutProjects > 0 || guardFailures === 0,
-    `${calloutProjects} projects, ${guardFailures} failures`);
+  check("overlap guard: ran on projects with callouts or orphans",
+    (calloutProjects + orphanProjects) > 0 || guardFailures === 0,
+    `${calloutProjects} callout / ${orphanProjects} orphan projects, ${guardFailures} failures`);
   check("overlap guard: no intersecting rects", guardFailures === 0,
     `${guardFailures} failures`);
   check("overlap guard: no leader crosses box/label", guardFailures === 0, "see above");
+  check("overlap guard: every named orphan has a dotted edge orphan line", missingOrphanEdges === 0,
+    `${missingOrphanEdges} missing orphan edges`);
 
   console.log("");
   console.log(failures ? `${failures} check(s) FAILED` : "all checks passed");

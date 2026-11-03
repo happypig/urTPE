@@ -15,6 +15,21 @@ The vertical gap between timeline rows SHALL depend on row content: consecutive 
 - **WHEN** a timeline row contains an execution date event
 - **THEN** the space around that row is the half height (32px)
 
+#### Scenario: Execution date starts ½ row under nearest approval above it
+
+- **WHEN** a project's timeline has an approval node and 建照核發日期 follows it
+- **THEN** the 建照 row starts 32px (½ node row) under the approval node directly above it
+
+#### Scenario: Event-to-event pitch stays 32px
+
+- **WHEN** a project has 建照核發日期 2023-04-27 and 開工日期 2023-07-03 consecutive
+- **THEN** the 開工 row starts 32px under the 建照 row
+
+#### Scenario: Event→approval keeps full clearance
+
+- **WHEN** an execution date row is immediately followed by an approval row
+- **THEN** the space between them is the normal 64px row height
+
 ### Requirement: Four-column grid arrangement
 
 The graph SHALL arrange elements in four fixed columns: (1) 事業概要 / 事業計畫 / 都市計畫; (2) combined plan×權利變換 tracks (事業計畫、權利變換 and 都市計畫、權利變換); (3) 桃利變換 / 其他; (4) execution dates (建照/開工/使照). Virtual milestone nodes SHALL occupy columns 1–3 according to their own 事業種類.

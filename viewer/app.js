@@ -852,8 +852,8 @@ function init() {
         schedule: g.schedule || "",
         links: { taipei: [g.case_id], milestones_national: {}, milestones_taipei: {} },
       }));
-    // Interim column holds nameless orphans only (corpus: 0 post-harvest).
-    const interimOrphans = orphans.filter(g => !g.case_name);
+    // §4: nameless 孤 anchors with no stage/track render no row (§4 decision 4 —
+    // the 3 current nameless anchors are §8 defects removed by wave 3b).
     const columns = {};
     nodes.forEach(n => {
       const col = `${n.track}${n.area ? "（" + n.area + "區段）" : ""}`;
@@ -934,47 +934,60 @@ function init() {
     while (ei < sortedEvents.length) timeline.push(sortedEvents[ei++]);
 
     // §5.3.1 content-addressed pitch: node rows 64px, execution-event rows 32px.
+    // §3: an execution event that follows an approval starts ½ node row (32px)
+    // under the nearest approval node directly above it; event→approval keeps the
+    // full 64px clearance so badge strips do not touch.
     const rowYs = [];
     let rowAcc = PAD;
     timeline.forEach((t, i) => {
+      if (i > 0) {
+        const prev = timeline[i - 1];
+        rowAcc += prev.kind === "approval" && t.kind === "event"
+          ? NODE_ROW / 2          // §3: event starts ½ row under the approval above it
+          : prev.kind === "event" && t.kind === "event"
+            ? EVENT_ROW           // event→event stays 32px
+            : NODE_ROW;           // event→approval keeps full 64px clearance; approval→approval 64px
+      }
       rowYs[i] = rowAcc;
-      rowAcc += t.kind === "approval" ? NODE_ROW : EVENT_ROW;
     });
-    const contentH = rowAcc - PAD;
+    const contentH = rowAcc + (timeline.length ? (timeline[timeline.length - 1].kind === "approval" ? NODE_ROW : EVENT_ROW) : 0) - PAD;
 
     const hasEvents = events.length > 0;
     const eventColX = PAD + colKeys.length * COL_W + COL_W / 2;
 
-    // Interim orphan anchors: rightmost column, nameless orphans only. Named
-    // orphans became virtual nodes above; their source edges come from the
-    // virtual node's own grid position.
-    const hasGhosts = interimOrphans.length > 0;
-    const ghostColX = eventColX + COL_W;
-    const ghostPosRaw = {};
-    interimOrphans.forEach((g, i) => {
-      ghostPosRaw[`${g.case_id}::__node__`] = {
-        x: ghostColX,
-        y: PAD + i * NODE_ROW,
-      };
-    });
-    const ghostRows = interimOrphans.length;
+    // §4: orphans take their own timeline row by date. Named orphans are virtual
+    // nodes already in `timeline`; nameless 孤 anchors with no date render no row
+    // (the 3 current nameless anchors are §8 defects removed by wave 3b).
+    // Each orphan shifts 32px right of its track column and connects to the
+    // nearest recno node in time with a dotted edge.
     const orphanSources = {};
-    interimOrphans.forEach(g => {
-      const q = ghostPosRaw[`${g.case_id}::__node__`];
-      if (q) orphanSources[g.case_id] = q;
-    });
+    const orphanDots = []; // {from: orphanRecno, to: nearestRecno}
+    const realNodesByDate = nodes.filter(n => n.date).slice().sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+    const nearestRecno = (date) => {
+      let best = null, bestDiff = Infinity;
+      for (const n of realNodesByDate) {
+        const d = Math.abs(new Date(n.date) - new Date(date));
+        if (d < bestDiff) { bestDiff = d; best = n.recno; }
+      }
+      return best;
+    };
 
     const posRaw = {};
     const evPosRaw = {};
     timeline.forEach((t, i) => {
       if (t.kind === "approval") {
-        posRaw[t.n.recno] = { x: PAD + colOf(t.n) * COL_W + COL_W / 2, y: rowYs[i] };
+        const mDate = t.n.date || (clusterOfRecno[t.n.recno] || {}).effDate || "";
+        let x = PAD + colOf(t.n) * COL_W + COL_W / 2;
+        if (t.n.virtual) x += NODE_ROW / 2; // §4: 32px right shift off the track line
+        posRaw[t.n.recno] = { x, y: rowYs[i] };
+        if (t.n.virtual) {
+          orphanSources[t.n.case_id] = posRaw[t.n.recno];
+          const to = nearestRecno(mDate);
+          if (to) orphanDots.push({ from: t.n.recno, to });
+        }
       } else {
         evPosRaw[t.e.label] = { x: eventColX, y: rowYs[i] };
       }
-    });
-    virtualNodes.forEach(v => {
-      if (posRaw[v.recno]) orphanSources[v.case_id] = posRaw[v.recno];
     });
 
     // Callout selection: first carrying record + diff-triggered records only.
@@ -1010,10 +1023,6 @@ function init() {
     let svgW = svgMinW;
     if (hasEvents) svgW = Math.max(svgW, eventColX + 250);
     let svgH = PAD * 2 + contentH;
-    if (hasGhosts) {
-      svgW = Math.max(svgW, ghostColX + 250);
-      svgH = Math.max(svgH, PAD * 2 + Math.max(0, ghostRows - 1) * NODE_ROW + 80);
-    }
     callouts.forEach(c => {
       svgH = Math.max(svgH, posRaw[c.n.recno].y + 84);
     });
@@ -1068,8 +1077,6 @@ function init() {
     const evPos = {};
     Object.entries(posRaw).forEach(([k, v]) => { pos[k] = { x: xOffset + gutterW + v.x, y: v.y }; });
     Object.entries(evPosRaw).forEach(([k, v]) => { evPos[k] = { x: xOffset + gutterW + v.x, y: v.y }; });
-    const ghostPos = {};
-    Object.entries(ghostPosRaw).forEach(([k, v]) => { ghostPos[k] = { x: xOffset + gutterW + v.x, y: v.y }; });
 
     // ---------- callout placement: top-to-bottom sweep in gutter ----------
     // Each box starts at its node's row; moves down only when overlapping
@@ -1090,18 +1097,6 @@ function init() {
 
     // layoutRects: every placed rectangle for the viewer smoke overlap guard.
     // Kept here so renderer and guard share one geometry source.
-    const nodeLabelRect = (n) => {
-      const r = labelRectOf(n);
-      return { id: `node:${n.recno}`, x: r.x, y: r.y, w: r.w, h: r.h };
-    };
-    const eventRect = (e) => {
-      const q = evPos[e.label];
-      return { id: `event:${e.label}`, x: q.x - 8, y: q.y - 12, w: 240, h: 26 };
-    };
-    const ghostRect = (g) => {
-      const q = ghostPos[`${g.case_id}::__node__`];
-      return { id: `ghost:${g.case_id}`, x: q.x - 10, y: q.y - 16, w: 240, h: 32 };
-    };
     const calloutRect = (c) => {
       const r = c.rect;
       return { id: `callout:${c.n.recno}`, x: r.x, y: r.y, w: r.w, h: r.h };
@@ -1114,14 +1109,34 @@ function init() {
       const y2 = y1;
       return { id: `leader:${c.n.recno}`, x1, y1, x2, y2, owns: `callout:${c.n.recno}` };
     };
+    const nodeLabelRect = (n) => {
+      const r = labelRectOf(n);
+      return { id: `node:${n.recno}`, x: r.x, y: r.y, w: r.w, h: r.h };
+    };
+    const eventRect = (e) => {
+      const q = evPos[e.label];
+      return { id: `event:${e.label}`, x: q.x - 8, y: q.y - 12, w: 240, h: 26 };
+    };
+    const orphanRect = (v) => {
+      const p2 = pos[v.recno];
+      if (!p2) return null;
+      const r = labelRectOf(v);
+      return { id: `orphan:${v.recno}`, x: p2.x + 14 - 7, y: p2.y - 30 - 10, w: r.w + 14, h: r.h + 10 };
+    };
+    const orphanEdge = (d) => {
+      const a = pos[d.from], b = pos[d.to];
+      if (!a || !b) return null;
+      return { id: `orphan-edge:${d.from}->${d.to}`, x1: a.x, y1: a.y, x2: b.x, y2: b.y };
+    };
     window.__LAYOUT_RECTS = {
       gutterX: xOffset + PAD,
       gutterW,
       callouts: callouts.map(calloutRect),
       nodes: nodes.map(nodeLabelRect),
       events: events.map(eventRect),
-      ghosts: interimOrphans.map(ghostRect),
+      orphans: virtualNodes.filter(v => pos[v.recno]).map(orphanRect).filter(Boolean),
       leaders: callouts.map(leaderSeg),
+      orphanEdges: orphanDots.map(orphanEdge).filter(Boolean),
     };
 
     // §2.5: stage bands and count chips removed from rendering (clash with
@@ -1153,6 +1168,13 @@ function init() {
       const pa = pos[a.recno], pb = pos[b.recno];
       if (!pa || !pb) return;
       s += `<line class="edge virtual" x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}"></line>`;
+    });
+
+    // §4: orphan dotted edges — each orphan to its nearest recno node in time.
+    orphanDots.forEach(d => {
+      const a = pos[d.from], b = pos[d.to];
+      if (!a || !b) return;
+      s += `<line class="edge orphan" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"></line>`;
     });
 
     // Source-group edges (final model): slanted solid source edge from the
@@ -1232,24 +1254,6 @@ function init() {
         s += `<g class="event-node" transform="translate(${b.x},${b.y})">` +
           (href ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${inner}</a>` : inner) +
           `</g>`;
-      });
-    }
-
-    // Interim orphan anchors (孤): rightmost column, nameless orphans only —
-    // named orphans became virtual nodes in the grid. Anchors are dashed
-    // circles labelled 北<case_id>; their execution dates live once in the
-    // shared column, fed by slanted solid source edges from these anchors.
-    if (hasGhosts) {
-      interimOrphans.forEach(g => {
-        const nb = ghostPos[`${g.case_id}::__node__`];
-        const caseUrl = g.case_id
-          ? `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${g.case_id}`
-          : "";
-        s += `<g class="node orphan-node" transform="translate(${nb.x},${nb.y})">
-          <circle r="9"></circle>
-          <foreignObject x="14" y="-27" width="90" height="15"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;gap:2px;align-items:center;"><a class="orphan-id-link" href="${escapeHtml(caseUrl)}" target="_blank" rel="noopener"><span class="node-milestone-badge taipei">北</span>${escapeHtml(g.case_id)}</a><span class="node-milestone-badge orphan-badge" title="孤兒案例（orphan-case-anchoring）">孤</span></div></foreignObject>
-          <text class="sub" x="14" y="15">PDF 未收錄 · 孤兒錨點</text>
-        </g>`;
       });
     }
 

@@ -384,7 +384,10 @@ class TestConstructionEdgeSemantics:
     def test_content_addressed_pitch(self):
         js = self._js()
         assert "NODE_ROW = 64" in js and "EVENT_ROW = 32" in js
-        assert "t.kind === \"approval\" ? NODE_ROW : EVENT_ROW" in js
+        # §3: an event after an approval starts ½ row (NODE_ROW/2) under it
+        assert "NODE_ROW / 2" in js, (
+            "execution events must start ½ node row under the approval above them (§3)")
+        assert "EVENT_ROW" in js, "event-to-event pitch must use EVENT_ROW"
         assert "* 64" not in js, "row math must use NODE_ROW/EVENT_ROW, not literal 64"
 
     def test_four_column_grid_mapping(self):

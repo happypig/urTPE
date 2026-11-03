@@ -36,8 +36,14 @@ from urtpe.links import (  # noqa: E402
 )
 
 
-def select_candidates(cache_dir: Path) -> list[str]:
-    """Projects whose cached cases await an approval — no API call needed."""
+def select_candidates(cache_dir: Path, payload_keys: dict | None = None) -> list[str]:
+    """Projects whose cached cases await an approval — no API call needed.
+
+    B4 (Batch C): a cache dir whose project is absent from the emitted payload
+    has no anchor 地段/地號 to search with, so the refresh could only report it
+    "not searched" — every run, forever. When ``payload_keys`` is given, such a
+    dir is skipped here and named once by :func:`stranded_dirs` instead.
+    """
     out: list[str] = []
     for entry in sorted(cache_dir.iterdir()):
         rf = entry / "result.json"
@@ -47,6 +53,9 @@ def select_candidates(cache_dir: Path) -> list[str]:
             data = json.loads(rf.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
+        pid = str(data.get("project_id") or entry.name)
+        if payload_keys is not None and pid not in payload_keys:
+            continue
         # refresh-case-status D5: a case closed without approval is no reason to
         # re-fetch, so the cached statuses go to the selector too.
         # supersede-headerless-cases D5: a 無-header or superseded case is no
@@ -55,7 +64,25 @@ def select_candidates(cache_dir: Path) -> list[str]:
                                           data.get("case_schedules"),
                                           data.get("case_headers"),
                                           data.get("superseded_by")):
-            out.append(str(data.get("project_id") or entry.name))
+            out.append(pid)
+    return out
+
+
+def stranded_dirs(cache_dir: Path, payload_keys: dict) -> list[str]:
+    """Cache dirs whose project_id is absent from the payload (B4). Named once
+    per run so a moved identity is visible; never silently dropped."""
+    out: list[str] = []
+    for entry in sorted(cache_dir.iterdir()):
+        rf = entry / "result.json"
+        if not rf.is_file():
+            continue
+        try:
+            data = json.loads(rf.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        pid = str(data.get("project_id") or entry.name)
+        if pid not in payload_keys:
+            out.append(pid)
     return out
 
 
@@ -94,8 +121,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"no cache directory at {cache_dir}", file=sys.stderr)
         return 1
 
-    candidates = select_candidates(cache_dir)
+    keys = load_search_keys(Path(args.payload))
+    candidates = select_candidates(cache_dir, payload_keys=keys)
+    stranded = stranded_dirs(cache_dir, keys)
     print(f"candidates (a case awaits approval): {len(candidates)}")
+    if stranded:
+        print(f"stranded cache dirs (project absent from the payload, skipped): {len(stranded)}")
+        for pid in stranded:
+            print(f"  {pid}")
     if args.dry_run:
         for pid in candidates:
             print(f"  {pid}")
@@ -105,7 +138,6 @@ def main(argv: list[str] | None = None) -> int:
     totals = {"updated": 0, "status_changes": 0, "removed": 0, "conflicts": 0,
               "closed": 0, "still_awaiting": 0, "added": 0, "superseded": 0,
               "no_successor": 0, "ambiguous": 0}
-    keys = load_search_keys(Path(args.payload))
     not_searched = 0
     for pid in candidates:
         report = refresh_project(cache_dir, pid, search_key=keys.get(pid))

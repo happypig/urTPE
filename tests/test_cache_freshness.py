@@ -203,3 +203,52 @@ def test_refresh_reports_a_case_still_awaiting(tmp_path):
     assert report["still_awaiting"] == ["X"]
     saved = json.loads((tmp_path / pid / "result.json").read_text(encoding="utf-8"))
     assert "核定日期" not in saved["case_milestones"]["X"]
+
+
+class TestSelectorSkipsPayloadlessCaches:
+    """B4 (Batch C): cache dirs whose project is absent from the emitted payload
+    are re-selected every run and always report "not searched" — the selector
+    should skip them once and name them, not re-try them forever."""
+
+    def _make_selector(self, cache_dir: Path, payload_projects: list[str]):
+        import importlib.util
+        global tmp_path_factory
+        import tempfile as _t
+        tmp_path_factory = lambda: Path(_t.mkdtemp())
+        spec = importlib.util.spec_from_file_location(
+            "refresh_awaiting_caches", ROOT / "scripts" / "refresh_awaiting_caches.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        payload = tmp_path_factory() / "_payload.js"
+        doc = {"projects": [{"project_id": pid,
+                             "anchor_recno": 1,
+                             "nodes": [{"recno": 1, "section": "甲段",
+                                        "first_parcel": "1",
+                                        "case_name": "擬訂案"}]}
+                            for pid in payload_projects]}
+        payload.write_text("window.PROJECTS = " + json.dumps(doc, ensure_ascii=False) + ";",
+                           encoding="utf-8")
+        keys = mod.load_search_keys(payload)
+        return mod, keys
+
+    def _write_awaiting_cache(self, cache_dir: Path, pid: str) -> None:
+        _write_cache(cache_dir, pid, published="2026-08-30", case_milestones={
+            "X": {"申請核定日期": "2026/07/30"},
+        })
+
+    def test_a_cache_dir_whose_project_left_the_payload_is_skipped_and_named(self, tmp_path):
+        mod, keys = self._make_selector(tmp_path, ["甲"])  # payload holds only 甲
+        self._write_awaiting_cache(tmp_path, "甲")
+        self._write_awaiting_cache(tmp_path, "乙-缺席")  # stranded dir: not in the payload
+
+        candidates = mod.select_candidates(tmp_path, payload_keys=keys)
+        assert candidates == ["甲"]  # 乙-缺席 is skipped
+
+        named = mod.stranded_dirs(tmp_path, keys)
+        assert named == ["乙-缺席"]
+
+    def test_stranded_dirs_are_empty_when_every_cache_is_in_the_payload(self, tmp_path):
+        mod, keys = self._make_selector(tmp_path, ["甲"])
+        self._write_awaiting_cache(tmp_path, "甲")
+        assert mod.stranded_dirs(tmp_path, keys) == []

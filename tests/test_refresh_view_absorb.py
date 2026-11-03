@@ -185,3 +185,39 @@ def test_refresh_gate_drops_a_newly_rejected_ids_milestones(tmp_path, monkeypatc
     assert "10803151" in saved["view_rejected"]
     assert "10803151" not in saved["case_milestones"]
     assert "10803151" not in saved["city_case_ids"]
+
+
+def test_absorb_stores_the_national_page_title_as_twur_name(tmp_path, monkeypatch):
+    """S9/C10: the pipeline stores the national page's own 案名 (the <title>)
+    as twur_name — the portal names the project by its first 擬訂 case, and 452
+    of 632 projects showed the wrong 國 label under the current-node rule."""
+    pid = "戊"
+    _write_cache(tmp_path, pid, case_milestones={
+        "10105152": {"核定日期": "2019/02/14"},
+    }, city_case_ids=["10105152"])
+
+    title_page = VIEW_621.replace("<html><body>", "<html><head><title>擬訂臺北市北投區關渡段二小段303地號等5筆土地都市更新事業計畫案-都更查詢-內政部國土管理署都市更新入口網</title></head><body>")
+    monkeypatch.setattr("urtpe.links.fetch_view_page", lambda vid, cache_dir=None, fresh=False: title_page)
+    monkeypatch.setattr("urtpe.links.fetch_taipei_milestones_api", lambda cid: {})
+
+    refresh_project(tmp_path, pid, fetch=lambda cid: {})
+
+    saved = json.loads((tmp_path / pid / "result.json").read_text(encoding="utf-8"))
+    assert saved.get("twur_name") == "擬訂臺北市北投區關渡段二小段303地號等5筆土地都市更新事業計畫案"
+
+
+def test_absorb_without_a_title_leaves_twur_name_empty(tmp_path, monkeypatch):
+    """A cached page without a <title> 案名 stores no name; the payload then
+    emits without the key."""
+    pid = "己"
+    _write_cache(tmp_path, pid, case_milestones={
+        "10105152": {"核定日期": "2019/02/14"},
+    }, city_case_ids=["10105152"])
+
+    monkeypatch.setattr("urtpe.links.fetch_view_page", lambda vid, cache_dir=None, fresh=False: VIEW_621)
+    monkeypatch.setattr("urtpe.links.fetch_taipei_milestones_api", lambda cid: {})
+
+    refresh_project(tmp_path, pid, fetch=lambda cid: {})
+
+    saved = json.loads((tmp_path / pid / "result.json").read_text(encoding="utf-8"))
+    assert not saved.get("twur_name")

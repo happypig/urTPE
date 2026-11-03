@@ -566,3 +566,44 @@ console.log(JSON.stringify(out));
     assert list(out[2]) == ["5"], f"±1 day decides: {out[2]}"
     assert out[3] == {}, f"a tie the window cannot break binds nothing: {out[3]}"
     assert out[4] == {}, f"execution/application labels bind nothing: {out[4]}"
+
+
+def test_related_link_labels_use_the_city_name():
+    """C7/S9: an anchored case is labelled by its own city name; the 國 anchor
+    label is the national page's own name (twur_name, C10)."""
+    import subprocess, json
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    js = APP_JS.read_text(encoding="utf-8").replace("\r\n", "\n")
+    if "twur_name" not in js:
+        pytest.fail("twur_name not implemented yet (S9 test-first)")
+    m = re.search(r"(function buildRelatedLinkLabels[\s\S]*?\n\}\n)", js)
+    assert m, "buildRelatedLinkLabels must exist in app.js"
+    prog = (m.group(1) + "\n"
+        + """
+const p = {
+  nodes: [
+    {recno: 1376, is_current: false, case_name: "擬訂臺北市中山區吉林段四小段705地號等47筆土地都市更新事業計畫案",
+     links: {taipei: ["09307102"]}},
+    {recno: 1311, is_current: true, case_name: "變更臺北市中山區吉林段四小段705地號等47筆土地都市更新權利變換計畫(含釐正圖冊)案",
+     links: {taipei: ["09307100", "09307101"]}}
+  ],
+  links: {
+    twur: "https://twur.nlma.gov.tw/zh/urban/rebuild/view/57",
+    twur_name: "擬訂臺北市中山區吉林段四小段705地號等47筆土地都市更新事業計畫案",
+    candidate_names: {
+      "09307100": "擬訂臺北市中山區吉林段四小段705地號等47筆土地都市更新事業概要案",
+      "09307101": "變更臺北市中山區吉林段四小段705地號等47筆土地都市更新事業計畫及擬訂權利變換計畫案"
+    }
+  }
+};
+const r = buildRelatedLinkLabels(p);
+console.log(JSON.stringify({byCase: r.byCase, anchorName: r.anchorName}));
+""")
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout)
+    assert out["byCase"]["09307100"] == "擬訂臺北市中山區吉林段四小段705地號等47筆土地都市更新事業概要案", out["byCase"]
+    assert out["byCase"]["09307101"] == "變更臺北市中山區吉林段四小段705地號等47筆土地都市更新事業計畫及擬訂權利變換計畫案", out["byCase"]
+    assert out["anchorName"] == "擬訂臺北市中山區吉林段四小段705地號等47筆土地都市更新事業計畫案", out["anchorName"]

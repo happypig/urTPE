@@ -593,9 +593,14 @@ function runScenarios(fx) {
 function buildRelatedLinkLabels(p) {
   const links = p.links || {};
   const nodes = p.nodes || [];  const byCase = {};
+  const harvested = links.candidate_names || {};
+  // label-by-own-name (C7): the city's own harvested name labels the case; the
+  // node's gazette 案名 is only the fallback — one node can anchor 2+ cases
+  // (the area-split binding) and the gazette label cannot tell them apart
+  // (吉林508's 11011241 shows without its -A區 suffix).
   for (const n of nodes) {
     const anchored = (n.links || {}).taipei || [];
-    for (const cid of anchored) byCase[cid] = n.case_name || "";
+    for (const cid of anchored) byCase[cid] = harvested[cid] || n.case_name || "";
   }
   // Ghost/virtual payloads carry the harvested real case names — they must be
   // consulted before the synthetic case_milestones label (里程碑 N 筆), or the
@@ -621,8 +626,11 @@ function buildRelatedLinkLabels(p) {
       continue;
     }
   }
+  // label-by-own-name (C10): the 國 label is the national page's own 案名
+  // (links.twur_name, the page <title>) — the portal names the project by its
+  // first 擬訂 case; the current node's gazette name is only the fallback.
   const anchor = nodes.find(n => n.is_current) || nodes[nodes.length - 1] || {};
-  return { byCase, anchorName: anchor.case_name || "" };
+  return { byCase, anchorName: links.twur_name || anchor.case_name || "" };
 }
 
 function renderRewards(project) {

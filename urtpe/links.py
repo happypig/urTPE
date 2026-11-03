@@ -336,6 +336,11 @@ class DiscoveryResult:
     # §8: rejected ids this project ADOPTED from their wrong holder
     # {case_id: source_project_id} — the offer step's provenance record.
     adopted_from_view: dict[str, str] = field(default_factory=dict)
+    # label-by-own-name (C10): the national page's own 案名 — the <title>'s
+    # project name. The portal names the project by its first 擬訂 case; the
+    # viewer labels 國 with it (452 of 632 projects showed the wrong name under
+    # the current-node rule). Parsed from the cached view.html, no request.
+    twur_name: str = ""
     status: str = "unresolved"  # resolved, unresolved, multi-case, error
     error: str = ""
 
@@ -586,6 +591,18 @@ def discover_project_links(
     if cache_dir and not fresh:
         cached = load_project_cache(cache_dir, project.project_id)
         if cached:
+            # label-by-own-name: caches written before twur_name existed carry
+            # the page on disk — parse it (no request) so the 國 label has the
+            # portal's own name on the next emit.
+            if not cached.twur_name and cached.twur_view_id:
+                _vh = resolve_cache_dir(cache_dir, project.project_id) / "view.html"
+                if _vh.is_file():
+                    try:
+                        cached.twur_name = parse_view_title(_vh.read_text(encoding="utf-8"))
+                        if cached.twur_name:
+                            save_project_cache(cache_dir, project.project_id, cached)
+                    except OSError:
+                        pass
             return cached
 
     # B3 (Batch B): a fresh re-discovery starts from a bare DiscoveryResult, so
@@ -696,6 +713,7 @@ def discover_project_links(
             time.sleep(delay)
             view_html = fetch_view_page(view_id, cache_dir, fresh)
             national_milestones = extract_tuidui_history_from_view(view_html)
+            result.twur_name = parse_view_title(view_html)
             _absorb_view_case_ids(project, result, view_html, delay,
                                   all_taipei_milestones, milestones_source)
         except Exception as e:
@@ -721,6 +739,14 @@ def discover_project_links(
         save_project_cache(cache_dir, project.project_id, result, view_html=view_html)
 
     return result
+
+
+def parse_view_title(view_html: str) -> str:
+    """The national page's own 案名 — the <title>'s project name before the
+    "-都更查詢" suffix (label-by-own-name; the portal names the project by its
+    first 擬訂 case). Empty when the page has no parseable title."""
+    m = re.search(r"<title>(.*?)-都更查詢", view_html or "")
+    return m.group(1).strip() if m else ""
 
 
 def _absorb_view_case_ids(project, result: "DiscoveryResult", view_html: str, delay: float,
@@ -1908,10 +1934,26 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
     if not view_id and cached.twur_url:
         m = re.search(r"view/(\d+)", cached.twur_url)
         view_id = m.group(1) if m else ""
+    if view_id and not cached.twur_name:
+        # label-by-own-name: the cache predates twur_name — parse the cached
+        # view.html (re-parse, no request) before/instead of a re-fetch.
+        _vh = resolve_cache_dir(Path(cache_dir), project_id) / "view.html"
+        if _vh.is_file():
+            try:
+                parsed = parse_view_title(_vh.read_text(encoding="utf-8"))
+                if parsed:
+                    cached.twur_name = parsed
+                    changed = True
+            except OSError:
+                pass
     if view_id:
         try:
             view_html = fetch_view_page(view_id, Path(cache_dir))
             prior_verified = list(cached.view_verified_case_ids)
+            parsed = parse_view_title(view_html)
+            if parsed and parsed != cached.twur_name:
+                cached.twur_name = parsed
+                changed = True
             _absorb_view_case_ids(None, cached, view_html, 0.0, {}, {})
             # Merge, never replace: the absorb overwrites the list with the page
             # order, and an already-complete cache must not lose or reorder its
@@ -2288,6 +2330,9 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             obj = type('DiscoveryDict', (object,), {})()
             obj.project_id = k
             obj.twur_url = v.get("twur", "")
+            # label-by-own-name round trip: the payload's twur_name survives a
+            # --from-js reload like every other links field.
+            obj.twur_name = v.get("twur_name", "")
             obj.city_case_ids = v.get("taipei", [])
             obj.national_milestones = v.get("milestones_national", {})
             obj.taipei_milestones = v.get("milestones_taipei", {})
@@ -2350,6 +2395,12 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
         # under a new id; the viewer names the successor in 相關連結.
         if getattr(disc, "superseded_by", None):
             project.links["superseded_by"] = dict(disc.superseded_by)
+        # label-by-own-name (C10): the national page's own 案名 rides the
+        # payload beside twur_url; the viewer labels 國 with it. A legacy
+        # result without the field (or an empty parse) emits without the key.
+        _tn = getattr(disc, "twur_name", "") or ""
+        if _tn:
+            project.links["twur_name"] = _tn
         # fix-row-order-tiebreak-and-view-badges D4: the cases the project's
         # own national view page names in 相關連結 — the portal's assertion —
         # reach the payload so the viewer can badge those nodes 國. A legacy

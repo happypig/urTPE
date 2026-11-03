@@ -11,7 +11,8 @@ re-reading to execute the plan.
 **Update history:** 2026-10-26 original inspection (pipeline P1–P3, viewer V1–V12) ·
 2026-10-30 peer session F1–F5, the audit doc's data-layer findings, the archive
 verification · 2026-10-31 the 09-24 restoration executed · 2026-11-01 TAB-2 session
-G1–G5 · 2026-11-03 Batch B, the §37/§38 residuals collected for batch treatment.
+G1–G5 · 2026-11-03 Batch B, the §37/§38 residuals collected for batch treatment ·
+2026-11-03 Batch C, the post-viewer-UX gaps collected after waves 1–5 landed.
 
 ## State of the board
 
@@ -25,6 +26,7 @@ G1–G5 · 2026-11-03 Batch B, the §37/§38 residuals collected for batch treat
 | Acquisition | **weekly scheduled task `urtpe-poll` live** (Mondays 06:30); channel verified healthy 2026-11-01 (`reuploaded`) |
 | Emission | 2026-10-15, 1,442 raw / 1,442 clean / 693 projects, 0 residuals |
 | Batch B | 8 findings queued, 0 executed (§37/§38 residuals) |
+| Batch C | 6 findings queued, 0 executed (post-viewer-UX gaps) |
 
 ## Execution order — the integrated plan
 
@@ -177,6 +179,100 @@ B7 counts the same 4 defects that `docs/viewer-UX.md` §8 recorded. The ids diff
 between the two measurements only in what the id list holds: the payload has 189
 view-verified ids in 143 projects, and the cache has 193 in 146 caches. The 4
 defects are the same 4 in both.
+
+### Batch C — the post-viewer-UX gaps, collected 2026-11-03 — **QUEUED, not started**
+
+The viewer-UX waves 1–5 landed (`91699bb`…`370ddb2`): §5 centered, §1+§6 the
+gutter, §7 the [無]/[NA] labels, §2 the 國 binding, §3+§4 the event/orphan
+placement. This batch collects what those waves left open, measured at `370ddb2`
+on the same payload (1,442 records / 693 projects, `published_date 2026-10-15`)
+and the 726 cache dirs. Wave 3b (`docs/viewer-UX.md` §8) never ran — no
+`reject-foreign-view-cases` change exists in `openspec/changes/` or the archive —
+so C3 re-lists it here as the batch's gate.
+
+| ID | Finding | Evidence now | Form | Gate |
+| --- | --- | --- | --- | --- |
+| C1 | `nationalBoundTo` binds without an exact date — the code guesses, the §2 spec says never | 1,720 national approval labels: exact 963, no-node 327, drifted 430 (the shipped code binds all 430; the spec binds 0 of them). 331 of the 430 are off by exactly 1 day (公告 vs committee date); 343 have a node within ±1 day; 9 have 2–3 candidate nodes and the code picks the first | direct `fix:` commit + spec delta to the §2 requirement | — |
+| C2 | The offline `view_verified_case_ids` backfill has never run | 642 caches hold `view.html`; 587 parse to ≥1 case id, 758 ids in all. 435 projects would gain ids (557 new; 143 projects / 189 ids carry ids today). 553 of 557 new ids pass the land-core check; 4 fail it (C4's artefacts, not foreign ids); 10 names are parcel-less; 9 have no city name in the payload | openspec change (the refresh writes caches → the single-writer rule) | C3, C4 |
+| C3 | Wave 3b (`docs/viewer-UX.md` §8, `reject-foreign-view-cases`) never ran | the 5 foreign ids of Batch B7/B8 are all still in the payload: 10202065 (中山254), 10906092 (吉林898), 09608220 (犁和102), 09511211 (吉林603 **and** 大安557 — shape B), 09807161 (龍泉169). Each grants a wrong 國 badge through §2 decision 2 | openspec change | — |
+| C4 | 11 project anchors yield no land core from their own 案名 | the anchor names print 號 not 地號 (大業401, 美仁831-3, 陽明291), a 松山→松化 typo (敦化510), compatibility-char corruption (三興972, 桃源424-8 print 擬訂臺北市 with U+F963 北), or a multi-parcel list (長安709, 仁愛679, 懷生316, 南港531-4, 華中247); 實踐641 and 崇仁711-3 name no parcel at all. `extract_landcore_from_case_name` returns "" for all 11 | openspec change | — |
+| C5 | 使照 disagreement between the two portals is not flagged | 282 projects hold 使用核發/使照核發 from both portals: 260 agree, 22 differ (吉林811 2013-09-11 vs 2013-11-12; 榮星306 year; 虎林310 month). 13 projects hold it national-only, 32 city-only. 橋北574-1's national value `291.08.02` converts to 2202-08-02 — the only out-of-range ROC year in the payload | openspec change | — |
+| C6 | The 北 positional fallback binds 71 nodes on 51 projects, unmarked | re-run of the pipeline's own `_match_case_by_date` over the payload: 1,356 nodes match by date, 71 do not (榮星53: 4 nodes dated 2005–2010 all bound to case 09001121, approved 2007-11-20), 15 have no case. The user has not decided between marking the fallback and leaving orphan nodes | openspec change, after the user decides | — |
+
+**C1 in detail.** `openspec/changes/bind-national-badge-to-named-node/design.md`
+decision 1 says: "If none equals, leave the label unbound. Never guess."
+`viewer/app.js:130` (`nationalBoundTo`) scores a node 2 for an exact date and 1
+otherwise, then takes the best score — so a label with no exact match still
+binds its first stage+track candidate. The drift profile (331 of 430 off by
+exactly 1 day) matches the 公告-vs-committee offset that
+`urtpe/links.py:1856` (`_match_case_by_date`) already tolerates for the 北
+badge. Fix: score 1 only when the node date is within ±1 day; leave unbound
+when 2+ nodes qualify. This changes 394 of 430 bindings from "first
+candidate" to "nearest date", and unbinds the 9 multi-candidate labels and 78
+far-drift ones. The §2 spec requirement needs a delta: its 國-binds-by-date
+tie-break scenario must name the tolerance and the never-guess rule the code
+must follow. The 327 no-node labels stay unbound (their stage+track node does
+not exist — mostly 權變 labels on 事業-only families).
+
+**C2 in detail.** Method: parse every cached `view.html` with the pipeline's
+own `extract_case_ids_from_view`, match each dir to its payload project by
+dir name (= project_id), and subtract the ids the project already holds. The
+538 passing ids checked clean with `compute_landcore_similarity ≥ 0.7`
+against the project's own anchor name. The 9 ids without a city name come
+from caches whose `candidate_names` lack them — the refresh supplies the name
+when it runs. C3 must land first (§8 decision 2 moves foreign ids to their
+own project), and C4 first among those, so the similarity check can decide
+every id.
+
+**C4 in detail.** The 11 anchors break into three shapes:
+
+| Shape | Projects | What the name prints |
+| --- | --- | --- |
+| 號 without 地號 | 大業401, 美仁831-3, 陽明291 | `401號等10筆` — the regex wants `地號` |
+| Typo / compatibility chars | 敦化510 (松化區), 三興972 + 桃源424-8 (U+F963 北 inside 擬訂臺北市) | the PDF's own glyphs |
+| Multi-parcel list before 地號 | 長安709 (`709、711地號`), 仁愛679, 懷生316, 南港531-4, 華中247 | the regex stops at the first 、 list |
+| Update-unit name, no parcel | 實踐641, 崇仁711-3 | `木新路三段95巷南側地區…` / `崇仁新村土地…` |
+
+The payload's project_id is still correct for all 11 (the slug comes from the
+land column, not the name), so nothing downstream is wrong today — but C2's
+similarity check cannot decide the 5 ids whose projects sit in this list
+(10712281, 10312101, 10510181, 11501039, 10812201 measure 0.0 against a
+corrupted or missing own-core; each city name actually names the project's
+own section+parcel, so these are artefacts, not foreign ids), and the
+parcel-less names are exactly the case the `orphan-case-anchoring` spec's
+parcel-less rule anticipates. Fix: normalise compatibility chars (NFKC)
+before extraction — that recovers 三興972 and 桃源424-8 — and teach the
+extractor the 號 form and the 、-list form. The 松化 typo is the PDF's own
+glyph; no extractor change recovers it.
+
+**C5 in detail.** The national page's 使用核發日期 and the city's 使照核發日期
+are the same fact from two offices. 22 disagreements include both plausible
+readings: 榮星306 (2022-09-23 vs 2023-09-23) and 虎林310 (2022-11-11 vs
+2022-01-11) look like single-digit typos — two sources prove a typo exists,
+neither proves which one. The pipeline emits both today with no flag. The
+`291.08.02` value is a third shape: an out-of-range ROC year the viewer
+faithfully converts to 2202. Fix: a review flag on disagreement (not a
+repair), plus a range guard on ROC conversion.
+
+**C6 in detail.** The 71 fallback nodes are the same population the
+§34 residual watch named ("17 drift families"). `_match_case_by_date` returns
+"" for them and `urtpe/links.py:2067–2081` falls back to
+`disc.city_case_ids[0/1]` by track position. The badge is then wrong in both
+directions the §34 note recorded. Options were put to the user on 2026-11-03
+(mark the fallback / use orphans); no decision yet, so the item is queued
+with that gate.
+
+**Order.** C3 first (it is already §8, and C1's badge trust and C2's backfill
+both depend on it). Then C1 (small, viewer + spec delta). Then C4 (unblocks
+C2's decidability), then C2 (the backfill, with C3's move logic in place).
+C5 and C6 are independent; C6 waits on the user decision.
+
+### Decisions waiting on the user (Batch C)
+
+| Entry | Question | Blocks |
+| --- | --- | --- |
+| C6 | Mark the 71 fallback-bound 北 nodes in the viewer, or rebind them to orphan nodes? | C6 |
+| C5 | Flag the 22 使照 disagreements for human review, or only the out-of-range ROC years? | C5 (scope) |
 
 - P2.1: atomic lock acquire via `O_CREAT | O_EXCL` (replaces the tmp-and-replace
   race; Windows loser currently crashes with `PermissionError` instead of exit 5).
@@ -455,3 +551,81 @@ no stage and no track: 10202065 on 中山254, 09511211 on 大安557 (施工中),
 **Order.** B7 must land before B8, and B8 must land before wave 5's orphan
 placement is trusted for those 3 nodes. B1 gates B2 and B5, because a full
 re-discovery changes which cases exist. B5 gates B6.
+
+## Appendix H — Batch C measurement (2026-11-03, at `370ddb2`)
+
+The method and the raw counts behind the Batch C table. Read for detail or
+audit, not for execution. Every number came from one-off scripts over
+`viewer/projects.data.js` (emitted 2026-11-02, 1,442 records / 693 projects)
+and `data/.link_cache/` (726 dirs); the scripts were deleted after the run.
+
+**C1.** The shipped `nationalBoundTo` was re-implemented verbatim in the probe
+(score 2 exact / 1 otherwise, best score wins, combined track matches either).
+Counts over the 632 twur projects' 1,720 approval labels
+(`nationalLabelKey` non-null): exact-date node exists 963; no stage+track node
+at all 327; stage+track node exists but no exact date 430. The 430 are what
+the code binds and the design would not. Their national−node day deltas: +1
+day 331, −1 day 11, +2..+6 days 43, −2/−10 days 3, ≥120-day outliers 42 (of
+which 9 labels have 2–3 candidate nodes — 大同市府247's three 變更/事業計畫
+nodes 2013-03-28 / 2017-07-11 / 2022-10-20 against label 102.04.01). A ±1-day
+filter resolves exactly one candidate for 343 of the 430, resolves 0 or 2+
+for 87 (unbound under tolerance), and the shipped first-candidate pick
+disagrees with the tolerance pick only inside the 43 far-drift rows. The
+pipeline's own `_match_case_by_date` already applies exact-then-±1-day to the
+北 badge, so the tolerance follows repo precedent.
+
+**C2.** Method: for each cache dir holding `view.html` (642 of 726), parse
+case ids with `urtpe.links.extract_case_ids_from_view`; 587 dirs yield ≥1 id,
+758 ids in all. Match dir→project by dir name (the dir names are
+`project_id` slugs; the `https___twur…view_NNNN.html` flat files are
+portal-index pages, not project caches — 0 of them are dirs). Subtract the
+project's current `view_verified_case_ids`: 435 projects gain, 557 new ids.
+Check each new id's city name (`links.candidate_names[cid]`) with
+`extract_landcore_from_case_name` + `compute_landcore_similarity` against the
+project's own anchor name: 538 pass ≥0.7, 4 score 0.0 (all four are C4
+artefacts on the project side — the city name itself names the project's own
+section+parcel; verified by reading the names), 10 are parcel-less names,
+9 ids have no city name in the payload (their caches were never refreshed).
+
+**C3.** The five §8 ids were grepped in the emitted payload directly.
+Placements: 10202065 in 中山254's `view_verified_case_ids` (孤 anchor,
+2020-11-03); 10906092 in 吉林898 (node 307); 09608220 in 犁和102 (孤,
+2009-01-15); 09511211 in **both** 吉林603 and 大安557; 09807161 in 龍泉169
+(孤, 2013-11-29). No `reject-foreign-view-cases` change exists in
+`openspec/changes/` (only `bind-national-badge-to-named-node`,
+`callout-gutter`, `place-events-and-orphans-by-node`,
+`show-no-state-case-status`) or in the archive (nothing dated 2026-11-03).
+Wave 4 (`00cb177`) landed before wave 3b against the doc's own ordering rule.
+
+**C4.** Ran `extract_landcore_from_case_name` over all 693 projects' newest
+node case names: 11 return "". Read each name by eye and grouped the shapes
+(號-without-地號 3, typo/compatibility-chars 3, 、-list 4, no-parcel update
+names 2 — 實踐641's name has no 地號 at all, 崇仁711-3's says 新村). The U+F963
+finding: 三興972's and 桃源424-8's anchor names print 擬訂臺北市 with the
+compatibility form of 北 (U+F963) after 臺 (U+81FA), so the
+`name.split("臺北市", 1)[1]` split in the extractor misses and the fallback
+pattern grabs `市信義區…`. `unicodedata.normalize("NFKC", name)` before
+extraction recovers 3 of the 11 (三興972, 桃源424-8, and 敦化510 still fails —
+its 松化區 is the PDF's own typo, unfixable by normalisation).
+
+**C5.** Cross-read `milestones_taipei["使照核發日期"]` against
+`milestones_national["使用核發日期"]` (ROC→ISO) over the 632 twur projects:
+both present 282 (equal 260, differ 22); city-only 32; national-only 13.
+The 22 disagreements were listed and read by eye: 4 are single-day offsets,
+2 are year or month typos (榮星306, 虎林310), the rest are 2–12-day offsets
+across offices. The out-of-range scan over every national value found one
+ROC year above 115: 橋北574-1's `使用核發日期 = 291.08.02` → the viewer's
+`1911 + 291 = 2202-08-02`; the city's 使照核發日期 reads 2022/08/02, so the
+national page typo'd 111→291.
+
+**C6.** Re-ran the pipeline's own `_match_case_by_date(member_date, disc)`
+for every emitted node against its project's `case_milestones`, and compared
+its answer with the `links.taipei[0]` the payload actually carries:
+1,356 nodes match by date; 71 carry a case the matcher would not choose
+(those are the positional fallback of `urtpe/links.py:2067–2081`); 15 nodes
+carry no case at all. Distinct projects with a fallback node: 51. The worst
+family is 榮星53 — 4 nodes dated 2005-11-03 / 2007-11-20 / 2008-12-22 /
+2010-02-04, all bound to case 09001121 whose only approval date is
+2007-11-20.
+
+

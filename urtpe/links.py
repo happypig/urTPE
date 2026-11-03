@@ -744,6 +744,13 @@ def _absorb_view_case_ids(project, result: "DiscoveryResult", view_html: str, de
     if not ids:
         return
     result.view_verified_case_ids = list(ids)
+    # S3a (Batch C residual): an id a previous refresh rejected (§8) must not be
+    # re-fetched on every later absorb — its milestones sit in case_milestones
+    # where no node, orphan, edge or badge reads them (measured: 10202065,
+    # 09608220, 09511211, 09807161). Skip them here; the §8 gate below drops
+    # any stale entry.
+    rejected = set(getattr(result, "view_rejected", {}) or {})
+    ids = [c for c in ids if c not in rejected]
     known = list(result.city_case_ids)
     fresh_ids = [c for c in ids if c not in known]
     if fresh_ids:
@@ -1882,9 +1889,12 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             _absorb_view_case_ids(None, cached, view_html, 0.0, {}, {})
             # Merge, never replace: the absorb overwrites the list with the page
             # order, and an already-complete cache must not lose or reorder its
-            # entries (test_refresh_view_absorb pins this).
+            # entries (test_refresh_view_absorb pins this). S3a: a previously
+            # rejected id (§8) is not re-added by the merge — its rejection
+            # stands until the offer step moves it to its owner.
             cached.view_verified_case_ids = prior_verified + [
-                c for c in cached.view_verified_case_ids if c not in prior_verified]
+                c for c in cached.view_verified_case_ids
+                if c not in prior_verified and c not in cached.view_rejected]
         except Exception as exc:
             report_error = f"view absorb: {type(exc).__name__}: {exc}"
 
@@ -1898,6 +1908,12 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
     # never dropped silently; the driver's offer step moves it to its own
     # project afterwards (the refresh's unit is one project's cache).
     if cached.view_verified_case_ids:
+        # S3a: a previously rejected id is not re-decided — the gate only sees
+        # evidence from this run (labels + city names), and with none it would
+        # "keep" the id on no-evidence grounds, undoing the recorded rejection
+        # (10202065 shape). The offer step or a future full re-verify revisits it.
+        cached.view_verified_case_ids = [
+            c for c in cached.view_verified_case_ids if c not in cached.view_rejected]
         labels: dict[str, str] = {}
         view_html_path = Path(cache_dir) / resolve_cache_dir(Path(cache_dir), project_id).name / "view.html"
         try:
@@ -1918,9 +1934,14 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                 cached.view_rejected[cid] = rec
                 # a rejected id must not keep anchoring milestones to this
                 # project's timeline: drop it from city_case_ids too (the
-                # offer step re-adds it on the owning project's cache).
+                # offer step re-adds it on the owning project's cache), and
+                # drop its milestones — S3a: they were fetched by an earlier
+                # absorb, no node/orphan/edge/badge reads them, and keeping
+                # them made every 相關連結 fallback re-derive a dead label.
                 if cid in cached.city_case_ids:
                     cached.city_case_ids.remove(cid)
+                if cid in cached.case_milestones:
+                    del cached.case_milestones[cid]
                 changed = True
             report["view_rejected_ids"] = sorted(decision.rejected)
         if decision.label_errors:

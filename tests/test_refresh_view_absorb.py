@@ -125,3 +125,63 @@ def test_refresh_on_a_complete_cache_keeps_the_list_untouched(tmp_path, monkeypa
 
     saved = json.loads((tmp_path / pid / "result.json").read_text(encoding="utf-8"))
     assert saved["view_verified_case_ids"] == ["10105152", "10803151"]
+
+
+def test_refresh_absorb_skips_rejected_ids_and_drops_their_milestones(tmp_path, monkeypatch):
+    """S3a (Batch C residual): the absorb re-fetches every id the page names,
+    including ids a previous refresh REJECTED (§8) — so each refresh re-fetches
+    them and leaves their milestones in case_milestones (measured 2026-11-04:
+    10202065, 09608220, 09511211, 09807161 in the payload; no node, orphan,
+    edge or badge reads them). The absorb skips view_rejected ids, and the §8
+    gate drops a rejected id's case_milestones entry."""
+    pid = "丙"
+    _write_cache(tmp_path, pid, case_milestones={
+        "10105152": {"核定日期": "2019/02/14"},
+    }, city_case_ids=["10105152"],
+        view_verified_case_ids=["10105152", "10803151"],
+        view_rejected={"10803151": {"reason": "foreign land core",
+                                    "shape": "A", "label_ok": False,
+                                    "city_ok": False}})
+
+    seen: list[str] = []
+
+    monkeypatch.setattr("urtpe.links.fetch_view_page", lambda vid, cache_dir=None, fresh=False: VIEW_621)
+    monkeypatch.setattr("urtpe.links.fetch_taipei_milestones_api",
+                        lambda cid: seen.append(cid) or {"核定日期": "2019/02/14"})
+
+    refresh_project(tmp_path, pid, fetch=lambda cid: {})
+
+    # the rejected id was not re-fetched by the absorb...
+    assert "10803151" not in seen
+    saved = json.loads((tmp_path / pid / "result.json").read_text(encoding="utf-8"))
+    # ...and it holds no milestones anywhere in the cache
+    assert "10803151" not in saved["case_milestones"]
+    # the rejection record survives (named, never dropped silently)
+    assert saved["view_rejected"]["10803151"]["reason"] == "foreign land core"
+    assert "10803151" not in saved["view_verified_case_ids"]
+    assert "10803151" not in saved["city_case_ids"]
+
+
+def test_refresh_gate_drops_a_newly_rejected_ids_milestones(tmp_path, monkeypatch):
+    """An id the current gate rejects (foreign land core) loses its milestones
+    in the same run — not only on the next refresh."""
+    pid = "丁"
+    _write_cache(tmp_path, pid, case_milestones={
+        "10105152": {"核定日期": "2019/02/14"},
+        "10803151": {"權變核定日期": "2020/07/28"},
+    }, city_case_ids=["10105152", "10803151"],
+        view_verified_case_ids=["10105152", "10803151"],
+        case_case_names={"10105152": "擬訂臺北市甲區甲段1地號等1筆土地都市更新事業計畫案",
+                         "10803151": "擬訂臺北市乙區乙段9地號等9筆土地都市更新事業計畫案"})
+
+    # the project's own view page names both ids...
+    monkeypatch.setattr("urtpe.links.fetch_view_page", lambda vid, cache_dir=None, fresh=False: VIEW_621)
+    monkeypatch.setattr("urtpe.links.fetch_taipei_milestones_api", lambda cid: {})
+    # ...and the fetch_status default is off (fetch injected), so case_case_names
+    # stays as written; the gate then rejects 10803151 by its foreign name.
+    refresh_project(tmp_path, pid, fetch=lambda cid: {})
+
+    saved = json.loads((tmp_path / pid / "result.json").read_text(encoding="utf-8"))
+    assert "10803151" in saved["view_rejected"]
+    assert "10803151" not in saved["case_milestones"]
+    assert "10803151" not in saved["city_case_ids"]

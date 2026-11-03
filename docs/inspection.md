@@ -26,8 +26,8 @@ G1–G5 · 2026-11-03 Batch B, the §37/§38 residuals collected for batch treat
 | Acquisition | **weekly scheduled task `urtpe-poll` live** (Mondays 06:30); channel verified healthy 2026-11-01 (`reuploaded`) |
 | Emission | 2026-10-15, 1,442 raw / 1,442 clean / 693 projects, 0 residuals |
 | Batch B | 8 findings queued, 0 executed (§37/§38 residuals) |
-| Batch C | 6 findings queued, 0 executed (post-viewer-UX gaps) |
-| Batch B + C plan | reviewed 2026-11-03: 10 steps (S0–S8 + R), 4 user decisions open |
+| Batch C | 7 findings queued, 0 executed (post-viewer-UX gaps; C6 rule decided, C7 added) |
+| Batch B + C plan | reviewed 2026-11-03: 12 steps (S0–S10 + R), 4 user decisions open |
 | openspec | 4 changes done but unarchived; 3 fail `openspec validate` (fixed by S0) |
 
 ## Execution order — the integrated plan
@@ -214,7 +214,8 @@ so C3 re-lists it here as the batch's gate.
 | C3 | Wave 3b (`docs/viewer-UX.md` §8, `reject-foreign-view-cases`) never ran | Under §8 decision 1 (the city's case name decides), 4 ids are rejected: 10202065 (中山254), 09511211 (on 大安557 only — it is 吉林603's own case), 09807161 (龍泉169), 09608220 (犁和102). **10906092 on 吉林898 is accepted**: its label is wrong, but its city name is 吉林898. No recno node anchors a rejected id, so they grant **0** wrong 國 badges. The harm is foreign milestones: 3 nameless 孤 anchors and 1 named orphan show another project's dates (09511211 brings 施工中) | openspec change (proposed, `4ca6cc2`; 0 of 23 tasks done) | — |
 | C4 | `extract_landcore_from_case_name` returns "" for 3 name shapes, and the orphan gate (`urtpe/links.py:2162`) then drops the case | 33 cached cases have an unparseable city name. 21 are anchored on a recno node anyway. **12 are dropped**: 4 崇仁新村 (the parcel-less rule, by design) and **8 real cases** — 華中247's 6 A區/B區 cases (09305081/82, 09407301–04), 長安709's 概要 09205060, 南港531-4's 概要 09406102. Shapes: 、-list before 地號 (`709、711地號`), 號 without 地號, `(原NNN)` inside the parcel, compatibility chars (U+F963 北) | openspec change | — |
 | C5 | 使照 disagreement between the two portals is not flagged | 282 projects hold 使用核發/使照核發 from both portals: 260 agree, 22 differ (吉林811 2013-09-11 vs 2013-11-12; 榮星306 year; 虎林310 month). 13 projects hold it national-only, 32 city-only. 橋北574-1's national `291.08.02` renders as 2202-08-02 in the 推動歷程 card (`fmtDate`); the 使照 slot and the stage chip use the city's 2022/08/02 | openspec change | user scope decision |
-| C6 | The 北 positional fallback binds 71 nodes on 51 projects, unmarked | re-run of the pipeline's own `_match_case_by_date` over the payload: 1,356 nodes match by date, 71 do not (榮星53: 4 nodes dated 2005–2010 all bound to case 09001121, approved 2007-11-20), 15 have no case. The user has not decided between marking the fallback and leaving orphan nodes | openspec change, after the user decides | — |
+| C6 | The 北 positional fallback binds 71 nodes on 51 projects, unmarked | re-run of the pipeline's own `_match_case_by_date` over the payload: 1,356 nodes match by date, 71 do not, 15 have no case. **Rule decided 2026-11-03 for the area-split ties (see "C6 in detail"):** one approved recno binds every same-date case of its area split. That covers 31 of the 71 nodes (56 cases, 15 projects) and folds their twin orphan nodes into the recno. Examples: 吉林508 (view/1062) recno 259 → 11011241 A區 + 11011242 B區; 榮星53 (view/25) 4 recnos, each → its 北區 + 南區 pair. The other 40 nodes are recorded by type and stay open | openspec change | S0 |
+| C7 | The 相關連結 label of an anchored case shows the gazette 案名, not the city's own case name | `buildRelatedLinkLabels` (`viewer/app.js:563`) labels each case a node anchors with that node's `case_name` (the gazette row). It reads `candidate_names` only for cases no node anchors. 307 anchored cases show a label that differs from their city name: 20 lose an area suffix (吉林508's 11011241 shows without "-A區"), 48 show another stage word (中山202 node 699: gazette 擬訂, case 變更), 8 show other parcel counts (文林176: 等13筆 vs 等14筆), 231 differ in other wording. With C6, one node carries 2+ cases, so the gazette label cannot tell them apart | direct `fix:` (viewer) + a review list for the 48 | — |
 
 **C1 in detail (corrected 2026-11-03).** The first version of this row said
 the code "binds 430 labels the design would leave unbound". That was wrong.
@@ -278,13 +279,53 @@ neither proves which one. The pipeline emits both today with no flag. The
 Fix: a review flag on disagreement (not a repair), plus a range guard in
 `fmtDate` and the ROC converters.
 
-**C6 in detail.** The 71 fallback nodes are the same population the
-§34 residual watch named ("17 drift families"). `_match_case_by_date` returns
-"" for them and `urtpe/links.py:2067–2081` falls back to
-`disc.city_case_ids[0/1]` by track position. The badge is then wrong in both
-directions the §34 note recorded. Options were put to the user on 2026-11-03
-(mark the fallback / use orphans); no decision yet, so the item is queued
-with that gate.
+**C6 in detail (rule decided 2026-11-03).** `_match_case_by_date` returns
+"" for the 71 nodes, and `urtpe/links.py:2073–2081` falls back to
+`disc.city_case_ids[0/1]` by track position. The 71 split by cause:
+
+| Type | Nodes | Cause | Example | Disposition |
+| --- | --- | --- | --- | --- |
+| 1–2. Area-split tie | 31 | The city filed one approval as 2+ area cases (A區/B區, 北區/南區, (A區段)…). The gazette prints one row. All cases share the date, so the matcher refuses the tie | 吉林508 recno 259: 11011241 -A區 已核准 + 11011242 -B區 施工中; 榮星53 (below) | **decided: the area-split rule** |
+| Tie, other shape | 5 | 2 cases share the date but are not an area split | 吉林705 recno 1311: 09307101 (事業計畫及擬訂權利變換) vs 09307104 (事業計畫); 玉泉11 recno 1366 and 逸仙294-4 recnos 1233/1234: two cases with the same name; 萬華894 recno 14: 11010191 is superseded by 11507019 | open — a superseded case should yield to its successor (B2) |
+| 3. Drift 2–7 days | 5 | The right case exists, outside ±1 day | 瑞安838 recno 590 → should be 10611204 (變更, 2 days off), bound to the 擬訂 case | open — 4 of 5 resolve when the node's 案名 equals exactly one case's city name |
+| 4. Drift 8–60 days | 5 | Mostly re-filed cases | 東湖34 recno 73: the bound 11302181 has no approval; the re-filed 11502008 is approved 10 days earlier | open — review flag |
+| 5. Drift > 60 days | 24 | The right case is not in the cache | 犁和302 recno 281 (2023 變更) bound to the 2019 擬訂 case | open — discovery (R, B1) |
+| 6. No approval date | 1 | No cached case is approved | 玉成253 recno 508 bound to a 審查中 變更 case | open — discovery (R, B1) |
+
+**The rule (types 1–2).** A recno node binds **every** cached case that
+matches its date within ±1 day **and** whose city name equals the others'
+once the area suffix is removed (`-A區`, `-B區`, `-北區`, `(A區段)` and the
+like), with the same stage and track. `node.links.taipei` is already a list,
+so the payload shape does not change. Each bound case leaves
+`links.orphan_nodes`, so its twin orphan node disappears. The viewer then
+shows one 北 badge per case, each labelled by C7.
+
+Worked example, 榮星段六小段53 (view/25), one national row per approval:
+
+| recno | Date | Stage | Binds today | Binds under the rule |
+| --- | --- | --- | --- | --- |
+| 1416 | 2005-11-03 | 擬訂 | 09001121 (a 2007 case) | 09001120 北區 + 09001123 南區 |
+| 1381 | 2007-11-20 | 變更 | 09001121 | 09001121 北區 + 09001122 南區 |
+| 1349 | 2008-12-22 | 變更(第二次) | 09001121 (a 2007 case) | 09705130 北區 + 09705132 南區 |
+| 1308 | 2010-02-04 | 變更(第三次) | 09001121 (a 2007 case) | 09705131 北區 + 09705133 南區 |
+
+The 2002 事業概要 case 09001125 has no gazette row, so it stays an orphan node.
+For 吉林508 the rule binds 2 cases on recno 259. Its two 變更 (A區段)/(B區段)
+cases 11508022/11508023 are 審查中 with no approval, so they correctly stay
+undated orphan nodes until a gazette row exists.
+
+Corpus effect, measured: 31 nodes, 56 cases, 15 projects; 41 twin orphan
+nodes fold into their recno. The other 40 nodes keep the positional fallback
+until their types are decided; the open question is whether the viewer marks
+a guessed badge or removes it until R finds the case.
+
+**C7 in detail.** The label fix is viewer-only: label each case_id with its
+own `candidate_names` entry, which the payload already carries, and fall back
+to the node's 案名 only when the city name is missing. The 48 stage-word
+mismatches are a review list, not a label problem: a 擬訂 node bound to a
+變更 case may be bound to the wrong case (中山202 node 699 is one; it was the
+§30 headline and its binding was then corrected, so the list needs a
+re-measure after S8).
 
 ### Batch B + C — the integrated plan (reviewed 2026-11-03)
 
@@ -321,7 +362,9 @@ latent risk.
 | R | P2 | B1, B5, B6, C2, §7 4.1 | openspec change `refresh-whole-corpus` — one resumable, rate-limited refresh of all 726 caches: new-case discovery (B1), status re-derivation (B5), cleared status kept as a value (B6), the view backfill (C2, now gated by S3), and the missing headers (§7). Estimate the request count first | S3, S5 |
 | S6 | P2 | B2 | openspec change, small — a superseded case's undated orphan node is hidden or chained to its successor | R |
 | S7 | P2 | C5 | openspec change — review flag on 使照 disagreement; range guard on ROC years > the current year | user decision |
-| S8 | P1 | C6 | openspec change — the 71 positional-fallback 北 nodes | user decision |
+| S8 | P1 | C6 (types 1–2) | openspec change `bind-area-split-cases` — a recno binds every same-date case of its area split; their twin orphans fold in. Pipeline (`urtpe/links.py:2073`) + re-emit; 31 nodes, 56 cases, 15 projects | S0 |
+| S9 | P1 | C7 | direct `fix:` — `buildRelatedLinkLabels` labels each case with its own city name; ships with or before S8, so two cases on one node read apart | — |
+| S10 | P2 | C6 (types 3–6) | openspec change — the remaining 40 fallback nodes | user decision, R |
 
 **Why this order.**
 
@@ -336,13 +379,19 @@ latent risk.
 - S4 is independent of the data and can run in parallel with S3.
 - B2 waits for R: a full re-discovery changes which cases exist and which are
   superseded.
-- S7 and S8 wait on the decisions below.
+- S8 (the area-split rule) needs only S0. S9 ships with it, because the
+  viewer must label two cases on one node apart.
+- S8 runs before R, so R's new-case discovery binds new area splits by the
+  same rule.
+- S7 and S10 wait on the decisions below; S10 also waits on R, because types
+  5–6 need cases that only discovery can find.
 
 ### Decisions waiting on the user (Batch B + C)
 
 | Entry | Question | Blocks |
 | --- | --- | --- |
-| C6 / S8 | The 71 nodes whose 北 case comes from the positional fallback: mark them in the viewer (keep the binding, show it is a guess), or unbind them and show the case as an orphan node? | S8 |
+| ~~C6 / S8~~ | **Decided 2026-11-03** for the 31 area-split ties: one approved recno binds every same-date case of its area split (the user's 吉林508 / 榮星53 examples) | ~~S8~~ unblocked |
+| C6 / S10 | The 40 remaining fallback nodes (types 3–6): mark the guessed 北 badge in the viewer, or remove it until R discovers the case? | S10 |
 | C5 / S7 | Flag all 22 使照 disagreements for human review, or only the out-of-range year (橋北574-1)? | S7 scope |
 | S3 | `reject-foreign-view-cases` (`4ca6cc2`) was proposed outside this session. May the plan amend it (absorb skip-list, the 國 claim), or does its author own it? | S3 start |
 | R | A full refresh is about 726 projects × their cases against gis.uro. Run it in one sitting, or in resumable slices over several days? | R run |

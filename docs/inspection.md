@@ -283,6 +283,36 @@ neither proves which one. The pipeline emits both today with no flag. The
 Fix: a review flag on disagreement (not a repair), plus a range guard in
 `fmtDate` and the ROC converters.
 
+**C5/C6 API correction (measured 2026-11-04).** C6 is our own binding
+error, so the city API can correct most of it. C5 is a disagreement between
+two offices, so it cannot.
+
+C6, live probe of 3 type-5 examples (about 30 rate-limited, read-only
+requests). The sibling-id probe found the missing case next to a cached id,
+and the city's own approval date equals the gazette row:
+
+| Node (gazette) | Bound now | Found | City approval |
+| --- | --- | --- | --- |
+| 臨沂318 recno 143, 變更(第三次), 2025-04-16 | 10409102 (2023) | 10409104 | `uro_chk_date2` 2025-04-16 (header only; data2 empty) |
+| 犁和302 recno 281, 變更, 2023-12-28 | 10203251 (2019) | 10203253 | `Uro_Chk_Date2` 2023/12/28 |
+| 吉林705 recno 1370, 變更, 2008-03-10 | 09307100 (事業概要) | 09307103, 自行撤回, no date | — unresolved: the city says withdrawn, the gazette prints an approval |
+
+The probe also found 臨沂318's missing plan case 10409101 (2018-07-19).
+data2 returned 22–23 identical rows per case, so keeping the first value of
+each field lost nothing here (no test pins it). Two consequences: S12's
+sibling probe covers most of type 5, and the case header's
+`uro_chk_date`/`uro_chk_date2` must be stored as a second approval source
+(S14), because a case can carry its approval only in the header. Estimated
+open C6 nodes after S8, S12, S14 and the 案名 match: about 10, not 40.
+
+C5: the 22 disagreements were tested against the dates the city holds for
+the same case (使照 after 建照 and 開工, before 成果報備, not in the future).
+1 is decided: 橋北574-1's national `291.08.02` (2202) is in the future, so
+the city's 2022/08/02 is right. 21 pass both ways, including the one-digit
+typos (榮星306: 2022-09-23 vs 2023-09-23, both after 開工 2019-09-20). The 使照
+is issued by the building authority (建管處); both portals copy it. Only the
+building authority's permit record can settle the 21 (S15).
+
 **C6 in detail (rule decided 2026-11-03).** `_match_case_by_date` returns
 "" for the 71 nodes, and `urtpe/links.py:2073–2081` falls back to
 `disc.city_case_ids[0/1]` by track position. The 71 split by cause:
@@ -480,13 +510,15 @@ latent risk.
 | S5 | P2 | C4 | openspec change `parse-listed-parcel-names` — extractor learns the 、-list, `(原NNN)`, spaced and 號 shapes plus NFKC; unparseable names are reported, not dropped. Re-emit only (no fetch): the 8 dropped cases come back as orphans | S0 |
 | R | P2 | B1, B5, B6, C2, §7 4.1 | openspec change `refresh-whole-corpus` — one resumable, rate-limited refresh of all 726 caches: new-case discovery (B1), status re-derivation (B5), cleared status kept as a value (B6), the view backfill (C2, now gated by S3), and the missing headers (§7). Estimate the request count first; change detection decides what to fetch (see "R change detection") | S3, S5 |
 | S6 | P2 | B2 | openspec change, small — a superseded case's undated orphan node is hidden or chained to its successor | R |
-| S7 | P2 | C5 | openspec change — review flag on 使照 disagreement; range guard on ROC years > the current year | user decision |
+| S7 | P2 | C5 | openspec change — auto-correct the 1 provable case (ROC year in the future: 橋北574-1); review flag on the 21 undecided disagreements, naming both dates; range guard in `fmtDate` | user decision (flag scope) |
 | S8 | P1 | C6 (types 1–2) | openspec change `bind-area-split-cases` — a recno binds every same-date case of its area split; their twin orphans fold in. Pipeline (`urtpe/links.py:2073`) + re-emit; 31 nodes, 56 cases, 15 projects | S0 |
 | S9 | P1 | C7 | direct `fix:` — `buildRelatedLinkLabels` labels each case with its own city name; ships with or before S8, so two cases on one node read apart | — |
 | S10 | P2 | C6 (types 3–6) | openspec change — the remaining 40 fallback nodes | user decision, R |
 | S11 | P2 | C8 (a) | openspec change `dates-follow-plan-case` — construction dates come from the first 擬訂 plan case (per area); D5 keeps the statistics only. Emit-side, no fetch: recovers 開工/使照 on 8 national-only projects at once | S0 |
 | S12 | P2 | C8 (b) | discovery finds the cases the parcel search misses: a sibling-id probe over each cached case's 10-id batch, accepted at land-core similarity ≥ 0.85, every find reported. Measured: 7 missing 擬訂 plan cases + 2 missing 變更 siblings; 3 plan cases need a second source (national 相關連結 or a section name search). Folds into R | S11 |
 | S13 | P2 | C9 | openspec change `merge-across-count-shrink` — `(原M筆)` bridges a site shrink; re-merge, aliases, cache migration | S0 |
+| S14 | P1 | C6 (types 5–6) | store the case header's `uro_chk_date`/`uro_chk_date2` as an approval source beside data2; the date matcher reads both. Folds into R | S12 |
+| S15 | P3 | C5 | explore a building-authority adapter (使用執照 record) as the third source for the 21 undecided 使照 disagreements; see "S15 exploration" | — |
 
 **R change detection (design, recorded 2026-11-04).** No city endpoint
 returns a per-case "last modified" date. The 40 endpoints in
@@ -541,7 +573,7 @@ step 2 or 3 moves. Estimated effect: from about 5,500 requests (726 caches,
 | Entry | Question | Blocks |
 | --- | --- | --- |
 | ~~C6 / S8~~ | **Decided 2026-11-03** for the 31 area-split ties: one approved recno binds every same-date case of its area split (the user's 吉林508 / 榮星53 examples) | ~~S8~~ unblocked |
-| C6 / S10 | The 40 remaining fallback nodes (types 3–6): mark the guessed 北 badge in the viewer, or remove it until R discovers the case? | S10 |
+| C6 / S10 | The fallback nodes left after S8, S12, S14 and the 案名 match (about 10): mark the guessed 北 badge, or remove it until a case is found? | S10 |
 | C5 / S7 | Flag all 22 使照 disagreements for human review, or only the out-of-range year (橋北574-1)? | S7 scope |
 | ~~S3~~ | **Resolved 2026-11-04**: the other session implemented and archived the change itself; S3a records the one residual | — |
 | R | A full refresh is about 726 projects × their cases against gis.uro. Run it in one sitting, or in resumable slices over several days? | R run |

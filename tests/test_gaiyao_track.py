@@ -201,3 +201,103 @@ class TestAttachEmitsSchedules:
         ghosts = project.links.get("orphan_nodes", [])
         sched = {g["case_id"]: g.get("schedule") for g in ghosts}
         assert sched == {"11207021": "已駁回", "11302031": "自行撤回"}
+
+
+class TestListedParcelShapes:
+    """C4 / parse-listed-parcel-names: 3 city name shapes the single regex
+    missed, measured over the 726 caches; 8 real cases were dropped silently."""
+
+    def test_dun_list_extracts_first_parcel(self):
+        name = "變更臺北市萬華區華中段一小段201-2、352地號等26筆土地都市更新事業計畫案-A區"
+        assert extract_landcore_from_case_name(name) == "萬華區華中段一小段201-2地號等26筆"
+
+    def test_orig_parcel_suffix_extracts(self):
+        name = "擬訂臺北市南港區中南段105(原90)地號等13筆(原24筆)土地都市更新事業計畫案"
+        assert extract_landcore_from_case_name(name) == "南港區中南段105地號等13筆"
+
+    def test_spaced_dihao_extracts(self):
+        name = "擬訂臺北市北投區奇岩段四小段1-1 地號等11 筆土地都市更新事業計畫案"
+        assert extract_landcore_from_case_name(name) == "北投區奇岩段四小段1-1地號等11筆"
+
+    def test_compatibility_kita_extracts(self):
+        # U+F963 is the compatibility form of 北; the gazette prints
+        # 臺<U+F963>市 (三興972 / 桃源424-8, Appendix A). NFKC recovers 北.
+        name = "擬訂臺北市信義區三興段一小段972地號等1筆土地塚市﨏新事業計畫案"
+        assert extract_landcore_from_case_name(name) == "信義區三興段一小段972地號等1筆"
+
+    def test_existing_shapes_unchanged(self):
+        assert extract_landcore_from_case_name(
+            "擬訂臺北市松山區民生段140-9地號等3筆土地事業概要案") == "松山區民生段140-9地號等3筆"
+        assert extract_landcore_from_case_name(
+            "擬訂臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫案") == "文山區木柵段三小段623地號等39筆"
+
+    def test_parcel_less_still_empty(self):
+        assert extract_landcore_from_case_name(
+            "擬訂臺北市萬華區崇仁新村土地都市更新事業計畫及權利變換計畫案") == ""
+
+
+class TestUnparseableOrphanNamed:
+    """C4 / parse-listed-parcel-names task 1.2: an orphan whose case_name still
+    yields no land core is named in the run report, not dropped silently."""
+
+    def _disc(self, case_name):
+        from types import SimpleNamespace
+        d = SimpleNamespace()
+        d.project_id = "測試專案"
+        d.land_core = "文山區木柵段三小段623地號等39筆"
+        d.twur_url = ""
+        # two cases: the anchored one (09907220, matches nothing either, but the
+        # positional fallback takes it) and the unparseable orphan 09907221.
+        d.city_case_ids = ["09907220", "09907221"]
+        d.national_milestones = {}
+        d.taipei_milestones = {"核定日期": "2019/01/31"}
+        d.case_milestones = {"09907220": {"核定日期": "2019/01/31"},
+                             "09907221": {"核定日期": "2019/01/31"}}
+        d.milestones_source = {"核定日期": "09907220"}
+        d.implementation = {}
+        d.rewards = {}
+        d.search_rejected = {}
+        d.candidate_names = {"09907220": "擬訂臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫案",
+                             "09907221": case_name}
+        d.case_schedules = {}
+        d.view_verified_case_ids = []
+        d.view_rejected = {}
+        d.adopted_from_view = {}
+        d.case_headers = {}
+        d.case_case_names = {}
+        d.superseded_by = {}
+        d.status = "resolved"
+        d.error = ""
+        return d
+
+    def _project(self):
+        from urtpe.models import Project, RawRecord
+        from urtpe.cleanse import cleanse
+        raw = RawRecord(1, "115/8/11", "文山區", "擬訂文山木柵段三小段623地號等39筆事業計畫案",
+                        "文山區木柵段三小段623地號等39筆", "某建設", "某規劃")
+        return Project(project_id="文山區-木柵段三小段-623地號等39筆",
+                       anchor_recno=1, members=[cleanse(raw)])
+
+    def test_subthreshold_orphan_name_lands_on_review_flags(self):
+        from urtpe.links import attach_links_to_projects
+        # parses fine, but 201-2 vs the anchor's 247 scores 0.45 < 0.7
+        # (華中247's A區/B區 shape) — named as a gate decision, not silent.
+        disc = self._disc("擬訂臺北市文山區木柵段三小段201-2地號等39筆土地都市更新事業計畫案")
+        project = self._project()
+        attach_links_to_projects([project], {project.project_id: disc})
+        flags = [f for m in project.members for f in (m.review_flags or [])
+                 if "未達相似度門檻" in f]
+        assert flags, f"expected a sub-threshold flag, got {project.members[0].review_flags!r}"
+        assert "09907221" in flags[0] and "0." in flags[0]
+
+    def test_unparseable_orphan_name_lands_on_review_flags(self):
+        from urtpe.links import attach_links_to_projects
+        # a 號-without-地號 name (the shape we deliberately do NOT learn)
+        disc = self._disc("擬訂臺北市文山區某段401號等10筆土地都市更新事業計畫案")
+        # 09907220 anchors positionally; 09907221 stays orphaned with the unparseable name
+        project = self._project()
+        attach_links_to_projects([project], {project.project_id: disc})
+        flags = [f for m in project.members for f in (m.review_flags or [])
+                 if "無法解析" in f or "unparseable" in f.lower()]
+        assert flags, f"expected an unparseable-name flag, got {project.members[0].review_flags!r}"
+        assert "09907221" in flags[0]

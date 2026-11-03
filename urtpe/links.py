@@ -960,6 +960,12 @@ def derive_track_from_case_name(name: str) -> str:
     n = name or ""
     if "事業概要" in n:
         return "事業概要"
+    # The city shortens 事業概要 to 概要 in some case names
+    # (南港531-4's 09406102: …土地都市更新概要案). 概要 alone is still the
+    # 事業概要 track — a ghost with an empty track renders no row (the
+    # viewer's virtual-node filter), so the short form must map too.
+    if "概要" in n:
+        return "事業概要"
     has_plan = "事業計畫" in n
     has_rw = "權利變換" in n
     if has_plan and has_rw:
@@ -980,20 +986,40 @@ def extract_landcore_from_case_name(name: str) -> str:
     e.g., "文山區木柵段三小段623地號等39筆" (段小段) or
     "松山區民生段140-9地號等3筆" (single-段 sections — village/older units;
     rejecting them silently dropped every orphan of the family, §6.14).
+
+    parse-listed-parcel-names (Batch C, C4): three measured city shapes the
+    single regex missed dropped 8 real cases at the orphan gate silently:
+    a 、-list before 地號 (華中247 `201-2、352地號等26筆` — the land core keys
+    on the first parcel), an `(原NNN)` suffix inside the parcel or the count
+    (`105(原90)地號等13筆(原24筆)`), and spaces before 地號/筆 (`1-1 地號等11
+    筆`). Compatibility characters are NFKC-normalised first (U+F963 北 after
+    臺 breaks the 臺北市 split — Appendix A). Names that still yield no land
+    core are reported at the orphan gate, never repaired by inference.
     """
+    import unicodedata
+    name = unicodedata.normalize("NFKC", name or "")
+    # Spaces between the parcel/count and 地號/筆 (奇岩1-1: `1-1 地號等11 筆`);
+    # removed only where a digit meets the keyword, not from the whole name.
+    name = re.sub(r"(?<=\d) +(?=(?:地號|筆))", "", name)
+    # `(原NNN)` inside the parcel or the count — the gazette cleanser strips
+    # the same shape chunk-wise (check-declared-parcel-counts).
+    name = re.sub(r"\(原\d+\)", "", name)
     patterns = [
-        re.compile(r"([\u4e00-\u9fff]+區[\u4e00-\u9fff]+?段(?:[\u4e00-\u9fff]+?段)?\d+(?:-\d+)?地號等?\d*筆?)"),
-        re.compile(r"([\u4e00-\u9fff]+區[\u4e00-\u9fff]+段[\u4e00-\u9fff]+段\d+地號等\d+筆)"),
+        # The 、-list keeps its first parcel: `201-2、352地號等26筆` matches,
+        # then the list tail is cut below (identity keys on the first parcel).
+        re.compile(r"([一-鿿]+區[一-鿿]+?段(?:[一-鿿]+?段)?\d+(?:-\d+)?(?:、\d+(?:-\d+)?)*地號等?\d*筆?)"),
+        re.compile(r"([一-鿿]+區[一-鿿]+段[一-鿿]+段\d+地號等\d+筆)"),
     ]
     for pattern in patterns:
-        if "臺北市" in name:
-            after_taipei = name.split("臺北市", 1)[1]
-            m = pattern.search(after_taipei)
+        for candidate in ((name.split("臺北市", 1)[1] if "臺北市" in name else ""), name):
+            if not candidate:
+                continue
+            m = pattern.search(candidate)
             if m:
-                return m.group(1)
-        m = pattern.search(name)
-        if m:
-            return m.group(1)
+                lc = m.group(1)
+                # first parcel only — the land core keys on it
+                lc = re.sub(r"(?<=\d)(?:、\d+(?:-\d+)?)+(?=地號)", "", lc)
+                return lc
     return ""
 
 
@@ -2165,6 +2191,13 @@ def _match_case_by_date(member_date: str, disc) -> str:
     return ""
 
 
+def _is_parcel_less_name(case_name: str) -> bool:
+    """A settlement-named unit (崇仁新村) carries no 地號 by design; its
+    extraction returning "" is the parcel-less rule, not a parse failure
+    (orphan-case-anchoring §2 scenario; C4 counts it separately)."""
+    return bool(case_name) and "地號" not in case_name and "號等" not in case_name
+
+
 def detect_fragment_families(
     projects: list[Project], discovered: dict
 ) -> dict[str, tuple[str, int]]:
@@ -2466,6 +2499,27 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
                         similar = True
                         twin_shared_dates = dict(shared)
                 if not similar:
+                    # parse-listed-parcel-names: a named orphan that fails the
+                    # gate is named on the anchor record, never dropped
+                    # silently (AGENTS.md; C4 measured 8 silent drops). Two
+                    # reasons get distinct flags: the name still yields no
+                    # land core (unparseable), or it parses but scores below
+                    # LINK_THRESHOLD (華中247's A區/B區 cases: first parcel
+                    # 201-2 vs the anchor's 247, 0.45 — a merge question, not
+                    # a parse one). Parcel-less names (崇仁新村) are the
+                    # designed exclusion and are not reported.
+                    if case_name and not _is_parcel_less_name(case_name):
+                        lc = extract_landcore_from_case_name(case_name)
+                        if lc == "":
+                            flag = (f"孤兒案件名稱無法解析地段地號(案{cid}:"
+                                    f"{case_name[:40]})")
+                        else:
+                            sim = compute_landcore_similarity(anchor_landcore_str, lc)
+                            flag = (f"孤兒案件未達相似度門檻(案{cid}:"
+                                    f"{sim:.2f}<{_link_threshold():.2f}:"
+                                    f"{case_name[:40]})")
+                        if flag not in anchor_record.review_flags:
+                            anchor_record.review_flags = list(anchor_record.review_flags) + [flag]
                     continue
                 if twin_shared_dates is not None:
                     orphan_milestones_taipei = dict(twin_shared_dates)

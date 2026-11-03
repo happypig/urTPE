@@ -2097,6 +2097,60 @@ def select_best_payload(payloads: dict[str, dict]) -> tuple[str, dict, list[str]
     return best_cid, candidates[best_cid], flags
 
 
+# dates-follow-plan-case (C8a, user rule 2026-11-04): the city keeps 建照
+# (data2) and 開工/使照 (data3) on the first 擬訂 plan case. select_best_payload's
+# key-count pick drops them when a later case carries more statistics (measured:
+# 9 of the 13 "national-only 使照" projects, 德惠573 09710240 holds 開工 2012/07/13
+# + 使照 2015/07/13 never emitted).
+_PLAN_CASE_RE = re.compile(r"^擬訂.*都市更新(事業計畫|事業計畫及權利變換計畫)案")
+
+
+def pick_implementation_payload(payloads: dict, candidate_names: dict | None = None):
+    """Dates follow the 擬訂 plan case; statistics keep the one-payload rule.
+
+    Returns (dates, per-date source, statistics case_id, flags):
+    - dates: {label: value} union over the 擬訂 plan-case payloads, in
+      implementation_milestones label space;
+    - source: {label: case_id} provenance per date;
+    - statistics case_id: select_best_payload's D5 pick (unchanged consumers);
+    - flags: a field no plan case carries falls back to the D5 payload and is
+      flagged; differing values for one field on 2+ plan cases conflict-flag.
+    An area split is several plan cases (-A區/-B區/…): each carries its own
+    building's dates, so the union is the intended reading, not a merge.
+    """
+    names = candidate_names or {}
+    plan_cids = [cid for cid, p in (payloads or {}).items() if p
+                 and _PLAN_CASE_RE.match(names.get(cid, "") or "")]
+    best_cid, best_payload, d5_flags = select_best_payload(payloads)
+    flags = list(d5_flags)
+    dates: dict[str, str] = {}
+    source: dict[str, str] = {}
+    if plan_cids:
+        for cid in plan_cids:
+            for label, value in implementation_milestones(payloads[cid]).items():
+                if label in dates and dates[label] != value:
+                    flags.append(f"payload {label} conflicts across plan cases: "
+                                 f"{source[label]}={dates[label]} vs {cid}={value}")
+                    continue
+                dates.setdefault(label, value)
+                source[label] = cid
+        # a field no plan case carries falls back to the D5 payload, flagged
+        for label, value in implementation_milestones(best_payload or {}).items():
+            if label not in dates:
+                dates[label] = value
+                source[label] = best_cid
+                flags.append(f"payload {label} not on any 擬訂 plan case; "
+                             f"taken from {best_cid} (D5 fallback)")
+    else:
+        # no plan case in the payloads at all: D5 for everything, flagged once
+        for label, value in implementation_milestones(best_payload or {}).items():
+            dates[label] = value
+            source[label] = best_cid
+            flags.append(f"payload {label} not on any 擬訂 plan case; "
+                         f"taken from {best_cid} (D5 fallback)")
+    return dates, source, best_cid, flags
+
+
 def implementation_milestones(payload: dict) -> dict[str, str]:
     """Extract the third.ashx date fields as labelled milestones (non-empty only)."""
     return {
@@ -2420,16 +2474,26 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
         # Implementation (third.ashx) / rewards (fourth.ashx): project-level
         # attachment with case provenance (design D2/D5). Date fields surface as
         # milestones; the rest goes into the emitted objects.
-        impl_cid, impl_payload, impl_flags = select_best_payload(getattr(disc, "implementation", None) or {})
+        impl_all = getattr(disc, "implementation", None) or {}
+        impl_cid, impl_payload, impl_flags = select_best_payload(impl_all)
+        # dates-follow-plan-case (C8a): the date fields follow the 擬訂 plan
+        # case (per area), the statistics keep the D5 one-payload rule.
+        impl_dates, impl_date_source, _stats_cid, impl_date_flags =             pick_implementation_payload(impl_all, getattr(disc, "candidate_names", None) or {})
         if impl_payload:
             impl_out = dict(impl_payload)
             impl_out["case_id"] = impl_cid
-            if impl_flags:
-                impl_out["review_flags"] = impl_flags
+            merged_flags = list(impl_flags) + list(impl_date_flags)
+            if merged_flags:
+                impl_out["review_flags"] = merged_flags
             project.implementation = impl_out
             for label, date in implementation_milestones(impl_payload).items():
                 project.links["milestones_taipei"][label] = date
                 project.links.setdefault("milestones_source", {})[label] = impl_cid
+            # the plan case's dates overwrite the D5 payload's dates, with the
+            # plan case as their provenance
+            for label, date in impl_dates.items():
+                project.links["milestones_taipei"][label] = date
+                project.links.setdefault("milestones_source", {})[label] = impl_date_source[label]
         rew_cid, rew_payload, rew_flags = select_best_payload(getattr(disc, "rewards", None) or {})
         if rew_payload:
             rew_out = dict(rew_payload)

@@ -1335,3 +1335,116 @@ class TestChimeraEmitFix:
         attach_links_to_projects([project], disc)
         node_links = project.members[0].links
         assert node_links["milestones_taipei"] == merged
+
+
+class TestPickImplementationPayload:
+    """C8(a) / dates-follow-plan-case: the construction dates (開工/使照) come
+    from the first 擬訂 plan case; statistics keep the one-payload rule (D5)."""
+
+    PLAN = "擬訂臺北市中山區德惠段二小段573地號等X筆土地都市更新事業計畫案"
+    LATER = "變更臺北市中山區德惠段二小段573地號等X筆土地都市更新權利變換計畫案"
+
+    def test_plan_case_dates_win_over_a_fatter_later_case(self):
+        from urtpe.links import pick_implementation_payload
+        payloads = {
+            "09710240": {"Eng_Start_Date": "2012/07/13", "Ulic_Date": "2015/07/13"},  # plan case, 2 keys
+            "09710242": {"Exe_Way": "重建", "F0": "1", "F1": "2", "F2": "3"},          # later, more keys
+        }
+        names = {"09710240": self.PLAN, "09710242": self.LATER}
+        dates, source, stats_cid, flags = pick_implementation_payload(payloads, names)
+        assert dates == {"開工日期": "2012/07/13", "使照核發日期": "2015/07/13"}
+        assert source["開工日期"] == "09710240" and source["使照核發日期"] == "09710240"
+        assert stats_cid == "09710242"  # D5 statistics stay on the fat payload
+        assert flags == []
+
+    def test_area_split_takes_each_area_dates(self):
+        from urtpe.links import pick_implementation_payload
+        payloads = {
+            "09001120": {"Eng_Start_Date": "2006/01/01"},
+            "09001123": {"Ulic_Date": "2010/05/01"},
+        }
+        names = {
+            "09001120": "擬訂臺北市中山區榮星段六小段53地號等16筆土地都市更新事業計畫及權利變換計畫案-北區",
+            "09001123": "擬訂臺北市中山區榮星段六小段53地號等16筆土地都市更新事業計畫及權利變換計畫案-南區",
+        }
+        dates, source, stats_cid, flags = pick_implementation_payload(payloads, names)
+        assert dates["開工日期"] == "2006/01/01" and source["開工日期"] == "09001120"
+        assert dates["使照核發日期"] == "2010/05/01" and source["使照核發日期"] == "09001123"
+
+    def test_field_no_plan_case_carries_falls_back_with_flag(self):
+        from urtpe.links import pick_implementation_payload
+        payloads = {
+            "08610011": {"Eng_Start_Date": "1998/01/01"},           # plan-ish, no 擬訂 name
+            "08610012": {"Ulic_Date": "2000/01/01"},                # another case
+        }
+        # note: Ulic_Date labels 使照核發日期 (implementation_milestones)
+        names = {"08610011": "臺北市大安區仁愛段三小段114地號等X筆都市更新事業計畫案",
+                 "08610012": "變更臺北市大安區仁愛段三小段114地號等X筆土地都市更新權利變換計畫案"}
+        dates, source, stats_cid, flags = pick_implementation_payload(payloads, names)
+        # no 擬訂 plan case at all → whole selection falls to D5 (one payload,
+        # 08610011 on the key-count tie) with a flag naming the carrier
+        assert dates == {"開工日期": "1998/01/01"}
+        assert source["開工日期"] == "08610011"
+        assert any("not on any 擬訂 plan case" in f for f in flags), flags
+
+
+class TestPlanCaseDatesInAttach:
+    """C8(a): attach carries the plan case's 開工/使照 into milestones_taipei with
+    the plan case as milestones_source (德惠573 shape: 9 of the 13 national-only
+    projects)."""
+
+    def test_attach_uses_the_plan_case_dates(self):
+        import json as jsonlib
+        import urtpe.links as links
+        from urtpe.models import Project, RawRecord
+        from urtpe.cleanse import cleanse
+
+        raw = RawRecord(991, "115/8/11", "中山區", "擬訂中山德惠段二小段573地號等6筆事業計畫案",
+                        "中山區德惠段二小段573地號等6筆", "某建設", "某規劃")
+        project = Project(project_id="中山區-德惠段二小段-573地號等6筆",
+                          anchor_recno=991, members=[cleanse(raw)])
+
+        disc = type("D", (object,), {})()
+        disc.project_id = project.project_id
+        disc.land_core = "中山區德惠段二小段573地號等6筆"
+        disc.twur_url = ""
+        disc.twur_view_id = None
+        disc.twur_name = ""
+        disc.city_case_ids = ["09710240", "09710242"]
+        disc.national_milestones = {}
+        # merged milestones: the fat case's 建照 date won the merge (last write)
+        disc.taipei_milestones = {"建照核發日期": "2011/11/10"}
+        disc.case_milestones = {
+            "09710240": {"核定日期": "2009/06/04", "建照核發日期": "2011/11/10"},
+            "09710242": {"核定日期": "2012/08/27"},
+        }
+        disc.milestones_source = {"建照核發日期": "09710240"}
+        disc.implementation = {
+            # plan case: the dates (2 keys); later case: more statistics
+            "09710240": {"Eng_Start_Date": "2012/07/13", "Ulic_Date": "2015/07/13"},
+            "09710242": {"Exe_Way": "重建", "F0": "1", "F1": "2"},
+        }
+        disc.rewards = {}
+        disc.search_rejected = {}
+        disc.candidate_names = {
+            "09710240": "擬訂臺北市中山區德惠段二小段573地號等6筆土地都市更新事業計畫案",
+            "09710242": "變更臺北市中山區德惠段二小段573地號等6筆土地都市更新權利變換計畫案",
+        }
+        disc.case_schedules = {}
+        disc.view_verified_case_ids = []
+        disc.view_rejected = {}
+        disc.adopted_from_view = {}
+        disc.case_headers = {}
+        disc.case_case_names = {}
+        disc.superseded_by = {}
+        disc.status = "resolved"
+        disc.error = ""
+
+        links.attach_links_to_projects([project], {project.project_id: disc})
+        ms = project.links["milestones_taipei"]
+        src = project.links.get("milestones_source") or {}
+        assert ms["開工日期"] == "2012/07/13", ms
+        assert ms["使照核發日期"] == "2015/07/13", ms
+        assert src["開工日期"] == "09710240" and src["使照核發日期"] == "09710240"
+        # statistics stay on the fat payload (D5)
+        assert project.implementation["case_id"] == "09710242"

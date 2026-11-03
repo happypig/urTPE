@@ -167,8 +167,8 @@ item here. Measured at `2b96e5b`, on the payload emitted 2026-11-02
 | B4 | 4 stranded cache dirs are re-selected every run | the selector returns 89 candidates; 北投區-關渡段二小段-55, 士林區-天山段二小段-264, 大同區-延平段一小段-314, 文山區-華興段四小段-44-2 report "not searched" every run | direct `fix:` commit | — |
 | B5 | Status is re-derived only for selected projects | 1 cached 審查中 sits on a case that has an approval date (大同764 09605032, 核定 2007/07/06); 3 cached 已核准/已核定 have no approval date (臨沂318 10409104, 學府125 10611122, 直興373 10405293) | openspec change | B1 |
 | B6 | A cleared status is removed from `case_schedules` | a project whose last open status clears would read as never-approved; measured 3 never-approved projects, unchanged | openspec change | B5 |
-| B7 | A view-verified case may belong to another project | 4 of 189 view-verified ids have a label whose land core is another project (similarity < 0.7): 10202065, 10906092, 09608220, 09807161. Under §8 decision 1 (the city name decides) 10906092 is accepted and 09511211 is rejected instead — see C3 | openspec change (= C3) | — |
-| B8 | 3 nameless 孤 anchors carry another project's milestones | 10202065 (中山254), 09511211 (大安557, 施工中), 09807161 (龍泉169) | openspec change | B7 |
+| B7 | A view-verified case may belong to another project | 4 of 189 view-verified ids have a label whose land core is another project (similarity < 0.7): 10202065, 10906092, 09608220, 09807161. Under §8 decision 1 (the city name decides) 10906092 is accepted and 09511211 is rejected instead — see C3. **DONE 2026-11-04** — see C3 | done (= C3) | — |
+| B8 | 3 nameless 孤 anchors carry another project's milestones | 10202065 (中山254), 09511211 (大安557, 施工中), 09807161 (龍泉169). **DONE 2026-11-04**: all 3 rejected and offered to their owners; the corpus has 0 nameless orphans | done | — |
 
 **B7 and B8 are `docs/viewer-UX.md` §8 (wave 3b).** They are listed here
 because §8 was not started when this batch was collected, and because the 國 badge
@@ -197,21 +197,23 @@ between the two measurements only in what the id list holds: the payload has 189
 view-verified ids in 143 projects, and the cache has 193 in 146 caches. The 4
 defects are the same 4 in both.
 
-### Batch C — the post-viewer-UX gaps, collected 2026-11-03 — **QUEUED, not started**
+### Batch C — the post-viewer-UX gaps, collected 2026-11-03 — **C3 DONE 2026-11-04; the rest QUEUED**
 
 The viewer-UX waves 1–5 landed (`91699bb`…`370ddb2`): §5 centered, §1+§6 the
 gutter, §7 the [無]/[NA] labels, §2 the 國 binding, §3+§4 the event/orphan
-placement. This batch collects what those waves left open, measured at `370ddb2`
-on the same payload (1,442 records / 693 projects, `published_date 2026-10-15`)
-and the 726 cache dirs. Wave 3b (`docs/viewer-UX.md` §8) never ran — no
-`reject-foreign-view-cases` change exists in `openspec/changes/` or the archive —
-so C3 re-lists it here as the batch's gate.
+placement. C3 (wave 3b, `docs/viewer-UX.md` §8, `reject-foreign-view-cases`)
+landed on 2026-11-04: 146 caches verified under the lock, 4 rejections, 4
+offers, 1 label error accepted, 3 not confirmed; the 3 nameless 孤 anchors
+are gone (596 → 592 orphan nodes, all named). The C2 ordering hazard is now
+live: `refresh_project` runs the gate, so a rejected id stays rejected — the
+absorb still merges and never removes, but `view_verified_case_ids` no longer
+holds what the gate removed.
 
 | ID | Finding | Evidence now | Form | Gate |
 | --- | --- | --- | --- | --- |
 | C1 | `nationalBoundTo` badges **every** candidate of a multi-match label | **Corrected 2026-11-03 (see "C1 in detail").** The §2 date rule is a tie-break: it applies only when 2+ nodes share the label's stage+track. 19 labels have 2–3 candidates (41 nodes). The shipped code scores each node on its own, so all 41 get 國. The spec binds 10 of the 19 (exact date); a ±1-day tie-break binds 17. **16 nodes carry a 國 the spec does not give** (e.g. 文林64 recno 1086 + 693; 潭美579-2 recnos 673, 627, 618) | openspec change (viewer + spec delta) | archive `bind-national-badge-to-named-node` |
 | C2 | The offline `view_verified_case_ids` backfill has never run | 642 caches hold `view.html`; 587 parse to ≥1 case id, 758 ids in all. 435 projects would gain ids (557 new; 143 projects / 189 ids carry ids today). Against each cache's own `land_core` field (present on all 726), the 5 ids that scored 0.0 against the 案名 score 0.85–0.95: none of the 557 is foreign. 10 names are parcel-less; 9 have no city name. `refresh_project` already runs this absorb on every project it refreshes (`urtpe/links.py:1667`), so C2 is not separate code: it is the corpus-wide refresh | part of change R | C3 |
-| C3 | Wave 3b (`docs/viewer-UX.md` §8, `reject-foreign-view-cases`) never ran | Under §8 decision 1 (the city's case name decides), 4 ids are rejected: 10202065 (中山254), 09511211 (on 大安557 only — it is 吉林603's own case), 09807161 (龍泉169), 09608220 (犁和102). **10906092 on 吉林898 is accepted**: its label is wrong, but its city name is 吉林898. No recno node anchors a rejected id, so they grant **0** wrong 國 badges. The harm is foreign milestones: 3 nameless 孤 anchors and 1 named orphan show another project's dates (09511211 brings 施工中) | openspec change (proposed, `4ca6cc2`; 0 of 23 tasks done) | — |
+| C3 | Wave 3b (`docs/viewer-UX.md` §8, `reject-foreign-view-cases`) never ran | **DONE 2026-11-04** (`ba2700b` pipeline, `f961f6a` re-emit): 146 caches verified under the lock; 4 rejections (10202065 shape A, 09608220 shape A, 09511211 shape B, 09807161 shape A), 4 offers to the owning projects (`adopted_from_view` recorded), 10906092 accepted with a label error, 09112120/09112121 not confirmed (parcel-less = no evidence). The 3 nameless 孤 anchors are gone: 596 → 592 orphan nodes, all named. Full suite 870 passed / 1 skipped; smoke passes | done | — |
 | C4 | `extract_landcore_from_case_name` returns "" for 3 name shapes, and the orphan gate (`urtpe/links.py:2162`) then drops the case | 33 cached cases have an unparseable city name. 21 are anchored on a recno node anyway. **12 are dropped**: 4 崇仁新村 (the parcel-less rule, by design) and **8 real cases** — 華中247's 6 A區/B區 cases (09305081/82, 09407301–04), 長安709's 概要 09205060, 南港531-4's 概要 09406102. Shapes: 、-list before 地號 (`709、711地號`), 號 without 地號, `(原NNN)` inside the parcel, compatibility chars (U+F963 北) | openspec change | — |
 | C5 | 使照 disagreement between the two portals is not flagged | 282 projects hold 使用核發/使照核發 from both portals: 260 agree, 22 differ (吉林811 2013-09-11 vs 2013-11-12; 榮星306 year; 虎林310 month). 13 projects hold it national-only, 32 city-only. 橋北574-1's national `291.08.02` renders as 2202-08-02 in the 推動歷程 card (`fmtDate`); the 使照 slot and the stage chip use the city's 2022/08/02 | openspec change | user scope decision |
 | C6 | The 北 positional fallback binds 71 nodes on 51 projects, unmarked | re-run of the pipeline's own `_match_case_by_date` over the payload: 1,356 nodes match by date, 71 do not, 15 have no case. **Rule decided 2026-11-03 for the area-split ties (see "C6 in detail"):** one approved recno binds every same-date case of its area split. That covers 31 of the 71 nodes (56 cases, 15 projects) and folds their twin orphan nodes into the recno. Examples: 吉林508 (view/1062) recno 259 → 11011241 A區 + 11011242 B區; 榮星53 (view/25) 4 recnos, each → its 北區 + 南區 pair. The other 40 nodes are recorded by type and stay open | openspec change | S0 |

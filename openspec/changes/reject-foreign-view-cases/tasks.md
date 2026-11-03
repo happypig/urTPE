@@ -50,29 +50,33 @@
 
 ## 3. Cache refresh + re-emit (under the single-writer lock)
 
-- [ ] 3.1 Back up the cache dir (`data/.link_cache_backup_<stamp>_viewgate`).
-- [ ] 3.2 Run the §8 pass on the 146 view-verified caches; the report must name 10202065,
+- [x] 3.1 Back up the cache dir (`data/.link_cache_backup_<stamp>_viewgate`).
+- [x] 3.2 Run the §8 pass on the 146 view-verified caches; the report must name 10202065,
   09511211, 09807161, 09608220 as rejected (each with its shape) and 10906092 as accepted
   with a label error; the offers land on 辛亥163 / 吉林603 / 康寧262 / 犁和165.
-- [ ] 3.3 Re-emit `data/` + `viewer/projects.data.js` as a separate `chore:` commit
+  — done: 4 rejections (10202065 A, 09608220 A, 09511211 B, 09807161 A), 4 offers,
+  1 label error (10906092), 3 not confirmed (09112120/09112121), 0 failures.
+- [x] 3.3 Re-emit `data/` + `viewer/projects.data.js` as a separate `chore:` commit
   (~23 MB diff). Acceptance: the 3 nameless 孤 anchors are gone from
   `links.orphan_nodes`; 09112120 stays view-verified; the viewer smoke passes.
+  — done (`f961f6a`): orphan nodes 596 → 592, nameless 3 → 0; 09112120 kept
+  ("not confirmed"); smoke passes.
 
 ## 4. Verification
 
-- [ ] 4.1 `python -m pytest` passes (853+ new cases included).
-- [ ] 4.2 `node scripts/viewer_smoke.js` passes all checks (orphan guard now runs on the
+- [x] 4.1 `python -m pytest` passes (853+ new cases included). — 870 passed, 1 skipped.
+- [x] 4.2 `node scripts/viewer_smoke.js` passes all checks (orphan guard now runs on the
   named-orphan-only corpus).
-- [ ] 4.3 The run report (stdout) names every rejected id and every offered id with its
-  reason — §8 acceptance 4.
-- [ ] 4.4 Payload spot-check: 10202065 / 09511211 / 09807161 absent from their wrong
+- [x] 4.3 The run report (stdout) names every rejected id and every offered id with its
+  reason — §8 acceptance 4. — `data/viewgate_run_20261104.log`.
+- [x] 4.4 Payload spot-check: 10202065 / 09511211 / 09807161 absent from their wrong
   holders' `view_verified_case_ids` + `orphan_nodes`, present in each `view_rejected`
   with its reason, and present on the owning project (city_case_ids / case_milestones)
   — §8 acceptance 1–2.
 
 ## 5. Docs + archive
 
-- [ ] 5.1 Update `docs/viewer-UX.md` §8 status → done (wave 3b), and the inspection
+- [x] 5.1 Update `docs/viewer-UX.md` §8 status → done (wave 3b), and the inspection
   board's B7/B8 rows → done.
-- [ ] 5.2 Append the live-run record to `docs/portal_operations_log.md` (§39).
+- [x] 5.2 Append the live-run record to `docs/portal_operations_log.md` (§39).
 - [ ] 5.3 `openspec: archive reject-foreign-view-cases` and sync the three spec deltas.

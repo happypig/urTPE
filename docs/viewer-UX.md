@@ -59,7 +59,7 @@ wave 2, because it needs the overlap guard.
   render it. Reverses supersede-headerless-cases D1.
 - Gate: none left (§7 decisions 1–4). Task order and commits are in §7 decision 4.
 
-### Wave 3b — openspec change E: `reject-foreign-view-cases` (§8) — ready
+### Wave 3b — openspec change E: `reject-foreign-view-cases` (§8) — done 2026-11-04
 
 - Pipeline: a view-verified case id must match the project (the 相關連結 label and the
   city's own case name). Rejected ids are named, not dropped silently. Then refresh and
@@ -671,7 +671,7 @@ None. Questions 1–4 were answered on 2026-11-03 (decisions 1–4).
 
 ## §8 A view-verified case must belong to the project
 
-**Status:** design settled (2026-11-03). P1, openspec change E (wave 3b). **Scope:**
+**Status:** done (wave 3b, 2026-11-04, `reject-foreign-view-cases`). P1, openspec change E (wave 3b). **Scope:**
 the pipeline — the view-page absorb that fills `view_verified_case_ids`
 (`urtpe/links.py`, `extract_case_ids_from_view` and its callers), the orphan anchoring
 that emits `links.orphan_nodes`; then a cache refresh and a re-emit.

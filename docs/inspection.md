@@ -370,6 +370,41 @@ Fix: take each construction date from the first 擬訂 plan case of its node
 one-payload rule for the statistics only; fall back to another case's date
 only when no plan case carries the field, and flag it.
 
+**C8 (b), corpus-wide (measured 2026-11-04).** The related links (`links.taipei`)
+can only list cases discovery found, so a missing plan case is also missing
+from 相關連結 and from the graph. Over 693 projects: 663 hold a 擬訂 plan case;
+8 hold no city case; 7 start at a 擬訂 事業概要 row (no plan case exists yet —
+correct); **15 lack the plan case**. Each was probed live by sibling case ids
+(the 10-id batch of every cached case; accepted at land-core similarity ≥ 0.85):
+
+| Project | Found | 核定 (= gazette 擬訂 row) | 建照 | 開工 | 使照 |
+| --- | --- | --- | --- | --- | --- |
+| 新光段二小段101 | 09703181 | 2009/06/04 | 2009/08/31 | 2009/10/16 | 2012/03/14 |
+| 寶清段四小段599 | 09303270 | 2006/04/18 | 2006/05/12 | 2006/10/17 | 2009/03/31 |
+| 敦化段三小段585-11 | 10210171 | 2016/09/22 | 2016/11/30 | 2017/02/18 | 2020/01/02 |
+| 南港段一小段19-1 | 10111131 | 2019/08/27 | 2021/10/08 | 2022/02/23 | — |
+| 南港段一小段601 | 10406241 | 2023/04/13 | — | — | — |
+| 玉成段二小段253 | 10405041 | 2022/01/04 | 2022/03/09 | 2022/04/22 | — |
+| 敦化段二小段449-12 | 10209291 (等25筆) | 2021/08/19 | 2023/02/01 | 2023/09/20 | — |
+
+The remaining 8:
+
+- **3 not found in the probed batches**, though the gazette has a 擬訂 row:
+  玉成段二小段166 (擬訂 2019-07-24), 金華段四小段455-3 (擬訂 2007-05-01, the
+  only cached case is a 2020 變更), 南港段四小段566 等6筆 (擬訂 2016-02-25).
+  These need another source: the national page's 相關連結, or a name search
+  over the section.
+- **5 are correct as they are**: the project starts at a 變更 row, so its plan
+  case belongs elsewhere — the newer half of a C9 split pair (犁和段一小段102,
+  南港段四小段566 等1筆) or a 1筆 unit with only 變更 rows (萬隆段二小段461,
+  萬隆段二小段623, 華江段三小段274).
+
+The same probe also found **missing later siblings**, not plan cases:
+南港566 等6筆's first 變更 10708311 (核定 2019/11/20) and 玉成166's
+變更(第二次) B區 11412011 (核定 2026/02/03). So the parcel search misses any
+case, not only the plan case: S12 must look for every name-matching sibling,
+and report the cases it finds.
+
 **C9 in detail.** `urtpe/merge.py:40` scores two records by section (.35),
 first parcel (.2), parcel Jaccard (.3) and count (.1). A plan change that
 shrinks the site (`等4筆(原29筆)`) keeps the first parcel and earns the
@@ -450,7 +485,7 @@ latent risk.
 | S9 | P1 | C7 | direct `fix:` — `buildRelatedLinkLabels` labels each case with its own city name; ships with or before S8, so two cases on one node read apart | — |
 | S10 | P2 | C6 (types 3–6) | openspec change — the remaining 40 fallback nodes | user decision, R |
 | S11 | P2 | C8 (a) | openspec change `dates-follow-plan-case` — construction dates come from the first 擬訂 plan case (per area); D5 keeps the statistics only. Emit-side, no fetch: recovers 開工/使照 on 8 national-only projects at once | S0 |
-| S12 | P2 | C8 (b) | discovery finds the 擬訂 plan case the parcel search misses (sibling-id probe, name-checked). Folds into R | S11 |
+| S12 | P2 | C8 (b) | discovery finds the cases the parcel search misses: a sibling-id probe over each cached case's 10-id batch, accepted at land-core similarity ≥ 0.85, every find reported. Measured: 7 missing 擬訂 plan cases + 2 missing 變更 siblings; 3 plan cases need a second source (national 相關連結 or a section name search). Folds into R | S11 |
 | S13 | P2 | C9 | openspec change `merge-across-count-shrink` — `(原M筆)` bridges a site shrink; re-merge, aliases, cache migration | S0 |
 
 **Why this order.**

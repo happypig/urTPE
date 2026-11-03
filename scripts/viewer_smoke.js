@@ -239,10 +239,11 @@ setTimeout(() => {
         }
       }
     }
-    // check 4: every named orphan renders a dotted edge orphan line to its nearest
-    // recno node (the SVG line with class "edge orphan" between orphan and recno).
-    // layoutRects.orphanEdges lists each orphan→recno pair; confirm each orphan in
-    // the data has a corresponding edge.
+    // check 4: every named orphan renders a dotted edge orphan line to the recno
+    // row directly above it (or directly under when none sits above) — the SVG
+    // line with class "edge orphan" between orphan and recno. layoutRects.
+    // orphanEdges lists each orphan→recno pair; confirm each orphan in the data
+    // has a corresponding edge.
     const orphanEdges = L.orphanEdges || [];
     for (const g of orphans) {
       if (!g.case_name) continue; // nameless anchors render no row (§4 decision 4)

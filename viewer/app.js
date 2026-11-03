@@ -955,56 +955,53 @@ function init() {
     const hasEvents = events.length > 0;
     const eventColX = PAD + colKeys.length * COL_W + COL_W / 2;
 
-    // §4: orphans take their own timeline row by date. Named orphans are virtual
-    // nodes already in `timeline`; nameless 孤 anchors with no date render no row
-    // (the 3 current nameless anchors are §8 defects removed by wave 3b).
-    // Each orphan shifts 32px right of its track column and connects to the
-    // nearest recno node in time with a dotted edge.
+    // §4: orphans take their own timeline row, interleaved with recno nodes by
+    // the D12 case_id order. Named orphans are virtual nodes already in
+    // `timeline`; nameless 孤 anchors with no date render no row (the 3 current
+    // nameless anchors are §8 defects removed by wave 3b). "Between 2 recnos"
+    // and "nearest recno" read the RENDERED ROWS, not dates: an undated orphan
+    // has no date of its own (11012301 applies 2021-12-29, withdraws, renders
+    // between 734@2019 and 393@2022 by case_id interleave), so a date test can
+    // never fire for it (corpus: 30 orphans row-between but undated, 7 dated).
     const orphanSources = {};
     const orphanDots = []; // {from: orphanRecno, to: nearestRecno}
-    // recno nodes grouped by track (swimlane), dated only — used for the 32px shift rule
-    const recnosByTrack = {};
-    const allRecnosByDate = []; // dated recno nodes, any track — used for the dotted edge target
-    nodes.forEach(n => {
-      if (!n.date) return;
-      allRecnosByDate.push(n);
-      (recnosByTrack[n.track] = recnosByTrack[n.track] || []).push(n);
-    });
-    // nearest recno node directly above (latest date <= orphan date),
-    // or directly under (earliest date >= orphan date) when orphan is earlier
-    // than every recno node. Searches all recno nodes by date.
-    const nearestRecnoAbove = (date) => {
-      let best = null;
-      for (const n of allRecnosByDate) {
-        if (n.date <= date && (!best || n.date > best.date)) best = n;
+    // nearest recno node ROW directly above the orphan's row (its branch-off
+    // point — 11012301 branches from 734, not from the later 393 it was filed
+    // against), or directly under when no recno row sits above.
+    const nearestRecnoRowAbove = (i) => {
+      for (let j = i - 1; j >= 0; j--) {
+        if (timeline[j].kind === "approval" && !timeline[j].n.virtual) return timeline[j].n;
       }
-      return best;
+      return null;
     };
-    const nearestRecnoUnder = (date) => {
-      let best = null;
-      for (const n of allRecnosByDate) {
-        if (n.date >= date && (!best || n.date < best.date)) best = n;
+    const nearestRecnoRowUnder = (i) => {
+      for (let j = i + 1; j < timeline.length; j++) {
+        if (timeline[j].kind === "approval" && !timeline[j].n.virtual) return timeline[j].n;
       }
-      return best;
+      return null;
     };
-    const nearestRecno = (date) => nearestRecnoAbove(date) || nearestRecnoUnder(date);
-    // does the orphan sit between 2 consecutive recno nodes in the same swimlane?
-    const orphanBetweenRecnos = (v) => {
-      const col = recnosByTrack[v.track] || [];
-      return col.some(n => n.date < v.date) && col.some(n => n.date > v.date);
+    // does the orphan's row sit between 2 recno rows in the same swimlane?
+    const orphanBetweenRecnos = (v, i) => {
+      const above = nearestRecnoRowAbove(i);
+      if (!above) return false;
+      for (let j = i + 1; j < timeline.length; j++) {
+        const t = timeline[j];
+        if (t.kind !== "approval" || t.n.virtual) continue;
+        return colOf(t.n) === colOf(above) && colOf(t.n) === colOf(v);
+      }
+      return false;
     };
 
     const posRaw = {};
     const evPosRaw = {};
     timeline.forEach((t, i) => {
       if (t.kind === "approval") {
-        const mDate = t.n.date || (clusterOfRecno[t.n.recno] || {}).effDate || "";
         let x = PAD + colOf(t.n) * COL_W + COL_W / 2;
-        if (t.n.virtual && orphanBetweenRecnos(t.n)) x += NODE_ROW / 2; // §4: 32px right shift when between 2 recnos in the same swimlane
+        if (t.n.virtual && orphanBetweenRecnos(t.n, i)) x += NODE_ROW / 2; // §4: 32px right shift when its row sits between 2 recno rows of the same swimlane
         posRaw[t.n.recno] = { x, y: rowYs[i] };
         if (t.n.virtual) {
           orphanSources[t.n.case_id] = posRaw[t.n.recno];
-          const to = nearestRecno(mDate);
+          const to = nearestRecnoRowAbove(i) || nearestRecnoRowUnder(i);
           if (to) orphanDots.push({ from: t.n.recno, to: to.recno });
         }
       } else {
@@ -1192,7 +1189,8 @@ function init() {
       s += `<line class="edge virtual" x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}"></line>`;
     });
 
-    // §4: orphan dotted edges — each orphan to its nearest recno node in time.
+    // §4: orphan dotted edges — each orphan to the recno row directly above it
+    // (its branch-off point), or the row directly under when none sits above.
     orphanDots.forEach(d => {
       const a = pos[d.from], b = pos[d.to];
       if (!a || !b) return;

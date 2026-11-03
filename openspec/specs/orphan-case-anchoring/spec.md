@@ -81,31 +81,36 @@ The ghost node SHALL have `orphan: true` and `provenance: "orphan-case-anchoring
 
 ### Requirement: Viewer renders orphan ghost node with dotted construction-chain edges
 
-The viewer SHALL render ghost/orphan nodes in the history graph with an "orphan" badge. Each orphan SHALL take its own timeline row ordered by date with the recno nodes. A named orphan sitting between 2 consecutive recno nodes in the same swimlane SHALL shift 32px right of that swimlane's track line. Each orphan SHALL connect with a dotted edge (class `edge orphan`) to the nearest recno node directly above it (latest date ≤ orphan date), or directly under it (earliest date ≥ orphan date) when the orphan is earlier than every recno node in its swimlane.
+The viewer SHALL render ghost/orphan nodes in the history graph with an "orphan" badge. Each orphan SHALL take its own timeline row, interleaved with the recno nodes by the case_id order (an undated orphan carries its stage cluster's effective date). "Between 2 consecutive recnos" and "nearest recno" mean RENDERED ROWS in the timeline, not dates: an undated orphan has no date of its own, so a date-based test never fires for it (corpus: 30 orphans row-between but undated, 7 dated). A named orphan whose row sits between 2 consecutive recno rows of the same swimlane SHALL shift 32px right of that swimlane's track line. Each orphan SHALL connect with a dotted edge (class `edge orphan`) to the recno row directly above it — its branch-off point — or to the recno row directly under it when no recno row sits above. Example: 11012301 (applies 2021-12-29, withdraws, no date) renders between 734@2019-12-18 and 393@2022-12-29 in the 事業計畫、權利變換 swimlane, shifts 32px right, and its dotted edge goes to 734 — the revision it was filed against — not to the later 393; the live path keeps its solid edge 734 → 393 (dead-end branch vs ongoing path).
 
 #### Scenario: Orphan ghost node appears in graph by date with badge
 
 - **WHEN** a project has a ghost node for case_id 09907221
 - **THEN** the graph shows a node with an "orphan" badge at its date row among the recno nodes
 
-#### Scenario: Orphan dotted edge to nearest recno node directly above
+#### Scenario: Orphan dotted edge to the recno row directly above
 
-- **WHEN** an orphan dated 2023-05 renders in a swimlane whose recno nodes are dated 2023-03 and 2023-08
+- **WHEN** an orphan renders between recno nodes dated 2023-03 and 2023-08 in its swimlane
 - **THEN** a dotted edge (class `edge orphan`) connects the orphan to the 2023-03 recno node directly above it
 
-#### Scenario: Orphan dotted edge to recno node directly under when earliest
+#### Scenario: Undated orphan branches from the recno row directly above, not the later recno it was filed against
 
-- **WHEN** an orphan dated 2020-01 renders earlier than every recno node in its swimlane (earliest recno dated 2022-01)
+- **WHEN** an undated orphan (case_id 11012301) renders between recno 734 (2019-12-18) and recno 393 (2022-12-29) in the same swimlane
+- **THEN** a dotted edge (class `edge orphan`) connects the orphan to recno 734, not to recno 393
+
+#### Scenario: Orphan dotted edge to recno row directly under when no recno row sits above
+
+- **WHEN** an orphan renders earlier than every recno node in its swimlane (earliest recno dated 2022-01)
 - **THEN** a dotted edge (class `edge orphan`) connects the orphan to the 2022-01 recno node directly under it
 
-#### Scenario: Orphan shifts 32px right only when between 2 recnos in same swimlane
+#### Scenario: Orphan shifts 32px right only when between 2 recno rows in same swimlane
 
-- **WHEN** a named orphan dated between two recno nodes occupies the same track column
+- **WHEN** a named orphan's row sits between 2 consecutive recno rows of the same track column (dated or undated)
 - **THEN** its node renders 32px right of that column's track line
 
-#### Scenario: Orphan not shifted when outside the swimlane date span
+#### Scenario: Orphan not shifted when no recno row sits above it in the swimlane
 
-- **WHEN** a named orphan is earlier than every recno node in its swimlane
+- **WHEN** a named orphan renders earlier than every recno row of its swimlane
 - **THEN** its node renders on its swimlane's track line (no 32px right shift)
 
 The right-most ghost column for nameless anchors is removed; nameless anchors with no date render no row (§4 decision 4 — current corpus has none with a date; the 3 nameless anchors are §8 defects removed by wave 3b).

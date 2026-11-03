@@ -390,6 +390,22 @@ class TestConstructionEdgeSemantics:
         assert "EVENT_ROW" in js, "event-to-event pitch must use EVENT_ROW"
         assert "* 64" not in js, "row math must use NODE_ROW/EVENT_ROW, not literal 64"
 
+    def test_orphan_shift_and_edge_target_are_row_based(self):
+        # §4: "between 2 consecutive recnos" and "nearest recno" mean RENDERED
+        # ROWS in the timeline, not dates. An undated orphan (11012301:
+        # applies 2021-12-29, withdraws, renders between 734@2019 and
+        # 393@2022 by case_id interleave) has no date of its own, so a
+        # date-based test can never fire for it (corpus: 30 undated vs 7 dated).
+        js = self._js()
+        assert "nearestRecnoRowAbove" in js and "nearestRecnoRowUnder" in js, (
+            "orphan edge target must come from timeline rows, not date scan")
+        assert "allRecnosByDate" not in js and "recnosByTrack" not in js, (
+            "date-based placement helpers must be gone")
+        # branch-off point: the recno row directly above the orphan's row wins
+        assert re.search(r"nearestRecnoRowAbove\(i\)\s*\|\|\s*nearestRecnoRowUnder\(i\)", js), (
+            "dotted edge must target the recno row directly above the orphan's row, "
+            "falling to the row under only when none sits above (11012301 -> 734)")
+
     def test_four_column_grid_mapping(self):
         js = self._js()
         assert '"事業概要", "事業計畫", "都市更新計畫"' in js

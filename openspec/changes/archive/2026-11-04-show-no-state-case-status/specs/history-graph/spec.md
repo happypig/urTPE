@@ -1,11 +1,11 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Status-chip vocabulary gains 無 / NA per-case labels
 
-The per-case badge renders 「無」 when 基本資料 / 目前辦理情形 reads 無 and 「NA」 when
-it reads empty. These labels apply only to the per-case badge; the family status chip
-(審查中 / 撤回) and the never-approved readers skip 無 / NA so they read exactly as
-before.
+The per-case badge SHALL render 「無」 when 基本資料 / 目前辦理情形 reads 無 and
+「NA」 when it reads empty. These labels SHALL apply only to the per-case badge;
+the family status chip (審查中 / 撤回) and the never-approved readers SHALL skip
+無 / NA so they read exactly as before.
 
 **Reason**: 無 / NA are honest per-case readings and must not be folded into the
 family-level chip vocabulary.

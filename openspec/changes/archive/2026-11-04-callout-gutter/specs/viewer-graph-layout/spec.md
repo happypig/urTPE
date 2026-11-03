@@ -37,6 +37,16 @@ and never tested lines. Moving callouts out of the graph area removes all four g
 - **THEN** no two placed rectangles intersect, every callout box lies inside the gutter, and no leader
   segment crosses a callout box or a node label
 
+#### Scenario: Callout dodges node labels and events
+- **WHEN** a callout's candidate spots near its record would collide with node label boxes, execution events, or previously placed callouts
+- **THEN** the placer does not dodge: no further candidate spots are tried and the canvas is never extended; the box stacks downward inside the reserved gutter (the dodging search is removed by this change)
+
+#### Scenario: Node label boxes include their full visual footprint
+- **WHEN** collision boxes are computed for placement
+- **THEN** each node's box covers its label lines and the badge strip above it, and each event/ghost anchor contributes its own box
+
+## ADDED Requirements
+
 ### Requirement: Stage bands and count chips removed from rendering
 
 Stage clustering still groups nodes by 第N次 and tags undated members as (未核定), but clusters with ≥2

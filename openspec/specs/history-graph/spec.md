@@ -279,6 +279,7 @@ interaction. Badge colours: 建照 orange, 開工 red, 使照 green, status chip
 - **WHEN** a project carries none of the three construction dates and no
   `case_schedules` entry
 - **THEN** its list item shows no stage badge
+
 ### Requirement: Node order survives a rebuild from emitted state
 
 A rebuild that starts from an emitted graph rather than from the gazette SHALL restore
@@ -375,3 +376,75 @@ emit → load → emit SHALL be lossless for `stage_index`.
 
 - **WHEN** a document is emitted, loaded, and emitted again
 - **THEN** every node's `stage_index` is identical across the two emissions
+
+### Requirement: Status-chip vocabulary gains 無 / NA per-case labels
+
+The per-case badge SHALL render 「無」 when 基本資料 / 目前辦理情形 reads 無 and
+「NA」 when it reads empty. These labels SHALL apply only to the per-case badge;
+the family status chip (審查中 / 撤回) and the never-approved readers SHALL skip
+無 / NA so they read exactly as before.
+
+**Reason**: 無 / NA are honest per-case readings and must not be folded into the
+family-level chip vocabulary.
+
+#### Scenario: Per-case badge renders 「無」 for 無 reading
+
+- **WHEN** a case's 目前辦理情形 reads 無
+- **THEN** its badge shows [無]
+
+#### Scenario: Per-case badge renders 「NA」 for empty reading
+
+- **WHEN** a case's 目前辦理情形 reads empty
+- **THEN** its badge shows [NA]
+
+#### Scenario: Family chip ignores 無 / NA
+
+- **WHEN** every case's state is 無 or empty, or mixed with terminal states
+- **THEN** the family status chip reads as if 無 / NA cases were absent
+
+### Requirement: 國 badge binds to the recno node a national label names
+
+A national approval label (事業計畫核定日期, 權利變換計畫核定日期,
+第一次變更事業計畫核定日期, …) carries a stage (擬訂, 第N次變更) and a
+track (事業計畫 / 權利變換). The viewer SHALL badge a recno node with 國 when
+one such label binds to it: same stage and same track, with a date tie-break when
+more than one node matches (民國 date converted to ISO). A combined-track node
+(事業計畫、權利變換) SHALL match a label of either track. Application dates
+(…申請日期) and 使用核發日期 name no stage and SHALL never bind.
+
+A node SHALL also keep its 國 badge when `links.view_verified_case_ids` lists its
+anchored case (the portal's direct assertion). The 現況 rule (`node.is_current`
+alone) is removed.
+
+**Reason**: 492 of 632 projects with a national link have an empty
+`view_verified_case_ids`; the old 現況 rule put 國 on a node the national page does
+not name.
+
+#### Scenario: 國 binds to the node with matching stage+track
+
+- **WHEN** a national label 事業計畫核定日期 111.08.02 names stage 擬訂 track
+  事業計畫
+- **THEN** the recno node carrying stage 擬訂 track 事業計畫 gets the 國 badge
+
+#### Scenario: 國 binds by date tie-break
+
+- **WHEN** two recno nodes share stage 變更 track 事業計畫, dated 111.08.02 and
+  112.03.21, and the national label 第一次變更事業計畫核定日期 reads 112.03.21
+- **THEN** the 112.03.21 node gets 國
+
+#### Scenario: view_verified_case_ids still grants 國
+
+- **WHEN** `links.view_verified_case_ids` lists the node's anchored case
+- **THEN** that node keeps its 國 badge
+
+#### Scenario: 現況 alone no longer grants 國
+
+- **WHEN** a node is 現況 but its case is not view-verified and no national label
+  binds to it
+- **THEN** it carries no 國 badge
+
+#### Scenario: application dates and 使用核發日期 bind nothing
+
+- **WHEN** a national label 使用核發日期 or 事業計畫申請日期 is present
+- **THEN** it binds to no recno node for the 國 badge
+

@@ -1,18 +1,18 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: 國 badge binds to the recno node a national label names
 
 A national approval label (事業計畫核定日期, 權利變換計畫核定日期,
 第一次變更事業計畫核定日期, …) carries a stage (擬訂, 第N次變更) and a
-track (事業計畫 / 權利變換). A node gets a 國 badge when one such label binds to
-it: same stage and same track, with a date tie-break when more than one node matches
-(民國 date converted to ISO). A combined-track node (事業計畫、權利變換) matches
-a label of either track. Application dates (…申請日期) and 使用核發日期 name no
-stage and never bind.
+track (事業計畫 / 權利變換). The viewer SHALL badge a recno node with 國 when
+one such label binds to it: same stage and same track, with a date tie-break when
+more than one node matches (民國 date converted to ISO). A combined-track node
+(事業計畫、權利變換) SHALL match a label of either track. Application dates
+(…申請日期) and 使用核發日期 name no stage and SHALL never bind.
 
-A node also keeps its 國 badge when `links.view_verified_case_ids` lists its anchored
-case (the portal's direct assertion). The 現況 rule (`node.is_current` alone) is
-removed.
+A node SHALL also keep its 國 badge when `links.view_verified_case_ids` lists its
+anchored case (the portal's direct assertion). The 現況 rule (`node.is_current`
+alone) is removed.
 
 **Reason**: 492 of 632 projects with a national link have an empty
 `view_verified_case_ids`; the old 現況 rule put 國 on a node the national page does

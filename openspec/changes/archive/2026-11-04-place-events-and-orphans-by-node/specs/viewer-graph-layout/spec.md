@@ -1,5 +1,3 @@
-# viewer-graph-layout spec delta — place-events-and-orphans-by-node (wave 5)
-
 ## ADDED Requirements
 
 ### Requirement: Execution dates start ½ node row under the nearest approval node

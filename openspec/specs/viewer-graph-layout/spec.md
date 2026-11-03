@@ -60,11 +60,44 @@ On narrow viewports the project list SHALL cap its visible height (fewer items, 
 
 ### Requirement: Callout placement keeps clearance from nodes and labels
 
-Implementation callout boxes SHALL be placed best-effort so they do not overlap node labels, badge strips, execution events, other callouts, or ghost anchors. Placement MAY temporarily extend the canvas (viewBox height/width) to guarantee a free spot rather than accepting an overlap; only when the canvas cannot grow reasonably MAY a callout sit close to other elements.
+Implementation callout boxes SHALL be placed in a reserved gutter column left of the leftmost track
+column, one per callout row, in timeline order. Each box starts at its record's row and moves down only
+when it would overlap the box above it; boxes never move up. A leader connects each box to its own node
+circle. No callout box SHALL overlap any node label, badge strip, event row, other callout box, ghost
+anchor, or stage-band chip; stage bands/count chips are not drawn (see the stage-bands removal below),
+so nothing else occupies the gutter.
+
+**Reason**: The previous dodging search (8 fixed spots around the node, canvas extension fallback) could
+not protect the callout's own node, could clamp a candidate onto that node, underestimated CJK label width,
+and never tested lines. Moving callouts out of the graph area removes all four gap classes at once.
+
+#### Scenario: Callout lands inside the gutter
+
+- **WHEN** a project has at least one implementation callout
+- **THEN** the graph reserves a callout gutter left of the leftmost track column, and every callout box
+  lies fully inside it
+
+#### Scenario: Callouts stack without overlap
+
+- **WHEN** two callouts would overlap in the gutter
+- **THEN** the later callout moves down, keeping a small gap, never up; each box's leader still connects
+  to its own node circle
+
+#### Scenario: Long values wrap then cut
+
+- **WHEN** a callout value is wider than the gutter box
+- **THEN** it wraps to at most 2 lines, the rest is cut with an ellipsis, and the full value is available
+  as a tooltip
+
+#### Scenario: Every checkable layout pair is verified
+
+- **WHEN** `scripts/viewer_smoke.js` lays out every project that has a callout
+- **THEN** no two placed rectangles intersect, every callout box lies inside the gutter, and no leader
+  segment crosses a callout box or a node label
 
 #### Scenario: Callout dodges node labels and events
-- **WHEN** a callout's candidate spots near its record collide with node label boxes, execution events, or previously placed callouts
-- **THEN** the placer tries further candidate spots (below/above, both sides) and extends the canvas if needed, so the callout lands in free space
+- **WHEN** a callout's candidate spots near its record would collide with node label boxes, execution events, or previously placed callouts
+- **THEN** the placer does not dodge: no further candidate spots are tried and the canvas is never extended; the box stacks downward inside the reserved gutter (the dodging search is removed by this change)
 
 #### Scenario: Node label boxes include their full visual footprint
 - **WHEN** collision boxes are computed for placement
@@ -113,3 +146,55 @@ SHALL stay verbatim.
 - **WHEN** an execution event's payload date is `2023/04/27`
 - **THEN** the row displays the date in the viewer's established rendering
 - **AND** the payload field is unchanged
+
+### Requirement: Stage bands and count chips removed from rendering
+
+Stage clustering still groups nodes by 第N次 and tags undated members as (未核定), but clusters with ≥2
+members SHALL NOT render a soft band or a count chip. Single-member groups render bare, as before.
+
+**Reason**: The stage-band chip collides with the callout gutter column, and the band adds a second visual
+layer behind the tracks.
+
+#### Scenario: No stage band drawn
+
+- **WHEN** a stage cluster has ≥2 members
+- **THEN** no soft band rectangle and no count chip text render behind those members
+
+### Requirement: Execution dates start ½ node row under the nearest approval node
+
+An execution event row (建照/開工/使照) that follows an approval row SHALL start ½ node row (32px) under the nearest approval node directly above it in any swimlane. Event-to-event pitch stays 32px. An event followed by an approval keeps the full 64px clearance so badge strips do not touch.
+
+#### Scenario: First execution date sits 32px under the nearest approval above it
+
+- **WHEN** a project's timeline has approval node 370 dated 2023-03-21 and 建照核發日期 2023-04-27 follows it
+- **THEN** the 建照 row starts 32px under node 370, not 64px
+
+#### Scenario: Event-to-event pitch stays 32px
+
+- **WHEN** a project has 建照核發日期 2023-04-27 and 開工日期 2023-07-03 consecutive
+- **THEN** the 開工 row starts 32px under the 建照 row
+
+#### Scenario: Event→approval keeps full clearance
+
+- **WHEN** an execution date row is immediately followed by an approval row
+- **THEN** the space between them is the normal 64px row height
+
+### Requirement: Orphan nodes take their own timeline row by date with a dotted edge
+
+Every orphan node (named virtual node or nameless 孤 anchor with a date) SHALL take its own timeline row ordered by date with the recno nodes. A named orphan in a track column SHALL shift 32px right of its track line. Each orphan SHALL connect to the nearest recno node in time with a dotted edge (class `edge orphan`).
+
+#### Scenario: Orphan row is in date order with recno nodes
+
+- **WHEN** an orphan's date falls between two recno node dates
+- **THEN** the orphan's row renders between those two nodes' rows
+
+#### Scenario: Orphan dotted edge to nearest recno node
+
+- **WHEN** an orphan node renders
+- **THEN** a dotted edge (class `edge orphan`) connects it to the nearest recno node directly above it, or directly under it when earlier than every recno node
+
+#### Scenario: Named orphan shifts 32px right of its track line
+
+- **WHEN** a named orphan occupies a track column
+- **THEN** its node renders 32px right of that column's track line, clearing the line
+

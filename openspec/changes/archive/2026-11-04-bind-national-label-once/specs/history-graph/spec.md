@@ -33,7 +33,7 @@ owner per label or none.
   node's date differs from the label's date by more than 1 day
 - **THEN** that node still gets the 國 badge (one candidate cannot tie)
 
-#### Scenario: 國 binds by exact date among several candidates
+#### Scenario: 國 binds by date tie-break
 
 - **WHEN** two recno nodes share stage 變更 track 事業計畫, dated 111.08.02 and
   112.03.21, and the national label 第一次變更事業計畫核定日期 reads 112.03.21

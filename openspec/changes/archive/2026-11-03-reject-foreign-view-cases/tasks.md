@@ -79,4 +79,4 @@
 - [x] 5.1 Update `docs/viewer-UX.md` §8 status → done (wave 3b), and the inspection
   board's B7/B8 rows → done.
 - [x] 5.2 Append the live-run record to `docs/portal_operations_log.md` (§39).
-- [ ] 5.3 `openspec: archive reject-foreign-view-cases` and sync the three spec deltas.
+- [x] 5.3 `openspec: archive reject-foreign-view-cases` and sync the three spec deltas.

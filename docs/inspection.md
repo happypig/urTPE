@@ -220,6 +220,7 @@ holds what the gate removed.
 | C8 | The construction dates (建照 / 開工 / 使照) do not follow the case that owns them | **Rule decided 2026-11-04 (the user):** the city keeps 建照核發日期 (data2) and 開工日期 / 使照核發日期 (data3) on the **first 擬訂 plan case** — the one named 擬訂…都市更新事業計畫案 or 擬訂…都市更新事業計畫及權利變換計畫案. Two defects break it. (a) `select_best_payload` (`urtpe/links.py:1971`) keeps one data3 payload per project, chosen by key count, so the plan case's 開工/使照 are dropped when a later case has more statistics: 9 of the 13 "national-only 使照" projects (德惠573 09710240: 開工 2012/07/13, 使照 2015/07/13 cached, not emitted). (b) Discovery misses the 擬訂 plan case itself: 新光101 (09703181), 寶清599 (09303270), 敦化585-11 (10210171) — the parcel search does not return them; they were found by probing sibling case ids. See "C8 in detail" | openspec change | — |
 | C9 | A parcel-count shrink (`等N筆(原M筆)`) splits one project in two | 吳興790-6: recno 978 (變更(第三次), 等4筆(原29筆)) scores 0.639 against recno 1157 (等29筆): same section and first parcel, count bridge 0.8, but the parcel sets share 1 of 32 (Jaccard 0.03). **11 project pairs** split this way, and 10 of them share one national page (view/118, 319, 321, 637, 84, 281, 718, 276, 231, 358) and their case ids. See "C9 in detail" | openspec change (`case-merging`) + re-emit + aliases | — |
 | C7 | The 相關連結 label of an anchored case shows the gazette 案名, not the city's own case name | `buildRelatedLinkLabels` (`viewer/app.js:563`) labels each case a node anchors with that node's `case_name` (the gazette row). It reads `candidate_names` only for cases no node anchors. 307 anchored cases show a label that differs from their city name: 20 lose an area suffix (吉林508's 11011241 shows without "-A區"), 48 show another stage word (中山202 node 699: gazette 擬訂, case 變更), 8 show other parcel counts (文林176: 等13筆 vs 等14筆), 231 differ in other wording. With C6, one node carries 2+ cases, so the gazette label cannot tell them apart | direct `fix:` (viewer) + a review list for the 48 | — |
+| C10 | The 國 label shows the latest gazette 案名, not the national page's own project name | `buildRelatedLinkLabels` (`viewer/app.js:594`) returns `anchorName` = the current (latest) node's `case_name`. The national page names the project by its first 擬訂 case: the cached `view.html` `<title>` (吉林705 view/57: 擬訂…事業計畫案; the viewer shows 變更…權利變換計畫(含釐正圖冊)案). Measured 2026-11-04 over 632 projects with a cached page: **452 show the wrong name** (302: the title equals an earlier node's name; 150: it equals no node, 149 of them a 擬訂 name). The title is not stored in the cache or the payload today | direct `fix:` — store the title as `twur_name` at fetch (re-parse the cached `view.html`, no request) and label 國 with it | — |
 
 **C1 in detail (corrected 2026-11-03).** The first version of this row said
 the code "binds 430 labels the design would leave unbound". That was wrong.
@@ -352,6 +353,29 @@ Corpus effect, measured: 31 nodes, 56 cases, 15 projects; 41 twin orphan
 nodes fold into their recno. The other 40 nodes keep the positional fallback
 until their types are decided; the open question is whether the viewer marks
 a guessed badge or removes it until R finds the case.
+
+**C6 user resolutions (2026-11-04).** The user checked four fallback examples
+against the city portal. Cache values verified the same day:
+
+| Project, recno | Bound today (fallback) | Right case (user) | Rule it shows |
+| --- | --- | --- | --- |
+| 犁和302 (三小段) recno 281, 2023-12-28 變更 權利變換 | 10203251 (the 2019 擬訂 case, recno 830) | the missing 變更 權變 case — 10203253 (`Uro_Chk_Date2` 2023/12/28, found by the sibling probe) | discovery: S12 + S14 |
+| 東湖34 recno 73, 2026-02-21 擬訂 | 11302181 (目前辦理情形 = 無, no milestones) | 11502008 (已核准, 核定 2026/02/11, same name) | **new rule:** a case with status 無 yields to a same-name sibling that is approved; the 無 case leaves the node |
+| 玉成253 recno 508, 2022-01-04 擬訂 事計+權變 | 10405043 (審查中 變更) | the missing 擬訂 plan case — 10405041 (核定 2022/01/04, found in C8 (b)) | discovery: S12 |
+| 吉林705 recno 1370, 2008-03-10 變更 事業計畫 | 09307100 (事業概要, by position) | 09307104 | **new rule:** 案名 match, with 自行撤回 cases excluded (09307103 has the same name but is withdrawn) |
+| 吉林705 recno 1311, 2010-01-08 變更 事計+擬訂權變 | 09307100 (tie 09307101/09307104 refused) | 09307101 (核定 2010/01/08, 權變核定 2010/01/11) | 案名 match breaks the tie: only 09307101 carries this name |
+
+吉林705 has a city data defect too: 09307104's data2 returns 核定日期
+2010/01/08 (the date of 09307101), so the date matcher alone cannot place it.
+With 1370 and 1311 bound by name, 09307100 (事業概要, 概要核准 2004/12/09) and
+09307103 (自行撤回, 申請計畫 2014/02/24) stay orphan nodes, labelled by their
+own city names (C7). Today 09307103's orphan carries node_date 2004-12-09,
+which is the 概要 date; the right date is its 申請計畫日期. The project's 國 label also
+shows the wrong name (C10).
+
+So the 案名 match is the first rule for types 3–6, before any date drift
+window: exact city name, withdrawn (自行撤回) and status-無 cases excluded when
+an approved same-name sibling exists.
 
 **C8 in detail (rule decided 2026-11-04).** The user's rule: 建照, 開工 and
 使照 always live on the first 擬訂 plan case (`^擬訂.*都市更新(事業計畫|事業計畫及權利變換計畫)案`).
@@ -508,12 +532,13 @@ latent risk.
 | S3 | P1 | C3 (= B7, B8) | **DONE 2026-11-04** — `reject-foreign-view-cases` implemented (`ba2700b`), re-emitted (`f961f6a`), archived (`e5a5986`, 23/23 tasks). Re-checked 2026-11-04: the gate runs after the absorb on every refresh, so a rejected id stays rejected (verified offline on a copy of 中山254: a second refresh keeps 10202065 out of `view_verified_case_ids` and `city_case_ids`). **Residual S3a (P3):** the absorb does not skip `view_rejected`, so each refresh re-fetches the rejected id's milestones and leaves them in `case_milestones` — all 4 rejected ids sit there in the payload today (10202065, 09608220, 09511211, 09807161). They reach no node, orphan, edge or 北 badge; only the 相關連結 label fallback reads `case_milestones`, and that path never sees a rejected id. Fix: the absorb skips `view_rejected` ids and the gate drops their `case_milestones` entry; add the second-refresh test | done; S3a = direct `fix:` |
 | S4 | P1 | C1 | openspec change `bind-national-label-once` — per-label binding, exact then ±1-day tie-break, never guess; delta MODIFIES the archived §2 requirement. Viewer only, no re-emit | S0 |
 | S5 | P2 | C4 | openspec change `parse-listed-parcel-names` — extractor learns the 、-list, `(原NNN)`, spaced and 號 shapes plus NFKC; unparseable names are reported, not dropped. Re-emit only (no fetch): the 8 dropped cases come back as orphans | S0 |
-| R | P2 | B1, B5, B6, C2, §7 4.1 | openspec change `refresh-whole-corpus` — one resumable, rate-limited refresh of all 726 caches: new-case discovery (B1), status re-derivation (B5), cleared status kept as a value (B6), the view backfill (C2, now gated by S3), and the missing headers (§7). Estimate the request count first; change detection decides what to fetch (see "R change detection") | S3, S5 |
+| R | P2 | B1, B5, B6, C2, §7 4.1 | openspec change `refresh-whole-corpus` — **run in resumable slices (user decision 2026-11-04)**: each slice (about 100 projects) takes the lock, writes into `data/.link_cache/` only, records a checkpoint and releases the lock; the tracked `projects.json` and `viewer/projects.data.js` are emitted once, after the last slice. A rate-limited refresh of all 726 caches: new-case discovery (B1), status re-derivation (B5), cleared status kept as a value (B6), the view backfill (C2, now gated by S3), and the missing headers (§7). Estimate the request count first; change detection decides what to fetch (see "R change detection") | S3, S5 |
 | S6 | P2 | B2 | openspec change, small — a superseded case's undated orphan node is hidden or chained to its successor | R |
 | S7 | P2 | C5 | **merged into S15 (user decision 2026-11-04)** — the flag-only plan is replaced by the building-permit adapter. What S7 kept: the range guard in `fmtDate` and the ROC converters (a year in the future renders as the raw text plus a warning), which ships inside S15 | — |
 | S8 | P1 | C6 (types 1–2) | openspec change `bind-area-split-cases` — a recno binds every same-date case of its area split; their twin orphans fold in. Pipeline (`urtpe/links.py:2073`) + re-emit; 31 nodes, 56 cases, 15 projects | S0 |
 | S9 | P1 | C7 | direct `fix:` — `buildRelatedLinkLabels` labels each case with its own city name; ships with or before S8, so two cases on one node read apart | — |
-| S10 | P2 | C6 (types 3–6) | openspec change — the remaining 40 fallback nodes | user decision, R |
+| S10 | P2 | C6 (types 3–6) | openspec change — the remaining 40 fallback nodes. First rule: exact 案名 match, excluding 自行撤回 and status-無 cases that have an approved same-name sibling (see "C6 user resolutions") | user decision, R |
+| S16 | P1 | C10 | direct `fix:` — store the national page `<title>` as `twur_name` (re-parse the cached `view.html`, no request) and label 國 with it; re-emit | — |
 | S11 | P2 | C8 (a) | openspec change `dates-follow-plan-case` — construction dates come from the first 擬訂 plan case (per area); D5 keeps the statistics only. Emit-side, no fetch: recovers 開工/使照 on 8 national-only projects at once | S0 |
 | S12 | P2 | C8 (b) | discovery finds the cases the parcel search misses: a sibling-id probe over each cached case's 10-id batch, accepted at land-core similarity ≥ 0.85, every find reported. Measured: 7 missing 擬訂 plan cases + 2 missing 變更 siblings; 3 plan cases need a second source (national 相關連結 or a section name search). Folds into R | S11 |
 | S13 | P2 | C9 | openspec change `merge-across-count-shrink` — `(原M筆)` bridges a site shrink; re-merge, aliases, cache migration | S0 |
@@ -630,7 +655,7 @@ portal dates and the flag.
 | C6 / S10 | The fallback nodes left after S8, S12, S14 and the 案名 match (about 10): mark the guessed 北 badge, or remove it until a case is found? | S10 |
 | ~~C5 / S7~~ | **Decided 2026-11-04**: the building-permit adapter (S15) replaces the flag-only plan; flags remain only where no permit matches | ~~S7~~ merged into S15 |
 | ~~S3~~ | **Resolved 2026-11-04**: the other session implemented and archived the change itself; S3a records the one residual | — |
-| R | A full refresh is about 726 projects × their cases against gis.uro. Run it in one sitting, or in resumable slices over several days? | R run |
+| ~~R~~ | **Decided 2026-11-04**: resumable slices with a checkpoint; slices write the cache only; one emission after the last slice | ~~R run~~ unblocked |
 
 ### Decisions waiting on the user
 

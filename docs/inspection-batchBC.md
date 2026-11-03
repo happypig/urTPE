@@ -516,8 +516,8 @@ portal dates and the flag.
 
 | Wave | Steps | Network |
 | --- | --- | --- |
-| 0 | S0 | none |
-| 1 | S1, S2, S3a (direct fixes); S4; S5; S9 `label-by-own-name`; S11 first run | none |
+| 0 | S0 **DONE 2026-11-04** | none |
+| 1 | S1, S2, S3a **DONE**; S4, S5, S9, S11(first run) **DONE + ARCHIVED** | none |
 | 2 | S10 `resolve-recno-case`; S13; S11 second run | about 230 gis.uro requests (S10) |
 | 3 | S15; R in slices; S6 last | data.taipei (S15); gis.uro (R) |
 

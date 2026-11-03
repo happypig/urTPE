@@ -962,14 +962,36 @@ function init() {
     // nearest recno node in time with a dotted edge.
     const orphanSources = {};
     const orphanDots = []; // {from: orphanRecno, to: nearestRecno}
-    const realNodesByDate = nodes.filter(n => n.date).slice().sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
-    const nearestRecno = (date) => {
-      let best = null, bestDiff = Infinity;
-      for (const n of realNodesByDate) {
-        const d = Math.abs(new Date(n.date) - new Date(date));
-        if (d < bestDiff) { bestDiff = d; best = n.recno; }
+    // recno nodes grouped by track (swimlane), dated only — used for the 32px shift rule
+    const recnosByTrack = {};
+    const allRecnosByDate = []; // dated recno nodes, any track — used for the dotted edge target
+    nodes.forEach(n => {
+      if (!n.date) return;
+      allRecnosByDate.push(n);
+      (recnosByTrack[n.track] = recnosByTrack[n.track] || []).push(n);
+    });
+    // nearest recno node directly above (latest date <= orphan date),
+    // or directly under (earliest date >= orphan date) when orphan is earlier
+    // than every recno node. Searches all recno nodes by date.
+    const nearestRecnoAbove = (date) => {
+      let best = null;
+      for (const n of allRecnosByDate) {
+        if (n.date <= date && (!best || n.date > best.date)) best = n;
       }
       return best;
+    };
+    const nearestRecnoUnder = (date) => {
+      let best = null;
+      for (const n of allRecnosByDate) {
+        if (n.date >= date && (!best || n.date < best.date)) best = n;
+      }
+      return best;
+    };
+    const nearestRecno = (date) => nearestRecnoAbove(date) || nearestRecnoUnder(date);
+    // does the orphan sit between 2 consecutive recno nodes in the same swimlane?
+    const orphanBetweenRecnos = (v) => {
+      const col = recnosByTrack[v.track] || [];
+      return col.some(n => n.date < v.date) && col.some(n => n.date > v.date);
     };
 
     const posRaw = {};
@@ -978,12 +1000,12 @@ function init() {
       if (t.kind === "approval") {
         const mDate = t.n.date || (clusterOfRecno[t.n.recno] || {}).effDate || "";
         let x = PAD + colOf(t.n) * COL_W + COL_W / 2;
-        if (t.n.virtual) x += NODE_ROW / 2; // §4: 32px right shift off the track line
+        if (t.n.virtual && orphanBetweenRecnos(t.n)) x += NODE_ROW / 2; // §4: 32px right shift when between 2 recnos in the same swimlane
         posRaw[t.n.recno] = { x, y: rowYs[i] };
         if (t.n.virtual) {
           orphanSources[t.n.case_id] = posRaw[t.n.recno];
           const to = nearestRecno(mDate);
-          if (to) orphanDots.push({ from: t.n.recno, to });
+          if (to) orphanDots.push({ from: t.n.recno, to: to.recno });
         }
       } else {
         evPosRaw[t.e.label] = { x: eventColX, y: rowYs[i] };

@@ -1,4 +1,4 @@
-# Project inspection — 2026-10-26 · consolidated 2026-11-01
+# Project inspection — 2026-10-26 · consolidated 2026-11-03
 
 An evaluation of the whole project, started at commit `20a2c92` and extended across
 three sessions and the completed `restore-2026-09-24-gazette` change. This document
@@ -11,19 +11,20 @@ re-reading to execute the plan.
 **Update history:** 2026-10-26 original inspection (pipeline P1–P3, viewer V1–V12) ·
 2026-10-30 peer session F1–F5, the audit doc's data-layer findings, the archive
 verification · 2026-10-31 the 09-24 restoration executed · 2026-11-01 TAB-2 session
-G1–G5.
+G1–G5 · 2026-11-03 Batch B, the §37/§38 residuals collected for batch treatment.
 
 ## State of the board
 
 | Check | Result at last full run |
 | --- | --- |
-| Test suite | 842 passed, 1 skipped (843 collected) |
+| Test suite | 851 passed, 1 skipped (852 collected) at `2b96e5b` |
 | Deploy freshness | all 4 artifacts fresh (`scripts\check_deploy.py`) |
 | Viewer render path | `node scripts\viewer_smoke.js` passes |
 | Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |
 | Archive | 7 publications, chain whole, 09-24 restored |
 | Acquisition | **weekly scheduled task `urtpe-poll` live** (Mondays 06:30); channel verified healthy 2026-11-01 (`reuploaded`) |
-| Emission | 2026-10-15, 1,442 raw / 1,442 clean / 694 projects, 0 residuals (188 recovered 2026-11-01) |
+| Emission | 2026-10-15, 1,442 raw / 1,442 clean / 693 projects, 0 residuals |
+| Batch B | 8 findings queued, 0 executed (§37/§38 residuals) |
 
 ## Execution order — the integrated plan
 
@@ -129,6 +130,53 @@ one pane) — same test group, same file.
 ### Post-wave — `refresh-case-status-and-drop-withdrawn-fields` — **DONE 2026-11-02** (archived; §36). The 13 "still awaiting" cases checked against 基本資料/data1/data2: 8 badge errors corrected (in-review cases read 已核准 by `schedule_from_top`), 3 closed cases (2 自行撤回, 1 駁回) no longer selected (selector 176 → 91), 南港671-6 correctly stays 審查中 (立農163-2 was recorded here as correctly 審查中 — wrong, see the next entry and §37); the refresh now re-derives case status from the case header and drops dates the city withdrew (6 removed, 0 conflicts); the viewer hides 已核定 like 已核准. Residual watch: status is re-derived only for refresh-selected projects — 4 cached 審查中 on since-approved cases and 3 cached 已核准 with no dates wait for a corpus-wide status pass; a cleared status is removed (not stored as ""), so a project whose last non-terminal status clears would read never-approved (measured 3 → 3 this run).
 
 ### Post-wave — `supersede-headerless-cases-and-discover-new-ids` — **DONE 2026-11-02** (archived; §37). A `無` case header clears an in-review/approved status; re-filed cases are recorded as superseded (立農163-2 11211211 → 11409026, now with no 審查中 chip; 虎林38 10806141 → 11510017); the refresh repeats discovery's parcel search and appended 4 case ids (incl. 虎林38's real pending case 11510017). The 2 `無` cases with a non-exact successor (雅祥227-4 11009142, 吉林705-3 10410012) were matched by `match-superseding-case-on-application-dates` (§38, the maintainer's decision: match on application dates). Residual watch: new-case discovery covers selected projects only; 4 stranded cache dirs are re-selected every run.
+
+### Post-wave — `match-superseding-case-on-application-dates` — **DONE 2026-11-02** (archived; §38). A re-filed case is matched to its successor on the application dates, not on every date. Measured before the change: the relaxed rule matches exactly 4 cases, each with one candidate. Live run: 89 projects, 0 failures, 4 superseded, 0 `無` without a successor, 0 ambiguous. Re-emission: 1,442 records / 693 projects, never-approved 3, `links.taipei` 1997, orphan nodes 596 — all unchanged. Residual watch: §37 residuals (b)–(e) stand.
+
+### Batch B — the §37/§38 residuals, collected 2026-11-03 — **QUEUED, not started**
+
+Every item below is a residual that §37 or §38 left open. The viewer-UX waves
+(`docs/viewer-UX.md`) changed how the viewer draws a case. They did not close any
+item here. Measured at `2b96e5b`, on the payload emitted 2026-11-02
+(1,442 records / 693 projects) and the 726 cache dirs.
+
+| ID | Finding | Evidence now | Form | Gate |
+| --- | --- | --- | --- | --- |
+| B1 | New-case discovery covers refresh-selected projects only | the 336 project (大安區-通化段四小段-336地號等26筆) has 3 case ids, all 已核准; the selector skips it; its cache has no `case_headers` | openspec change | — |
+| B2 | A superseded case keeps its undated node in the graph | 4 of the 5 superseded cases carry an orphan node with an empty `node_date`: 10410012, 10806141, 11009142, 11211211 | openspec change | B1 |
+| B3 | A `fresh=True` re-discovery drops `case_headers` and `superseded_by` | `discover_project_links` never writes either field; only `refresh_project` does | openspec change | — |
+| B4 | 4 stranded cache dirs are re-selected every run | the selector returns 89 candidates; 北投區-關渡段二小段-55, 士林區-天山段二小段-264, 大同區-延平段一小段-314, 文山區-華興段四小段-44-2 report "not searched" every run | direct `fix:` commit | — |
+| B5 | Status is re-derived only for selected projects | 1 cached 審查中 sits on a case that has an approval date (大同764 09605032, 核定 2007/07/06); 3 cached 已核准/已核定 have no approval date (臨沂318 10409104, 學府125 10611122, 直興373 10405293) | openspec change | B1 |
+| B6 | A cleared status is removed from `case_schedules` | a project whose last open status clears would read as never-approved; measured 3 never-approved projects, unchanged | openspec change | B5 |
+| B7 | A view-verified case may belong to another project | 4 of 189 view-verified ids have a label whose land core is another project (similarity < 0.7): 10202065, 10906092, 09608220, 09807161 | openspec change | — |
+| B8 | 3 nameless 孤 anchors carry another project's milestones | 10202065 (中山254), 09511211 (大安557, 施工中), 09807161 (龍泉169) | openspec change | B7 |
+
+**B7 and B8 are `docs/viewer-UX.md` §8 (wave 3b).** They are listed here
+because §8 was not started when this batch was collected, and because the 國 badge
+of wave 4 reads `view_verified_case_ids` without checking the project's own case
+name. Wave 4 landed on 2026-11-03. B7 must land before the badge can be trusted.
+
+**B7 in detail.** Each of the 4 ids lands on two projects. The wrong project
+holds it as a nameless 孤 anchor and shows the other project's dates:
+
+| Id | Wrong project (holds the 孤 anchor) | Own project (already holds it on a node) |
+| --- | --- | --- |
+| 10202065 | 中山254 — 孤, 2020-11-03 | 大安辛亥163 — node 631, 2020-11-03 |
+| 10906092 | 中山吉林898 — node 307, 2023-10-18 | 萬華莒光519-3 — no cache dir yet |
+| 09608220 | 信義犁和102 — 孤, 2009-01-15 | 信義犁和165 — node 1343, 2009-01-15 |
+| 09807161 | 大安龍泉169 — 孤, 2013-11-29 | 內湖康寧262 — node 1160, 2013-11-29 |
+
+A fifth id, 09511211, has the opposite shape: the label is right and the id is
+wrong. Both 吉林603 and 大安557 name it, and it is the city's 吉林603 case.
+It is the shape B of §8.
+
+**Measured, not guessed.** B5 shrank from the 4 that §36 recorded: one cleared.
+B2 shrank from 5 to 4: 萬華894's 11010191 has no orphan node, because its
+milestones carry an approval date, so it anchors to a recno node instead.
+B7 counts the same 4 defects that `docs/viewer-UX.md` §8 recorded. The ids differ
+between the two measurements only in what the id list holds: the payload has 189
+view-verified ids in 143 projects, and the cache has 193 in 146 caches. The 4
+defects are the same 4 in both.
 
 - P2.1: atomic lock acquire via `O_CREAT | O_EXCL` (replaces the tmp-and-replace
   race; Windows loser currently crashes with `PermissionError` instead of exit 5).
@@ -336,3 +384,74 @@ Suite baseline settled (the peer's 652 was a stale count predating
 `departures_from_descending`); no objection to the `links.py` pair (liveness
 coverage confirmed in `tests/test_fetch_remaining_portal.py`). Tasks `99fe037a`,
 `2abddaf7`, `494f6747`.
+
+## Appendix G — Batch B measurement (2026-11-03, at `2b96e5b`)
+
+The method and the raw counts behind the Batch B table. Read for detail or audit,
+not for execution.
+
+**Baseline.** The payload `viewer/projects.data.js` was emitted 2026-11-02
+(`generated_at 2026-11-02T20:31:21+08:00`): 1,442 records / 693 projects,
+`published_date 2026-10-15`. The link cache holds 726 dirs. The suite reads
+851 passed / 1 skipped (852 collected) at `2b96e5b`.
+
+**B1.** The selector `cached_cases_awaiting_approval` picks a project only when
+a cached case carries an application date and no approval date. The 336 project
+holds 3 cases, all with a 核定日期, and all cached as 已核准. It is not among
+the 89 candidates. Its cache has no `case_headers` key at all. A case filed on it
+after 2026-11-02 would not be found by the refresh.
+
+**B2.** 5 caches hold a `superseded_by` entry. 4 of the 5 superseded cases also
+appear in `links.orphan_nodes` with an empty `node_date`: 10410012 (吉林705-3),
+10806141 (虎林38), 11009142 (雅祥227-4), 11211211 (立農163-2). The 5th,
+11010191 (萬華894), has no orphan node: its milestones carry 核定日期
+2026/09/10, so the case anchors to recno 14 instead.
+
+**B3.** `discover_project_links` (`urtpe/links.py:554`) writes
+`city_case_ids`, `case_schedules`, `case_milestones`, `candidate_names`,
+`implementation` and `rewards`. It writes neither `case_headers` nor
+`superseded_by`. Only `refresh_project` writes those two. A `--fresh` run
+replaces the cache and loses both.
+
+**B4.** `scripts/refresh_awaiting_caches.py --dry-run` returns 89 candidates.
+The 4 stranded dirs are among them, and their projects are absent from the
+payload, so `load_search_keys` has no anchor for them and the refresh reports
+"not searched" every run.
+
+**B5.** A corpus-wide scan of the 726 caches: 1 case has a cached 審查中 and an
+approval date (大同764 09605032, 核定 2007/07/06). 3 cases have a cached
+已核准/已核定 and no approval date (臨沂318 10409104, 學府125 10611122,
+直興373 10405293). §36 recorded 4 and 3.
+
+**B6.** `refresh_project` pops the case from `case_schedules` when the derived
+status is empty. A project whose only open status clears keeps only terminal
+values, and the viewer then reads it as never-approved. The payload holds 3
+never-approved projects, the same count as before the refresh. The invariant
+holds by measurement, not by structure.
+
+**B7.** 143 payload projects carry `view_verified_case_ids`, 189 ids in all.
+Each id was matched to its label on the project's own `view.html`, the label's
+land core was extracted with `extract_landcore_from_case_name`, and the
+similarity was computed with `compute_landcore_similarity` against the
+project's own anchor land core. 4 ids score below 0.7. Every one of the 189
+labels has a land core, so none is undecidable.
+
+Two ids that `docs/viewer-UX.md` §8 listed do not fail this test:
+
+- 09905191 on 文山興安628-1 — the label names 興安段二小段628-1地號等12筆, which
+  is the project's own anchor. The cache also holds 09810242, whose name says
+  628地號等9筆, and that case sits in another project. The §8 scan read the
+  cache's first candidate name, not the anchor.
+- 09112120 (崇仁新村) — not a view-verified id in the payload. The city search
+  supplied it, and the project's `view_verified_case_ids` is empty. The spec's
+  parcel-less rule still needs a test.
+
+**B8.** The payload holds 596 orphan nodes. 3 have no `case_name`, so they have
+no stage and no track: 10202065 on 中山254, 09511211 on 大安557 (施工中),
+09807161 on 大安龍泉169. All 3 entered through `view_verified_case_ids`, and all
+3 belong to another project. The `viewer/app.js` comment that says
+"corpus: 0 post-harvest" is stale.
+
+**Order.** B7 must land before B8, and B8 must land before wave 5's orphan
+placement is trusted for those 3 nodes. B1 gates B2 and B5, because a full
+re-discovery changes which cases exist. B5 gates B6.

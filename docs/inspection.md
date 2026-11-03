@@ -296,7 +296,7 @@ and the city's own approval date equals the gazette row:
 | --- | --- | --- | --- |
 | 臨沂318 recno 143, 變更(第三次), 2025-04-16 | 10409102 (2023) | 10409104 | `uro_chk_date2` 2025-04-16 (header only; data2 empty) |
 | 犁和302 recno 281, 變更, 2023-12-28 | 10203251 (2019) | 10203253 | `Uro_Chk_Date2` 2023/12/28 |
-| 吉林705 recno 1370, 變更, 2008-03-10 | 09307100 (事業概要) | 09307103, 自行撤回, no date | — unresolved: the city says withdrawn, the gazette prints an approval |
+| 吉林705 recno 1370, 變更, 2008-03-10 | 09307100 (事業概要) | ~~09307103, 自行撤回~~ → **09307104** by 案名 (corrected 2026-11-04; see "C6 resolver") | data2 copies 09307101's 2010/01/08 |
 
 The probe also found 臨沂318's missing plan case 10409101 (2018-07-19).
 data2 returned 22–23 identical rows per case, so keeping the first value of
@@ -376,6 +376,42 @@ shows the wrong name (C10).
 So the 案名 match is the first rule for types 3–6, before any date drift
 window: exact city name, withdrawn (自行撤回) and status-無 cases excluded when
 an approved same-name sibling exists.
+
+**C6 resolver: every recno gets its case (measured 2026-11-04).** User rule:
+a recno always has a corresponding city case_id, so the fallback must find
+it, never guess or drop it. Simulated over all 71 fallback nodes
+(scratchpad `namematch3.py`, `probe19.py`), plus about 230 read-only
+gis.uro requests:
+
+| Step | How | Nodes resolved |
+| --- | --- | --- |
+| 1. Name over cached cases | tier 1 exact 案名; tier 2 loose (等, `(原N筆)`, 案及, 擬定, area suffix); tier 3 stage-with-ordinal + plan type. Skip 自行撤回/已失效; a 無 case yields to an approved same-name sibling; distinct area suffixes = area split | **52** — 21 single cases (18 correct the guess, 3 confirm it) + 31 area splits (the S8 set) |
+| 2. Same-day id probe | `get_project168_top` on `<first 7 digits>0–9` of every known id (cached + national 相關連結); accept on CASE_NAME + header date | **14** — 福和75 10008273, 犁和302 10203253, 南港19-1 10111131, 南港601 10406241, 南港566 r744 10708311, 新光101 09703181, 玉成166 r782 10203261+10203262 (area split, ids only on the national page), 玉成253 10405041, 玉成729 10812182, 玉成五1 10408183, 三玉328 10209163, 寶清599 09303270, 敦化585-11 10210171, 敦化449-12 10209291 |
+| 3. Header date on a cached case | the header's `uro_chk_date`/`uro_chk_date2` (S14) where data2 copies the plan case's date | **2** — 玉泉11 r1180 → 09504263 (header 2013-08-20 exact; data2 says 2008/05/15); 康寧626 r1019 → 09712204 (header 2016-11-12, 10 days off, same 變更(第二次)) |
+| 4. Parcel search on every parcel | `Get_updcase_list` on each parcel of the node, not only `first_parcel` (`urtpe/links.py:596`) | **3** — 南港566 r1063 → 10006032 (parcel 567; 566 returns only the latest case; header 2016-02-25 exact); 金華455-3 r1397 → 09201071 (old first parcel 508; 2007-05-01 exact); 萬慶483-3 r1305 → 09408232 (parcel 459; 2010-03-08 exact) |
+
+Result: **71 of 71** nodes get a case; 70 by exact date, 1 (康寧626) by
+stage + a 10-day drift. No node needs the positional fallback or a removed
+badge.
+
+Two facts the probe corrected:
+
+- **Case ids are a city-wide daily serial (ROC date + digit), not a
+  per-project batch.** 10203252 is 中山111, 10405042 is 玉成253-1 (same date as
+  玉成253's 10405041), 11502010–18 are nine other projects. A same-day id is a
+  candidate only; CASE_NAME must match the node's land core. S12's ≥0.85
+  land-core check is required, not optional.
+- **The single-parcel search misses cases.** After a site shrink or a parcel
+  renumber, the first parcel returns only the newest cases. Searching every
+  parcel of the node until a name + date match is found closes the gap at a
+  cost of a few searches per missing node.
+
+Resolver order for S10 (and for R's new cases): candidates = cached cases ∪
+national 相關連結 ids ∪ same-day ids ∪ all-parcel search results; approval
+date = header ∪ data2; bind by name, then date (exact, ±1), then stage +
+drift; bind all cases of an area split. Positional fallback is removed. A
+node that still has no case is reported by name in the run report (none
+today).
 
 **C8 in detail (rule decided 2026-11-04).** The user's rule: 建照, 開工 and
 使照 always live on the first 擬訂 plan case (`^擬訂.*都市更新(事業計畫|事業計畫及權利變換計畫)案`).
@@ -537,7 +573,7 @@ latent risk.
 | S7 | P2 | C5 | **merged into S15 (user decision 2026-11-04)** — the flag-only plan is replaced by the building-permit adapter. What S7 kept: the range guard in `fmtDate` and the ROC converters (a year in the future renders as the raw text plus a warning), which ships inside S15 | — |
 | S8 | P1 | C6 (types 1–2) | openspec change `bind-area-split-cases` — a recno binds every same-date case of its area split; their twin orphans fold in. Pipeline (`urtpe/links.py:2073`) + re-emit; 31 nodes, 56 cases, 15 projects | S0 |
 | S9 | P1 | C7 | direct `fix:` — `buildRelatedLinkLabels` labels each case with its own city name; ships with or before S8, so two cases on one node read apart | — |
-| S10 | P2 | C6 (types 3–6) | openspec change — the remaining 40 fallback nodes. First rule: exact 案名 match, excluding 自行撤回 and status-無 cases that have an approved same-name sibling (see "C6 user resolutions") | user decision, R |
+| S10 | P1 | C6 (types 3–6) | openspec change `resolve-recno-case` — replaces the positional fallback with the 4-step resolver (name, same-day id probe, header date, all-parcel search); measured 71 of 71 resolved. Absorbs S12 and S14 for the C6 part. See "C6 resolver" | S0, S8 |
 | S16 | P1 | C10 | direct `fix:` — store the national page `<title>` as `twur_name` (re-parse the cached `view.html`, no request) and label 國 with it; re-emit | — |
 | S11 | P2 | C8 (a) | openspec change `dates-follow-plan-case` — construction dates come from the first 擬訂 plan case (per area); D5 keeps the statistics only. Emit-side, no fetch: recovers 開工/使照 on 8 national-only projects at once | S0 |
 | S12 | P2 | C8 (b) | discovery finds the cases the parcel search misses: a sibling-id probe over each cached case's 10-id batch, accepted at land-core similarity ≥ 0.85, every find reported. Measured: 7 missing 擬訂 plan cases + 2 missing 變更 siblings; 3 plan cases need a second source (national 相關連結 or a section name search). Folds into R | S11 |
@@ -644,15 +680,16 @@ portal dates and the flag.
   or R refreshes 11 caches that are about to merge.
 - S15 (with S7 merged in) needs only S0: it downloads open data and needs no
   gis.uro requests, so it does not compete with R for the rate limit.
-- S10 waits on the decision below and on R, because types
-  5–6 need cases that only discovery can find.
+- S10 no longer waits on a decision or on R: its resolver finds the missing
+  cases itself (about 230 requests for today's 71 nodes). It runs after S8,
+  and R reuses the same resolver for new cases.
 
 ### Decisions waiting on the user (Batch B + C)
 
 | Entry | Question | Blocks |
 | --- | --- | --- |
 | ~~C6 / S8~~ | **Decided 2026-11-03** for the 31 area-split ties: one approved recno binds every same-date case of its area split (the user's 吉林508 / 榮星53 examples) | ~~S8~~ unblocked |
-| C6 / S10 | The fallback nodes left after S8, S12, S14 and the 案名 match (about 10): mark the guessed 北 badge, or remove it until a case is found? | S10 |
+| ~~C6 / S10~~ | **Superseded 2026-11-04** by the user rule "every recno has a case_id": the resolver finds a case for all 71 fallback nodes, so no badge is guessed or removed | ~~S10~~ unblocked |
 | ~~C5 / S7~~ | **Decided 2026-11-04**: the building-permit adapter (S15) replaces the flag-only plan; flags remain only where no permit matches | ~~S7~~ merged into S15 |
 | ~~S3~~ | **Resolved 2026-11-04**: the other session implemented and archived the change itself; S3a records the one residual | — |
 | ~~R~~ | **Decided 2026-11-04**: resumable slices with a checkpoint; slices write the cache only; one emission after the last slice | ~~R run~~ unblocked |

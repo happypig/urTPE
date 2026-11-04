@@ -355,9 +355,16 @@ function buildConstructionChain(p) {
   for (const slot of CONSTRUCTION_CHAIN_SLOTS) {
     let value = taipei[slot] || "";
     const natLabel = NATIONAL_MAPPED_LABELS[slot];
-    const nationalHit = !!(natLabel && national[natLabel]);
-    if (!value && nationalHit) value = national[natLabel];
+    // D4a (inspection-batchD): the national source group is "使照 filled solely
+    // from 使用核發日期" (history-graph spec). A national page hit alongside a
+    // city date is corroboration (it keeps the 國 badge via natCorroborated),
+    // not a source: 287 corpus events drew a wrong 現況 → 使照 green edge
+    // because this flag ignored the city date.
+    const natCorroborated = !!natLabel && !!national[natLabel] && !!value;
+    const nationalHit = !value && !!(natLabel && national[natLabel]);
+    if (nationalHit) value = national[natLabel];
     if (!value) continue;
+    const natOnly = nationalHit;
     // national portal dates arrive in 民國 (110.10.25); taipei milestones in
     // slash-western (2023/04/27). Normalise BOTH to ISO at build time
     // (fix-graph-timeline-order D1): the timeline interleave compares date
@@ -375,13 +382,18 @@ function buildConstructionChain(p) {
         dateStr = `${slash[1]}-${slash[2].padStart(2, "0")}-${slash[3].padStart(2, "0")}`;
       }
     }
-    // provenance: implementation exact-match > milestones_source map >
-    // national-only; anchored slots name their owning record.
+    // provenance (D4a rule 1): milestones_source IS the per-date provenance
+    // (data2 for 建照, data3 for 開工/使照 via pick_implementation_payload C8a);
+    // the implementation payload is the D5 *statistics* pick — consulted only
+    // when the source map does not name the slot. Trying the payload first let
+    // 潭美579's 開工 jump to a different case (recno 1052) and split the chain.
     let provCase = "";
-    if (!nationalHit) {
-      const implField = IMPL_SOURCE_FIELDS[slot];
-      if (implCase && implField && impl[implField] === value) provCase = implCase;
-      else if (sourceMap[slot] && taipei[slot] === value) provCase = sourceMap[slot];
+    if (!natOnly) {
+      if (sourceMap[slot] && taipei[slot] === value) provCase = sourceMap[slot];
+      else {
+        const implField = IMPL_SOURCE_FIELDS[slot];
+        if (implCase && implField && impl[implField] === value) provCase = implCase;
+      }
     }
     const ownerRecno = provCase !== "" && anchoredByCase[provCase] !== undefined
       ? anchoredByCase[provCase] : null;
@@ -389,7 +401,12 @@ function buildConstructionChain(p) {
     const prov = provCase ? `案${provCase}${anchored ? `·編號${ownerRecno}` : ""}` : "";
     out.push({
       label: slot, date: dateStr, national: nationalHit, prov,
+      // natCorroborated: the national portal holds this date (history-graph
+      // scenario "National-mapped event shows the 國 badge") — drives the 國
+      // badge even when the slot is a city event. nationalHit slots are
+      // corroborated by construction.
       case: provCase, anchored, ownerRecno,
+      natCorroborated: natCorroborated || nationalHit,
       slot_idx: CONSTRUCTION_CHAIN_SLOTS.indexOf(slot),
     });
   }
@@ -1329,7 +1346,7 @@ function init() {
         const inner = `<circle r="6"></circle>
           <text class="event-label ${colorCls}" x="11" y="3">${escapeHtml(e.label)}：${escapeHtml(fmtDateReverse(e.date))}${escapeHtml(permitTxt)}</text>
           ${e.prov ? `<text class="chain-prov" x="11" y="14">${escapeHtml(e.prov)}</text>` : ""}
-          ${e.national ? `<foreignObject x="-5" y="-24" width="18" height="14"><div xmlns="http://www.w3.org/1999/xhtml"><span class="node-milestone-badge national" title="國土署里程碑">國</span></div></foreignObject>` : ""}`;
+          ${e.natCorroborated ? `<foreignObject x="-5" y="-24" width="18" height="14"><div xmlns="http://www.w3.org/1999/xhtml"><span class="node-milestone-badge national" title="國土署里程碑">國</span></div></foreignObject>` : ""}`;
         s += `<g class="event-node" transform="translate(${b.x},${b.y})">` +
           (href ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${inner}</a>` : inner) +
           `</g>`;

@@ -250,6 +250,82 @@ def test_national_dates_converted_to_western():
     )
 
 
+def test_shizhao_national_flag_requires_city_date_absent():
+    """D4a (inspection-batchD): the national source flag fires only when the
+    city slot is empty. 使照 with both a city date (milestones_taipei) and a
+    national corroboration (使用核發日期) is a TAIPEI event — one city group,
+    solid chain from 開工, no 現況 → 使照 edge — that keeps the 國 badge as
+    corroboration. Measured: 287 such events drew a wrong 現況 edge today."""
+    import subprocess, json
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    jsn = _js().replace("\r\n", "\n")
+    m_slots = re.search(r"const CONSTRUCTION_CHAIN_SLOTS = \[[^\n]*\];", jsn)
+    assert m_slots, "CONSTRUCTION_CHAIN_SLOTS not found"
+    m = re.search(r"function buildConstructionChain[\s\S]*?\n\}\n", jsn)
+    assert m, "buildConstructionChain not found"
+    m_mapped = re.search(r"const NATIONAL_MAPPED_LABELS = \{[^}]*\};", jsn)
+    assert m_mapped, "NATIONAL_MAPPED_LABELS not found"
+    prog = (m_slots.group(0) + "\n" + m_mapped.group(0) + "\n" + m.group(0) + """
+const p = {
+  nodes: [{recno: 1, date: "2010-01-01", links: {taipei: ["10000001"]}}],
+  implementation: {case_id: "10000001", Ulic_Date: "2019/09/10"},
+  links: {
+    milestones_taipei: {"使照核發日期": "2019/09/10"},
+    milestones_national: {"使用核發日期": "108.09.10"},
+  },
+};
+const ev = buildConstructionChain(p);
+const s = ev.find(e => e.label === "使照核發日期");
+if (!s || s.national !== false) throw new Error("city-dated 使照 must not be national");
+if (!s.natCorroborated) throw new Error("city-dated 使照 must keep the 國 corroboration flag");
+const p2 = {nodes: p.nodes, links: {milestones_taipei: {}, milestones_national: {"使用核發日期": "108.09.10"}}};
+const s2 = buildConstructionChain(p2).find(e => e.label === "使照核發日期");
+if (!s2 || s2.national !== true || s2.natCorroborated !== true) throw new Error("national-only 使照 must be national and corroborated");
+""")
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr
+    print(r.stdout)
+
+
+def test_construction_chain_prefers_source_map_provenance():
+    """D4a rule 1: milestones_source is the per-date provenance (data2 for
+    建照, data3 for 開工/使照). The implementation payload is the statistics
+    pick, not a date source — checked only when the source map does not name
+    the slot. 潭美579's 開工 matched the statistics payload of a different
+    case and split the chain."""
+    import subprocess, json
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    jsn = _js().replace("\r\n", "\n")
+    m_slots = re.search(r"const CONSTRUCTION_CHAIN_SLOTS = \[[^\n]*\];", jsn)
+    assert m_slots, "CONSTRUCTION_CHAIN_SLOTS not found"
+    m = re.search(r"function buildConstructionChain[\s\S]*?\n\}\n", jsn)
+    prog = (m_slots.group(0) + "\nconst NATIONAL_MAPPED_LABELS = {};\n" + m.group(0) + """
+const p = {
+  nodes: [{recno: 1, date: "2013-07-11", links: {taipei: ["09809151"]}},
+          {recno: 2, date: "2016-05-24", links: {taipei: ["10209171"]}}],
+  implementation: {case_id: "10209171", Eng_Start_Date: "2017/03/13"},
+  links: {
+    milestones_taipei: {"建照核發日期": "2016/12/26", "開工日期": "2017/03/13", "使照核發日期": "2020/06/12"},
+    milestones_national: {},
+    milestones_source: {"建照核發日期": "09809151", "開工日期": "09809151", "使照核發日期": "09809151"},
+  },
+};
+const ev = buildConstructionChain(p);
+console.log(JSON.stringify(ev.map(e => [e.label, e.case, e.anchored, e.ownerRecno])));
+const kai = ev.find(e => e.label === "開工日期");
+if (!kai || kai.case !== "09809151") throw new Error("source map must win the 開工 provenance over the statistics payload");
+const shi = ev.find(e => e.label === "使照核發日期");
+if (!shi || shi.case !== "09809151") throw new Error("使照 must stay in the 09809151 group");
+""")
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr
+    print(r.stdout)
+
+
 def test_source_group_edges_and_hyperlink_rule():
     js = _js()
     body = re.search(

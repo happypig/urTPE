@@ -433,7 +433,7 @@ latent risk.
 | S12 | P2 | C8 (b) | **merged into S10 (2026-11-04 review)** — the same-day id probe is resolver step 2; the 7 missing 擬訂 plan cases are among its 14 finds. Correction: case ids are a city-wide daily serial, not a per-project batch, so a same-day id is accepted only on CASE_NAME + date | — |
 | S13 | P2 | C9 | **DONE + ARCHIVED 2026-11-04** (`merge-across-count-shrink` → archive `2026-11-04-merge-across-count-shrink`): `score()` drops the Jaccard term when district + section + first parcel match and one record's `orig_count` equals the other's `land_count` (the gazette's own `(原N筆)`), normalising the surviving weights like the empty-parcel rule. Full PDF re-merge: 1,442 records / **682 projects** (was 693) — all 11 pairs merged, one national page each; `data/project_aliases.json` rebuilt (11 entries, 0 ambiguous, 0 unmatched), the cache dirs resolve through it at read time. Smoke + baseline pass | S0 |
 | S14 | P1 | C6 (types 5–6) | **merged into S10 (2026-11-04 review)** — the header dates are resolver step 3 (玉泉11 09504263, 康寧626 09712204 need them) | — |
-| S15 | P2 | C5 | openspec change `building-permit-adapter` — **replaces S7 (user decision 2026-11-04).** The building authority's 使用執照摘要 (data.taipei) is the third source for 使照, matched by parcel; the permit date is shown and the disagreeing portal value is flagged. Corrects 17 of 22 disagreements, confirms 12 of 13 national-only dates; only the unmatched cases (5 + 1) keep both portal dates and a flag. Includes the `fmtDate` range guard. See "S15 exploration" | S0, S11 |
+| S15 | P2 | C5 | **DONE + ARCHIVED 2026-11-04** (`building-permit-adapter` → archive `2026-11-04-building-permit-adapter`): `urtpe/permit_sources.py` parses the 使用執照摘要 open data (8,946 permits, ROC 90–115, cached under the archive root by SHA-256); the attach path carries `links.permit` (402 projects) and flags the **21 remaining disagreements** — 城市值證實 8, 國源值證實 10, 執照皆不符 2, 無執照佐證 1 (榮星306; the 12 former national-only projects left the group via S11's second run) — neither portal is uniformly right. The viewer names the permit beside the 使照 slot; `fmtDate` renders an out-of-range ROC year verbatim (橋北574-1's `291.08.02`, was 2202). Suite 950 passed / 1 skipped; smoke + baseline pass | S0, S11 — done |
 
 **R change detection (design, recorded 2026-11-04).** No city endpoint
 returns a per-case "last modified" date. The 40 endpoints in
@@ -519,7 +519,7 @@ portal dates and the flag.
 | 0 | S0 **DONE 2026-11-04** | none |
 | 1 | S1, S2, S3a **DONE**; S4, S5, S9, S11(first run) **DONE + ARCHIVED** | none |
 | 2 | S10, S13, S11(second run) **ALL DONE + ARCHIVED** (`resolve-recno-case` → `2026-11-04-resolve-recno-case`, `merge-across-count-shrink` → `2026-11-04-merge-across-count-shrink`): the resolver bound all 74 fallback nodes (live sweeps ≈700 read-only gis.uro requests); the count-shrink bridge merged all 11 split pairs (693 → 682 projects, 1,442 records kept); S11's second run recovered 新光101/寶清599/敦化585-11's construction dates | ~700 gis.uro requests, one-off |
-| 3 | S15 `building-permit-adapter` **PROPOSED**; R in slices; S6 last | data.taipei (S15); gis.uro (R) |
+| 3 | S15 **DONE + ARCHIVED**; R `refresh-whole-corpus` in slices (in flight); S6 last | data.taipei (S15, downloaded once); gis.uro (R) |
 
 - S0 first, because every later change writes a delta against specs that do
   not exist yet in `openspec/specs/`.

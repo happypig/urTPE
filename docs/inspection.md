@@ -31,7 +31,7 @@ G1–G5 · 2026-11-03 Batch B, the §37/§38 residuals collected for batch treat
 | Batch B | 8 findings queued, 0 executed (§37/§38 residuals) — see `docs/inspection-batchBC.md` |
 | Batch C | 10 findings (C1–C10); C3 done, 9 queued (post-viewer-UX gaps) — see `docs/inspection-batchBC.md` |
 | Batch B + C plan | re-reviewed 2026-11-04: S0–S16 + R in 4 waves; S7, S8, S12, S14, S16 merged into other steps; S3 done; no user decision open — see `docs/inspection-batchBC.md` |
-| Batch D | collected 2026-11-04: D1 (orphan `milestones_national` holds Taipei data), D2 (ghost-date echo + the date-first sort revisit), D3 (國 key bug: 223 later-變更 labels never bind) — see `docs/inspection-batchD.md` |
+| Batch D | collected 2026-11-04: D1 (orphan `milestones_national` holds Taipei data), D2 (ghost-date echo + the date-first sort revisit), D3 (國 key bug: 223 later-變更 labels never bind), D4 (list badges, filters, 使照 edge bug: 287 events drawn national, edges out of dead ends) — see `docs/inspection-batchD.md` |
 | openspec | 4 changes done but unarchived; 3 fail `openspec validate` (fixed by S0) |
 
 ## Execution order — the integrated plan

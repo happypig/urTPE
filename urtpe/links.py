@@ -3067,9 +3067,26 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
             "milestones_national": disc.national_milestones.copy(),
             "milestones_taipei": disc.taipei_milestones.copy(),
         }
-        source_map = getattr(disc, "milestones_source", None) or {}
+        source_map = dict(getattr(disc, "milestones_source", None) or {})
+        # D4a (2026-11-05): a payload round-trip carries the merged dict, so a
+        # --from-js rebuild cannot see the per-case order the live merge used.
+        # Re-derive the credit ONLY for labels whose per-case values agree on
+        # one date across carriers (the equal-value case the first-holder rule
+        # governs — 榮星53's shared 建照); a label whose carriers disagree is
+        # a live last-write-wins whose true order the payload cannot restore,
+        # so its round-tripped credit stands.
+        per_case = getattr(disc, "case_milestones", None) or {}
+        if per_case:
+            for label in list(source_map):
+                holders = [cid for cid in disc.city_case_ids
+                           if label in (per_case.get(cid) or {})]
+                if len(holders) < 2:
+                    continue
+                values = {per_case[cid][label] for cid in holders}
+                if len(values) == 1:
+                    source_map[label] = holders[0]
         if source_map:
-            project.links["milestones_source"] = dict(source_map)
+            project.links["milestones_source"] = source_map
         if getattr(disc, "case_milestones", None):
             project.links["case_milestones"] = {
                 k: dict(v) for k, v in disc.case_milestones.items()

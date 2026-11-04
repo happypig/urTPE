@@ -75,7 +75,11 @@ that names an unrecognised outcome SHALL keep the cached status, except that a
 cached approved-family status on a case whose own milestones carry no approval
 date SHALL be cleared. A missing header row is no evidence and SHALL change
 nothing. The refresh SHALL record the header `NAME` it read per case in the
-cache, so the offline selection can see it.
+cache, so the offline selection can see it, and SHALL record the header's
+`uro_chk_date` / `uro_chk_date2` beside the `NAME` when the header carries
+them, so the node resolver can read the header as a second approval source
+offline (the city's data2 sometimes copies another case's approval date —
+玉泉11's 09504263, 吉林705's 09307104).
 
 For a case whose header reads `無`, the refresh SHALL record which case
 superseded it when exactly one other case of the project has the identical
@@ -93,13 +97,15 @@ reported by name as having no successor found.
 
 Before re-reading its cases, the refresh SHALL repeat the parcel search the
 project's discovery used — the anchor record's 地段, first 地號 and 案名, with the
-same name guard — and SHALL append every case id it returns that the cache does
-not hold to the end of the cache's case list, without re-ordering the existing
-ids, because the positional fallback binds by index. Each added case SHALL be
-re-read like the others and reported with its search status and header. A
-failed search SHALL be reported as a failure of that project, not as a search
+same name guard — and SHALL append every case id it returns that the cache
+does not hold to the end of the cache's case list, without re-ordering the
+existing ids. Each added case SHALL be re-read like the others and reported
+with its search status and header. A failed search SHALL be reported as a failure of that project, not as a search
 that found nothing; a project with no anchor 地段 / 地號 SHALL be reported as not
-searched.
+searched. The refresh's added cases and the resolver's probe/search finds
+share one rule: a case id is appended, never inserted, and a later emission
+binds nodes to cases by the resolver's name-and-date steps, not by list
+position.
 
 The run report SHALL list cases closed without approval, cases superseded (with
 their successor), `無` cases with no successor found, ambiguous cases, and added
@@ -154,7 +160,7 @@ cases, each separately from cases still awaiting approval.
 
 #### Scenario: A date the city withdrew leaves the cache
 
-- **WHEN** a cached case holds 申請計畫日期 and 申請核定日期, and the API now reports
+- **WHEN** a cached case holds 申請計畫日期 and 申請核定日期， and the API now reports
   only 申請計畫日期 (光華段四小段-282 shape)
 - **THEN** the refreshed case holds only 申請計畫日期
 - **AND** the report names 申請核定日期 as removed for that case
@@ -172,7 +178,7 @@ cases, each separately from cases still awaiting approval.
 
 #### Scenario: An in-review case's stale approved status is corrected
 
-- **WHEN** a cached case's status is 已核准, it has no approval date, and its header
+- **WHEN** a cached case's status is 已核准， it has no approval date, and its header
   `NAME` is `權利變換計畫階段─申請報府核定中` (中正段一小段-68 10406283)
 - **THEN** its refreshed status is 審查中
 - **AND** the report names the case, 已核准 → 審查中 and the `NAME`
@@ -210,13 +216,13 @@ cases, each separately from cases still awaiting approval.
 
 #### Scenario: An outcome-less NAME clears a contradicted approved status
 
-- **WHEN** a cached case's status is 已核准, its own milestones carry an application
+- **WHEN** a cached case's status is 已核准， its own milestones carry an application
   date and no approval date, and its header `NAME` names no recognised outcome
 - **THEN** its status is cleared, and the report names the change
 
 #### Scenario: A re-filed case is recorded as superseded
 
-- **WHEN** a case's header reads `無`, and one other case of the project has the same
+- **WHEN** a case's header reads `無`， and one other case of the project has the same
   header case name, a greater case id, and milestones containing all of the first
   case's dated labels with the same dates (11211211 → 11409026)
 - **THEN** the cache records 11211211 as superseded by 11409026
@@ -235,8 +241,8 @@ cases, each separately from cases still awaiting approval.
 
 #### Scenario: A re-filed case whose later steps were re-run is recorded as superseded
 
-- **WHEN** a case's header reads `無`, and one other case of the project has the same
-  header case name, a greater case id and the same 申請計畫日期 / 申請權變日期, but
+- **WHEN** a case's header reads `無`， and one other case of the project has the same
+  header case name, a greater case id and the same 申請計畫日期 / 申請權變日期， but
   different 公告公展日期 (11009142 → 11510001)
 - **THEN** the cache records 11009142 as superseded by 11510001
 - **AND** the report names 公告公展日期 among the dates that differ
@@ -258,7 +264,7 @@ cases, each separately from cases still awaiting approval.
 
 #### Scenario: A 無 or superseded case does not make its project a candidate
 
-- **WHEN** a project's only awaiting case has a recorded header `無`, or is recorded
+- **WHEN** a project's only awaiting case has a recorded header `無`， or is recorded
   as superseded
 - **THEN** the project is not selected
 
@@ -293,6 +299,14 @@ cases, each separately from cases still awaiting approval.
 - **WHEN** a selected project's refreshed case header reads `…實施者自行撤回`
 - **THEN** the run report lists that case as closed without approval, not as still
   awaiting approval
+
+#### Scenario: The refresh stores the header's approval dates beside the NAME
+
+- **WHEN** the header fetch returns a row whose `uro_chk_date` is 2013-08-20 while
+  the case's data2 核定日期 reads 2008/05/15 (玉泉11's 09504263)
+- **THEN** the refreshed cache records the header dates for that case
+- **AND** the node resolver can bind the case by the header date on the next
+  emission, without a request
 
 ### Requirement: The refreshed binding replaces the positional fallback for the affected nodes
 

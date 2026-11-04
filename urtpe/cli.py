@@ -25,7 +25,7 @@ from urtpe import ordering as ordering_mod
 from urtpe import report as report_mod
 from urtpe import tripwire as tripwire_mod
 from urtpe import viewer as viewer_mod
-from urtpe.archive import GazetteArchive
+from urtpe.archive import GazetteArchive, DEFAULT_ARCHIVE_ROOT
 from urtpe.links import FALLBACK_MAPPING_FILE  # the single path definition (P2.3)
 from urtpe.models import CleanRecord, Project
 
@@ -483,6 +483,13 @@ def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = No
     link_results = {}
     if links:
         from urtpe.coverage import coverage_guard
+        from urtpe import permit_sources
+
+        # building-permit-adapter (S15): the 使照 witness's index builds once
+        # per run (download cached under the archive root by SHA-256); a
+        # failed download reports and the run proceeds without the witness.
+        permit_index = permit_sources.load_permit_index(
+            archive_root or DEFAULT_ARCHIVE_ROOT)
 
         if playwright:
             print("[INFO] Running Playwright-based link discovery (experimental)...")
@@ -517,7 +524,8 @@ def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = No
         errors = sum(1 for r in link_results.values() if r.status == 'error')
         print(f"  Done: {resolved} resolved, {unresolved} unresolved, {errors} errors")
 
-    doc = graph_mod.build_graph_document(projects, meta, link_results)
+    doc = graph_mod.build_graph_document(projects, meta, link_results,
+                                         permit_index=(permit_index if links else None))
 
     # --- emission-fault check (wire-standing-checks) ------------------------
     # Called on every emission path, after link data would have been attached

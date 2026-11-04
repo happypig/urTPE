@@ -17,6 +17,12 @@ from pathlib import Path
 from typing import Optional
 
 from urtpe.models import CleanRecord, Project
+from urtpe.permit_sources import (
+    build_permit_index,
+    match_project_permits,
+    parse_permit_xml,
+    permit_review_flags,
+)
 from urtpe.taipei_playwright import TaipeiPlaywrightSearcher, TaipeiSearchResult
 
 
@@ -2988,10 +2994,13 @@ def _flag_fragment_families(projects: list[Project], candidates: dict[str, tuple
 
 
 def attach_links_to_projects(projects: list[Project], discovered: dict,
-                             probe_headers: dict | None = None) -> None:
+                             probe_headers: dict | None = None,
+                             permit_index_getter=None) -> None:
     """Attach discovered links; probe_headers is the resolver's offline memo
     ({case_id: header row}) from earlier probing runs — production emits it
-    from the sweep driver, tests pass doubles."""
+    from the sweep driver, tests pass doubles. ``permit_index_getter`` is a
+    zero-arg callable returning the building authority's permit index (or
+    None); called once per project so the index builds lazily on first use."""
     disc_by_pid = {}
     for k, v in discovered.items():
         if hasattr(v, 'project_id'):
@@ -3285,6 +3294,50 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
                 # sorted at publication, not at build: the build order follows the
                 # concurrent Taipei fetches, and two runs must emit the same file
                 project.links["orphan_nodes"] = _sorted_orphan_nodes(orphan_nodes)
+
+        # building-permit-adapter (S15, C5): the building authority's 使用執照
+        # 摘要 witnesses the 使照 date the two portals copy. The index is the
+        # caller's (downloaded once per run under the archive root); a project
+        # without a permit entry or without both portal dates stays unflagged
+        # — the witness never repairs (design D4).
+        permit_index = permit_index_getter() if permit_index_getter else None
+        if permit_index:
+            project_parcels = []
+            seen_parcel: set = set()
+            for member_p in project.members:
+                section_p = getattr(member_p, "section", "") or ""
+                district_p = getattr(member_p, "district_land", "") or getattr(member_p, "district", "") or ""
+                for parcel in getattr(member_p, "parcels", None) or []:
+                    mono = str(parcel).partition("-")[0]
+                    key = (district_p.replace(section_p[:len(district_p)], "", 1)
+                           if district_p and section_p.startswith(district_p) and district_p
+                           else district_p, section_p, mono)
+                    if key not in seen_parcel:
+                        seen_parcel.add(key)
+                        project_parcels.append(key)
+            if project_parcels:
+                try:
+                    permits = match_project_permits(permit_index, project_parcels)
+                except Exception:
+                    permits = []
+                if permits:
+                    best = permits[0]
+                    project.links["permit"] = {
+                        "permit_no": best.permit_no,
+                        "date": best.date,
+                        "permits": [p.permit_no for p in permits],
+                    }
+                mt = project.links.get("milestones_taipei") or {}
+                mn = project.links.get("milestones_national") or {}
+                flags = permit_review_flags(
+                    mt.get("使照核發日期", ""), mn.get("使用核發日期", ""), permits)
+                if flags:
+                    anchor = next(
+                        (m for m in project.members
+                         if m.recno == project.anchor_recno), project.members[0])
+                    for flag in flags:
+                        if flag not in anchor.review_flags:
+                            anchor.review_flags = list(anchor.review_flags) + [flag]
 
     # §6.8: after node anchoring, surface fragment families as merge
     # candidates (review flags on anchor records; no family mutation).

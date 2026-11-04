@@ -140,10 +140,13 @@ def build_project_graph(project: Project, implementer: str, name: str, published
     return graph
 
 
-def build_graph_document(projects: list[Project], meta: dict, link_results: dict | None = None) -> dict:
+def build_graph_document(projects: list[Project], meta: dict, link_results: dict | None = None,
+                         permit_index: dict | None = None) -> dict:
     # Attach discovered links to projects if available
     if link_results:
-        attach_links_to_projects(projects, link_results)
+        attach_links_to_projects(
+            projects, link_results,
+            permit_index_getter=(lambda: permit_index) if permit_index else None)
 
     graphs = []
     published_date = meta.get("published_date", "")

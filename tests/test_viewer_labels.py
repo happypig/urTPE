@@ -607,3 +607,51 @@ console.log(JSON.stringify({byCase: r.byCase, anchorName: r.anchorName}));
     assert out["byCase"]["09307100"] == "擬訂臺北市中山區吉林段四小段705地號等47筆土地都市更新事業概要案", out["byCase"]
     assert out["byCase"]["09307101"] == "變更臺北市中山區吉林段四小段705地號等47筆土地都市更新事業計畫及擬訂權利變換計畫案", out["byCase"]
     assert out["anchorName"] == "擬訂臺北市中山區吉林段四小段705地號等47筆土地都市更新事業計畫案", out["anchorName"]
+
+
+def test_fmt_date_rejects_an_out_of_range_roc_year():
+    """S15 D5: 橋北574-1's 291.08.02 rendered 2202 — an ROC year above the
+    current 民國 year is a source typo; it renders verbatim. A normal ROC
+    year still converts."""
+    import subprocess, json
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    js = APP_JS.read_text(encoding="utf-8").replace("\r\n", "\n")
+    m = re.search(r"(function currentRocYear\(\) \{[\s\S]*?\n\}\n)(function fmtDate\(text\) \{[\s\S]*?\n\}\n)", js)
+    assert m, "fmtDate + currentRocYear must exist in app.js"
+    prog = (m.group(1) + "\n" + m.group(2) + "\n"
+        + """
+console.log(JSON.stringify([
+  fmtDate("291.08.02"),          // out-of-range ROC year: verbatim
+  fmtDate("111.08.02"),          // a normal ROC year converts
+  fmtDate("115.09.24"),          // the current 民國 year converts
+  fmtDate("2022/08/02"),         // slash-western converts
+]));
+""")
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True,
+                       encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout)
+    assert out[0] == "291.08.02", f"out-of-range renders verbatim: {out[0]}"
+    assert out[1] == "2022-08-02", f"a normal ROC year converts: {out[1]}"
+    assert out[2] == "2026-09-24", f"the current year converts: {out[2]}"
+    assert out[3] == "2022-08-02", f"slash-western converts: {out[3]}"
+
+
+def test_the_permit_witness_reaches_the_event_label():
+    """S15: the 使照 event's label names the building authority's permit when
+    the project carries links.permit."""
+    import subprocess, json
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    js = APP_JS.read_text(encoding="utf-8").replace("\r\n", "\n")
+    if "執照${permit.permit_no" not in js and "執照" not in js:
+        pytest.fail("the permit witness not implemented yet (S15 test-first)")
+    # structural: the render path reads links.permit beside the 使照 slot
+    assert "}).permit || null" in js, "the render path must read links.permit"
+    i = js.index("}).permit || null")
+    span = js[max(0, i - 600):i + 600]
+    assert "使照核發日期" in span, "the witness rides the 使照 slot"
+    assert "permit_no" in span and "permit.date" in span, "the label carries the permit number and date"

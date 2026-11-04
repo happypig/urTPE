@@ -147338,16 +147338,20 @@
             }
           },
           "implementation": {
+            "Eng_Start_Date": "2009/10/16",
+            "Ulic_Date": "2012/03/14",
             "Exe_Way": "權利變換",
             "Base_Area": "7426.0",
             "Old_Doors": "266.0",
             "Settle_Old_Doors": "266.0",
+            "Settle_Doors": "0.0",
             "New_Parkings2": "277.0",
             "New_Parkings": "185.0",
             "Welfare_Area": "0.0",
+            "Road_Cost": "0.0",
             "Road_Length": "0.0",
             "Road_Area": "0.0",
-            "Sidewalk_Length": "217.83",
+            "Sidewalk_Length": "271.8",
             "Sidewalk_Area": "435.65",
             "Urban_Renew_Fee": "1845845576.0",
             "pc_afterUpdTotalValue": "4445188614.0",
@@ -147359,13 +147363,12 @@
             "Bui_Owners_Legal": "0.0",
             "Landkind1": "第二種住宅區",
             "Landkind2": "第三種住宅區",
-            "Landkind3": "0.00",
             "Landkind1_Area": "4378.0",
             "Landkind2_Area": "3048.0",
             "Landkind3_Area": "0.0",
-            "StateLand1_Owner": "臺北市都市發展局",
+            "StateLand1_Owner": "臺北市政府都市發展局",
             "StateLand1_Area": "56.67",
-            "case_id": "09703183"
+            "case_id": "09703181"
           }
         },
         {
@@ -147661,7 +147664,9 @@
           "召開審議會日期": "2011/09/05",
           "權變召開審議會日期": "2011/09/05",
           "核定日期": "2012/03/05",
-          "權變核定日期": "2012/03/05"
+          "權變核定日期": "2012/03/05",
+          "開工日期": "2009/10/16",
+          "使照核發日期": "2012/03/14"
         },
         "milestones_source": {
           "申請計畫日期": "09703186",
@@ -147673,7 +147678,9 @@
           "召開審議會日期": "09703185",
           "權變召開審議會日期": "09703185",
           "核定日期": "09703186",
-          "權變核定日期": "09703186"
+          "權變核定日期": "09703186",
+          "開工日期": "09703181",
+          "使照核發日期": "09703181"
         },
         "case_milestones": {
           "09703183": {
@@ -147748,16 +147755,20 @@
       },
       "published_date": "2026-10-15",
       "implementation": {
+        "Eng_Start_Date": "2009/10/16",
+        "Ulic_Date": "2012/03/14",
         "Exe_Way": "權利變換",
         "Base_Area": "7426.0",
         "Old_Doors": "266.0",
         "Settle_Old_Doors": "266.0",
+        "Settle_Doors": "0.0",
         "New_Parkings2": "277.0",
         "New_Parkings": "185.0",
         "Welfare_Area": "0.0",
+        "Road_Cost": "0.0",
         "Road_Length": "0.0",
         "Road_Area": "0.0",
-        "Sidewalk_Length": "217.83",
+        "Sidewalk_Length": "271.8",
         "Sidewalk_Area": "435.65",
         "Urban_Renew_Fee": "1845845576.0",
         "pc_afterUpdTotalValue": "4445188614.0",
@@ -147769,18 +147780,21 @@
         "Bui_Owners_Legal": "0.0",
         "Landkind1": "第二種住宅區",
         "Landkind2": "第三種住宅區",
-        "Landkind3": "0.00",
         "Landkind1_Area": "4378.0",
         "Landkind2_Area": "3048.0",
         "Landkind3_Area": "0.0",
-        "StateLand1_Owner": "臺北市都市發展局",
+        "StateLand1_Owner": "臺北市政府都市發展局",
         "StateLand1_Area": "56.67",
-        "case_id": "09703183",
+        "case_id": "09703181",
         "review_flags": [
-          "payload Sidewalk_Length conflicts across cases: 09703183=217.83 vs 09703186=212.82",
-          "payload Urban_Renew_Fee conflicts across cases: 09703183=1845845576.0 vs 09703186=1847332114.0",
-          "payload Sidewalk_Length conflicts across cases: 09703183=217.83 vs 09703186=212.82",
-          "payload Urban_Renew_Fee conflicts across cases: 09703183=1845845576.0 vs 09703186=1847332114.0"
+          "payload Sidewalk_Length conflicts across cases: 09703181=271.8 vs 09703183=217.83",
+          "payload Sidewalk_Length conflicts across cases: 09703181=271.8 vs 09703186=212.82",
+          "payload Urban_Renew_Fee conflicts across cases: 09703181=1845845576.0 vs 09703186=1847332114.0",
+          "payload StateLand1_Owner conflicts across cases: 09703181=臺北市政府都市發展局 vs 09703183=臺北市都市發展局",
+          "payload Sidewalk_Length conflicts across cases: 09703181=271.8 vs 09703183=217.83",
+          "payload Sidewalk_Length conflicts across cases: 09703181=271.8 vs 09703186=212.82",
+          "payload Urban_Renew_Fee conflicts across cases: 09703181=1845845576.0 vs 09703186=1847332114.0",
+          "payload StateLand1_Owner conflicts across cases: 09703181=臺北市政府都市發展局 vs 09703183=臺北市都市發展局"
         ]
       },
       "rewards": {
@@ -147808,7 +147822,9 @@
         "review_flags": [
           "payload F conflicts across cases: 09703183=24484.9 vs 09703185=0.0",
           "payload F conflicts across cases: 09703183=24484.9 vs 09703186=12111.6",
-          "payload F0 conflicts across cases: 09703183=24484.9 vs 09703186=12111.6"
+          "payload F conflicts across cases: 09703183=24484.9 vs 09703181=24482.56",
+          "payload F0 conflicts across cases: 09703183=24484.9 vs 09703186=12111.6",
+          "payload F0 conflicts across cases: 09703183=24484.9 vs 09703181=24482.56"
         ]
       }
     },
@@ -275208,29 +275224,41 @@
             }
           },
           "implementation": {
+            "Eng_Start_Date": "2006/10/17",
+            "Ulic_Date": "2009/03/31",
             "Exe_Way": "協議合建",
-            "Base_Area": "3886.0",
+            "Base_Area": "2011.0",
+            "Old_Doors": "39.0",
+            "Settle_Old_Doors": "0.0",
+            "Settle_Doors": "0.0",
             "New_Parkings2": "234.0",
             "New_Parkings": "139.0",
             "Welfare_Area": "0.0",
             "Road_Cost": "0.0",
             "Road_Length": "0.0",
             "Road_Area": "0.0",
-            "Road_Eng_Fee": "0.0",
             "Sidewalk_Length": "32.46",
             "Sidewalk_Area": "97.38",
-            "Urban_Renew_Fee": "1042892388.0",
+            "Urban_Renew_Fee": "1020042388.0",
+            "pc_afterUpdTotalValue": "3214652710.0",
             "Private_Area": "1946.33",
             "State_Area": "0.0",
             "Muni_Area": "64.67",
-            "Land_Owners_Pir": "2.0",
+            "Land_Owners_Pir": "3.0",
             "Land_Owners_Pub": "1.0",
             "Bui_Owners_Legal": "3.0",
             "Landkind1": "聯合開發區(捷)",
-            "Landkind1_Area": "3886.0",
+            "Landkind1_Area": "2011.0",
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
-            "case_id": "09303271"
+            "StateLand1_Owner": "臺北市捷運工程局",
+            "StateLand1_Area": "64.67",
+            "StateLand2_Area": "0.0",
+            "StateLand3_Area": "0.0",
+            "StateLand4_Area": "0.0",
+            "StateLand5_Area": "0.0",
+            "StateLand6_Area": "0.0",
+            "case_id": "09303270"
           }
         },
         {
@@ -275365,7 +275393,9 @@
           "召開幹事會日期": "2007/07/23",
           "召開審議會日期": "2007/08/27",
           "核定日期": "2007/10/30",
-          "計畫公聽會日期": "2004/07/24"
+          "計畫公聽會日期": "2004/07/24",
+          "開工日期": "2006/10/17",
+          "使照核發日期": "2009/03/31"
         },
         "milestones_source": {
           "概要公聽會日期": "09303272",
@@ -275376,7 +275406,9 @@
           "召開幹事會日期": "09303271",
           "召開審議會日期": "09303271",
           "核定日期": "09303271",
-          "計畫公聽會日期": "09303272"
+          "計畫公聽會日期": "09303272",
+          "開工日期": "09303270",
+          "使照核發日期": "09303270"
         },
         "case_milestones": {
           "09303271": {
@@ -275459,32 +275491,54 @@
       },
       "published_date": "2026-10-15",
       "implementation": {
+        "Eng_Start_Date": "2006/10/17",
+        "Ulic_Date": "2009/03/31",
         "Exe_Way": "協議合建",
-        "Base_Area": "3886.0",
+        "Base_Area": "2011.0",
+        "Old_Doors": "39.0",
+        "Settle_Old_Doors": "0.0",
+        "Settle_Doors": "0.0",
         "New_Parkings2": "234.0",
         "New_Parkings": "139.0",
         "Welfare_Area": "0.0",
         "Road_Cost": "0.0",
         "Road_Length": "0.0",
         "Road_Area": "0.0",
-        "Road_Eng_Fee": "0.0",
         "Sidewalk_Length": "32.46",
         "Sidewalk_Area": "97.38",
-        "Urban_Renew_Fee": "1042892388.0",
+        "Urban_Renew_Fee": "1020042388.0",
+        "pc_afterUpdTotalValue": "3214652710.0",
         "Private_Area": "1946.33",
         "State_Area": "0.0",
         "Muni_Area": "64.67",
-        "Land_Owners_Pir": "2.0",
+        "Land_Owners_Pir": "3.0",
         "Land_Owners_Pub": "1.0",
         "Bui_Owners_Legal": "3.0",
         "Landkind1": "聯合開發區(捷)",
-        "Landkind1_Area": "3886.0",
+        "Landkind1_Area": "2011.0",
         "Landkind2_Area": "0.0",
         "Landkind3_Area": "0.0",
-        "case_id": "09303271",
+        "StateLand1_Owner": "臺北市捷運工程局",
+        "StateLand1_Area": "64.67",
+        "StateLand2_Area": "0.0",
+        "StateLand3_Area": "0.0",
+        "StateLand4_Area": "0.0",
+        "StateLand5_Area": "0.0",
+        "StateLand6_Area": "0.0",
+        "case_id": "09303270",
         "review_flags": [
-          "payload Base_Area conflicts across cases: 09303271=3886.0 vs 09303272=2011.0",
-          "payload Base_Area conflicts across cases: 09303271=3886.0 vs 09303272=2011.0"
+          "payload Base_Area conflicts across cases: 09303270=2011.0 vs 09303271=3886.0",
+          "payload Old_Doors conflicts across cases: 09303270=39.0 vs 09303272=0.0",
+          "payload Urban_Renew_Fee conflicts across cases: 09303270=1020042388.0 vs 09303271=1042892388.0",
+          "payload Land_Owners_Pir conflicts across cases: 09303270=3.0 vs 09303271=2.0",
+          "payload Land_Owners_Pir conflicts across cases: 09303270=3.0 vs 09303272=2.0",
+          "payload Landkind1_Area conflicts across cases: 09303270=2011.0 vs 09303271=3886.0",
+          "payload Base_Area conflicts across cases: 09303270=2011.0 vs 09303271=3886.0",
+          "payload Old_Doors conflicts across cases: 09303270=39.0 vs 09303272=0.0",
+          "payload Urban_Renew_Fee conflicts across cases: 09303270=1020042388.0 vs 09303271=1042892388.0",
+          "payload Land_Owners_Pir conflicts across cases: 09303270=3.0 vs 09303271=2.0",
+          "payload Land_Owners_Pir conflicts across cases: 09303270=3.0 vs 09303272=2.0",
+          "payload Landkind1_Area conflicts across cases: 09303270=2011.0 vs 09303271=3886.0"
         ]
       },
       "rewards": {
@@ -281177,6 +281231,8 @@
             }
           },
           "implementation": {
+            "Eng_Start_Date": "2017/02/18",
+            "Ulic_Date": "2020/01/02",
             "Exe_Way": "協議合建",
             "Base_Area": "4443.0",
             "Old_Doors": "0.0",
@@ -281185,21 +281241,25 @@
             "New_Parkings2": "194.0",
             "New_Parkings": "187.0",
             "Welfare_Area": "0.0",
+            "Road_Cost": "0.0",
+            "Road_Length": "0.0",
             "Road_Area": "0.0",
-            "Sidewalk_Area": "468.43",
+            "Road_Eng_Fee": "0.0",
+            "Sidewalk_Length": "120.73",
+            "Sidewalk_Area": "468.53",
             "Urban_Renew_Fee": "3188256100.0",
-            "pc_afterUpdTotalValue": "12941722583.0",
+            "pc_afterUpdTotalValue": "12912650245.0",
             "Private_Area": "1907.0",
             "State_Area": "0.0",
             "Muni_Area": "0.0",
             "Land_Owners_Pir": "1.0",
             "Land_Owners_Pub": "0.0",
             "Bui_Owners_Legal": "0.0",
-            "Landkind1": "第三之ㄧ種住宅區(特)",
+            "Landkind1": "第三之一種住宅區(特)",
             "Landkind2": "第三種住宅區",
             "Landkind1_Area": "1907.0",
             "Landkind2_Area": "2536.0",
-            "case_id": "10210172"
+            "case_id": "10210171"
           }
         },
         {
@@ -281310,7 +281370,9 @@
           "召開聽證日期": "2018/01/03",
           "召開審議會日期": "2018/02/23",
           "申請核定日期": "2018/03/29",
-          "核定日期": "2018/05/17"
+          "核定日期": "2018/05/17",
+          "開工日期": "2017/02/18",
+          "使照核發日期": "2020/01/02"
         },
         "milestones_source": {
           "申請計畫日期": "10210172",
@@ -281320,7 +281382,9 @@
           "召開聽證日期": "10210172",
           "召開審議會日期": "10210172",
           "申請核定日期": "10210172",
-          "核定日期": "10210172"
+          "核定日期": "10210172",
+          "開工日期": "10210171",
+          "使照核發日期": "10210171"
         },
         "case_milestones": {
           "10210172": {
@@ -281362,6 +281426,8 @@
       },
       "published_date": "2026-10-15",
       "implementation": {
+        "Eng_Start_Date": "2017/02/18",
+        "Ulic_Date": "2020/01/02",
         "Exe_Way": "協議合建",
         "Base_Area": "4443.0",
         "Old_Doors": "0.0",
@@ -281370,21 +281436,33 @@
         "New_Parkings2": "194.0",
         "New_Parkings": "187.0",
         "Welfare_Area": "0.0",
+        "Road_Cost": "0.0",
+        "Road_Length": "0.0",
         "Road_Area": "0.0",
-        "Sidewalk_Area": "468.43",
+        "Road_Eng_Fee": "0.0",
+        "Sidewalk_Length": "120.73",
+        "Sidewalk_Area": "468.53",
         "Urban_Renew_Fee": "3188256100.0",
-        "pc_afterUpdTotalValue": "12941722583.0",
+        "pc_afterUpdTotalValue": "12912650245.0",
         "Private_Area": "1907.0",
         "State_Area": "0.0",
         "Muni_Area": "0.0",
         "Land_Owners_Pir": "1.0",
         "Land_Owners_Pub": "0.0",
         "Bui_Owners_Legal": "0.0",
-        "Landkind1": "第三之ㄧ種住宅區(特)",
+        "Landkind1": "第三之一種住宅區(特)",
         "Landkind2": "第三種住宅區",
         "Landkind1_Area": "1907.0",
         "Landkind2_Area": "2536.0",
-        "case_id": "10210172"
+        "case_id": "10210171",
+        "review_flags": [
+          "payload Sidewalk_Area conflicts across cases: 10210171=468.53 vs 10210172=468.43",
+          "payload pc_afterUpdTotalValue conflicts across cases: 10210171=12912650245.0 vs 10210172=12941722583.0",
+          "payload Landkind1 conflicts across cases: 10210171=第三之一種住宅區(特) vs 10210172=第三之ㄧ種住宅區(特)",
+          "payload Sidewalk_Area conflicts across cases: 10210171=468.53 vs 10210172=468.43",
+          "payload pc_afterUpdTotalValue conflicts across cases: 10210171=12912650245.0 vs 10210172=12941722583.0",
+          "payload Landkind1 conflicts across cases: 10210171=第三之一種住宅區(特) vs 10210172=第三之ㄧ種住宅區(特)"
+        ]
       },
       "rewards": {
         "name_reward_no": "建築基地1.5倍之基準容積",

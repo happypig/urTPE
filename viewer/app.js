@@ -23,13 +23,13 @@ const NATIONAL_MAPPED_LABELS = { "使照核發日期": "使用核發日期" };
 // (date tie-break when several nodes match). Returns null for labels that name no
 // stage (使用核發日期, …申請日期). Node stages render 第N次 as Chinese ordinals:
 // 第一次→變更, 第二次→變更(第二次), etc.
-const CHINESE_DIGIT = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 };
+const CHINESE_DIGIT = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
 const nationalLabelKey = label => {
-  const m = String(label).match(/^(第([一二三四五六\d]+)次變更)?(事業計畫|權利變換計畫)核定日期$/);
+  const m = String(label).match(/^(第([一二三四五六七八九十\d]+)次變更)?(事業計畫|權利變換計畫)核定日期$/);
   if (!m) return null;
   const raw = m[2] || "";
   const ordinal = raw === "" ? 0 : Number(raw) || CHINESE_DIGIT[raw] || 0;
-  const stage = ordinal === 0 ? "擬訂" : ordinal === 1 ? "變更" : `變更(${raw}次)`;
+  const stage = ordinal === 0 ? "擬訂" : ordinal === 1 ? "變更" : `變更(第${raw}次)`;
   // label track 權利變換計畫 → node track 權利變換 (label keeps 計畫 for grammar)
   const track = m[3] === "權利變換計畫" ? "權利變換" : m[3];
   return { stage, track };

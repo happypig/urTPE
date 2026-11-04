@@ -476,6 +476,13 @@ def test_national_label_key_binds_stage_and_track():
              ["權利變換計畫核定日期", "擬訂", "權利變換"],
              ["第一次變更事業計畫核定日期", "變更", "事業計畫"],
              ["第一次變更權利變換計畫核定日期", "變更", "權利變換"],
+             # D3a (inspection-batchD): second-or-later 變更 ordinals. The shipped
+             # code built 變更(二次) while every payload node spells 變更(第二次),
+             # so 223 such labels bound 0 nodes (吉林717 node 762 shape).
+             ["第二次變更權利變換計畫核定日期", "變更(第二次)", "權利變換"],
+             ["第三次變更事業計畫核定日期", "變更(第三次)", "事業計畫"],
+             ["第4次變更事業計畫核定日期", "變更(第4次)", "事業計畫"],
+             ["第十次變更權利變換計畫核定日期", "變更(第十次)", "權利變換"],
              ["使用核發日期", None, None],
              ["申請計畫日期", None, None]]
     arg = json.dumps(cases, ensure_ascii=False)

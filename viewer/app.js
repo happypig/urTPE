@@ -519,7 +519,14 @@ function fmtDateReverse(text) {
 // (viewer-stage-chip-coverage) fmtDate: every date renders ISO at display time,
 // converting the two non-ISO source forms. The ROC rule matches
 // urtpe/extract.to_iso (year < 1911 ⇒ +1911). Source strings stay verbatim in
-// the data; this is a render-time rule.
+// the data; this is a render-time rule. building-permit-adapter D5: an ROC
+// year above the current 民國 year is a source typo, not a far-future date —
+// 橋北574-1's 291.08.02 fabricated 2202; it renders verbatim with the
+// date-range-warning class instead.
+function currentRocYear() {
+  const now = new Date();
+  return now.getFullYear() - 1911;
+}
 function fmtDate(text) {
   const s = String(text || "").trim();
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
@@ -529,6 +536,7 @@ function fmtDate(text) {
   m = s.match(/^(\d{2,3})\.(\d{1,2})\.(\d{1,2})$/);          // ROC dots
   if (m) {
     const y = parseInt(m[1], 10);
+    if (y > currentRocYear()) return s;                      // out of range: verbatim
     return `${y < 1911 ? y + 1911 : y}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
   }
   return s;                                                   // unrecognised: verbatim
@@ -1305,15 +1313,21 @@ function init() {
     });
 
     // Construction event nodes (black dots; label hyperlinks to its portal).
+    // building-permit-adapter (S15): the 使照 slot's callout names the
+    // building authority's permit when the project carries one.
     if (hasEvents) {
+      const permit = (p.links || {}).permit || null;
       events.forEach(e => {
         const b = evPos[e.label];
         const colorCls = e.national ? "national" : "taipei";
         const href = (!e.national && !e.anchored && e.case)
           ? `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${e.case}`
           : "";
+        const isUlic = e.label === "使照核發日期";
+        const permitTxt = (isUlic && permit && permit.permit_no)
+          ? `　執照${permit.permit_no}${permit.date ? `（${fmtDateReverse(permit.date)}）` : ""}` : "";
         const inner = `<circle r="6"></circle>
-          <text class="event-label ${colorCls}" x="11" y="3">${escapeHtml(e.label)}：${escapeHtml(fmtDateReverse(e.date))}</text>
+          <text class="event-label ${colorCls}" x="11" y="3">${escapeHtml(e.label)}：${escapeHtml(fmtDateReverse(e.date))}${escapeHtml(permitTxt)}</text>
           ${e.prov ? `<text class="chain-prov" x="11" y="14">${escapeHtml(e.prov)}</text>` : ""}
           ${e.national ? `<foreignObject x="-5" y="-24" width="18" height="14"><div xmlns="http://www.w3.org/1999/xhtml"><span class="node-milestone-badge national" title="國土署里程碑">國</span></div></foreignObject>` : ""}`;
         s += `<g class="event-node" transform="translate(${b.x},${b.y})">` +

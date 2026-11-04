@@ -6,7 +6,7 @@ Lets an analyst narrow the project list to the districts, approval years, and pl
 ## Requirements
 ### Requirement: Filter the project list by district, year, and plan type
 
-The system SHALL provide multi-select filters above the project list for 地區 (12 districts), 年度 (approval years), and 事業種類 (`事業計畫`, `權利變換`, `事業計畫、權利變換`, `事業概要`, `都市更新計畫`, `其他`), combined with the existing search box.
+The system SHALL provide multi-select filters above the project list for 地區 (12 districts), 年度 (approval years), and 事業種類 (`事業計畫`, `權利變換`, `事業計畫、權利變換`, `事業概要`), combined with the existing search box. The options 其他 and 都市更新計畫 are removed — no node carries either track (board D4d, measured).
 
 #### Scenario: Selecting districts narrows the list
 - **WHEN** the user checks 中山區 and 大安區 in the 地區 filter
@@ -41,7 +41,7 @@ The system SHALL provide multi-select filters above the project list for 地區 
 
 ### Requirement: Filter the project list by construction stage
 
-The left-list filter bar SHALL include a construction-stage dimension (labelled 施工階段， positioned next to 事業種類) with the fixed options 建照 / 開工 / 使照. A project's stage SHALL derive from the same `constructionStage` derivation the list badge uses — the latest of 建照核發日期 / 開工日期 / 使照核發日期 (使照 falling back to the national 使用核發日期) — so the filter and the badge never disagree. Selecting one or more stages SHALL restrict the list to projects whose stage is among them; projects without any construction stage SHALL be excluded while the dimension is active. The dimension SHALL combine with the existing 地區/年度/事業種類 dimensions under the same multi-select semantics.
+The left-list filter bar SHALL include a plan-and-execution dimension (labelled 計畫與執行， replacing 施工階段) with the fixed options 建照 / 開工 / 使照 / 已失效 / 自行撤回 / 已駁回 / 事業概要 / 事業計畫 / 事業計畫、權利變換 / 權利變換. Every project matches AT MOST ONE option (board D4d, user decision 2026-11-05), decided in this order: a project with construction dates matches only its 建照/開工/使照 stage (the same `constructionStage` derivation the list badge uses, so filter and badge never disagree); otherwise a project whose current recno node's case carries a dead-end schedule matches only that state (the same definition as the list's dead-end badge); otherwise it matches only its current node's exact track — 事業計畫、權利變換 matches only its own option, never 事業計畫 or 權利變換. Selecting one or more options SHALL restrict the list to projects whose single state is among them. The dimension SHALL combine with the existing 地區/年度/事業種類 dimensions under the same multi-select semantics.
 
 #### Scenario: 使照 filter selects completed projects
 - **WHEN** the user selects only 使照
@@ -49,11 +49,23 @@ The left-list filter bar SHALL include a construction-stage dimension (labelled 
 
 #### Scenario: Combines with other dimensions
 - **WHEN** 使照 and 大安區 are both selected
-- **THEN** the list shows only 大安區 projects whose stage is 使照
+- **THEN** the list shows only 大安區 projects whose state is 使照
+
+#### Scenario: A construction project matches no 計畫 option
+- **WHEN** a project has any of 建照/開工/使照 and its current node's track is 事業計畫
+- **THEN** the project matches 開工 (say) and matches none of 事業概要/事業計畫/事業計畫、權利變換/權利變換
+
+#### Scenario: A dead-end project matches no 計畫 option
+- **WHEN** a project has no construction date and its current node's case is 已失效 (龍泉段一小段-534)
+- **THEN** the project matches 已失效 only
+
+#### Scenario: Combined track matches only its own option
+- **WHEN** a project's current node's track is 事業計畫、權利變換 and the project has no construction date and no dead-end current case
+- **THEN** the project matches only 事業計畫、權利變換 (not 事業計畫, not 權利變換)
 
 #### Scenario: Projects without construction dates
-- **WHEN** any stage is selected
-- **THEN** projects carrying none of the three construction dates are excluded from the list
+- **WHEN** any option is selected
+- **THEN** projects carrying none of the ten states are excluded from the list
 
 #### Scenario: Filter and badge agree
 - **WHEN** a project passes the 使照 filter
@@ -149,3 +161,4 @@ these are display-time rules.
 - **THEN** all three render as ISO dates (`2026-10-15`, `2011-11-27`,
   `2026-12-20`) in the detail pane
 - **AND** the data file still holds the original strings
+

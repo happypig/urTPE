@@ -435,7 +435,7 @@ must not drop corrections silently). Change: `ledger-confirm-merge`.
 | --- | --- | --- | --- |
 | D3a | `nationalLabelKey` ordinal spelling — 223 labels never bind | direct `fix:` + test; no re-emit (viewer only) | — |
 | D4a | 使照 national flag ignores the city date — 287 wrong 現況 → 使照 edges; plus source-map-first (viewer) and first-holder provenance (pipeline) — decided 2026-11-05: only 南港729 keeps an edge | viewer: flag split + source map first, direct `fix:` + test; pipeline: first holder wins, small openspec delta on `taipei-implementation-data` ("the case whose value won the merge") + re-emit | pipeline part rides D1's re-emit |
-| D4b–d | dead-end edges, list badges, 計畫與執行 filter | one openspec change, viewer only (`virtual-milestone-nodes`, `history-graph`, `viewer-filtering`) | user decisions below |
+| D4b–d | dead-end edges, list badges, 計畫與執行 filter — DONE `26e57f1`, archived `2026-11-05-viewer-deadend-and-filters` (`d2d15ee`) | one openspec change, viewer only | — |
 | D1 | rename the orphan `milestones_national` key (source-space truth) | openspec change + `--from-js` load alias + re-emit | — |
 | D2 | `_ghost_node_date` track-aware, then the date-primary sort key (user decision 2026-11-04 pending on the re-measure) | one openspec change, `virtual-milestone-nodes` + viewer | D1 (same re-emit rides D1's payload) |
 

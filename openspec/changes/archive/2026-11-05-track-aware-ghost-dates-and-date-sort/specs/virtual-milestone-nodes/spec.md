@@ -20,6 +20,10 @@ A named, landcore-similar orphan SHALL render inside the project timeline as a v
 - **WHEN** a 概要-track orphan's milestones hold 概要核准日期 2026/03/31 and no 核定日期
 - **THEN** the ghost's `node_date` is `2026-03-31` (its own approval)
 
+#### Scenario: Virtual node construction dates stay in the shared column
+- **WHEN** a virtual node's case owns execution dates
+- **THEN** those dates render once in the execution column, connected to the virtual node by slanted solid source edges per the edge-semantics rules
+
 #### Scenario: Nameless orphans keep the interim anchor column
 - **WHEN** an orphan qualifies only via attribution or twin-bridge (no harvested name yet)
 - **THEN** it remains a dashed anchor (with 孤 badge) in the ghost column until its name is harvested
@@ -51,3 +55,36 @@ Nodes SHALL cluster by 第N次 (stage) within the family — not by date. Undate
 #### Scenario: An application-dated dead attempt sits at its application date
 - **WHEN** a withdrawn plan case applied 2013/11/18 and never won approval, and the family's later approval is dated 2019
 - **THEN** the attempt renders at 2013/11/18 tagged (未核定), before the 2019 approval
+
+#### Scenario: Undated virtual attempts interleave by case_id (603 shape)
+- **WHEN** the family 吉林段四小段603 holds real nodes anchored 09511211/09511214/11007261/11501016 and undated virtuals 09511212/09511213 (自行撤回) + 11007262 (已駁回)
+- **THEN** the family-wide row order reads chronologically by each member's own event date — the withdrawn attempts sit at their application dates between their neighbours, and 已駁回 11007262 before 已核准 11501016 (the echo removed by D2a gives the virtuals their own dates)
+
+#### Scenario: Same-date virtuals attach after their anchored milestone (date-band adjacency)
+- **WHEN** same-date virtual nodes exist (e.g. A區/B區 splits of one anchored milestone)
+- **THEN** they attach immediately AFTER their same-day anchored milestone — date-band adjacency takes precedence, with case_id ordering members within the date band
+
+#### Scenario: Attempt twins order by case_id, not platform search order
+- **WHEN** a cluster holds two same-stage, same-date virtual nodes (吉林段三小段1021: 09902261 and 10201171, resubmitted 擬訂 概要 pairs)
+- **THEN** they render in case_id ascending order (09902261 above 10201171) — the case_id tie-break, stable across portal loads
+- **AND** the order does not depend on the platform search-response order
+
+#### Scenario: Real node outranks a later virtual, is outranked by an earlier one
+- **WHEN** a cluster's real node anchors case 09811141 (approval 2016) and a virtual orphan is case 09506200 (an earlier withdrawn attempt whose own event predates the approval)
+- **THEN** the virtual renders above the real node — the earlier attempt precedes the gazette approval, now by its own event date
+
+#### Scenario: Case-less real node sorts first
+- **WHEN** a cluster's real node has an empty `links.taipei` (no platform linkage, e.g. 民生段140-9 node 65) alongside case-keyed members
+- **THEN** the case-less real node renders first in the cluster (empty key = ascending order)
+
+#### Scenario: Two real nodes sharing one case render chronologically (254 shape)
+- **WHEN** real nodes 1232 (2012-08-27) and 1039 (2016-08-23) both anchor case 09811141 (中山區-中山段一小段-254地號等13筆)
+- **THEN** node 1232 renders above node 1039 — date order; the case_id tie-break does not invert them
+
+#### Scenario: Three real nodes sharing one case render chronologically (614 shape)
+- **WHEN** real nodes 1216 (2013-01-02), 1098 (2015-06-16) and 906 (2018-04-17) all anchor case 09812231
+- **THEN** the row order is 1216 → 1098 → 906, ascending by date
+
+#### Scenario: Distinct-case rows keep the case_id interleave
+- **WHEN** a family's rows carry distinct case_ids and distinct own-event dates (the 603 shape, or 336's 10011271 → 10011273 → 11501034)
+- **THEN** the row order follows the dates (2022 → 2023 → 2026 for 336), with case_id only breaking equal dates

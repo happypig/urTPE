@@ -566,13 +566,30 @@ function effectiveCaseKey(n) {
   const c = (n.links || {}).taipei || [];
   return c[0] || "";
 }
+// D2b (inspection-batchD, user decision 2026-11-05): the row's OWN-EVENT
+// date. A 概要-track member reads 概要核准 → 申請概要 → 申請計畫; a plan-track
+// member reads 核定 → 權變核定 → 申請計畫 → 申請權變 → 申請概要 — never the
+// echoed 概要核准, which the city copies into every descendant case (吉林717:
+// the whole triple carried the 概要's 2007/01/30). Same date or none:
+// case_id ascending keeps the D12 attempt order as the tie-break.
+function ownEventDate(n, project) {
+  const ms = (n.virtual ? (n.milestones_taipei_case || n.milestones_national || {})
+    : (((project || {}).links || {}).case_milestones || {})[effectiveCaseKey(n)]) || {};
+  const first = labels => { for (const l of labels) { const v = ms[l]; if (v) return v; } return ""; };
+  const outline = first(["概要核准日期", "申請概要日期", "申請計畫日期"]);
+  if ((n.track || "") === "事業概要") return outline;
+  const plan = first(["核定日期", "權變核定日期", "申請計畫日期", "申請權變日期", "申請概要日期"]);
+  return plan || outline;
+}
 function _secTokenOf(m) {
   return areaTokenFromName(m.case_name) || m.area || "";
 }
 function compareClusterMembers(a, b) {
   if (!!a.date !== !!b.date) return a.date ? -1 : 1;   // dated members first
+  const da = a.date || ownEventDate(a), db = b.date || ownEventDate(b);
+  if (da !== db) return da < db ? -1 : 1;              // D2b: own-event date
   const ka = effectiveCaseKey(a), kb = effectiveCaseKey(b);
-  if (ka !== kb) return ka < kb ? -1 : 1;              // D12: attempt order
+  if (ka !== kb) return ka < kb ? -1 : 1;              // D12 tie-break: attempt order
   return _secTokenOf(a).localeCompare(_secTokenOf(b), "zh-Hant");  // 區段 tie only
 }
 // Attempt-succession chain pairs: consecutive VIRTUAL members inside one
@@ -924,6 +941,7 @@ function init() {
         // (name wrong, data right). Read the new key, fall back to the old
         // for payloads not yet re-emitted.
         links: { taipei: [g.case_id], milestones_taipei_case: g.milestones_taipei_case || g.milestones_national || {}, milestones_national: {}, milestones_taipei: {} },
+        milestones_taipei_case: g.milestones_taipei_case || g.milestones_national || {},
       }));
     // §4: nameless 孤 anchors with no stage/track render no row (§4 decision 4 —
     // the 3 current nameless anchors are §8 defects removed by wave 3b).
@@ -984,10 +1002,12 @@ function init() {
     const allMembers = [...nodes, ...virtualNodes]
       .slice()
       .sort((a, b) => {
+        // D2b (2026-11-05): own-event date first; case_id (D12) breaks ties
+        // and orders the undated tail. Supersedes the case_id-first interleave.
+        const da = a.date || ownEventDate(a, p) || "", db = b.date || ownEventDate(b, p) || "";
+        if (da !== db) return da < db ? -1 : 1;
         const ka = effectiveCaseKey(a), kb = effectiveCaseKey(b);
         if (ka !== kb) return ka < kb ? -1 : 1;
-        const da = a.date || "", db = b.date || "";
-        if (da !== db) return da < db ? -1 : 1;
         return String(a.recno).localeCompare(String(b.recno));
       });
     const clusterOfRecno = {};

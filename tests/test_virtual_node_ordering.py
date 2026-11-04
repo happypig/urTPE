@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -142,3 +143,79 @@ class TestChainEdges:
         ]
         out = _run_scenario(json.dumps({"clusters": [{"stage": "變更", "members": members}]}))
         assert out["chainPairs"] == []
+
+
+class TestOwnEventSortKey:
+    """D2b (inspection-batchD, user decision 2026-11-05): rows order by the
+    case's OWN event date - outline tracks read 概要核准→申請概要→申請計畫;
+    plan tracks read 核定→權變核定→申請計畫→申請權變→申請概要, never the
+    echoed 概要核准. Same date or no date: case_id ascending."""
+
+    def _src(self):
+        jsn = APP_JS.read_text(encoding="utf-8").replace("\r\n", "\n")
+        m = re.search(r"// D12-BEGIN.*?\n(.*?)// D12-END", jsn, re.S)
+        assert m, "D12 helper block missing"
+        if "const isDeadEnd" not in m.group(1):
+            m_dead = re.search(r"const isDeadEnd = [^\n]*\n", jsn)
+            assert m_dead, "isDeadEnd missing"
+            return m.group(1) + "\n" + m_dead.group(0)
+        return m.group(1)
+
+    def test_same_date_ties_keep_case_id_order(self):
+        import subprocess, json
+        node = shutil.which("node")
+        if not node:
+            pytest.skip("node not available")
+        prog = self._src() + '''
+const mk = (cid, stage, track, date, ms) => ({virtual: true, case_id: cid, stage, track, date: date || "", milestones_taipei_case: ms || {}});
+const cluster = {stage: "擬訂", members: [
+  mk("10201171", "擬訂", "事業概要", "", {"概要核准日期": "2010/09/21"}),
+  mk("09902261", "擬訂", "事業概要", "", {"概要核准日期": "2010/09/21"}),
+]};
+const out = runScenarios({clusters: [cluster]});
+const ids = out.ordered[0].map(m => m.case_id);
+if (JSON.stringify(ids) !== JSON.stringify(["09902261","10201171"])) throw new Error("same-date tie must keep case_id order: " + ids);
+'''
+        r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+        assert r.returncode == 0, r.stderr
+
+    def test_plan_member_orders_by_its_application_date(self):
+        import subprocess, json
+        node = shutil.which("node")
+        if not node:
+            pytest.skip("node not available")
+        prog = self._src() + '''
+// 吉林717: the dead plan attempt 09608051 carries the echoed 概要核准
+// 2007/01/30 and its own 申請計畫 2008/12/31; the family approval is 2019.
+// The key reads the application date, so the attempt sits at 2008 — before 2019.
+const mk = (cid, stage, track, date, ms) => ({virtual: true, case_id: cid, stage, track, date: date || "", milestones_taipei_case: ms || {}});
+const cluster = {stage: "擬訂", members: [
+  // case_id ASC would put 09608051 first; its own application date (2013)
+  // is LATER than the approval (2010), so date-first must REVERSE the pair.
+  mk("09608051", "擬訂", "事業計畫", "", {"概要核准日期": "2007/01/30", "申請計畫日期": "2013/11/18"}),
+  mk("11501016", "擬訂", "事業計畫", "", {"核定日期": "2010/03/08"}),
+]};
+const out = runScenarios({clusters: [cluster]});
+const ids = out.ordered[0].map(m => m.case_id);
+if (JSON.stringify(ids) !== JSON.stringify(["11501016","09608051"])) throw new Error("own-event date must reverse the case_id order (2010 approval before 2013 application): " + ids);
+'''
+        r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+        assert r.returncode == 0, r.stderr
+
+    def test_outline_member_reads_its_own_approval_first(self):
+        import subprocess, json
+        node = shutil.which("node")
+        if not node:
+            pytest.skip("node not available")
+        prog = self._src() + '''
+const mk = (cid, stage, track, date, ms) => ({virtual: true, case_id: cid, stage, track, date: date || "", milestones_taipei_case: ms || {}});
+const cluster = {stage: "擬訂", members: [
+  mk("09506200", "擬訂", "事業概要", "", {"核定日期": "2019/05/14", "概要核准日期": "2007/01/30"}),
+  mk("09506201", "擬訂", "事業概要", "", {"概要核准日期": "2007/06/01"}),
+]};
+const out = runScenarios({clusters: [cluster]});
+const ids = out.ordered[0].map(m => m.case_id);
+if (JSON.stringify(ids) !== JSON.stringify(["09506200","09506201"])) throw new Error("outline track reads its own approval first: " + ids);
+'''
+        r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+        assert r.returncode == 0, r.stderr

@@ -898,6 +898,25 @@ def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dic
     Returns list of {case_id, case_name, schedule} dicts whose case_name
     carries the searched parcel (§6.7 guard shape) or is a corroborated named-area case.
     """
+    return _search_taipei_raw(section, parcel, guard=True, dropped_out=dropped_out,
+                              anchor_name=anchor_name)
+
+
+def search_taipei_cases_for_node(section: str, parcel: str) -> list[dict]:
+    """The all-parcel search's raw form (resolve-recno-case step 4, design D5).
+
+    The §6.7 name guard keys on the SEARCHED parcel, but a case found under a
+    non-first parcel is declared under the node's own first parcel (南港566's
+    plan case 10006032 hides under parcel 567 while its name says 566) — the
+    guard would drop exactly the cases this step exists to find. The node's
+    own 案名 comparison in `resolve_node_cases` is the acceptance test instead.
+    """
+    return _search_taipei_raw(section, parcel, guard=False)
+
+
+def _search_taipei_raw(section: str, parcel: str, guard: bool = True,
+                       dropped_out: Optional[dict] = None,
+                       anchor_name: str = "") -> list[dict]:
     def _query(sec: str, p: str) -> list:
         if "-" in p:
             mono, _, suno = p.partition("-")
@@ -945,8 +964,8 @@ def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dic
             continue
         seen.add(cid)
         case_name = e.get("case_name", "")
-        if not (_case_name_carries_parcel(case_name, parcel)
-                or _corroborated_area(anchor_name, case_name)):
+        if guard and not (_case_name_carries_parcel(case_name, parcel)
+                          or _corroborated_area(anchor_name, case_name)):
             dropped[cid] = case_name
             continue
         results.append({
@@ -2474,8 +2493,11 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
         fetch_milestones = fetch_taipei_milestones_api
     if search is None:
         def search(section, parcel, dropped_out=None, anchor_name=""):
-            return search_taipei_cases_api(section, parcel, dropped_out=dropped_out,
-                                           anchor_name=anchor_name)
+            # the all-parcel step's own acceptance is the node's 案名 + date;
+            # the §6.7 searched-parcel guard would drop exactly the cases this
+            # step exists to find (南港566's plan case hides under parcel 567
+            # while its name declares 566), so step 4 uses the raw form
+            return search_taipei_cases_for_node(section, parcel)
     if sleep is None:
         sleep = time.sleep
     memo = probe_headers or {}

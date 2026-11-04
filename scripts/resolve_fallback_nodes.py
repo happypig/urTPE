@@ -36,7 +36,7 @@ from urtpe.links import (  # noqa: E402
     resolve_node_cases,
     resolve_cache_dir,
     save_project_cache,
-    search_taipei_cases_api,
+    search_taipei_cases_for_node,
 )
 
 
@@ -106,8 +106,7 @@ def main(argv: list[str] | None = None) -> int:
 
     def search(section: str, parcel: str, dropped_out=None, anchor_name: str = "") -> list:
         pace()
-        return search_taipei_cases_api(section, parcel, dropped_out=dropped_out,
-                                       anchor_name=anchor_name)
+        return search_taipei_cases_for_node(section, parcel)
 
     current_pid = None
     cache = None

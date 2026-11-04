@@ -66,19 +66,29 @@ class TestGaiYaoAnchoring:
 
 
 class TestGhostNodeDateFallback:
-    """7.1.3 — ghost node_date falls back 核定日期 → 權變核定日期 → 概要核准日期."""
+    """7.1.3 — ghost node_date falls back 核定日期 → 權變核定日期 → 概要核准日期.
+    D2a (inspection-batchD): 概要核准日期 is the 概要 track's OWN approval; a
+    plan-track call must not read it (the city echoes it into every
+    descendant case). The default track keeps the 概要 fallback for
+    back-compat with callers that hold a 概要 case."""
 
     def test_fallback_to_gaiyao_approval(self):
         from urtpe.links import _ghost_node_date
 
         ms = {"概要核准日期": "2026/03/31"}
-        assert _ghost_node_date(ms) == "2026-03-31"
+        assert _ghost_node_date(ms, "事業概要") == "2026-03-31"
 
     def test_hec_ding_wins_over_gaiyao(self):
         from urtpe.links import _ghost_node_date
 
         ms = {"核定日期": "2008/01/02", "概要核准日期": "2003/03/05"}
-        assert _ghost_node_date(ms) == "2008-01-02"
+        assert _ghost_node_date(ms, "事業概要") == "2008-01-02"
+
+    def test_plan_track_never_reads_gaiyao(self):
+        from urtpe.links import _ghost_node_date
+
+        ms = {"概要核准日期": "2007/01/30", "申請計畫日期": "2013/11/18"}
+        assert _ghost_node_date(ms, "事業計畫") == ""
 
     def test_empty_milestones_give_empty_date(self):
         from urtpe.links import _ghost_node_date

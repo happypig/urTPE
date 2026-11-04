@@ -2305,10 +2305,20 @@ def refreshed_schedule(cached: str, derived: str, milestones: dict | None,
     return cached
 
 
-def _ghost_node_date(own_milestones: dict) -> str:
-    """Ghost/virtual node date — approval-date fallback in track order:
-    核定日期 → 權變核定日期 → 概要核准日期 (the 概要 track's approval)."""
-    for label in ("核定日期", "權變核定日期", "概要核准日期"):
+def _ghost_node_date(own_milestones: dict, track: str = "") -> str:
+    """Ghost/virtual node date — the case's OWN approval, in track order.
+
+    D2a (inspection-batchD, user decision 2026-11-05): a 概要-track case falls
+    through 核定日期 → 權變核定日期 → 概要核准日期 (its own approval); a
+    plan-track case stops at 核定日期 → 權變核定日期. The city echoes the
+    family's 概要核准 into every descendant case's 階段辦理過程 (吉林717's
+    triple all carried 2007/01/30), so reading it on a plan case dates the
+    ghost with a sibling's approval — a fabricated event. An undated ghost
+    renders (未核定), the honest label."""
+    labels = ("核定日期", "權變核定日期")
+    if track == "事業概要":
+        labels = labels + ("概要核准日期",)
+    for label in labels:
         iso = _iso_date(own_milestones.get(label, ""))
         if iso:
             return iso
@@ -3319,7 +3329,7 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
                     "provenance": "orphan-case-anchoring",
                     "stage": derive_stage_from_case_name(case_name),
                     "track": derive_track_from_case_name(case_name),
-                    "node_date": _ghost_node_date(own_milestones),
+                    "node_date": _ghost_node_date(own_milestones, derive_track_from_case_name(case_name)),
                     "schedule": (getattr(disc, "case_schedules", None) or {}).get(cid, ""),
                     "milestones_taipei": orphan_milestones_taipei,
                     # D1 (inspection-batchD): this dict is the Taipei ashx's

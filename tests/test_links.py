@@ -1598,3 +1598,33 @@ class TestFirstHolderProvenance:
         assert dates["使照核發日期"] == "2007/11/29"
         assert source["使照核發日期"] == "09001120", "the equal 使照 date must credit the first plan case (北區)"
         assert source["開工日期"] == "09001120"
+
+
+class TestGhostNodeDateTrackAware:
+    """D2a (inspection-batchD, user decision 2026-11-05): the ghost date reads
+    only the case's OWN track approval. The city echoes the family's 概要核准
+    into every descendant case's 階段辦理過程 (吉林717's triple all carried
+    2007/01/30), so a plan-track ghost dated from it renders a fabricated
+    event."""
+
+    def test_plan_track_ignores_the_outline_echo(self):
+        from urtpe.links import _ghost_node_date
+        ms = {"概要核准日期": "2007/01/30", "申請計畫日期": "2013/11/18"}
+        assert _ghost_node_date(ms, "事業計畫") == ""
+        assert _ghost_node_date(ms, "權利變換") == ""
+        assert _ghost_node_date(ms, "事業計畫、權利變換") == ""
+
+    def test_outline_track_keeps_its_own_approval(self):
+        from urtpe.links import _ghost_node_date
+        ms = {"概要核准日期": "2026/03/31"}
+        assert _ghost_node_date(ms, "事業概要") == "2026-03-31"
+
+    def test_plan_track_approval_still_wins(self):
+        from urtpe.links import _ghost_node_date
+        ms = {"核定日期": "2019/05/14", "概要核准日期": "2007/01/30"}
+        assert _ghost_node_date(ms, "事業計畫") == "2019-05-14"
+
+    def test_plan_track_falls_through_bianbian_and_application(self):
+        from urtpe.links import _ghost_node_date
+        ms = {"權變核定日期": "2015/02/02"}
+        assert _ghost_node_date(ms, "權利變換") == "2015-02-02"

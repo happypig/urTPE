@@ -151,10 +151,35 @@ def main(argv: list[str] | None = None) -> int:
             pass
         # the resolver mutates the cache in place on acceptance
         before = list(cache.city_case_ids)
+        before_ms = set(cache.case_milestones)
         got = resolve_node_cases(member, cache, fetch_header=fetch_header,
                                  fetch_milestones=fetch_milestones,
                                  search=search, probe_headers=memo)
         if cache.city_case_ids != before:
+            changed = True
+        # S11's second run reads the 擬訂 plan case's third.ashx payload (the
+        # construction dates); a case the sweep just accepted has none yet.
+        for cid in cache.city_case_ids:
+            if cid in before_ms:
+                continue
+            if (cache.implementation or {}).get(cid):
+                continue
+            pace()
+            try:
+                from urtpe.links import fetch_taipei_implementation_api
+                impl = fetch_taipei_implementation_api(cid) or {}
+            except Exception:
+                impl = {}
+            pace()
+            try:
+                from urtpe.links import fetch_taipei_rewards_api
+                rew = fetch_taipei_rewards_api(cid) or {}
+            except Exception:
+                rew = {}
+            cache.implementation = dict(cache.implementation or {})
+            cache.rewards = dict(cache.rewards or {})
+            cache.implementation[cid] = impl
+            cache.rewards[cid] = rew
             changed = True
         if got:
             resolved += 1

@@ -14,7 +14,8 @@ verification · 2026-10-31 the 09-24 restoration executed · 2026-11-01 TAB-2 se
 G1–G5 · 2026-11-03 Batch B, the §37/§38 residuals collected for batch treatment ·
 2026-11-03 Batch C, the post-viewer-UX gaps collected after waves 1–5 landed ·
 2026-11-04 both batches, their integrated plan and appendices G–H moved to
-`docs/inspection-batchBC.md` (this board keeps the state rows and the pointer).
+`docs/inspection-batchBC.md` (this board keeps the state rows and the pointer) ·
+2026-11-04 Batch D collected (D1–D2, the post-B+C session) → `docs/inspection-batchD.md`.
 
 ## State of the board
 
@@ -30,6 +31,7 @@ G1–G5 · 2026-11-03 Batch B, the §37/§38 residuals collected for batch treat
 | Batch B | 8 findings queued, 0 executed (§37/§38 residuals) — see `docs/inspection-batchBC.md` |
 | Batch C | 10 findings (C1–C10); C3 done, 9 queued (post-viewer-UX gaps) — see `docs/inspection-batchBC.md` |
 | Batch B + C plan | re-reviewed 2026-11-04: S0–S16 + R in 4 waves; S7, S8, S12, S14, S16 merged into other steps; S3 done; no user decision open — see `docs/inspection-batchBC.md` |
+| Batch D | collected 2026-11-04: D1 (orphan `milestones_national` holds Taipei data), D2 (ghost-date echo + the date-first sort revisit) — see `docs/inspection-batchD.md` |
 | openspec | 4 changes done but unarchived; 3 fail `openspec validate` (fixed by S0) |
 
 ## Execution order — the integrated plan
@@ -161,6 +163,12 @@ integrated plan that treats both (S0–S16 + R, in 4 waves), the decisions those
 steps waited on, and the measurement appendices G and H all live in
 `docs/inspection-batchBC.md` (split off 2026-11-04). The "State of the board"
 rows above stay current here.
+
+### Batch D — moved to `docs/inspection-batchD.md`
+
+The post-Batch-B+C session's findings (D1 the orphan `milestones_national`
+key, D2 the ghost-date echo and the date-first sort revisit) live in
+`docs/inspection-batchD.md` (collected 2026-11-04).
 
 ### Decisions waiting on the user
 

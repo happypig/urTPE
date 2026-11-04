@@ -3,12 +3,22 @@
 ## Purpose
 
 Links the approvals of one 更新單元 across stages, sections, and land-coverage changes into a project family, and derives a stable, append-friendly project_id anchored on the family's latest approval.
-
 ## Requirements
-
 ### Requirement: Link records by similarity
 
-The system SHALL link two records into the same project family when their similarity is at least 0.7, computed over section match, first-parcel match or alias, parcel-set overlap, land-count bridge (原N筆), named anchor, with implementer as corroboration only.
+The system SHALL link two records into the same project family when their
+similarity is at least 0.7, computed over section match, first-parcel match
+or alias, parcel-set overlap, land-count bridge (原N筆), named anchor, with
+implementer as corroboration only.
+
+A site-shrink approval SHALL link across the shrink: when district, section
+and first parcel match exactly **and** one record's `orig_count` equals the
+other's `land_count` — the gazette's own `(原N筆)` declaring the continuity —
+the similarity SHALL be computed without the parcel-Jaccard term, the
+surviving components normalised over their sum (the empty-parcel rule's
+redistribution), with the count bridge counting as a full match. A plan
+change that replaces the parcel set SHALL NOT split its family because the
+new parcels do not overlap the old ones.
 
 #### Scenario: Stage approvals of one unit link together
 - **WHEN** the same unit has 擬訂 and 變更(第N次) approvals with matching section, first parcel, and overlapping parcels (e.g. 永昌段三小段159's six approvals)
@@ -25,6 +35,27 @@ The system SHALL link two records into the same project family when their simila
 #### Scenario: Coverage change links across parcel generations
 - **WHEN** one record is "513-3地號等11筆" and a later record is "513-3地號等13筆(原11筆)" with the same section and implementer
 - **THEN** they are linked into the same family despite the changed parcel count
+
+#### Scenario: A site shrink links across the replaced parcel set
+- **WHEN** recno 978 is "…吳興段二小段790-6地號等4筆(原29筆)…" and recno 1157 is
+  "…吳興段二小段790-6地號等29筆…" — same district, section and first parcel,
+  the shrink's `orig_count` (29) equals the older approval's `land_count`,
+  and the parcel sets share 1 of 32
+- **THEN** the pair links at 1.0 (section .35 + first parcel .2 + count
+  bridge .1, normalised over the surviving weights)
+- **AND** the family keeps one project_id, one national page and one case set
+
+#### Scenario: Eleven measured shrink pairs link
+- **WHEN** the corpus carries the 11 measured shrink pairs (吳興790-6, 中山202,
+  中正44, 犁和89, 桃源251, 立農513, 南港566, 玉成545, 芝蘭130, 玉泉91, 金華719)
+- **THEN** each pair's shrink record joins its older family
+- **AND** no pair stays split on the Jaccard term alone
+
+#### Scenario: A coincidental count match without a shrink does not bridge
+- **WHEN** two same-section records share a first parcel and a count value
+  but neither carries an `(原N筆)` linking its `orig_count` to the other's
+  `land_count`
+- **THEN** the standing similarity rule decides the pair unchanged
 
 #### Scenario: Renumbering links via alias
 - **WHEN** two records share a section and implementer and one record's parcel equals the other's 原地號 alias
@@ -94,6 +125,7 @@ The system SHALL designate the anchor of each family as the record with the newe
 - **WHEN** no record in the family declares a count
 - **THEN** project_id keeps the `?` placeholder
 - **AND** the anchor is review-flagged naming the missing identity component
+
 ### Requirement: Emit merged dataset
 
 The system SHALL emit merged.tsv containing every record with its project_id, unit-level fields, is_current flag, and review flags, preserving traceability to the source 編號.
@@ -116,3 +148,4 @@ first-parcel + count scores at or above 0.7.
 - **WHEN** the corpus contains the repaired recno 759 (案名 615地號1筆) alongside recno 536/314/84 of the same unit
 - **THEN** recno 759 joins the family of 536/314/84
 - **AND** the family's project_id is `內湖區-文德段二小段-615地號等1筆` with no `-2` dedup sibling
+

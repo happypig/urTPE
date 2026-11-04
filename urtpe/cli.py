@@ -136,6 +136,15 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
                 rec.implementation = dict(node["implementation"])
             if node.get("links"):
                 rec.links = dict(node["links"])
+                # D1 (inspection-batchD): pre-rename payloads carried the
+                # orphan's per-case Taipei ashx milestones under the false key
+                # `milestones_national`. Alias it on load so old emissions keep
+                # rendering; project-level dicts are untouched (they ARE
+                # national).
+                if "milestones_taipei_case" not in rec.links and node.get("virtual"):
+                    old = rec.links.pop("milestones_national", None)
+                    if old is not None:
+                        rec.links["milestones_taipei_case"] = old
             members.append(rec)
         project = Project(
             project_id=pg["project_id"],

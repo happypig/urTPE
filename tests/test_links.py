@@ -1560,4 +1560,41 @@ class TestSupersededOrphans:
         # the successor renders as its own node carrying the live history
         successor = next(g for g in project.links.get("orphan_nodes", [])
                          if g["case_id"] == "11510017")
-        assert successor["milestones_national"].get("核定日期") == "2026/02/11"
+        assert successor["milestones_taipei_case"].get("核定日期") == "2026/02/11"
+
+
+class TestFirstHolderProvenance:
+    """D4a (inspection-batchD, user decision 2026-11-05): when two cases carry
+    the SAME value, the FIRST case read wins the milestones_source credit — in
+    the stage merge and in the plan-case date pick alike. 15 corpus dates in 11
+    projects credited a later case (e.g. 榮星53's 建照 → 09001123)."""
+
+    def test_merge_equal_value_keeps_first_credit(self):
+        from urtpe.links import merge_stage_milestones
+        all_ms, source = {}, {}
+        merge_stage_milestones(all_ms, source, "09001120", {"建照核發日期": "2006/07/11"})
+        merge_stage_milestones(all_ms, source, "09001123", {"建照核發日期": "2006/07/11"})
+        assert all_ms["建照核發日期"] == "2006/07/11"
+        assert source["建照核發日期"] == "09001120", "an equal value must keep the first case's credit"
+
+    def test_merge_different_value_keeps_last_write_wins(self):
+        from urtpe.links import merge_stage_milestones
+        all_ms, source = {}, {}
+        merge_stage_milestones(all_ms, source, "10011041", {"建照核發日期": "2017/02/07"})
+        merge_stage_milestones(all_ms, source, "10011042", {"建照核發日期": "2019/06/19"})
+        assert all_ms["建照核發日期"] == "2019/06/19" and source["建照核發日期"] == "10011042"
+
+    def test_plan_case_equal_date_credits_first_plan_case(self):
+        from urtpe.links import pick_implementation_payload
+        payloads = {
+            "09001120": {"Eng_Start_Date": "2006/07/21", "Ulic_Date": "2007/11/29"},
+            "09001123": {"Ulic_Date": "2007/11/29"},
+        }
+        names = {
+            "09001120": "擬訂臺北市中山區榮星段六小段53地號等16筆土地都市更新事業計畫及權利變換計畫案-北區",
+            "09001123": "擬訂臺北市中山區榮星段六小段53地號等16筆土地都市更新事業計畫及權利變換計畫案-南區",
+        }
+        dates, source, stats_cid, flags = pick_implementation_payload(payloads, names)
+        assert dates["使照核發日期"] == "2007/11/29"
+        assert source["使照核發日期"] == "09001120", "the equal 使照 date must credit the first plan case (北區)"
+        assert source["開工日期"] == "09001120"

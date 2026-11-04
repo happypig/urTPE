@@ -2187,7 +2187,11 @@ def pick_implementation_payload(payloads: dict, candidate_names: dict | None = N
                     flags.append(f"payload {label} conflicts across plan cases: "
                                  f"{source[label]}={dates[label]} vs {cid}={value}")
                     continue
-                dates.setdefault(label, value)
+                if label in dates:
+                    # D4a (2026-11-05): an equal value keeps the FIRST plan
+                    # case's credit (榮星53's 使照 2007/11/29 on both areas).
+                    continue
+                dates[label] = value
                 source[label] = cid
         # a field no plan case carries falls back to the D5 payload, flagged
         for label, value in implementation_milestones(best_payload or {}).items():
@@ -2218,9 +2222,15 @@ def implementation_milestones(payload: dict) -> dict[str, str]:
 def merge_stage_milestones(
     all_ms: dict[str, str], source: dict[str, str], cid: str, ms: dict[str, str]
 ) -> None:
-    """Last-write-wins merge of one case's stage milestones, recording which
-    case won each label so slot provenance stays provable at the viewer."""
+    """Merge one case's stage milestones, recording which case won each label
+    so slot provenance stays provable at the viewer. D4a (2026-11-05): an
+    EQUAL value keeps the first case's credit — two plan cases sharing one
+    printed date (榮星53's 建照) are one event, and the later read must not
+    steal the provenance; a DIFFERENT value keeps last-write-wins (a re-dated
+    row is new information)."""
     for label, v in ms.items():
+        if label in all_ms and all_ms[label] == v:
+            continue
         all_ms[label] = v
         source[label] = cid
 
@@ -3295,7 +3305,11 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
                     "node_date": _ghost_node_date(own_milestones),
                     "schedule": (getattr(disc, "case_schedules", None) or {}).get(cid, ""),
                     "milestones_taipei": orphan_milestones_taipei,
-                    "milestones_national": orphan_milestones_national,
+                    # D1 (inspection-batchD): this dict is the Taipei ashx's
+                    # per-case milestones — the old key `milestones_national`
+                    # falsely claimed the national data space (name wrong,
+                    # data right). `--from-js` aliases the old key on load.
+                    "milestones_taipei_case": orphan_milestones_national,
                 })
             if orphan_nodes:
                 # sorted at publication, not at build: the build order follows the

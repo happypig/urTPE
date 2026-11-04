@@ -919,7 +919,11 @@ function init() {
         case_id: g.case_id,
         case_name: g.case_name,
         schedule: g.schedule || "",
-        links: { taipei: [g.case_id], milestones_national: {}, milestones_taipei: {} },
+        // D1 (inspection-batchD): the orphan's per-case dict is the Taipei
+        // ashx data — renamed milestones_national → milestones_taipei_case
+        // (name wrong, data right). Read the new key, fall back to the old
+        // for payloads not yet re-emitted.
+        links: { taipei: [g.case_id], milestones_taipei_case: g.milestones_taipei_case || g.milestones_national || {}, milestones_national: {}, milestones_taipei: {} },
       }));
     // §4: nameless 孤 anchors with no stage/track render no row (§4 decision 4 —
     // the 3 current nameless anchors are §8 defects removed by wave 3b).

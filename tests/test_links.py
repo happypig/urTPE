@@ -1484,3 +1484,80 @@ class TestPlanCaseDatesInAttach:
         assert src["開工日期"] == "09710240" and src["使照核發日期"] == "09710240"
         # statistics stay on the fat payload (D5)
         assert project.implementation["case_id"] == "09710242"
+
+
+class TestSupersededOrphans:
+    """hide-superseded-orphans (S6, B2): a superseded case — the city re-filed
+    it under a new id — carries no ghost node. Its undated orphan showed a
+    process the city has replaced (measured: 10410012, 10806141, 11009142,
+    11211211). The case stays in links.taipei (append-only); only the node
+    is withheld."""
+
+    PID = "文山區-木柵段三小段-623地號等39筆"
+
+    def _project(self):
+        from urtpe.models import Project
+        from urtpe.cleanse import cleanse
+        from urtpe.models import RawRecord
+
+        raw1 = RawRecord(5, "115/8/11", "文山區",
+                         "變更文山區木柵段三小段623地號等39筆都市更新權利變換計畫案",
+                         "臺北市文山區木柵段三小段623地號等39筆", "某建設", "某規劃")
+        return Project(project_id=self.PID, anchor_recno=5,
+                       members=[cleanse(raw1)])
+
+    def _disc(self, **over):
+        base = {
+            "twur": "",
+            "taipei": ["09907222", "10806141"],
+            "milestones_national": {},
+            "milestones_taipei": {},
+            "case_milestones": {},
+            "milestones_source": {},
+            "implementation": {},
+            "rewards": {},
+            "search_rejected": {},
+            "candidate_names": {
+                "09907222": "變更臺北市文山區木柵段三小段623地號等39筆都市更新權利變換計畫案",
+                "10806141": "變更臺北市信義區虎林段四小段38地號等138筆土地都市更新事業計畫及權利變換計畫案",
+            },
+            "superseded_by": {"10806141": "11510017"},
+        }
+        base.update(over)
+        return {self.PID: base}
+
+    def test_superseded_orphan_is_withheld(self):
+        project = self._project()
+        # 10806141's name is NOT similar to this anchor — but a superseded
+        # case in the unit's own cache is; give it the unit's name so the
+        # gate would pass it, and pin that supersede-withholds first
+        disc = self._disc(
+            candidate_names={
+                "09907222": "變更臺北市文山區木柵段三小段623地號等39筆都市更新權利變換計畫案",
+                "10806141": "變更臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫案",
+            },
+        )
+        attach_links_to_projects([project], disc)
+        ghost_ids = {g["case_id"] for g in project.links.get("orphan_nodes", [])}
+        assert "10806141" not in ghost_ids
+        # the case stays in the list (append-only contract)
+        assert "10806141" in project.links["taipei"]
+
+    def test_superseded_successor_carries_the_history(self):
+        project = self._project()
+        disc = self._disc(
+            taipei=["09907222", "10806141", "11510017"],
+            candidate_names={
+                "09907222": "變更臺北市文山區木柵段三小段623地號等39筆都市更新權利變換計畫案",
+                "10806141": "變更臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫案",
+                "11510017": "變更臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫案",
+            },
+            case_milestones={"11510017": {"核定日期": "2026/02/11"}},
+        )
+        attach_links_to_projects([project], disc)
+        ghost_ids = {g["case_id"] for g in project.links.get("orphan_nodes", [])}
+        assert "10806141" not in ghost_ids
+        # the successor renders as its own node carrying the live history
+        successor = next(g for g in project.links.get("orphan_nodes", [])
+                         if g["case_id"] == "11510017")
+        assert successor["milestones_national"].get("核定日期") == "2026/02/11"

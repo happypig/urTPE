@@ -3222,7 +3222,14 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
                 anchored_date_pool |= set((disc.case_milestones.get(aid) or {}).items())
             orphan_nodes = []
             view_verified = set(getattr(disc, "view_verified_case_ids", None) or [])
+            superseded = set(getattr(disc, "superseded_by", None) or {})
             for cid in orphan_case_ids:
+                # hide-superseded-orphans (S6, B2): a re-filed case's undated
+                # node showed a process the city has replaced — withhold the
+                # node; the case stays in city_case_ids (append-only) and the
+                # successor carries the live history
+                if cid in superseded:
+                    continue
                 similar = False
                 twin_shared_dates = None
                 own_milestones = disc.case_milestones.get(cid) or {}

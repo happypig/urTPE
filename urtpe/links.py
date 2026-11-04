@@ -2355,8 +2355,11 @@ _HEADER_DRIFT_DAYS = 10
 
 
 def node_name_key(name: str) -> str:
-    """Tier 1: the 案名 with spaces ignored."""
-    return re.sub(r"\s", "", name or "")
+    """Tier 1: the 案名 with spaces ignored. The gazette's own stage typo
+    變(第二次)更 — the ordinal INSIDE the word (玉泉11 recno 1180) — folds
+    to the city's 變更(第二次) form here, so every tier sees one spelling."""
+    s = re.sub(r"\s", "", name or "")
+    return re.sub(r"變\((第[一二三四五六七八九十百\d]+次)\)更", r"變更(\1)", s)
 
 
 def node_name_loose(name: str) -> str:
@@ -2364,7 +2367,9 @@ def node_name_loose(name: str) -> str:
 
     Strips 等, `(原N筆)`, a trailing 案, the area suffix and 核定公告_;
     folds 擬定→擬訂, 案及→及, 土地更新→土地都市更新 (the city drops 都市),
-    權利變換案→權利變換計畫案."""
+    權利變換案→權利變換計畫案. The gazette's own stage typo 變(第二次)更
+    (the ordinal INSIDE the word — 玉泉11 recno 1180) folds to 變更(第二次),
+    the city's form."""
     s = node_name_key(name)
     s = s.replace("擬定", "擬訂").replace("案及", "及").replace("土地更新", "土地都市更新")
     s = _AREA_SUFFIX_RE.sub("", s)
@@ -2539,7 +2544,8 @@ def _bind_from_name_step(node_name: str, live: list[str], names: dict) -> list[s
 
 
 def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
-                       search=None, sleep=None, probe_headers=None) -> list[str]:
+                       search=None, sleep=None, probe_headers=None,
+                       probe_bases=None) -> list[str]:
     """Bind a date-unmatched node to its city case(s) — the 4 steps, in order.
 
     Returns the case ids to append to node.links.taipei ([] = nothing found).
@@ -2574,8 +2580,9 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
     memo = probe_headers or {}
 
     def _header(cid: str) -> dict:
-        if cid in memo:
-            return memo[cid] or {}
+        row = memo.get(cid)
+        if row:  # a memo row with content is the evidence; empty = no evidence
+            return row or {}
         if not live_probe:
             return {}
         try:
@@ -2601,28 +2608,50 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
     # parcel + count, the build_land_core_key form
     node_landcore = extract_landcore_from_case_name(node_name) or _record_landcore(member)
 
+    # ── step 2 pre-pass: the memo's uncached ids probe BEFORE the name step ─
+    # The name step binds a single cached hit and returns — a split sibling
+    # named only on the national page (玉成166's 10203262, the memo's seed)
+    # would never be probed. When the memo names ids the cache lacks, the
+    # probe runs first (the memo seeds its bases) and the name step is
+    # SKIPPED for this call: the probe's own acceptance (name + date +
+    # land core) decides, and its area-split walk binds every sibling.
+    # ``probe_bases`` marks the re-entrant call.
+    uncached_memo = [c for c in memo if c not in set(
+        getattr(disc, "city_case_ids", None) or [])]
+    if uncached_memo and live_probe and not probe_bases:
+        pre = resolve_node_cases(
+            member, disc, fetch_header=fetch_header,
+            fetch_milestones=fetch_milestones, search=search,
+            sleep=sleep, probe_headers=memo, probe_bases=uncached_memo)
+        return pre
+
     # ── step 1: the 案名 over cached cases ──────────────────────────────────
+    # (skipped on a probe_bases call — the probe decided above; falling
+    # through would bind a single cached hit before the siblings are read)
     # a 無 case yields to an approved same-name sibling: the sibling may live
     # at a later tier (東湖34's 11502008 names 及權利變換計畫, so tiers 1–2
     # hit only the 無 case 11302181) — pre-compute the widest (tier-3) hit
     # set so the yield check sees it before binding a lone 無 case.
-    tiers = _name_tier_hits(names, node_name, node_landcore)
-    widest = sorted(set(tiers[-1][1])) if tiers else []
-    for _tier, hits in tiers:
-        live = filter_live_cases(hits, disc)
-        if not live:
-            continue
-        if len(live) == 1 and (schedules.get(live[0]) == "無") and widest:
-            wider = filter_live_cases(widest, disc)
-            if wider and wider != live:
-                live = wider
-        bound = _bind_from_name_step(node_name, live, names)
-        if bound:
-            return bound
+    if not probe_bases:
+        tiers = _name_tier_hits(names, node_name, node_landcore)
+        widest = sorted(set(tiers[-1][1])) if tiers else []
+        for _tier, hits in tiers:
+            live = filter_live_cases(hits, disc)
+            if not live:
+                continue
+            if len(live) == 1 and (schedules.get(live[0]) == "無") and widest:
+                wider = filter_live_cases(widest, disc)
+                if wider and wider != live:
+                    live = wider
+            bound = _bind_from_name_step(node_name, live, names)
+            if bound:
+                return bound
 
     # ── step 3 first over the cache: the header as a second approval source ─
     # (step 2 runs live network probes; the offline header check is free, so
-    # it runs before any request)
+    # it runs before any request). A probe_bases call skips it: the probe's
+    # acceptance decides, and an exact date on one cached case would bind
+    # before the split sibling is read (玉成166's 10203261 vs 10203262).
     target = _iso_date(getattr(member, "date", "") or "")
     if not re.fullmatch(r"\d{4}-\d{1,2}-\d{1,2}", target or ""):
         # the PDF pipeline passes raw ROC gazette dates (115/8/11); normalise
@@ -2631,49 +2660,50 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
 
         iso, _ = roc_to_iso(getattr(member, "date", "") or "")
         target = _iso_date(iso or "")
-    stage_kind = node_stage_kind(node_name)
-    exact_hits: list[str] = []
-    for cid in getattr(disc, "city_case_ids", None) or []:
-        hdr_dates = header_approval_dates(headers, cid)
-        if not hdr_dates:
-            # the header may be silent while the milestones carry the
-            # approval (康寧626's 09712204: 核定 2016/11/12 in data2, the
-            # node 10 days later) — the same bounded drift applies there
-            own_ms = ms.get(cid) or {}
-            for label in _APPROVAL_FIELDS:
-                if own_ms.get(label):
-                    hdr_dates[label] = str(own_ms[label])
-        for label, hdr_date in hdr_dates.items():
-            iso = _iso_date(hdr_date)
-            if not iso:
-                continue
-            if iso == target:
-                # an exact header/milestone date is a candidate; two+ cases
-                # sharing it need the name to separate them (both cases of a
-                # same-day approval carry the same 核定日期 — the date
-                # matcher's own uniqueness rule)
-                exact_hits.append(cid)
-                continue
-            shifted = _shift_iso_date(iso, _HEADER_DRIFT_DAYS)
-            shifted_back = _shift_iso_date(iso, -_HEADER_DRIFT_DAYS)
-            if shifted and shifted_back and shifted_back <= target <= shifted:
-                # bounded drift binds only on an equal stage-with-ordinal
-                if node_stage_kind(names.get(cid, ""))[0] == stage_kind[0] and stage_kind[0]:
-                    return [cid]
-    if len(exact_hits) == 1:
-        return [exact_hits[0]]
-    if len(exact_hits) > 1:
-        # the name separates a same-day tie: the tier-3 rule (stage + kind
-        # subset + land core) over the candidates
-        named = [c for c in exact_hits
-                 if names.get(c) and _tier3_names_match(node_name, names[c], node_landcore)]
-        if len(named) == 1:
-            return [named[0]]
-        # an area split: distinct area suffixes on every named candidate
-        live = filter_live_cases(named or exact_hits, disc)
-        bound = _bind_from_name_step(node_name, live, names)
-        if bound:
-            return bound
+    if not probe_bases:
+        stage_kind = node_stage_kind(node_name)
+        exact_hits: list[str] = []
+        for cid in getattr(disc, "city_case_ids", None) or []:
+            hdr_dates = header_approval_dates(headers, cid)
+            if not hdr_dates:
+                # the header may be silent while the milestones carry the
+                # approval (康寧626's 09712204: 核定 2016/11/12 in data2, the
+                # node 10 days later) — the same bounded drift applies there
+                own_ms = ms.get(cid) or {}
+                for label in _APPROVAL_FIELDS:
+                    if own_ms.get(label):
+                        hdr_dates[label] = str(own_ms[label])
+            for label, hdr_date in hdr_dates.items():
+                iso = _iso_date(hdr_date)
+                if not iso:
+                    continue
+                if iso == target:
+                    # an exact header/milestone date is a candidate; two+ cases
+                    # sharing it need the name to separate them (both cases of a
+                    # same-day approval carry the same 核定日期 — the date
+                    # matcher's own uniqueness rule)
+                    exact_hits.append(cid)
+                    continue
+                shifted = _shift_iso_date(iso, _HEADER_DRIFT_DAYS)
+                shifted_back = _shift_iso_date(iso, -_HEADER_DRIFT_DAYS)
+                if shifted and shifted_back and shifted_back <= target <= shifted:
+                    # bounded drift binds only on an equal stage-with-ordinal
+                    if node_stage_kind(names.get(cid, ""))[0] == stage_kind[0] and stage_kind[0]:
+                        return [cid]
+        if len(exact_hits) == 1:
+            return [exact_hits[0]]
+        if len(exact_hits) > 1:
+            # the name separates a same-day tie: the tier-3 rule (stage + kind
+            # subset + land core) over the candidates
+            named = [c for c in exact_hits
+                     if names.get(c) and _tier3_names_match(node_name, names[c], node_landcore)]
+            if len(named) == 1:
+                return [named[0]]
+            # an area split: distinct area suffixes on every named candidate
+            live = filter_live_cases(named or exact_hits, disc)
+            bound = _bind_from_name_step(node_name, live, names)
+            if bound:
+                return bound
 
     # ── step 2: the same-day id probe ───────────────────────────────────────
     # Case ids are a city-wide daily serial (ROC filing date + one digit), so
@@ -2684,11 +2714,17 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
     known = set(getattr(disc, "city_case_ids", None) or [])
     known |= set(getattr(disc, "view_verified_case_ids", None) or [])
     # 10 ids share a filing day's first 7 digits; the node's own date implies
-    # no filing day offline, so the probe walks every known id's batch.
-    bases = sorted({c[:7] for c in known if len(c) >= 8})
+    # no filing day offline, so the probe walks every known id's batch — and
+    # every memo id's batch (玉成166's A區/B區 cases 10203261/2 are named only
+    # on its own national page, so their batch exists in no cached id).
+    bases = sorted({c[:7] for c in known if len(c) >= 8}
+                   | {c[:7] for c in memo if len(c) >= 8}
+                   | {c[:7] for c in (probe_bases or []) if len(c) >= 8})
     probe_names: dict[str, str] = {}
     probe_dates: dict[str, dict[str, str]] = {}
-    # the memo is pre-read: a persisted find needs no request
+    # the memo is pre-read: a persisted find needs no request. A memo row
+    # without a CASE_NAME (the sweep's view-page seed carries none) stays a
+    # probe candidate — the loop below fetches its header live.
     for cid, row in memo.items():
         top = row or {}
         case_name = str(top.get("CASE_NAME", "") or "").strip()
@@ -2722,9 +2758,24 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
                 hdr_dates["權變核定日期"] = str(top["uro_chk_date2"])
             if hdr_dates:
                 probe_dates[cid] = hdr_dates
-        # a candidate accepted on name AND date ends the probe
+        # a candidate accepted on name AND date ends the probe. A KNOWN id is
+        # never a probe candidate (it is already in the cache), but its
+        # probed header — read from the memo or live — still persists its
+        # dates when it carries the node's date: the offline header step
+        # decides on it (玉泉11's 09504263 header approves 2013-08-20 while
+        # data2 copies the 2008 plan-case date; 東湖34's 11502008, 康寧626's
+        # 09712204 — the sweeps skipped known ids and the header never
+        # reached the cache).
         for cid, cname in sorted(probe_names.items()):
+            date_known = any(_iso_date(v) == target
+                             for v in probe_dates.get(cid, {}).values())
             if cid in known:
+                if date_known:
+                    hdr = dict(case_header_entry(headers, cid))
+                    for lbl, v in probe_dates.get(cid, {}).items():
+                        hdr.setdefault("uro_chk_date" if lbl == "核定日期" else "uro_chk_date2", v)
+                    if hdr and hdr != case_header_entry(headers, cid):
+                        disc.case_headers[cid] = hdr
                 continue
             date_ok = any(_iso_date(v) == target
                           for v in probe_dates.get(cid, {}).values())
@@ -2755,7 +2806,10 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
                     if hdr and hdr != case_header_entry(headers, cid):
                         disc.case_headers[cid] = hdr
                 continue
-            # accept: join the cache in place
+            # accept: join the cache in place. The area-split rule applies to
+            # the probe too: keep walking this base's batch and bind every
+            # same-name same-date sibling carrying a distinct area suffix
+            # (玉成166's A區/B區 pair, one gazette row).
             disc.city_case_ids = list(getattr(disc, "city_case_ids", None) or []) + [cid]
             disc.candidate_names[cid] = cname
             fetched = _milestones(cid)
@@ -2766,7 +2820,30 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
             for lbl, v in probe_dates.get(cid, {}).items():
                 hdr.setdefault("uro_chk_date" if lbl == "核定日期" else "uro_chk_date2", v)
             disc.case_headers[cid] = hdr
-            return [cid]
+            bound = [cid]
+            if _node_area_suffix(cname):
+                for cid2, cname2 in sorted(probe_names.items()):
+                    if cid2 == cid or cid2 in known or cid2 in bound:
+                        continue
+                    if not any(_iso_date(v) == target
+                               for v in probe_dates.get(cid2, {}).values()):
+                        continue
+                    if node_name_loose(cname2) != node_name_loose(node_name):
+                        continue
+                    if _node_area_suffix(cname2) == _node_area_suffix(cname):
+                        continue
+                    disc.city_case_ids.append(cid2)
+                    disc.candidate_names[cid2] = cname2
+                    fetched2 = _milestones(cid2)
+                    if fetched2:
+                        disc.case_milestones[cid2] = fetched2
+                    hdr2 = dict(case_header_entry(headers, cid2))
+                    hdr2.setdefault("NAME", "")
+                    for lbl, v in probe_dates.get(cid2, {}).items():
+                        hdr2.setdefault("uro_chk_date" if lbl == "核定日期" else "uro_chk_date2", v)
+                    disc.case_headers[cid2] = hdr2
+                    bound.append(cid2)
+            return bound
 
     # ── step 4: the parcel search on every parcel of the node ───────────────
     if not live_probe:

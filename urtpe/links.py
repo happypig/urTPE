@@ -1871,9 +1871,33 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             name = str(header.get("NAME", "")).strip()
             case_name = str(header.get("CASE_NAME", "") or "").strip()
             header_names[cid] = case_name
-            if cached.case_headers.get(cid) != name:
-                cached.case_headers[cid] = name
-                changed = True
+            # resolve-recno-case D4: store the header's own approval dates
+            # beside the NAME — data2 sometimes copies another case's date
+            # (玉泉11's 09504263, 吉林705's 09307104), the header is the
+            # second source the node resolver reads offline. Legacy caches
+            # carry a bare NAME string; a new write upgrades the entry to the
+            # dict shape when the header carries dates.
+            hdr_dates = {}
+            if header.get("uro_chk_date"):
+                hdr_dates["uro_chk_date"] = str(header["uro_chk_date"])
+            if header.get("uro_chk_date2"):
+                hdr_dates["uro_chk_date2"] = str(header["uro_chk_date2"])
+            new_entry = dict(case_header_entry(cached.case_headers, cid))
+            new_entry["NAME"] = name
+            new_entry.update(hdr_dates)
+            wanted = (new_entry["uro_chk_date" if "uro_chk_date" in new_entry
+                      else "NAME"] if not hdr_dates and len(new_entry) == 1
+                      else None)
+            if wanted is not None:
+                # no dates on this header and no prior dates: keep the legacy
+                # bare-string shape so unchanged caches stay byte-stable
+                if cached.case_headers.get(cid) != name:
+                    cached.case_headers[cid] = name
+                    changed = True
+            else:
+                if cached.case_headers.get(cid) != new_entry:
+                    cached.case_headers[cid] = new_entry
+                    changed = True
             # §8: persist the city's own case name beside the state, so the
             # view-verified verification and the offer step decide offline.
             if cached.case_case_names.get(cid) != case_name:
@@ -2287,6 +2311,345 @@ def _match_case_by_date(member_date: str, disc) -> str:
     return ""
 
 
+# ── resolve-recno-case (S10, C6): the 4-step node-case resolver ─────────────
+# The positional fallback (city_case_ids[0/1] by track) bound 71 nodes on 51
+# projects to a case the node's own date refutes (measured 2026-11-04). The
+# user's rule: every recno has a corresponding city case — find it, never
+# guess by position.
+
+_DEAD_SCHEDULES = ("自行撤回", "已駁回", "已失效")
+# Area suffix on a city case name: -A區 / 北區 / (A區段) / (FridA區段)-like
+# parenthesised 區段 tags. Distinct suffixes across live same-name matches =
+# an area split (吉林508 -A區/-B區, 榮星53 北區/南區 — user rule 2026-11-03).
+_AREA_SUFFIX_RE = re.compile(r"-?[A-Z北南東西甲乙]區(?:段)?(?:\([^)]*\))?|\([^)]*區段\)")
+_PLAN_TYPE_RE = re.compile(r"\(含釐正圖冊\)|暨.*釐正圖冊|釐正圖冊")
+_STAGE_WITH_ORDINAL_RE = re.compile(r"^(擬訂|擬定|變更(?:\(第[一二三四五六七八九十百\d]+次\))?)")
+# 康寧626's header approves 10 days after the gazette row; measured as the
+# only drift case, so the bound is the observation, not a tunable threshold.
+_HEADER_DRIFT_DAYS = 10
+
+
+def node_name_key(name: str) -> str:
+    """Tier 1: the 案名 with spaces ignored."""
+    return re.sub(r"\s", "", name or "")
+
+
+def node_name_loose(name: str) -> str:
+    """Tier 2: count-noise and stage-spelling normalisation.
+
+    Strips 等, `(原N筆)`, a trailing 案, the area suffix and 核定公告_;
+    folds 擬定→擬訂, 案及→及, 土地更新→土地都市更新 (the city drops 都市),
+    權利變換案→權利變換計畫案."""
+    s = node_name_key(name)
+    s = s.replace("擬定", "擬訂").replace("案及", "及").replace("土地更新", "土地都市更新")
+    s = _AREA_SUFFIX_RE.sub("", s)
+    s = re.sub(r"\(原[^)]*\)|等|核定公告_?$", "", s)
+    s = s.replace("權利變換案", "權利變換計畫案")
+    return re.sub(r"案$", "", s)
+
+
+def node_stage_kind(name: str) -> tuple[str, str]:
+    """Tier 3: (stage-with-ordinal, plan type 概/事/權), 釐正圖冊 tags removed."""
+    s = node_name_key(name)
+    m = _STAGE_WITH_ORDINAL_RE.match(s)
+    stage = m.group(1).replace("擬定", "擬訂") if m else ""
+    s = _PLAN_TYPE_RE.sub("", s)
+    kind = (("概" if "概要" in s else "") +
+            ("事" if "事業計畫" in s else "") +
+            ("權" if "權利變換" in s else ""))
+    return stage, kind
+
+
+def _node_area_suffix(name: str) -> str:
+    m = _AREA_SUFFIX_RE.search(node_name_key(name))
+    return m.group(0) if m else ""
+
+
+def case_header_entry(headers: dict, cid: str) -> dict:
+    """Read one case_headers entry in either shape.
+
+    resolve-recno-case D4: new writes store {NAME, uro_chk_date, uro_chk_date2};
+    caches written before that carry the bare NAME string. A string reads as
+    {NAME: <string>} with no header dates."""
+    v = (headers or {}).get(cid)
+    if isinstance(v, dict):
+        return v
+    if isinstance(v, str) and v:
+        return {"NAME": v}
+    return {}
+
+
+def header_name(headers: dict, cid: str) -> str:
+    """The case header's NAME (the 目前辦理情形), either shape."""
+    return str(case_header_entry(headers, cid).get("NAME", "") or "").strip()
+
+
+def header_approval_dates(headers: dict, cid: str) -> dict[str, str]:
+    """{label: date} from the header's uro_chk_date/uro_chk_date2 — the city's
+    own approval dates for the case. data2 sometimes copies another case's
+    date (玉泉11's 09504263, 吉林705's 09307104); the header is the second
+    source. Legacy string entries carry none."""
+    entry = case_header_entry(headers, cid)
+    out = {}
+    if entry.get("uro_chk_date"):
+        out["核定日期"] = str(entry["uro_chk_date"])
+    if entry.get("uro_chk_date2"):
+        out["權變核定日期"] = str(entry["uro_chk_date2"])
+    return out
+
+
+def filter_live_cases(cids: list[str], disc, names: tuple[str, ...] = ()) -> list[str]:
+    """The cases a node's name may bind: terminal schedules out; a 無 case
+    yields to an approved same-name sibling (東湖34: 11302181 → 11502008,
+    the user's resolution 2026-11-04). Two+ live non-無 cases stay ambiguous —
+    the caller decides (one = bind, distinct area suffixes = split, otherwise
+    no bind); the approved-preference must not collapse them silently."""
+    schedules = getattr(disc, "case_schedules", None) or {}
+    live = [c for c in cids if schedules.get(c) not in _DEAD_SCHEDULES]
+    if len(live) > 1:
+        ms = getattr(disc, "case_milestones", None) or {}
+        no_state = [c for c in live if schedules.get(c) == "無"]
+        if no_state and len(no_state) < len(live):
+            # a 無 case yields to live siblings that carry a state
+            live = [c for c in live if c not in no_state]
+    return live
+
+
+def _name_tier_hits(names: dict, node_name: str) -> list[tuple[str, list[str]]]:
+    """[(tier, case_ids)] — the cached cases matching the node's 案名, tier by
+    tier. Every tier runs over all cached candidate names."""
+    tiers = (
+        ("1 exact", node_name_key),
+        ("2 loose", node_name_loose),
+        ("3 stage+kind", lambda s: tuple(node_stage_kind(s))),
+    )
+    out = []
+    for label, fn in tiers:
+        want = fn(node_name)
+        hits = [cid for cid, n in names.items() if n and fn(n) == want]
+        out.append((label, hits))
+    return out
+
+
+def _bind_from_name_step(node_name: str, live: list[str], names: dict) -> list[str]:
+    """The name step's binding: one live case binds; distinct non-empty area
+    suffixes on every live match bind all (the area-split rule)."""
+    if len(live) == 1:
+        return [live[0]]
+    suffixes = {_node_area_suffix(names.get(c, "")) for c in live}
+    if len(live) >= 2 and "" not in suffixes and len(suffixes) == len(live):
+        return sorted(live)
+    return []
+
+
+def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
+                       search=None, sleep=None, probe_headers=None) -> list[str]:
+    """Bind a date-unmatched node to its city case(s) — the 4 steps, in order.
+
+    Returns the case ids to append to node.links.taipei ([] = nothing found).
+
+    Offline by default (design D7): with no adapters injected the resolver
+    reads only what the caches carry — candidate_names, case_milestones,
+    case_headers (the header's uro_chk_date/uro_chk_date2) and the
+    ``probe_headers`` memo. The live probe (step 2) and the all-parcel search
+    (step 4) run only when the caller injects the adapters — the sweep driver
+    and the tests; the emission-side attach never issues a request.
+
+    ``probe_headers`` is {case_id: header row} — the ids earlier probing runs
+    read (the finds persist in the caches, so later runs re-derive nothing).
+    Every accepted find joins the cache in place (append-only) so a second
+    run skips the probing.
+    """
+    live_probe = fetch_header is not None or fetch_milestones is not None \
+        or search is not None or bool(probe_headers)
+    if fetch_header is None:
+        fetch_header = fetch_taipei_case_header_api
+    if fetch_milestones is None:
+        fetch_milestones = fetch_taipei_milestones_api
+    if search is None:
+        def search(section, parcel, dropped_out=None, anchor_name=""):
+            return search_taipei_cases_api(section, parcel, dropped_out=dropped_out,
+                                           anchor_name=anchor_name)
+    if sleep is None:
+        sleep = time.sleep
+    memo = probe_headers or {}
+
+    def _header(cid: str) -> dict:
+        if cid in memo:
+            return memo[cid] or {}
+        if not live_probe:
+            return {}
+        try:
+            return fetch_header(cid) or {}
+        except Exception:
+            return {}
+
+    def _milestones(cid: str) -> dict:
+        if not live_probe:
+            return {}
+        try:
+            return fetch_milestones(cid) or {}
+        except Exception:
+            return {}
+
+    names = getattr(disc, "candidate_names", None) or {}
+    schedules = getattr(disc, "case_schedules", None) or {}
+    ms = getattr(disc, "case_milestones", None) or {}
+    headers = getattr(disc, "case_headers", None) or {}
+    node_name = getattr(member, "name", "") or ""
+
+    # ── step 1: the 案名 over cached cases ──────────────────────────────────
+    for _tier, hits in _name_tier_hits(names, node_name):
+        live = filter_live_cases(hits, disc)
+        bound = _bind_from_name_step(node_name, live, names)
+        if bound:
+            return bound
+
+    # ── step 3 first over the cache: the header as a second approval source ─
+    # (step 2 runs live network probes; the offline header check is free, so
+    # it runs before any request)
+    target = _iso_date(getattr(member, "date", "") or "")
+    if not re.fullmatch(r"\d{4}-\d{1,2}-\d{1,2}", target or ""):
+        # the PDF pipeline passes raw ROC gazette dates (115/8/11); normalise
+        # the same way _match_case_by_date does
+        from urtpe.cleanse import roc_to_iso
+
+        iso, _ = roc_to_iso(getattr(member, "date", "") or "")
+        target = _iso_date(iso or "")
+    stage_kind = node_stage_kind(node_name)
+    for cid in getattr(disc, "city_case_ids", None) or []:
+        hdr_dates = header_approval_dates(headers, cid)
+        for label, hdr_date in hdr_dates.items():
+            iso = _iso_date(hdr_date)
+            if not iso:
+                continue
+            if iso == target:
+                return [cid]
+            shifted = _shift_iso_date(iso, _HEADER_DRIFT_DAYS)
+            shifted_back = _shift_iso_date(iso, -_HEADER_DRIFT_DAYS)
+            if shifted and shifted_back and shifted_back <= target <= shifted:
+                # bounded drift binds only on an equal stage-with-ordinal
+                if node_stage_kind(names.get(cid, ""))[0] == stage_kind[0] and stage_kind[0]:
+                    return [cid]
+
+    # ── step 2: the same-day id probe ───────────────────────────────────────
+    # Case ids are a city-wide daily serial (ROC filing date + one digit), so
+    # a same-day id is a candidate only: accept on CASE_NAME matching the
+    # node's 案名 AND the header approval date matching the node's date.
+    # Offline (no memo, no adapters) this walks the memo only — production
+    # attach reads the caches' persisted finds and issues no request.
+    known = set(getattr(disc, "city_case_ids", None) or [])
+    known |= set(getattr(disc, "view_verified_case_ids", None) or [])
+    # 10 ids share a filing day's first 7 digits; the node's own date implies
+    # no filing day offline, so the probe walks every known id's batch.
+    bases = sorted({c[:7] for c in known if len(c) >= 8})
+    probe_names: dict[str, str] = {}
+    probe_dates: dict[str, dict[str, str]] = {}
+    # the memo is pre-read: a persisted find needs no request
+    for cid, row in memo.items():
+        top = row or {}
+        case_name = str(top.get("CASE_NAME", "") or "").strip()
+        if not case_name:
+            continue
+        probe_names[cid] = case_name
+        hdr_dates = {}
+        if top.get("uro_chk_date"):
+            hdr_dates["核定日期"] = str(top["uro_chk_date"])
+        if top.get("uro_chk_date2"):
+            hdr_dates["權變核定日期"] = str(top["uro_chk_date2"])
+        if hdr_dates:
+            probe_dates[cid] = hdr_dates
+    for b in bases:
+        for k in range(10):
+            cid = f"{b}{k}"
+            if cid in known or cid in probe_names:
+                continue
+            if not live_probe:
+                break
+            sleep(0.001)
+            top = _header(cid)
+            case_name = str(top.get("CASE_NAME", "") or "").strip()
+            if not case_name:
+                continue
+            probe_names[cid] = case_name
+            hdr_dates = {}
+            if top.get("uro_chk_date"):
+                hdr_dates["核定日期"] = str(top["uro_chk_date"])
+            if top.get("uro_chk_date2"):
+                hdr_dates["權變核定日期"] = str(top["uro_chk_date2"])
+            if hdr_dates:
+                probe_dates[cid] = hdr_dates
+        # a candidate accepted on name AND date ends the probe
+        for cid, cname in sorted(probe_names.items()):
+            if cid in known:
+                continue
+            date_ok = any(_iso_date(v) == target
+                          for v in probe_dates.get(cid, {}).values())
+            if not (date_ok and node_name_loose(cname) == node_name_loose(node_name)):
+                continue
+            # accept: join the cache in place
+            disc.city_case_ids = list(getattr(disc, "city_case_ids", None) or []) + [cid]
+            disc.candidate_names[cid] = cname
+            fetched = _milestones(cid)
+            if fetched:
+                disc.case_milestones[cid] = fetched
+            hdr = dict(case_header_entry(headers, cid))
+            hdr.setdefault("NAME", "")
+            for lbl, v in probe_dates.get(cid, {}).items():
+                hdr.setdefault("uro_chk_date" if lbl == "核定日期" else "uro_chk_date2", v)
+            disc.case_headers[cid] = hdr
+            return [cid]
+
+    # ── step 4: the parcel search on every parcel of the node ───────────────
+    if not live_probe:
+        return []
+    section = getattr(member, "section", "") or ""
+    parcels = list(getattr(member, "parcels", None) or [])
+    for parcel in parcels:
+        try:
+            entries = search(section, parcel) or []
+        except Exception:
+            entries = []
+        for e in entries:
+            cid = str(e.get("case_id") or "")
+            if not cid or cid in known or cid in probe_names:
+                continue
+            cname = str(e.get("case_name", "") or "")
+            if node_name_loose(cname) != node_name_loose(node_name):
+                continue
+            # acceptance needs the approval date: read the header first
+            top = _header(cid)
+            date_ok = any(_iso_date(str(top.get(f, "") or "")) == target
+                          for f in ("uro_chk_date", "uro_chk_date2"))
+            if not date_ok:
+                # the milestones may carry the approval date the header omits
+                fetched = _milestones(cid)
+                date_ok = any(_iso_date(str(fetched.get(lbl, "") or "")) == target
+                              for lbl in _APPROVAL_FIELDS)
+            if not date_ok:
+                continue
+            disc.city_case_ids = list(getattr(disc, "city_case_ids", None) or []) + [cid]
+            disc.candidate_names[cid] = cname or str(top.get("CASE_NAME", "") or "")
+            fetched = _milestones(cid)
+            if fetched:
+                disc.case_milestones[cid] = fetched
+            hdr = dict(case_header_entry(headers, cid))
+            hdr.setdefault("NAME", str(top.get("NAME", "") or ""))
+            if top.get("uro_chk_date"):
+                hdr["uro_chk_date"] = str(top["uro_chk_date"])
+            if top.get("uro_chk_date2"):
+                hdr["uro_chk_date2"] = str(top["uro_chk_date2"])
+            disc.case_headers[cid] = hdr
+            return [cid]
+
+    return []
+
+
+# 2.6: the unplaced-node flag. A node every resolver step misses is named on
+# its record — never silently unbound (the truncated-records rule).
+_UNPLACED_FLAG = "節點未能對應平台案件(案名:{name}, 日期:{date})"
+
+
 def _is_parcel_less_name(case_name: str) -> bool:
     """A settlement-named unit (崇仁新村) carries no 地號 by design; its
     extraction returning "" is the parcel-less rule, not a parse failure
@@ -2375,7 +2738,11 @@ def _flag_fragment_families(projects: list[Project], candidates: dict[str, tuple
         existing.append(flag)
 
 
-def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
+def attach_links_to_projects(projects: list[Project], discovered: dict,
+                             probe_headers: dict | None = None) -> None:
+    """Attach discovered links; probe_headers is the resolver's offline memo
+    ({case_id: header row}) from earlier probing runs — production emits it
+    from the sweep driver, tests pass doubles."""
     disc_by_pid = {}
     for k, v in discovered.items():
         if hasattr(v, 'project_id'):
@@ -2507,19 +2874,28 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
             track = member.track
 
             # Spec (official-link-discovery): per-stage city links land on the
-            # node whose 核定日期 matches the case's approval date. Fall back to
-            # the legacy positional heuristic only when dates cannot disambiguate.
+            # node whose 核定日期 matches the case's approval date. When dates
+            # cannot disambiguate, resolve-recno-case (S10, C6) binds the node
+            # by the 4-step resolver — 案名 tiers, same-day probe, header
+            # dates, all-parcel search — never by list position (the
+            # positional fallback bound 71 nodes on 51 projects to a case the
+            # node's own date refutes; the user rule 2026-11-04: every recno
+            # has a corresponding city case).
             # member.date is the raw gazette date — ROC (97/1/2) in the PDF
             # pipeline, ISO in --from-js regens; the matcher handles both.
             matched = _match_case_by_date(member.date, disc)
             if matched:
                 node_links["taipei"].append(matched)
-            elif "事業計畫" in track and disc.city_case_ids:
-                node_links["taipei"].append(disc.city_case_ids[0])
-            elif "權利變換" in track and len(disc.city_case_ids) > 1:
-                node_links["taipei"].append(disc.city_case_ids[1])
-            elif "權利變換" in track and disc.city_case_ids:
-                node_links["taipei"].append(disc.city_case_ids[0])
+            else:
+                resolved = resolve_node_cases(member, disc,
+                                              probe_headers=probe_headers)
+                node_links["taipei"].extend(resolved)
+                if not resolved:
+                    flag = _UNPLACED_FLAG.format(
+                        name=(getattr(member, "name", "") or "")[:40],
+                        date=getattr(member, "date", "") or "")
+                    if flag not in member.review_flags:
+                        member.review_flags = list(member.review_flags) + [flag]
 
             # §12 #2 chimera emit fix: the node carries ITS OWN approval's
             # per-case timeline, not the project-level last-write-wins merged
@@ -2592,7 +2968,7 @@ def attach_links_to_projects(projects: list[Project], discovered: dict) -> None:
                 similar = False
                 twin_shared_dates = None
                 own_milestones = disc.case_milestones.get(cid) or {}
-                case_name = (disc.search_rejected.get(cid, "")
+                case_name = ((getattr(disc, "search_rejected", None) or {}).get(cid, "")
                              or (getattr(disc, "candidate_names", None) or {}).get(cid, ""))
                 if cid in view_verified:
                     # Portal-verified: the case is listed on this project's own

@@ -331,13 +331,19 @@ class TestAttachLinksToProjects:
             members=[cleanse(raw1), cleanse(raw2)],
         )
 
-        # Two city case_ids: one for 事業計畫, one for 權利變換
+        # Two city case_ids: one for 事業計畫, one for 權利變換. resolve-recno-case:
+        # each node binds by its own date, so the case_milestones carry the
+        # nodes' gazette dates (115/8/11 → 2026-08-11, 114/5/1 → 2025-05-01).
         discovered = {
             "中正區-臨沂段一小段-507地號等3筆": {
                 "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/292",
                 "taipei": ["10110211", "10810271"],
                 "milestones_national": {"事業計畫申請日期": "101.01.15", "事業計畫核定日期": "108.06.20", "權利變換計畫申請日期": "107.03.10", "權利變換計畫核定日期": "108.12.05"},
                 "milestones_taipei": {"計畫公聽會日期": "2012/10/21", "核定日期": "2017/03/21"},
+                "case_milestones": {
+                    "10110211": {"核定日期": "2026/08/11"},
+                    "10810271": {"核定日期": "2025/05/01"},
+                },
             }
         }
 
@@ -436,7 +442,17 @@ class TestAttachLinksToProjects:
             "taipei": ["10204032", "10707031"],
             "milestones_national": {},
             "milestones_taipei": {},
-            "case_milestones": {},
+            # resolve-recno-case: the two nodes share the gazette date, so the
+            # 案名 step separates them — each case's city name matches its
+            # node's stage word (擬訂 vs 變更).
+            "candidate_names": {
+                "10204032": "擬訂中正區河堤段四小段263-19地號等25筆都市更新事業計畫案",
+                "10707031": "變更中正區河堤段四小段263-19地號等25筆都市更新事業計畫案",
+            },
+            "case_milestones": {
+                "10204032": {"核定日期": "2026/08/11"},
+                "10707031": {"核定日期": "2026/08/11"},
+            },
             "implementation": {
                 "10204032": {"Exe_Way": "協議合建", "Base_Area": "1233.0",
                              "Eng_Start_Date": "2017/10/31"},
@@ -496,7 +512,11 @@ class TestAttachLinksToProjects:
         assert by_recno[772].links["taipei"] == ["10707031"]   # 核定 2019-08-01
 
     def test_date_match_falls_back_to_positional_without_case_milestones(self):
-        """Old caches carry no case_milestones: legacy positional behavior kept."""
+        """Old caches carry no case_milestones. resolve-recno-case: the
+        positional fallback is gone — the resolver's header step still binds
+        here, because the case header (case_headers) approves on the node's
+        date. A cache with neither milestones nor headers stays unbound and
+        the miss is flagged (never a positional guess)."""
         from urtpe.models import Project
         from urtpe.cleanse import cleanse
         from urtpe.models import RawRecord
@@ -516,6 +536,8 @@ class TestAttachLinksToProjects:
         disc_obj.national_milestones = {}
         disc_obj.taipei_milestones = {}
         disc_obj.case_milestones = {}  # old cache
+        disc_obj.case_headers = {"10110211": {"NAME": "事業計畫階段─業經本府核定",
+                                              "uro_chk_date": "2026/08/11"}}
 
         attach_links_to_projects([project], {"中正區-臨沂段一小段-507地號等3筆": disc_obj})
 
@@ -741,13 +763,16 @@ class TestImplementationEmission:
         )
 
     def _disc_obj(self, **overrides):
+        # resolve-recno-case: the positional fallback is gone, so a disc whose
+        # case has no milestones cannot bind — this fixture binds by date: the
+        # node's approval (115/8/11 = 2026-08-11) matches the case's 核定日期.
         disc = type("Disc", (object,), {})()
         disc.project_id = "中山區-中山段一小段-254地號等13筆"
         disc.twur_url = ""
         disc.city_case_ids = ["09811141"]
         disc.national_milestones = {}
         disc.taipei_milestones = {}
-        disc.case_milestones = {}
+        disc.case_milestones = {"09811141": {"核定日期": "2026/08/11"}}
         disc.implementation = {"09811141": {"Eng_Start_Date": "2013/09/10", "Ulic_Date": "2016/08/29", "Exe_Way": "權利變換"}}
         disc.rewards = {"09811141": {"F0": "8,982.01", "F": "10,829.58"}}
         for k, v in overrides.items():
@@ -781,8 +806,12 @@ class TestImplementationEmission:
         emitted = doc["projects"][0]
         assert "implementation" not in emitted
         assert "rewards" not in emitted
-        # v1 consumer contract: existing fields unchanged in meaning
-        assert set(emitted["links"].keys()) == {"twur", "taipei", "milestones_national", "milestones_taipei"}
+        # v1 consumer contract: existing fields unchanged in meaning. The
+        # fixture's case_milestones (resolve-recno-case: the nodes bind by
+        # date, not position) ride the emitted links too.
+        assert set(emitted["links"].keys()) == {
+            "twur", "taipei", "milestones_national", "milestones_taipei",
+            "case_milestones"}
 
     def test_conflicting_payloads_flagged_in_emitted_object(self):
         project = self._make_project()
@@ -1103,11 +1132,17 @@ class TestOrphanGhostAnchoring:
             ("建照核發日期", "2022/02/17"),
             ("開工日期", "2022/08/26"),
         ]
+        # resolve-recno-case: the positional fallback is gone, so the first
+        # node anchors by date (09907222 carries the node's 2026-08-11 核定
+        # date among its labels) and 09907223 — a twin sharing its history —
+        # reaches the twin-bridge gate as before.
+        node5 = dict(shared)
+        node5["核定日期"] = "2026/08/11"
         disc = self._disc(
             taipei=["09907222", "11501041", "09907223"],
             milestones_source={},
             case_milestones={
-                "09907222": dict(shared),
+                "09907222": node5,
                 "09907223": dict(shared + [("申請計畫日期", "2010/07/22")]),
             },
         )

@@ -84,6 +84,10 @@ class TestGazetteAnomalyFlag:
         disc = _disc(pid, {
             "taipei": ["09511214"],
             "candidate_names": {"09511214": "變更臺北市中正區河堤段五小段399地號等3筆土地都市更新事業計畫案"},
+            # resolve-recno-case: the node anchors by date (the case's 核定日期
+            # equals the node's 107/1/25), then the stage-mismatch flag fires
+            # on the anchored pair — the 920-shape as measured.
+            "case_milestones": {"09511214": {"核定日期": "2018/01/25"}},
         })
         attach_links_to_projects([project], disc)
         node = project.members[0]

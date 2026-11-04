@@ -205,6 +205,51 @@ def test_refresh_reports_a_case_still_awaiting(tmp_path):
     assert "核定日期" not in saved["case_milestones"]["X"]
 
 
+class TestHeaderApprovalDates:
+    """resolve-recno-case (S14 absorbed): the refresh stores the header's
+    uro_chk_date / uro_chk_date2 beside NAME in case_headers, so the node
+    resolver reads the header as a second approval source offline. The city's
+    data2 sometimes copies another case's approval date (玉泉11's 09504263:
+    data2 2008/05/15, header 2013-08-20). Readers accept the legacy bare-string
+    shape (the NAME only)."""
+
+    def test_refresh_stores_header_approval_dates(self, tmp_path):
+        pid = "甲"
+        _write_cache(tmp_path, pid, published="2026-08-30", case_milestones={
+            "09504263": {"核定日期": "2008/05/15"},
+        })
+
+        def fake_fetch(case_id: str) -> dict:
+            return {"核定日期": "2008/05/15"}
+
+        def fake_header(case_id: str) -> dict:
+            return {"NAME": "事業計畫階段─業經本府核定",
+                    "uro_chk_date": "2013/08/20", "uro_chk_date2": ""}
+
+        report = refresh_project(tmp_path, pid, fetch=fake_fetch,
+                                 fetch_status=fake_header)
+        assert report["error"] == ""
+        saved = json.loads((tmp_path / pid / "result.json").read_text(encoding="utf-8"))
+        hdr = saved["case_headers"]["09504263"]
+        assert hdr["uro_chk_date"] == "2013/08/20"
+        assert "NAME" in hdr
+
+    def test_a_legacy_string_case_header_still_reads_as_the_name(self, tmp_path):
+        """Old caches carry {cid: NAME-string}; the resolver's reader must not
+        crash on them and must find no header date."""
+        pid = "乙"
+        _write_cache(tmp_path, pid, published="2026-08-30", case_milestones={
+            "X": {"核定日期": "2020/01/01"},
+        }, case_headers={"X": "事業計畫階段─業經本府核定"})
+        from urtpe.links import header_approval_dates, header_name
+        assert header_name({"X": "事業計畫階段─業經本府核定"}, "X") == "事業計畫階段─業經本府核定"
+        assert header_approval_dates({"X": "事業計畫階段─業經本府核定"}, "X") == {}
+        # the new dict shape reads back both
+        assert header_approval_dates(
+            {"X": {"NAME": "n", "uro_chk_date": "2013/08/20"}}, "X") == {
+                "核定日期": "2013/08/20"}
+
+
 class TestSelectorSkipsPayloadlessCaches:
     """B4 (Batch C): cache dirs whose project is absent from the emitted payload
     are re-selected every run and always report "not searched" — the selector

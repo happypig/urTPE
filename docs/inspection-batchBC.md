@@ -427,7 +427,7 @@ latent risk.
 | S7 | P2 | C5 | **merged into S15 (user decision 2026-11-04)** — the flag-only plan is replaced by the building-permit adapter. What S7 kept: the range guard in `fmtDate` and the ROC converters (a year in the future renders as the raw text plus a warning), which ships inside S15 | — |
 | S8 | P1 | C6 (types 1–2) | **merged into S10 (2026-11-04 review)** — the resolver's name step binds the same 31 area-split nodes (56 cases, 15 projects), so the date-tie rule is not needed; both would change `urtpe/links.py:2073`. The user's area-split rule (2026-11-03) stays as an S10 requirement | — |
 | S9 | P1 | C7, C10 | **DONE + ARCHIVED 2026-11-04** (`bd323c0`, re-emit, archive `2026-11-04-label-by-own-name`): 相關連結 labels an anchored case with its own `candidate_names[cid]` (吉林508's 11011241 keeps -A區); the 國 label reads `links.twur_name` — the page `<title>` parsed from the cached `view.html` at absorb and at the cache hit, no request. 632 projects carry `twur_name`; 吉林705 shows 擬訂…事業計畫案. Suite 888 passed; smoke + baseline pass | — |
-| S10 | P1 | C6 (types 1–6), C8 (b) | openspec change `resolve-recno-case` — replaces the positional fallback with the 4-step resolver: (1) 案名 over cached cases, area splits bind all cases (was S8); (2) same-day id probe, accepted on CASE_NAME + date (was S12); (3) header `uro_chk_date`/`uro_chk_date2` stored as an approval source (was S14); (4) parcel search on every parcel of the node. Measured 71 of 71 resolved, about 230 requests. MODIFIES `official-link-discovery` and `cache-freshness` (positional fallback). See "C6 resolver" | S0, S1, S5 |
+| S10 | P1 | C6 (types 1–6), C8 (b) | **IMPLEMENTED 2026-11-04** (commit after `042358a`): `resolve_node_cases` replaces the positional fallback in `attach_links_to_projects`; offline by default (D7 — the emission reads the caches' `case_headers` + probe memo; live steps run in `scripts/resolve_fallback_nodes.py`). The refresh persists `uro_chk_date`/`uro_chk_date2` beside NAME. Suite 916 passed / 1 skipped. **Live sweep + re-emit pending** (74 nodes on 54 projects: the 71 fallback + 3 unbound nodes on projects with city cases) | S0, S1, S5 — done |
 | S16 | P1 | C10 | **merged into S9** (`label-by-own-name`, 2026-11-04 review): both fix `buildRelatedLinkLabels`, and the new `twur_name` payload field needs a spec | — |
 | S11 | P2 | C8 (a) | **DONE + ARCHIVED 2026-11-04** (implementation+re-emit, archive `2026-11-04-dates-follow-plan-case`): `pick_implementation_payload` reads 開工/使照 from the 擬訂 plan case (per area), D5 keeps the statistics; 8 of 8 fetchable national-only projects recovered their dates; the 3 with missing plan cases wait for S10, then re-emit. Suite 892 passed; smoke + baseline pass | second run after S10 |
 | S12 | P2 | C8 (b) | **merged into S10 (2026-11-04 review)** — the same-day id probe is resolver step 2; the 7 missing 擬訂 plan cases are among its 14 finds. Correction: case ids are a city-wide daily serial, not a per-project batch, so a same-day id is accepted only on CASE_NAME + date | — |
@@ -518,8 +518,8 @@ portal dates and the flag.
 | --- | --- | --- |
 | 0 | S0 **DONE 2026-11-04** | none |
 | 1 | S1, S2, S3a **DONE**; S4, S5, S9, S11(first run) **DONE + ARCHIVED** | none |
-| 2 | S10 `resolve-recno-case`; S13; S11 second run | about 230 gis.uro requests (S10) |
-| 3 | S15; R in slices; S6 last | data.taipei (S15); gis.uro (R) |
+| 2 | S10 `resolve-recno-case` **IMPLEMENTED, sweep in flight**; S13 `merge-across-count-shrink` **IMPLEMENTED** (tests + bridge, re-merge pending); S11 second run (after the sweep + re-emit) | about 230 gis.uro requests (S10 sweep) |
+| 3 | S15 `building-permit-adapter` **PROPOSED**; R in slices; S6 last | data.taipei (S15); gis.uro (R) |
 
 - S0 first, because every later change writes a delta against specs that do
   not exist yet in `openspec/specs/`.

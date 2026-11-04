@@ -10,7 +10,7 @@ const CALLOUT_GAP = 2; // px between stacked callout boxes
 const KIND_COLOR = { revision: "#1d4ed8", track: "#0f766e", section: "#b45309" };
 const KIND_LABEL = { revision: "版本", track: "事業種類", section: "區段" };
 
-const TRACK_ORDER = ["事業計畫", "權利變換", "事業計畫、權利變換", "事業概要", "都市更新計畫", "其他"];
+const TRACK_ORDER = ["事業計畫", "權利變換", "事業計畫、權利變換", "事業概要"];
 
 // Construction-phase chain slots drawn beside the anchor record (facts §6.4/§12.1)
 const CONSTRUCTION_CHAIN_SLOTS = ["建照核發日期", "開工日期", "使照核發日期"];
@@ -456,15 +456,8 @@ function zoneBase(x) {
 // context ("里程碑 N 筆") → links.search_rejected stored case_name → ghost
 // node case_name → raw case_id. The national link shows the anchor record's
 // 案名. Primary link surface is the graph itself.
-// never-approved classification: every harvested case schedule is
-// 駁回/撤回/失效 and there is no national page — the unit will never appear
-// on the portal (§6.14 E2/E3).
-function neverApproved(p) {
-  const scheds = familyScheds(p);
-  return scheds.length > 0
-    && scheds.every(v => v === "已駁回" || v === "自行撤回" || v === "已失效")
-    && !(p.links || {}).twur;
-}
+// D4c (2026-11-05): the never-approved classification is retired — a gazette
+// family holds a gazette approval by construction.
 const caseScheduleOf = (p, cid) => ((p.links || {}).case_schedules || {})[cid] || "";
 // §10 per-track stage text: combined-track nodes whose 事業計畫/權利變換
 // ordinals differ render "stage1/stage2" (事業計畫 first); uniform keeps the
@@ -485,31 +478,32 @@ function perTrackStageText(n) {
 // honestly as [無] / [NA] instead of silence (§7 viewer-UX).
 const scheduleBadgeText = s => (!s || s === "已核准" || s === "已核定") ? "" : s === "無" ? " [無]" : s === "NA" ? " [NA]" : ` [${s}]`;
 
-// states that are honest "no current state" readings: they render as their own
-// per-case badge, but must not move the family-level chip or the never-approved
-// classification (§7 viewer-UX).
-const NO_STATE_FAMILY = new Set(["無", "NA"]);
+// D4b/c/d (inspection-batchD, user decision 2026-11-05). isDeadEnd lives in
+// the D12 helper block (virtualChainPairs needs it); the dead-end badge reads
+// it, and the 計畫與執行 filter uses it for the exclusive state below.
 
-function familyScheds(p) {
-  return Object.values((p.links || {}).case_schedules || {}).filter(
-    v => !NO_STATE_FAMILY.has(v));
+// D4d: the project's single 計畫與執行 state — construction first (the later
+// fact), then the current node's own dead-end schedule, else the current
+// node's exact track (事業計畫、權利變換 matches only its own option).
+function execStateOf(p) {
+  const st = constructionStage(p);
+  if (st) return st.short;
+  const cur = p.nodes.find(n => n.is_current);
+  const cid = cur && cur.links && cur.links.taipei ? (cur.links.taipei[0] || "") : "";
+  const sched = cid ? (((p.links || {}).case_schedules || {})[cid] || "") : "";
+  if (isDeadEnd(sched)) return sched;
+  return (cur || {}).track || "";
 }
 
-// (viewer-stage-chip-coverage) the grey status chip: a project with no
-// construction stage but a known case state shows 審查中 or 撤回 instead of
-// silence — silence must not read as "not started" when the platform says
-// otherwise. Precedence: the construction badge wins (the later fact);
-// 審查中 beats 撤回 (one live application means the family is not withdrawn);
-// no schedules at all → no chip.
-function statusChip(p, construction) {
-  if (construction) return "";           // the construction badge wins
-  const scheds = familyScheds(p);
-  if (!scheds.length) return "";         // no data → honest silence
-  if (scheds.some(v => v === "審查中"))
-    return `<span class="status-chip">審查中</span>`;
-  if (scheds.every(v => v === "自行撤回" || v === "已駁回" || v === "已失效"))
-    return `<span class="status-chip">撤回</span>`;
-  return "";
+// (viewer-stage-chip-coverage) D4c (user decision 2026-11-05): the
+// family-level chips are gone — a gazette approval proves the unit was
+// approved, and an older case's state must not label the current approval.
+// The list shows the dead-end state of the current node's OWN case only.
+function deadEndChip(p) {
+  const cur = p.nodes.find(n => n.is_current);
+  const cid = ((cur || {}).links || {}).taipei ? (cur.links.taipei[0] || "") : "";
+  const sched = cid ? ((p.links || {}).case_schedules || {})[cid] || "" : "";
+  return isDeadEnd(sched) ? `<span class="deadend-chip">${sched}</span>` : "";
 }
 
 // (viewer-stage-chip-coverage) fmtCell: the record table renders for human
@@ -560,6 +554,9 @@ function fmtDate(text) {
 }
 
 // D12-BEGIN (add-virtual-node-ordering-and-chain — pure helpers, node-tested)
+// D4b (2026-11-05): isDeadEnd lives inside the block — virtualChainPairs
+// refuses any chain edge that starts at a dead-end schedule.
+const isDeadEnd = s => s === "已失效" || s === "自行撤回" || s === "已駁回";
 // Effective comparison key: real nodes use their ANCHORED case_id
 // (links.taipei[0]); virtual nodes their own case_id; case-less real nodes
 // yield "" (sorts first — "" < any case_id keeps the order strictly ascending).
@@ -595,6 +592,9 @@ function virtualChainPairs(clusters) {
       const a = ms[i - 1], b = ms[i];
       if (!a.virtual || !b.virtual) continue;
       if ((a.track || "") !== (b.track || "")) continue;
+      // D4b (inspection-batchD): no chain edge starts at a dead end — nothing
+      // follows a closed case (已失效/自行撤回/已駁回; 36 of 48 corpus pairs).
+      if (isDeadEnd(a.schedule || a.case_schedule || "")) continue;
       pairs.push([a, b, c.stage]);
     }
   });
@@ -746,7 +746,10 @@ function init() {
     { key: "district", label: "地區", options: districts },
     { key: "year", label: "年度", options: years },
     { key: "track", label: "事業種類", options: TRACK_ORDER },
-    { key: "stage", label: "施工階段", options: ["建照", "開工", "使照"] },
+    // D4d (user decision 2026-11-05): 計畫與執行 — every project matches at
+    // most one state (construction > dead end > exact current-node track);
+    // 其他/都市更新計畫 dropped from 事業種類 (0 nodes each).
+    { key: "stage", label: "計畫與執行", options: ["建照", "開工", "使照", "已失效", "自行撤回", "已駁回", "事業概要", "事業計畫", "事業計畫、權利變換", "權利變換"] },
   ];
 
   const dropdowns = [];
@@ -844,8 +847,7 @@ function init() {
       if (!hit) return false;
     }
     if (sel.stage.size) {
-      const st = constructionStage(p);
-      if (!st || !sel.stage.has(st.short)) return false;
+      if (!sel.stage.has(execStateOf(p))) return false;
     }
     const q = filter.value.trim();
     if (q) {
@@ -868,7 +870,6 @@ function init() {
       const st = constructionStage(p);
       return st ? `<span class="stage-badge" style="color:${st.color}">${st.short}</span>` : "";
     };
-    const neverChip = p => neverApproved(p) ? `<span class="never-badge">未核定</span>` : "";
     rcount.textContent = `顯示 ${shown.length} / ${total}`;
     list.innerHTML = "";
     if (!shown.length) {
@@ -887,9 +888,7 @@ function init() {
         ? ` · 基地面積 <span style="color:${areaStyle.color};font-weight:${areaStyle.fontWeight}">${escapeHtml(area)}</span>`
         : area ? ` · 基地面積 ${escapeHtml(area)}` : "";
       const orphanCount = ((p.links || {}).orphan_nodes || []).length;
-      const construction = constructionStage(p);
-      const statusHtml = statusChip(p, construction);
-      el.innerHTML = `<div class="pid"><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}${stageChip(p)}${statusHtml}${neverChip(p)}</div>
+      el.innerHTML = `<div class="pid"><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}${stageChip(p)}${deadEndChip(p)}</div>
         <div class="cnt">${p.member_recnos.length}${orphanCount ? `(+${orphanCount})` : ""} 筆 · ${escapeHtml(p.implementer)}${areaHtml}</div>`;
       el.onclick = () => { activePid = p.project_id; renderList(); renderDetail(p); };
       list.appendChild(el);
@@ -1071,7 +1070,12 @@ function init() {
         posRaw[t.n.recno] = { x, y: rowYs[i] };
         if (t.n.virtual) {
           orphanSources[t.n.case_id] = posRaw[t.n.recno];
-          const to = nearestRecnoRowAbove(i) || nearestRecnoRowUnder(i);
+          const to = nearestRecnoRowAbove(i)
+            // D4b (user decision 2026-11-05): the under-fallback must not point
+            // out of a closed case — a dead-end orphan above every recno row
+            // renders with no dotted edge (160 corpus edges removed; the
+            // up-edges INTO a dead end stay, 78).
+            || (!isDeadEnd(t.n.schedule || t.n.case_schedule || "") ? nearestRecnoRowUnder(i) : null);
           if (to) orphanDots.push({ from: t.n.recno, to: to.recno });
         }
       } else {
@@ -1485,7 +1489,6 @@ function init() {
       }
       if (links.taipei && links.taipei.length) {
         const schedules = links.case_schedules || {};
-        const NEVER = ["已駁回", "自行撤回", "已失效"];
         links.taipei.forEach(cid => {
           const url = `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cid}`;
           const nm = linkLabels.byCase[cid] || "";
@@ -1498,14 +1501,9 @@ function init() {
           const succNote = succ ? ` <span class="link-schedule">已由 ${escapeHtml(succ)} 取代</span>` : "";
           s += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">臺北市都市更新審議服務平台 (case_id: ${cid})</a>${nm ? ` — <span class="link-case-name">${escapeHtml(nm)}</span>` : ""}${schedBadge ? ` <span class="link-schedule">${escapeHtml(schedBadge.trim())}</span>` : ""}${succNote}</li>`;
         });
-        // never-approved: every case 駁回/撤回/失效 and no national page —
-        // the portal will never list this unit, so the absence is explained.
-        if (!links.twur && links.taipei.length) {
-          const known = links.taipei.filter(cid => schedules[cid]);
-          if (known.length && known.every(cid => NEVER.includes(schedules[cid]))) {
-            s += `<li class="no-twur-reason">未曾核定（已駁回/自行撤回/已失效）— 無國土管理署入口網頁</li>`;
-          }
-        }
+        // D4c (2026-11-05): the family "never approved" note is retired — a
+        // gazette family holds a gazette approval by construction, and the 4
+        // projects it named all carry an approved current node.
       }
       s += `</ul></div></div>`;
     }

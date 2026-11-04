@@ -351,7 +351,6 @@ table.recs tr.current td { background: #fef2f2; }
 .link-case-name { color: #52525b; font-size: 12px; }
 .link-schedule { color: #b45309; font-size: 12px; font-weight: 600; }
 .no-twur-reason { color: #9f1239; font-size: 12px; list-style: none; }
-.never-badge { color: #9f1239; background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 4px; font-size: 10px; padding: 0 4px; margin-left: 4px; }
 @media (min-width: 768px) {
   .cols { grid-template-columns: 30% 70%; }
   #list {
@@ -378,9 +377,10 @@ table.recs tr.current td { background: #fef2f2; }
   #list { max-height: 32vh; overflow-y: auto; }
 }
 
-/* (viewer-stage-chip-coverage) the grey status chip: in-review/withdrawn with
-   no construction stage. Silence must not read as "not started". */
-.status-chip {
+/* D4c (inspection-batchD, 2026-11-05): the dead-end state badge — the
+   current approval's own case is 已失效/自行撤回/已駁回. Replaces the
+   family-level 審查中/撤回 chips and the 未核定 badge. */
+.deadend-chip {
   display: inline-block;
   margin-left: 6px;
   padding: 1px 6px;

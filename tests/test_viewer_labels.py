@@ -191,14 +191,14 @@ def test_annotation_leader_and_tail_present():
         "candidate_names must take precedence over the case_milestones "
         "fallback label in buildRelatedLinkLabels"
     )
-    # 7.2.3: schedule badge + never-approved reason (§6.14 E2)
+    # 7.2.3: schedule badge in 相關連結; the family "never-approved" note and
+    # the 未核定 chip are retired (D4c, viewer-deadend-and-filters).
     assert "case_schedules" in js, "相關連結 must read links.case_schedules"
     assert "link-schedule" in js, "schedule badge must render in 相關連結"
-    assert "no-twur-reason" in js, "never-approved reason must surface when every case is 駁回/撤回/失效"
+    assert "no-twur-reason" not in js, "the never-approved note must be removed"
     assert "virtual" in js and "schedule:" in js, "virtual nodes must carry the schedule into the graph"
-    # 7.2.5/7.2.6: real-node badge + left-list 未核定 chip
-    assert "neverApproved" in js, "list/detail must classify never-approved projects"
-    assert "never-badge" in js, "left-list cards must show the 未核定 chip"
+    assert "neverApproved" not in js and "never-badge" not in js, (
+        "the never-approved classification must be removed (D4c)")
     # D12 (add-virtual-node-ordering-and-chain): effective-case_id comparator
     # precedes the 區段 tie-break; chain edges only for virtual-involved pairs
     i_key = js.index("effectiveCaseKey(a)")
@@ -385,15 +385,15 @@ def test_stage_filter_dimension():
     m = re.search(r"const DIMS = \[[\s\S]*?\];", js)
     assert m, "DIMS not found in viewer/app.js"
     assert 'key: "stage"' in m.group(0), "DIMS must include the stage dimension"
-    assert 'label: "施工階段"' in m.group(0), "stage dimension labelled 施工階段"
+    assert 'label: "計畫與執行"' in m.group(0), "stage dimension labelled 計畫與執行 (D4d)"
     for opt in ("建照", "開工", "使照"):
         assert f'"{opt}"' in m.group(0), f"stage option {opt} missing"
     i = js.find("function matches(p)")
     assert i >= 0, "matches() not found"
     seg = js[i:js.find("\n  }", i) + 3]
     assert "sel.stage" in seg, "matches() must apply the stage dimension"
-    assert "constructionStage(p)" in seg, (
-        "stage filter must derive via constructionStage (same as the badge)"
+    assert "execStateOf(p)" in seg, (
+        "stage filter must derive via execStateOf — the exclusive 計畫與執行 state (D4d)"
     )
 
 
@@ -479,10 +479,14 @@ class TestConstructionEdgeSemantics:
             "orphan edge target must come from timeline rows, not date scan")
         assert "allRecnosByDate" not in js and "recnosByTrack" not in js, (
             "date-based placement helpers must be gone")
-        # branch-off point: the recno row directly above the orphan's row wins
-        assert re.search(r"nearestRecnoRowAbove\(i\)\s*\|\|\s*nearestRecnoRowUnder\(i\)", js), (
+        # branch-off point: the recno row directly above the orphan's row wins;
+        # the under-fallback is gated on a non-dead-end schedule (D4b — a
+        # dead-end orphan above every recno row renders no dotted edge).
+        assert re.search(r"const to = nearestRecnoRowAbove\(i\)[\s\S]{0,400}?nearestRecnoRowUnder\(i\)", js), (
             "dotted edge must target the recno row directly above the orphan's row, "
             "falling to the row under only when none sits above (11012301 -> 734)")
+        assert re.search(r"nearestRecnoRowUnder\(i\)\s*:\s*null", js), (
+            "the under-fallback must be gated on the orphan not being a dead end (D4b)")
 
     def test_four_column_grid_mapping(self):
         js = self._js()
@@ -738,3 +742,128 @@ def test_the_permit_witness_reaches_the_event_label():
     span = js[max(0, i - 600):i + 600]
     assert "使照核發日期" in span, "the witness rides the 使照 slot"
     assert "permit_no" in span and "permit.date" in span, "the label carries the permit number and date"
+
+
+def test_chain_edges_never_start_at_a_dead_end():
+    """D4b (inspection-batchD): no dashed chain edge starts at a virtual node
+    whose schedule is 已失效/自行撤回/已駁回. The shipped scenario's example
+    (吉林1021 09902261 已失效 → 10201171) is one of the 36 removed."""
+    import subprocess, json
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    jsn = _js().replace("\r\n", "\n")
+    m = re.search(r"function virtualChainPairs[\s\S]*?\n\}\n", jsn)
+    assert m, "virtualChainPairs not found"
+    m_dead = re.search(r"const isDeadEnd = [^\n]*\n", jsn)
+    assert m_dead, "isDeadEnd not found"
+    prog = (m_dead.group(0) + m.group(0) + """
+const mk = (case_id, schedule) => ({recno: "v" + case_id, virtual: true, case_id, stage: "擬訂", track: "事業概要", schedule});
+const clusters = [{stage: "擬訂", members: [
+  mk("09902261", "已失效"), mk("10201171", "已駁回"),   // dead → dead: no edge
+  mk("10302261", ""), mk("10401171", "已核准"),          // live → live: edge
+  mk("10502261", "自行撤回"), mk("10601171", "施工中"),  // dead start: no edge
+]}];
+// 10401171 → 10502261 also chains (the live member is not a dead end);
+// only edges STARTING at a dead end are removed.
+const pairs = virtualChainPairs(clusters).map(p => [p[0].case_id, p[1].case_id]);
+console.log(JSON.stringify(pairs));
+const want = [["10302261","10401171"],["10401171","10502261"]];
+if (JSON.stringify(pairs) !== JSON.stringify(want)) throw new Error("chain pairs wrong: " + JSON.stringify(pairs));
+""")
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr
+
+
+def test_dotted_edge_under_fallback_skips_dead_end_orphans():
+    """D4b: a dead-end orphan above every recno row renders no dotted edge;
+    a live orphan in the same shape keeps it; the row-above branch (edges INTO
+    a dead end, 78 kept) is untouched."""
+    import subprocess, json
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    jsn = _js().replace("\r\n", "\n")
+    m = re.search(r"const isDeadEnd = [\s\S]*?;\n", jsn)
+    assert m, "isDeadEnd helper not found"
+    prog = (m.group(0) + """
+for (const [cid, sched, expect] of [["09609061", "已失效", true], ["10209172", "施工中", false]])
+  if (isDeadEnd(sched) !== expect) throw new Error("isDeadEnd wrong for " + cid);
+console.log("ok");
+""")
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr
+
+
+def test_list_chips_replaced_by_dead_end_badge():
+    """D4c: the family chips (審查中/撤回/未核定) are gone; the dead-end badge
+    reads the is_current node's own case schedule and renders after the
+    construction badge."""
+    js = _js()
+    assert "status-chip" not in js, "grey 審查中/撤回 chips must be removed"
+    assert "never-badge" not in js and "neverApproved" not in js, (
+        "未核定 badge and neverApproved must be removed")
+    assert not re.search(r"statusChip\s*\(", js), "statusChip must be gone"
+    assert "deadEndChip" in js, "dead-end badge helper must exist"
+    m = re.search(r"function deadEndChip[\s\S]*?\n\}\n", js)
+    assert m, "deadEndChip not found"
+    body = m.group(0)
+    assert "is_current" in body, "deadEndChip must read the is_current node"
+    assert "isDeadEnd" in body, "deadEndChip must test the three dead-end schedules (via isDeadEnd)"
+    order = re.search(r'stageChip\(p\)\$\{[^}]*\}\$\{deadEndChip', js) or \
+            re.search(r'stageChip\(p\)[\s\S]{0,40}deadEndChip', js)
+    assert order, "dead-end badge must render after the construction badge"    # the 相關連結 never-approved note goes with it
+    assert "未曾核定" not in js, "the never-approved 相關連結 note must be removed"
+
+def test_filter_dimensions_after_d4d():
+    """D4d: 事業種類 drops 其他/都市更新計畫; 施工階段 becomes 計畫與執行 with
+    the ten options; every project matches at most one state; the combined
+    track matches only its own option."""
+    js = _js()
+    m = re.search(r"const TRACK_ORDER = \[[^\n]*\];", js)
+    assert m, "TRACK_ORDER not found"
+    opts = m.group(0)
+    assert "其他" not in opts and "都市更新計畫" not in opts, (
+        "事業種類 must drop 其他 and 都市更新計畫")
+    for t in ("事業計畫", "權利變換", "事業計畫、權利變換", "事業概要"):
+        assert t in opts, f"事業種類 must keep {t}"
+    assert '"計畫與執行"' in js or "'計畫與執行'" in js, "dimension must be labelled 計畫與執行"
+    assert "施工階段" not in js, "施工階段 label must be gone"
+    m2 = re.search(r'key: "stage", label: "計畫與執行", options: \[([^\]]*)\]', js)
+    assert m2, "計畫與執行 options list not found"
+    for o in ("建照", "開工", "使照", "已失效", "自行撤回", "已駁回",
+              "事業概要", "事業計畫", "事業計畫、權利變換", "權利變換"):
+        assert o in m2.group(1), f"計畫與執行 must offer {o}"
+
+
+def test_execution_state_is_exclusive():
+    """D4d: a project matches at most one 計畫與執行 state — construction
+    first, then dead end, then the exact current-node track."""
+    import subprocess, json
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    jsn = _js().replace("\r\n", "\n")
+    for name in (r"const isDeadEnd = [\s\S]*?;\n", r"function constructionStage[\s\S]*?\n\}\n",
+                 r"function execStateOf[\s\S]*?\n\}\n"):
+        assert re.search(name, jsn), f"{name} not found (execStateOf implements the exclusive state)"
+    prog = "".join(re.search(n, jsn).group(0) for n in (
+        r"const isDeadEnd = [\s\S]*?;\n", r"function constructionStage[\s\S]*?\n\}\n",
+        r"function execStateOf[\s\S]*?\n\}\n")) + """
+const mk = (mt, cur, cs) => ({links: {milestones_taipei: mt || {}, milestones_national: {}, case_schedules: cs || {}},
+  nodes: cur ? [{is_current: true, track: cur, links: {taipei: ["10000001"]}}] : []});
+const cases = [
+  [mk({"開工日期": "2020/01/01"}, "事業計畫", {}), "開工"],
+  [mk({}, "事業概要", {"10000001": "已失效"}), "已失效"],
+  [mk({}, "事業計畫、權利變換", {}), "事業計畫、權利變換"],
+  [mk({}, "權利變換", {}), "權利變換"],
+  [mk({}, "事業計畫", {"10000001": "已核准"}), "事業計畫"],
+];
+for (const [p, want] of cases) {
+  const got = execStateOf(p);
+  if (got !== want) throw new Error("execStateOf: got " + got + ", want " + want);
+}
+console.log("ok");
+"""
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr

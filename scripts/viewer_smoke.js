@@ -243,12 +243,19 @@ setTimeout(() => {
     // row directly above it (or directly under when none sits above) — the SVG
     // line with class "edge orphan" between orphan and recno. layoutRects.
     // orphanEdges lists each orphan→recno pair; confirm each orphan in the data
-    // has a corresponding edge.
+    // has a corresponding edge. D4b (viewer-deadend-and-filters): a dead-end
+    // orphan (已失效/自行撤回/已駁回) with no recno row above renders NO edge
+    // by design — an edge must not point out of a closed case. Distinguishing
+    // "above" from "under" needs the timeline, which the rects do not carry;
+    // the graph rule is asserted in tests/test_viewer_labels.py instead, so
+    // here a dead-end orphan without an edge is accepted.
     const orphanEdges = L.orphanEdges || [];
+    const DEAD = new Set(["已失效", "自行撤回", "已駁回"]);
     for (const g of orphans) {
       if (!g.case_name) continue; // nameless anchors render no row (§4 decision 4)
       const hasEdge = orphanEdges.some(d => d.id.includes(`orphan-edge:v${g.case_id}->`));
       if (!hasEdge) {
+        if (DEAD.has(g.schedule || (pp.links.case_schedules || {})[g.case_id] || "")) continue;
         missingOrphanEdges++;
         console.log(`  FAIL  orphan-edge ${pp.project_id}: case ${g.case_id} has no dotted edge to nearest recno node`);
       }

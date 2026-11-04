@@ -90,14 +90,27 @@ class TestChainEdges:
     """Task 1.3 — virtual chain edges: within cluster, cross-stage never, real↔real never."""
 
     def test_attempt_pair_chained(self):
+        # D4b (viewer-deadend-and-filters): the original example pair
+        # (吉林1021 09902261 已失效 → 10201171) no longer chains — no chain
+        # edge starts at a dead end. A live pair still chains.
         members = [
-            _make({"stage": "擬訂", "date": "2010-09-21"}, virtual=True, cid="09902261"),
             _make({"stage": "擬訂", "date": "2010-09-21"}, virtual=True, cid="10201171"),
+            _make({"stage": "擬訂", "date": "2011-05-01"}, virtual=True, cid="10402261"),
         ]
         out = _run_scenario(json.dumps({"clusters": [{"stage": "擬訂", "members": members}]}))
         pairs = out["chainPairs"]
         assert len(pairs) == 1
-        assert {pairs[0][0]["case_id"], pairs[0][1]["case_id"]} == {"09902261", "10201171"}
+        assert {pairs[0][0]["case_id"], pairs[0][1]["case_id"]} == {"10201171", "10402261"}
+
+    def test_chain_edge_never_starts_at_a_dead_end(self):
+        # D4b: 09902261 已失效 → 10201171 (吉林1021) — the shipped spec
+        # scenario's own example, removed with 35 others (36 of 48 corpus pairs).
+        members = [
+            _make({"stage": "擬訂", "date": "2010-09-21", "schedule": "已失效"}, virtual=True, cid="09902261"),
+            _make({"stage": "擬訂", "date": "2010-09-21"}, virtual=True, cid="10201171"),
+        ]
+        out = _run_scenario(json.dumps({"clusters": [{"stage": "擬訂", "members": members}]}))
+        assert out["chainPairs"] == []
 
     def test_cross_stage_same_day_not_chained(self):
         out = _run_scenario(json.dumps({"clusters": [

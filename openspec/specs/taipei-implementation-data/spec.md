@@ -6,9 +6,7 @@ Integrates the Taipei platform's implementation (執行階段, `Get_project168_t
 and reward (獎勵資料, `Get_project168_fourth.ashx`) data into the discovery pipeline,
 project cache, emitted graph, and viewer — so a project's 開工/使用執照 progress and
 容積獎勵 composition are visible without leaving the viewer.
-
 ## Requirements
-
 ### Requirement: Attach per-record implementation snapshots
 
 Each approval record SHALL carry an optional `implementation` snapshot of its
@@ -209,11 +207,21 @@ implementation payload's `case_id` exact match, or the national portal via
 使用核發日期. The resolution chain SHALL require no heuristics. A slot that
 resolves by none of these SHALL render as isolated (no source edge, no
 provenance label) and SHALL be reported by the corpus provenance validation
-with its family, slot, and value.
+with its family, slot, and value. When two cases carry the SAME value for a
+slot, the FIRST case read SHALL win the `milestones_source` credit — in the
+stage-milestone merge and in the 擬訂 plan-case date pick alike (board D4a,
+user decision 2026-11-05: 15 corpus dates in 11 projects credited a later
+case, e.g. 榮星53's 建照 2006/07/11 held by both 北區 09001120 and 南區
+09001123 was credited to 09001123).
 
 #### Scenario: Stage label resolves via source map
 - **WHEN** 建照核發日期 exists in `milestones_taipei`
 - **THEN** `milestones_source` names the case whose value won the merge
+
+#### Scenario: An equal value credits the first case read
+- **WHEN** two 擬訂 plan cases -A區 (09001120) and -B區 (09001123) both hold
+  建照核發日期 2006/07/11, and -A區 is read first (榮星53 shape)
+- **THEN** `milestones_source["建照核發日期"]` names 09001120
 
 #### Scenario: Implementation date resolves via case_id
 - **WHEN** 開工日期/使照核發日期 equals the best implementation payload's date
@@ -269,3 +277,4 @@ from them and their absence is otherwise indistinguishable from having none.
 
 - **WHEN** some approvals carry a snapshot and others do not
 - **THEN** the run reports both counts rather than treating the populated set as the whole
+

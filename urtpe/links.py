@@ -2613,7 +2613,30 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
                 continue
             date_ok = any(_iso_date(v) == target
                           for v in probe_dates.get(cid, {}).values())
+            if not date_ok and node_name_loose(cname) == node_name_loose(node_name):
+                # a 概要 case carries its approval (概要核准日期) in the
+                # milestones, not the header — 陽明291's 10903311 (NAME 事業
+                # 概要階段─業經本府核准, header dates empty). Fetch the
+                # milestones for a name-matching candidate with no header date.
+                fetched = _milestones(cid)
+                if fetched:
+                    disc.case_milestones.setdefault(cid, fetched)
+                    date_ok = any(_iso_date(str(fetched.get(lbl, "") or "")) == target
+                                  for lbl in _APPROVAL_FIELDS)
             if not (date_ok and node_name_loose(cname) == node_name_loose(node_name)):
+                # a dated header read this run persists even when the name
+                # does not loose-match: the header is evidence about the case
+                # (康寧626's 09712204 carries its approval only in the header,
+                # and its name adds 及變更權利變換計畫案 to the gazette's 案名) —
+                # the offline header step decides on the next pass, and the
+                # probe is not repeated. Not a binding: no id, name or
+                # milestone is written here.
+                if date_ok:
+                    hdr = dict(case_header_entry(headers, cid))
+                    for lbl, v in probe_dates.get(cid, {}).items():
+                        hdr.setdefault("uro_chk_date" if lbl == "核定日期" else "uro_chk_date2", v)
+                    if hdr and hdr != case_header_entry(headers, cid):
+                        disc.case_headers[cid] = hdr
                 continue
             # accept: join the cache in place
             disc.city_case_ids = list(getattr(disc, "city_case_ids", None) or []) + [cid]
@@ -2649,8 +2672,10 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
             top = _header(cid)
             date_ok = any(_iso_date(str(top.get(f, "") or "")) == target
                           for f in ("uro_chk_date", "uro_chk_date2"))
+            fetched = {}
             if not date_ok:
-                # the milestones may carry the approval date the header omits
+                # the milestones may carry the approval the header omits (a
+                # 概要 case's 概要核准日期, or a data2 gap)
                 fetched = _milestones(cid)
                 date_ok = any(_iso_date(str(fetched.get(lbl, "") or "")) == target
                               for lbl in _APPROVAL_FIELDS)
@@ -2658,7 +2683,8 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
                 continue
             disc.city_case_ids = list(getattr(disc, "city_case_ids", None) or []) + [cid]
             disc.candidate_names[cid] = cname or str(top.get("CASE_NAME", "") or "")
-            fetched = _milestones(cid)
+            if not fetched:
+                fetched = _milestones(cid)
             if fetched:
                 disc.case_milestones[cid] = fetched
             hdr = dict(case_header_entry(headers, cid))

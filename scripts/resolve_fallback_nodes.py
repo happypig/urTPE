@@ -30,6 +30,7 @@ sys.path.insert(0, str(ROOT))
 
 from urtpe.links import (  # noqa: E402
     _match_case_by_date,
+    extract_case_ids_from_view,
     fetch_taipei_case_header_api,
     fetch_taipei_milestones_api,
     load_project_cache,
@@ -131,11 +132,28 @@ def main(argv: list[str] | None = None) -> int:
         member.parcels = list(n.get("parcels") or [])
         member.section = n.get("section") or ""
         member.review_flags = []
+        # The probe's candidate batches derive from every id the project
+        # holds. 玉成166's A區/B區 變更(第二次) cases (10203261/2) are named
+        # only on the project's own national page 相關連結 — the cache's
+        # view_verified is empty until R's backfill — so the sweep feeds the
+        # cached view.html's ids into the known set as a probe memo (the
+        # acceptance still requires CASE_NAME + date, so a foreign id on the
+        # page cannot bind).
+        memo: dict[str, dict] = {}
+        try:
+            vh = (resolve_cache_dir(cache_dir, pid) / "view.html")
+            if vh.is_file():
+                for cid in extract_case_ids_from_view(
+                        vh.read_text(encoding="utf-8")):
+                    if cid and cid not in set(cache.city_case_ids):
+                        memo[cid] = {}
+        except OSError:
+            pass
         # the resolver mutates the cache in place on acceptance
         before = list(cache.city_case_ids)
         got = resolve_node_cases(member, cache, fetch_header=fetch_header,
                                  fetch_milestones=fetch_milestones,
-                                 search=search)
+                                 search=search, probe_headers=memo)
         if cache.city_case_ids != before:
             changed = True
         if got:

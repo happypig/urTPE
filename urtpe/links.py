@@ -2385,9 +2385,69 @@ def node_stage_kind(name: str) -> tuple[str, str]:
     return stage, kind
 
 
+def _kind_matches(node_kind: str, case_kind: str) -> bool:
+    """Tier-3 plan-type comparison. The gazette prints one stage word for a
+    combined-track approval, so a node named 事業計畫 (東湖34 r73) matches a
+    case named 事業計畫及權利變換計畫 (11502008) — the node's kind is a
+    subset of the case's. A case with fewer tracks than the node never
+    matches (a bare 事業計畫 case is not a 權變 node's case)."""
+    return all(k in case_kind for k in (node_kind or ""))
+
+
+def _tier3_names_match(node_name: str, case_name: str, node_landcore: str = "") -> bool:
+    """Tier 3: equal stage-with-ordinal + the kind subset + the same unit —
+    the stage+kind pair alone is NOT a match (變更+權 describes half the
+    corpus). The land core decides: the node's core comes from its 案名 or
+    (the gazette's abbreviated form, 中正河堤段 without the 區) from the
+    record's own fields; the case's from its city name. Both parse →
+    similarity ≥ 0.85; either is parcel-less (崇仁新村) or unparseable → no
+    tier-3 match from the name alone (the case stays an orphan;
+    view-verified or twin-bridge evidence binds it instead)."""
+    cs, _ck = node_stage_kind(case_name)
+    ns, _nk = node_stage_kind(node_name)
+    if not (cs and cs == ns):
+        return False
+    lc_node = extract_landcore_from_case_name(node_name) or node_landcore
+    lc_case = extract_landcore_from_case_name(case_name)
+    if not lc_node or not lc_case:
+        return False
+    return compute_landcore_similarity(lc_node, lc_case) >= 0.85
+
+
 def _node_area_suffix(name: str) -> str:
     m = _AREA_SUFFIX_RE.search(node_name_key(name))
     return m.group(0) if m else ""
+
+
+def _record_landcore(member) -> str:
+    """The record's land core from its own fields — the gazette's abbreviated
+    案名 (中正河堤段, no 區) does not parse, but the record's district_land /
+    section / first_parcel / land_count carry the same identity. Delegates to
+    build_land_core_key when the member is a CleanRecord; the SimpleNamespace
+    test doubles get the same shape inline. Empty when the record carries no
+    parcel."""
+    if hasattr(member, "district_land") and hasattr(member, "land_count"):
+        try:
+            core = build_land_core_key(member)
+            return core if getattr(member, "first_parcel", "") else ""
+        except Exception:
+            pass
+    district = getattr(member, "district_land", "") or getattr(member, "district", "") or ""
+    section = getattr(member, "section", "") or ""
+    parcel = getattr(member, "first_parcel", "") or ""
+    count = getattr(member, "land_count", None)
+    core = f"{district}{section}{parcel}"
+    if count:
+        core += f"地號等{count}筆"
+    return core if parcel else ""
+
+
+def _probe_name_ok(case_name: str, node_name: str, node_landcore: str = "") -> bool:
+    """The probe's name test beyond the loose equality: the tier-3 rule —
+    equal stage-with-ordinal, the kind subset and the land core (the board's
+    S12 correction: case ids are a city-wide daily serial, so a same-day
+    sibling may belong to another project — 10203252 = 中山111)."""
+    return _tier3_names_match(node_name, case_name, node_landcore)
 
 
 def case_header_entry(headers: dict, cid: str) -> dict:
@@ -2440,18 +2500,29 @@ def filter_live_cases(cids: list[str], disc, names: tuple[str, ...] = ()) -> lis
     return live
 
 
-def _name_tier_hits(names: dict, node_name: str) -> list[tuple[str, list[str]]]:
+def _name_tier_hits(names: dict, node_name: str,
+                    node_landcore: str = "") -> list[tuple[str, list[str]]]:
     """[(tier, case_ids)] — the cached cases matching the node's 案名, tier by
-    tier. Every tier runs over all cached candidate names."""
+    tier. Every tier runs over all cached candidate names. Tier 3 matches on
+    (stage-with-ordinal, plan type) with the kind-subset rule and the
+    land-core check: the gazette prints one stage word for a combined-track
+    approval, so a node named 事業計畫 matches a case named
+    事業計畫及權利變換計畫 (東湖34 r73 → 11502008; 吉林705 r1311 → 09307101) —
+    but only on the same unit (the 崇仁新村 cross-family shape must not
+    match)."""
     tiers = (
         ("1 exact", node_name_key),
         ("2 loose", node_name_loose),
-        ("3 stage+kind", lambda s: tuple(node_stage_kind(s))),
+        ("3 stage+kind", None),
     )
     out = []
     for label, fn in tiers:
-        want = fn(node_name)
-        hits = [cid for cid, n in names.items() if n and fn(n) == want]
+        if fn is None:
+            hits = [cid for cid, n in names.items() if n
+                    and _tier3_names_match(node_name, n, node_landcore)]
+        else:
+            want = fn(node_name)
+            hits = [cid for cid, n in names.items() if n and fn(n) == want]
         out.append((label, hits))
     return out
 
@@ -2525,10 +2596,26 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
     ms = getattr(disc, "case_milestones", None) or {}
     headers = getattr(disc, "case_headers", None) or {}
     node_name = getattr(member, "name", "") or ""
+    # the record's own land core (the gazette's abbreviated 案名, 中正河堤段
+    # without the 區, does not parse): district(_land) + section + first
+    # parcel + count, the build_land_core_key form
+    node_landcore = extract_landcore_from_case_name(node_name) or _record_landcore(member)
 
     # ── step 1: the 案名 over cached cases ──────────────────────────────────
-    for _tier, hits in _name_tier_hits(names, node_name):
+    # a 無 case yields to an approved same-name sibling: the sibling may live
+    # at a later tier (東湖34's 11502008 names 及權利變換計畫, so tiers 1–2
+    # hit only the 無 case 11302181) — pre-compute the widest (tier-3) hit
+    # set so the yield check sees it before binding a lone 無 case.
+    tiers = _name_tier_hits(names, node_name, node_landcore)
+    widest = sorted(set(tiers[-1][1])) if tiers else []
+    for _tier, hits in tiers:
         live = filter_live_cases(hits, disc)
+        if not live:
+            continue
+        if len(live) == 1 and (schedules.get(live[0]) == "無") and widest:
+            wider = filter_live_cases(widest, disc)
+            if wider and wider != live:
+                live = wider
         bound = _bind_from_name_step(node_name, live, names)
         if bound:
             return bound
@@ -2547,6 +2634,14 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
     stage_kind = node_stage_kind(node_name)
     for cid in getattr(disc, "city_case_ids", None) or []:
         hdr_dates = header_approval_dates(headers, cid)
+        if not hdr_dates:
+            # the header may be silent while the milestones carry the
+            # approval (康寧626's 09712204: 核定 2016/11/12 in data2, the
+            # node 10 days later) — the same bounded drift applies there
+            own_ms = ms.get(cid) or {}
+            for label in _APPROVAL_FIELDS:
+                if own_ms.get(label):
+                    hdr_dates[label] = str(own_ms[label])
         for label, hdr_date in hdr_dates.items():
             iso = _iso_date(hdr_date)
             if not iso:
@@ -2613,7 +2708,9 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
                 continue
             date_ok = any(_iso_date(v) == target
                           for v in probe_dates.get(cid, {}).values())
-            if not date_ok and node_name_loose(cname) == node_name_loose(node_name):
+            name_ok = (node_name_loose(cname) == node_name_loose(node_name)
+                       or _probe_name_ok(cname, node_name, node_landcore))
+            if not date_ok and name_ok:
                 # a 概要 case carries its approval (概要核准日期) in the
                 # milestones, not the header — 陽明291's 10903311 (NAME 事業
                 # 概要階段─業經本府核准, header dates empty). Fetch the
@@ -2623,7 +2720,7 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
                     disc.case_milestones.setdefault(cid, fetched)
                     date_ok = any(_iso_date(str(fetched.get(lbl, "") or "")) == target
                                   for lbl in _APPROVAL_FIELDS)
-            if not (date_ok and node_name_loose(cname) == node_name_loose(node_name)):
+            if not (date_ok and name_ok):
                 # a dated header read this run persists even when the name
                 # does not loose-match: the header is evidence about the case
                 # (康寧626's 09712204 carries its approval only in the header,
@@ -2666,7 +2763,8 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
             if not cid or cid in known or cid in probe_names:
                 continue
             cname = str(e.get("case_name", "") or "")
-            if node_name_loose(cname) != node_name_loose(node_name):
+            if not (node_name_loose(cname) == node_name_loose(node_name)
+                    or _probe_name_ok(cname, node_name, node_landcore)):
                 continue
             # acceptance needs the approval date: read the header first
             top = _header(cid)

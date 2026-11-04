@@ -103,6 +103,28 @@ class TestLiveSet(unittest.TestCase):
                                  names=("擬訂臺北市內湖區東湖段49地號等1筆",))
         self.assertEqual(live, ["11502008"])
 
+    def test_combined_track_case_matches_a_single_track_node(self):
+        # 東湖34 r73: the gazette prints 擬訂…事業計畫案; the city's re-filed
+        # case 11502008 names 事業計畫及權利變換計畫 (one approval, both
+        # tracks) — the tier-3 kind-subset rule matches them, then the date
+        # (2026-02-11 = the node's 2026-02-21 within the name bind? no: the
+        # node's date is 2026-02-21, the case's 核定 2026/02/11 — 10 days off,
+        # the header drift). The probe memo carries the header date.
+        disc = _disc(
+            city_case_ids=["11302181", "11502008"],
+            names={"11302181": "擬訂臺北市內湖區東湖段一小段34地號等1筆土地都市更新事業計畫案",
+                   "11502008": "擬訂臺北市內湖區東湖段一小段34地號1筆土地都市更新事業計畫及權利變換計畫案"},
+            schedules={"11302181": "無", "11502008": "已核准"},
+            milestones={"11502008": {"核定日期": "2026/02/11"}},
+            headers={"11502008": {"NAME": "事業計畫階段─業經本府核定",
+                                  "uro_chk_date": "2026-02-21T00:00:00"}},
+        )
+        got = resolve_node_cases(
+            _member(date="2026-02-21", stage="擬訂", track="事業計畫",
+                    name="擬訂臺北市內湖區東湖段一小段34地號等1筆土地都市更新事業計畫案"),
+            disc)
+        self.assertEqual(got, ["11502008"])
+
     def test_no_approved_sibling_keeps_the_無_case(self):
         disc = _disc(
             names={"11302181": "擬訂臺北市內湖區東湖段49地號等1筆"},

@@ -395,9 +395,9 @@ class TestAttachLinksToProjects:
         from urtpe.models import RawRecord
 
         raw1 = RawRecord(1042, "115/8/11", "中正區", "擬訂中正河堤段四小段263-19地號等25筆事業計畫案",
-                         "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+                         "中正區河堤段四小段263-19地號等25筆", "萬仕達建設", "某規劃")
         raw2 = RawRecord(772, "115/8/11", "中正區", "變更中正河堤段四小段263-19地號等25筆權利變換計畫案",
-                         "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+                         "中正區河堤段四小段263-19地號等25筆", "萬仕達建設", "某規劃")
         project = Project(
             project_id="中正區-河堤段四小段-263-19地號等25筆",
             anchor_recno=1042,
@@ -429,9 +429,9 @@ class TestAttachLinksToProjects:
         from urtpe.models import RawRecord
 
         raw1 = RawRecord(1042, "115/8/11", "中正區", "擬訂中正河堤段四小段263-19地號等25筆事業計畫案",
-                         "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+                         "中正區河堤段四小段263-19地號等25筆", "萬仕達建設", "某規劃")
         raw2 = RawRecord(772, "115/8/11", "中正區", "變更中正河堤段四小段263-19地號等25筆權利變換計畫案",
-                         "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+                         "中正區河堤段四小段263-19地號等25筆", "萬仕達建設", "某規劃")
         project = Project(
             project_id="中正區-河堤段四小段-263-19地號等25筆",
             anchor_recno=1042,
@@ -444,10 +444,11 @@ class TestAttachLinksToProjects:
             "milestones_taipei": {},
             # resolve-recno-case: the two nodes share the gazette date, so the
             # 案名 step separates them — each case's city name matches its
-            # node's stage word (擬訂 vs 變更).
+            # node's stage word (擬訂 vs 變更). The names carry the 區 land
+            # core (the tier-3 check extracts it).
             "candidate_names": {
-                "10204032": "擬訂中正區河堤段四小段263-19地號等25筆都市更新事業計畫案",
-                "10707031": "變更中正區河堤段四小段263-19地號等25筆都市更新事業計畫案",
+                "10204032": "擬訂臺北市中正區河堤段四小段263-19地號等25筆都市更新事業計畫案",
+                "10707031": "變更臺北市中正區河堤段四小段263-19地號等25筆都市更新事業計畫案",
             },
             "case_milestones": {
                 "10204032": {"核定日期": "2026/08/11"},
@@ -478,9 +479,9 @@ class TestAttachLinksToProjects:
         from urtpe.models import RawRecord
 
         raw_old = RawRecord(1042, "115/8/11", "中正區", "擬訂中正河堤段四小段263-19地號等25筆都市更新計畫案",
-                            "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+                            "中正區河堤段四小段263-19地號等25筆", "萬仕達建設", "某規劃")
         raw_new = RawRecord(772, "115/8/11", "中正區", "變更中正河堤段四小段263-19地號等25筆都市更新事業計畫案",
-                            "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+                            "中正區河堤段四小段263-19地號等25筆", "萬仕達建設", "某規劃")
         project = Project(
             project_id="中正區-河堤段四小段-263-19地號等25筆",
             anchor_recno=772,
@@ -1354,7 +1355,7 @@ class TestChimeraEmitFix:
 
         raw = RawRecord(772, "115/8/11", "中正區",
                         "變更中正區河堤段四小段263-19地號等25筆都市更新事業計畫案",
-                        "中正區河堤段四小段263-19等25筆", "萬仕達建設", "某規劃")
+                        "中正區河堤段四小段263-19地號等25筆", "萬仕達建設", "某規劃")
         project = Project(project_id="中正區-河堤段四小段-263-19地號等25筆",
                           anchor_recno=772, members=[cleanse(raw)])
         merged = {"核定日期": "2019/08/01"}

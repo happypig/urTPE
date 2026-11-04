@@ -437,7 +437,7 @@ must not drop corrections silently). Change: `ledger-confirm-merge`.
 | D4a | 使照 national flag + source-map-first + first-holder provenance — DONE (viewer `57a70cf`, pipeline with D1, re-emit `2bb3013`): only 南港729 keeps an edge | — | — |
 | D4b–d | dead-end edges, list badges, 計畫與執行 filter — DONE `26e57f1`, archived `2026-11-05-viewer-deadend-and-filters` (`d2d15ee`) | one openspec change, viewer only | — |
 | D1 | rename the orphan `milestones_national` key — DONE with D4a-pipeline (`d524fae`+`24694a5`, re-emit `2bb3013`, archived) | openspec change + `--from-js` load alias + re-emit | — |
-| D2 | `_ghost_node_date` track-aware, then the date-primary sort key (user decision 2026-11-04 pending on the re-measure) | one openspec change, `virtual-milestone-nodes` + viewer | D1 (same re-emit rides D1's payload) |
+| D2 | `_ghost_node_date` track-aware + date-first sort — DONE (D2a re-emit `e97c18d`: 25→7 same-date pairs; D2b `56ae3ca`: 0 non-chronological projects, was 51) | openspec change, archived 2026-11-05 | — |
 
 ## Decisions waiting on the user
 

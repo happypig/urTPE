@@ -2,7 +2,7 @@
 
 Findings from the post-Batch-B+C session (2026-11-04, payload at `47453f9`:
 1,442 records / 682 projects, the corpus converged after waves 1–3 of the
-Batch B + C plan). Two findings, both measured. The board follows the
+Batch B + C plan). Three findings, all measured. The board follows the
 `docs/inspection-batchBC.md` structure: findings, then the integrated plan,
 then the decisions that gate execution.
 
@@ -136,10 +136,79 @@ the echo and get the application fallback instead).
 **Form:** one openspec change covering D2a + D2b (same re-emit, same spec
 surface `virtual-milestone-nodes` + viewer sort spec), test-first.
 
+## D3 — the 國 badge: a key bug, and the two extra routes the user asked about
+
+**Question (user, 2026-11-04).** Can 國 also attach to a 北 node by (a) the
+same case id on the national page `view/<id>`, or (b) the same name as the
+recno or its 北 case?
+
+**Today's two sources** (`getNodeMilestoneBadges`, `viewer/app.js:176`):
+A — a national approval label binds the node by stage + track, with a date
+tie-break (`bindNationalLabels`, `viewer/app.js:151`); B — the node's first
+case is in `view_verified_case_ids`. Measured over 622 twur projects and
+1,357 北 nodes: 1,032 carry 國 (A only 356, B only 39, both 637); 325 do not.
+
+### D3a — `nationalLabelKey` never binds a second-or-later 變更 (bug)
+
+`nationalLabelKey` (`viewer/app.js:32`) builds `` `變更(${raw}次)` ``, so the
+label 第二次變更權利變換計畫核定日期 keys to `變更(二次)`. Every payload node
+spells the stage `變更(第二次)`. Run with the shipped helpers in a VM over the
+payload:
+
+| National approval labels | Count | Bound |
+| --- | --- | --- |
+| 擬訂 | 996 | 941 |
+| 第一次變更 | 475 | 449 |
+| 第二次 and later 變更 | **223** | **0** |
+
+Example: 吉林717 node 762 (`變更(第二次)` 權利變換, 2019-10-02) and the
+label 第二次變更權利變換計畫核定日期 = 108.10.03 (1 day off) — no 國 today.
+With `` `變更(第${raw}次)` `` the corrected key gives **147 more nodes 國**
+(1,032 → 1,179). Of their 157 new labels, 142 bind within ±1 day of the
+label date; 15 bind as the single stage+track candidate with a drifting date
+(the C1 rule). The board's C1 count "327 labels with no stage+track node"
+included these labels; it read the bug as missing data. The code departs
+from its own comment at `viewer/app.js:24-25` ("第二次→變更(第二次)"), so
+this is a direct fix with no spec delta. No other approval label fails the
+key: 0 national labels with 核定 or 核准 parse to null.
+
+**Form:** direct `fix:` in `nationalLabelKey` plus a test on the 吉林717
+node 762 shape (`tests/test_viewer_labels.py` runs the helpers in a VM).
+
+### D3b — the two extra routes add almost nothing
+
+After D3a, 178 北 nodes carry no 國:
+
+| Cause | Nodes |
+| --- | --- |
+| The national page has no label for this stage — last updated before the approval (stale page) | 86 |
+| The national page has no label for this stage — updated after the approval, still silent | 76 |
+| The page's label bound a sibling node (the gazette has more rows of this stage+track than the page has labels, e.g. 吉林705's 1311 and 1370 against one 第一次變更事業計畫 label) | 12 |
+| A label exists, the date tie-break refused (3 labels, 0 or 2+ survivors) | 4 |
+
+(a) **Same case id on `view/<id>`.** The page's 縣市政府案件連結 lists one case
+in 436 of 622 projects, two in 109, three or more in 23, and none in 54. So
+this route confirms about one node per project, and it already is source B.
+It adds **0** of the 178 nodes. The page list is also not clean: 6 pages link
+a foreign case — 中山254's page links 辛亥163's 10202065, the id the C3
+gate rejected.
+
+(b) **Same name.** The page's link labels name only the linked cases, and the
+page title names the first 擬訂 case, which already has 國 by label. Name
+matching adds **0** nodes. A third reading — take stage and track from the
+北 case's own city name instead of the gazette stage — touches only the 3
+refused labels; it resolves 2 (吉林185, 市府247), and in 吉林185 the pick is
+4 years from the label date. Not worth a rule.
+
+**Conclusion.** Neither route closes the gap. The gap is national data the
+page does not hold (162 nodes), labels the page gives to a sibling row (12),
+and real ties (4). Fix D3a; keep A and B as they are.
+
 ## Order
 
 | Step | Finding | Form | Gate |
 | --- | --- | --- | --- |
+| D3a | `nationalLabelKey` ordinal spelling — 223 labels never bind | direct `fix:` + test; no re-emit (viewer only) | — |
 | D1 | rename the orphan `milestones_national` key (source-space truth) | openspec change + `--from-js` load alias + re-emit | — |
 | D2 | `_ghost_node_date` track-aware, then the date-primary sort key (user decision 2026-11-04 pending on the re-measure) | one openspec change, `virtual-milestone-nodes` + viewer | D1 (same re-emit rides D1's payload) |
 

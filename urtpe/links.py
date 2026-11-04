@@ -2073,8 +2073,14 @@ def _iso_date(s: str) -> str:
     date-matchable nodes bound to the wrong case (1,164 of 1,442 raw rows carry an
     unpadded date). ROC cells ('115/8/27') keep their own year form; only the
     month and day pad, because the ROC->ISO year conversion is the caller's job.
+    The case header's approval dates arrive as ISO datetimes
+    ('2023-12-28T00:00:00' — 犁和302's 10203253 uro_chk_date2); the T-time is
+    cut here so the resolver's date comparison sees the date (resolve-recno-case
+    task 3.3: 21 nodes unresolved because of this exact shape).
     """
     text = s.strip().replace("/", "-") if s else ""
+    if "T" in text:
+        text = text.split("T", 1)[0]
     m = re.fullmatch(r"(\d{2,4})-(\d{1,2})-(\d{1,2})", text)
     if not m:
         return text

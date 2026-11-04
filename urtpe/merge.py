@@ -58,6 +58,22 @@ def score(r1: CleanRecord, r2: CleanRecord) -> float:
         elif p1 in r2.parcel_set() or p2 in r1.parcel_set():
             fp = 0.7
 
+    # merge-across-count-shrink (S13, C9): a site-shrink approval
+    # (等4筆(原29筆)) keeps the first parcel but replaces the parcel set, so
+    # the Jaccard term measures the plan change, not the unit — 11 measured
+    # pairs scored 0.639–0.690 and split one 更新單元 in two (10 of them share
+    # one national page, so the viewer showed one development twice). When
+    # the declared history bridges the pair — one record's orig_count equals
+    # the other's land_count, the gazette's own (原N筆) — drop the Jaccard
+    # term and normalise the surviving components, the way the empty-parcel
+    # rule below already redistributes weight. The bridge counts as a full
+    # count match: the publisher states the continuity, it is not inferred.
+    if (r1.district == r2.district and r1.section == r2.section
+            and fp >= 0.95
+            and ((r1.orig_count and r2.land_count and r1.orig_count == r2.land_count)
+                 or (r2.orig_count and r1.land_count and r2.orig_count == r1.land_count))):
+        return (0.35 * sec + 0.2 * fp + 0.1 * 1.0) / (0.35 + 0.2 + 0.1)
+
     cnt = 0.0
     if r1.land_count and r2.land_count:
         if r1.land_count == r2.land_count:

@@ -2403,9 +2403,9 @@ def _tier3_names_match(node_name: str, case_name: str, node_landcore: str = "") 
     similarity ≥ 0.85; either is parcel-less (崇仁新村) or unparseable → no
     tier-3 match from the name alone (the case stays an orphan;
     view-verified or twin-bridge evidence binds it instead)."""
-    cs, _ck = node_stage_kind(case_name)
-    ns, _nk = node_stage_kind(node_name)
-    if not (cs and cs == ns):
+    cs, ck = node_stage_kind(case_name)
+    ns, nk = node_stage_kind(node_name)
+    if not (cs and cs == ns and _kind_matches(nk, ck)):
         return False
     lc_node = extract_landcore_from_case_name(node_name) or node_landcore
     lc_case = extract_landcore_from_case_name(case_name)
@@ -2632,6 +2632,7 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
         iso, _ = roc_to_iso(getattr(member, "date", "") or "")
         target = _iso_date(iso or "")
     stage_kind = node_stage_kind(node_name)
+    exact_hits: list[str] = []
     for cid in getattr(disc, "city_case_ids", None) or []:
         hdr_dates = header_approval_dates(headers, cid)
         if not hdr_dates:
@@ -2647,13 +2648,32 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
             if not iso:
                 continue
             if iso == target:
-                return [cid]
+                # an exact header/milestone date is a candidate; two+ cases
+                # sharing it need the name to separate them (both cases of a
+                # same-day approval carry the same 核定日期 — the date
+                # matcher's own uniqueness rule)
+                exact_hits.append(cid)
+                continue
             shifted = _shift_iso_date(iso, _HEADER_DRIFT_DAYS)
             shifted_back = _shift_iso_date(iso, -_HEADER_DRIFT_DAYS)
             if shifted and shifted_back and shifted_back <= target <= shifted:
                 # bounded drift binds only on an equal stage-with-ordinal
                 if node_stage_kind(names.get(cid, ""))[0] == stage_kind[0] and stage_kind[0]:
                     return [cid]
+    if len(exact_hits) == 1:
+        return [exact_hits[0]]
+    if len(exact_hits) > 1:
+        # the name separates a same-day tie: the tier-3 rule (stage + kind
+        # subset + land core) over the candidates
+        named = [c for c in exact_hits
+                 if names.get(c) and _tier3_names_match(node_name, names[c], node_landcore)]
+        if len(named) == 1:
+            return [named[0]]
+        # an area split: distinct area suffixes on every named candidate
+        live = filter_live_cases(named or exact_hits, disc)
+        bound = _bind_from_name_step(node_name, live, names)
+        if bound:
+            return bound
 
     # ── step 2: the same-day id probe ───────────────────────────────────────
     # Case ids are a city-wide daily serial (ROC filing date + one digit), so

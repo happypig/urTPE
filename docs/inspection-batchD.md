@@ -766,7 +766,7 @@ table is the per-finding view of it.
 | D10 | the permit witness names the first permit of a tie — 43 projects show a 執照 date that is not the project's own 使照 | **P2** | openspec change (`official-link-discovery`) + re-emit | **D7** (the flag path reads the dict D7 corrupts) | **decided: 開工 match, else ambiguous** (D10e) |
 | D6 | twur override key is the pre-`c2cfbb9` slug — the record never applies; 國 badge and 7 national milestones absent | **P2** | direct `fix:` (re-key + dataset-key test) + restore + re-emit | — | **decided: re-key + per-project `discover_project_links(fresh=True)`** (D6) |
 | D9c-2 | `10708311` and `11412011` are absent from the city's parcel index — **DONE 2026-11-05** (live probe) | — | probe | — | — |
-| D9c-2a | second id source: header-confirmed ids join `city_case_ids` | **P2** | openspec change + code + test + refresh + re-emit | **D7** | single-writer rule |
+| D9c-2a | merge the stranded 南港566 cache (offline, 2 unplaced nodes); second id source for `11412011`; stop stub-over-alias shadowing | **P2** | cache merge + openspec change + code + test + re-emit | **D7** | single-writer rule |
 | D9a-5a | header pass over the 84 no-link cases — **DONE 2026-11-05**: 0 approved; 78 in review, 5 closed, 1 revoked | — | read-only probe | — | — |
 | D9e | 54 of 54 in-processing case_ids resolve — lock it in with an offline test | **P2** | `tests/` | — | — |
 | D11 | the A/B/C surfaces read one dict | — | docs only | — | **DONE** (recorded below) |
@@ -920,6 +920,43 @@ case name equal to a 168-list name. So the 168 list fixes 1 of 16 unplaced
 nodes; the other 15 need another id source. Option 2 is worth an openspec change
 only if it is a general second id source, not a 168-only patch.
 
+**Correction (from `viewer-source-sync`, verified 2026-11-05): `10708311` was
+found once, then lost through alias shadowing.** It is not absent from every
+cache. The stranded directory `南港區-南港段四小段-566地號等6筆` (written
+2026-11-04) holds `city_case_ids ['10708312', '10708311', '10006032']`, with full
+milestones for `10708311` (核定 2019-11-20) and `10006032` (核定 2016-02-25). The
+earlier finds most likely came from the all-parcel search step of
+`resolve_node_cases` (`urtpe/links.py:2598-2603`, written for exactly this
+南港566 shape).
+
+`data/project_aliases.json` maps the live id `…等1筆` to that old id. But
+`resolve_cache_dir` (`urtpe/links.py:1580-1590`) returns the live id's own
+directory whenever it exists, and a stub exists — so the alias is never read.
+This is the D6 Finding 5 shape (a stub at the new id shadows the richer old
+dir) on a different project.
+
+Measured over all 11 alias pairs:
+
+| Pair | Ids only in the stranded dir | Unplaced nodes they would bind by date |
+|---|---|---|
+| 南港566 (`…等6筆` → `…等1筆`) | `10708311`, `10006032` | node 744 (2019-11-20), node 1063 (2016-02-25) |
+| the other 10 pairs | none | none |
+
+So the shadowing loses data in **one** project, and it accounts for **2 of the
+16** unplaced nodes. Two consequences:
+
+- The fix for 南港566 is a cache **merge**: union the stranded dir's case ids and
+  per-case milestones into the live dir, then re-emit. No network and no new id
+  source are needed for that project.
+- The general defect is `resolve_cache_dir`'s "direct dir wins". The stub write
+  is the root cause; a fix that merges an aliased dir into a fresh stub, instead
+  of shadowing it, stops the loss recurring. Changing the resolution order for
+  every aliased project is a broader behaviour change and needs its own openspec
+  change.
+
+`11412011` (玉成166) is in **no** cache, stranded or live, so it still needs the
+second id source.
+
 **Priority / dependency order for batch processing:**
 
 | Step | Option | Priority | Form | Depends on | Gate |
@@ -1034,7 +1071,7 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 | 4 | D6 — re-key `data/twur_overrides.json` to `…等2筆`, correct `PID`, add the dataset-key test, then `discover_project_links(fresh=True)` on that one project (decided, option A) | **P2** | direct `fix:` + one-project restore + re-emit | — | single-writer rule; **not** `--fresh` |
 | 5 | D9c-2 — live parcel search for the 2 sibling projects | — | probe | — | **DONE 2026-11-05**: the city's search does not index either sibling |
 | 5a | Header pass over the 84 "no link, no parcel match" cases | — | read-only probe | — | **DONE 2026-11-05**: 78 in review, 5 closed, 1 revoked |
-| 6 | D9c-2a — second id source: header-confirmed ids join `city_case_ids` in a refresh step, then one re-emit | **P2** | openspec change + `urtpe/links.py` + test | **step 2** | single-writer rule; no other session running |
+| 6 | D9c-2a — (a) merge the stranded `南港566…等6筆` cache into the live `…等1筆` dir (offline; binds nodes 744 and 1063); (b) second id source for ids in no cache (`11412011`); (c) stop a stub from shadowing an aliased dir. One re-emit | **P2** | (a) cache merge; (b)+(c) openspec change + `urtpe/links.py` + test | **step 2** | single-writer rule; no other session running |
 | 7 | D9e — offline test: all 54 in-processing case_ids resolve (54/54 pass today) | **P2** | `tests/` | — | — |
 | 8 | D11 — record the A/B/C shared-dependency finding | — | docs | — | **DONE** (this board) |
 | 9 | D9f — 168 poller + hash change detection in the `urtpe-poll` task, then one ingest of the 2026-11-03 gazette and a cross-reference against the fresh snapshot | **P2** | poller script + task action + ingest + re-emit | step 2 | single-writer rule; poller writes snapshots only |
@@ -1080,11 +1117,14 @@ gazette's silence is correct. The natural home is the same `no_match_ledger`
 pattern the national-portal sweep already uses (a negative that expires and is
 re-probed), not the correction ledger, which joins gazette records.
 
-**What D9c-2 changes — decided by the 2026-11-05 probe.** The city's parcel
-index does not hold `10708311` or `11412011`, guarded or not. So the fix is a
-second id source that confirms each id by its header and adds it to
-`city_case_ids` in a refresh step. The earlier branches ("the attach step drops
-one", "a refresh appends them", "fix the guard") are withdrawn.
+**What D9c-2 changes — decided by the 2026-11-05 probe and the alias check.**
+The city's parcel index does not hold `10708311` or `11412011`, guarded or not.
+`10708311` (with `10006032`) is already in the stranded `…等6筆` cache, which
+the live id's stub shadows; merging that dir fixes 南港566's two unplaced nodes
+offline. `11412011` is in no cache, so it needs the second id source: confirm
+each id by its header and add it to `city_case_ids` in a refresh step. The
+earlier branches ("the attach step drops one", "a refresh appends them", "fix
+the guard") are withdrawn.
 
 **Two-source coverage.** The recno PDF (gazette) and the 168 list together cover
 approved → in-processing → revoked **for the 168 subset only**. What they do not

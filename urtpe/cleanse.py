@@ -82,9 +82,69 @@ def normalize_name(name: str) -> str:
     return name
 
 
-def _land_district(land_clean: str) -> str:
+def _printed_district(land_clean: str) -> str:
+    """The district token as the 地號 cell prints it.
+
+    D14(b): this is the strict 臺北市-anchored read, kept for the mismatch
+    flag. It is what the cell literally shows — `投區` on the 臺北市投區 rows —
+    so the flag keeps quoting the publisher's own text. The field
+    ``district_land`` holds the normalized district instead.
+    """
     m = DISTRICT_RE.search(land_clean)
     return m.group(1) if m else ""
+
+
+def _land_district(land_clean: str, districts: tuple[str, ...] | None = None) -> str:
+    """The 地號 cell's district.
+
+    D14(b): with a collected enum, the cell's district is read from that enum
+    — the city prints 臺北大安區 / 臺北士林區 (no 市) and 臺北市投區 (no 北),
+    and the strict 臺北市-anchored regex read the first two as no district and
+    the third as the non-district 投區 (which then travelled into the land
+    core). A cell naming a district the enum lacks reads '' — the system never
+    infers the missing character.
+
+    Without an enum the strict reading stays, so the single-record call sites
+    keep today's answers.
+    """
+    if not districts:
+        m = DISTRICT_RE.search(land_clean)
+        return m.group(1) if m else ""
+    m = _enum_district_re(districts).search(land_clean)
+    return m.group(1) if m else ""
+
+
+_ENUM_RE_CACHE: dict[tuple[str, ...], re.Pattern] = {}
+
+
+def _enum_district_re(districts: tuple[str, ...]) -> re.Pattern:
+    """A pattern for the enum's district names, anchored on the optional
+    臺北市 prefix. Longest name first, so 中山區 cannot shadow 中山區X."""
+    key = tuple(districts)
+    pat = _ENUM_RE_CACHE.get(key)
+    if pat is None:
+        names = sorted(key, key=lambda s: (-len(s), s))
+        pat = re.compile("臺北市?(" + "|".join(map(re.escape, names)) + ")")
+        _ENUM_RE_CACHE[key] = pat
+    return pat
+
+
+def collect_districts(records) -> tuple[str, ...]:
+    """The corpus's own 行政區 values, as the enum for the district read.
+
+    D14(b): the set of known districts comes from the data, not from a list in
+    the reader — a hard-coded list would be a second source of truth that
+    drifts from what the city publishes. The known typo (松化區 → 松山區) is
+    corrected here, so the enum holds the districts the corpus publishes (12),
+    not the typo the city printed on one row.
+    """
+    seen = set()
+    for r in records:
+        d = str(getattr(r, "district", "") or "").strip()
+        d = DISTRICT_FIXES.get(d, d)
+        if d and d.endswith("區"):
+            seen.add(d)
+    return tuple(sorted(seen))
 
 
 def _section(land_clean: str) -> tuple[str, str]:
@@ -185,8 +245,13 @@ def _orig_count(name: str, land: str) -> int | None:
     return None
 
 
-def cleanse(rec: RawRecord) -> CleanRecord:
-    """Normalize one raw record into a CleanRecord with fixes and flags."""
+def cleanse(rec: RawRecord, districts: tuple[str, ...] | None = None) -> CleanRecord:
+    """Normalize one raw record into a CleanRecord with fixes and flags.
+
+    ``districts`` is the collected district enum (see :func:`collect_districts`).
+    When it is supplied, the 地號 cell's district is read from it (D14(b));
+    when it is not, the strict 臺北市-anchored reading stays.
+    """
     fixes: list[str] = []
     flags: list[str] = []
 
@@ -233,9 +298,14 @@ def cleanse(rec: RawRecord) -> CleanRecord:
         name = name.replace("土地都市更新計畫", "土地都市更新事業計畫")
 
     land_clean = re.sub(r"\s+", "", recovered_land or rec.land)
-    land_district = _land_district(land_clean)
-    if land_district and district and land_district != district:
-        flags.append(f"行政區與地號行政區不一致(地號為{land_district})")
+    land_district = _land_district(land_clean, districts)
+    # D14(b): the flag reports the PUBLISHER's contradiction, so it quotes the
+    # PRINTED token. The field holds the normalized district. A cell reading
+    # 臺北市投區 therefore yields district_land = '' and keeps the flag
+    # 行政區與地號行政區不一致(地號為投區) — the contradiction stays visible.
+    printed_district = _printed_district(land_clean)
+    if printed_district and district and printed_district != district:
+        flags.append(f"行政區與地號行政區不一致(地號為{printed_district})")
 
     pl = pl_tail if recovered_land else _parse_land(rec.land)
     if not pl["section"]:
@@ -337,8 +407,17 @@ def cleanse(rec: RawRecord) -> CleanRecord:
     )
 
 
-def cleanse_all(records: list[RawRecord]) -> list[CleanRecord]:
+def cleanse_all(records: list[RawRecord],
+                districts: tuple[str, ...] | None = None) -> list[CleanRecord]:
+    """Cleanse every record, collecting the district enum from the corpus.
+
+    D14(b): the enum is the corpus's own 行政區 column, so the set of known
+    districts never becomes a second source of truth in the reader. A caller
+    may pass its own enum; otherwise it is collected here.
+    """
     # Retained publisher-truncated rows bypass cleansing and merge (tasks 3.2);
     # the recovery pass either resolved them (mark gone) or abandoned them (mark
     # kept — they rejoin the plain exclusion path and are named in the report).
-    return [cleanse(r) for r in records if not r.source_fault]
+    rows = [r for r in records if not r.source_fault]
+    enum = districts if districts is not None else collect_districts(rows)
+    return [cleanse(r, enum) for r in rows]

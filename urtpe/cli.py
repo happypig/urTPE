@@ -308,7 +308,11 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
     # fault), so the raw TSV stays a complete, honest reading of the PDF.
     raw_recs = extract_mod.to_raw_records(
         records + (recovery_outcome.residuals if recovery_outcome else []))
-    clean = cleanse_mod.cleanse_all(raw_recs)
+    # D14(b): the district enum is the corpus's own 行政區 column, collected
+    # here and passed to the cleanser, so the 地號 cell's district is read
+    # against what the city publishes rather than against a hard-coded list.
+    districts = cleanse_mod.collect_districts(raw_recs)
+    clean = cleanse_mod.cleanse_all(raw_recs, districts)
     projects = merge_mod.merge(clean)
     tw_result = tripwire_mod.TripwireResult(
         ok=not faults, faults=faults,

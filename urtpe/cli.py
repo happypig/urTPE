@@ -70,7 +70,14 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
         for node in pg["nodes"]:
             # Fallback to project-level district if node lacks it
             node_district = node.get("district", "") or project_district
-            node_district_land = node.get("district_land", "") or node_district
+            # D14 (inspection-batchD): district_land round-trips as-is. The old
+            # `or node_district` coerced an emitted '' into the node's district
+            # on the first --from-js run, and later runs carried that value
+            # forward (4 nodes: 153, 382, 926, 928 — the land cells print
+            # 臺北X區 with no 市, so DISTRICT_RE reads ''). The fallback applies
+            # only when the key is ABSENT (older payloads).
+            node_district_land = (node["district_land"]
+                                  if "district_land" in node else node_district)
             
             # Derive iso_date: graph.py emits date=iso_date, so node.date may
             # already be ISO (YYYY-MM-DD). Only ROC-format strings need conversion.
@@ -134,6 +141,16 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
             # lossless even without --links (attach overwrites when it runs)
             if node.get("implementation"):
                 rec.implementation = dict(node["implementation"])
+            # D14 (inspection-batchD): the §10 per-track sub-stages and the
+            # recovery provenance were dropped by the loader, so every rebuild
+            # lost them (533 sub-stage nodes, 4 recovery nodes). They are read
+            # back exactly as emitted.
+            if node.get("stage_事業計畫") is not None:
+                rec.stage_事業計畫 = node["stage_事業計畫"]
+            if node.get("stage_權利變換") is not None:
+                rec.stage_權利變換 = node["stage_權利變換"]
+            if node.get("recovery"):
+                rec.recovery = dict(node["recovery"])
             if node.get("links"):
                 rec.links = dict(node["links"])
                 # D1 (inspection-batchD): pre-rename payloads carried the

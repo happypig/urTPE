@@ -55,6 +55,27 @@ def add_fallback_mapping(land_core: str, view_id: str, case_id: str) -> None:
         f.write(f"Added mapping: {land_core} -> view_id={view_id}, case_ids={mapping[land_core]['case_ids']}\n")
 
 
+def _normalise_flags(flags) -> list[str]:
+    """The node's review flags with the date each one quotes normalised.
+
+    The unplaced-node flag quotes the node's own date, which reached it in
+    whatever form the pipeline held: slash-western from the PDF (97/1/2),
+    ISO from a --from-js rebuild. The flag text then changed between runs, so
+    the duplicate collapse (by exact text) stopped working and the same
+    finding appeared twice in two spellings — 15 nodes carried it after the
+    D7 re-emit. Normalising the date on load makes the text a function of
+    the node, so the copies collapse again.
+    """
+    from urtpe.links import _flag_date
+
+    out = []
+    for f in flags or []:
+        text = str(f)
+        out.append(re.sub(r"日期:([0-9/.-]+)", lambda m: "日期:" + _flag_date(m.group(1)),
+                          text))
+    return out
+
+
 def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
     """Load projects and metadata from projects.data.js."""
     text = Path(js_path).read_text(encoding="utf-8")
@@ -135,7 +156,7 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
                 implementer=node.get("implementer", ""),
                 planner=node.get("planner", ""),
                 auto_fixes=node.get("auto_fixes", []),
-                review_flags=node.get("review_flags", []),
+                review_flags=_normalise_flags(node.get("review_flags", [])),
             )
             # Restore optional emitted state so --from-js round-trips are
             # lossless even without --links (attach overwrites when it runs)

@@ -261,13 +261,16 @@ def test_one_empty_source_is_not_enough(tmp_path):
 
 
 def test_hulin38_case_is_labelled_wu(tmp_path):
-    """虎林38 shape: 11410001's header and its data2 are both empty."""
+    """虎林38 shape: 11410001's header and its data2 are both empty.
+
+    The cached milestones are ALREADY empty — the city emptied the case and
+    the cache never learned. The live read decides, not what the cache held."""
     pid = "信義區-虎林段四小段-38地號等138筆"
     _write_cache(tmp_path, pid, case_milestones={
-        "11410001": {"核定日期": "2024/01/01"},
+        "11410001": {},
         "11502012": {"核定日期": "2025/01/01"},
     }, city_case_ids=["11410001", "11502012"],
-        case_schedules={"11410001": "已核准", "11502012": "已核定"})
+        case_schedules={"11502012": "已核定"})
 
     report = _refresh(tmp_path, pid,
                       fetch=lambda cid: {} if cid == "11410001"

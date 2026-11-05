@@ -22,6 +22,7 @@ from urtpe.permit_sources import (
     match_project_permits,
     parse_permit_xml,
     permit_review_flags,
+    select_permit_witness,
 )
 from urtpe.taipei_playwright import TaipeiPlaywrightSearcher, TaipeiSearchResult
 
@@ -1897,12 +1898,11 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
         # keeps its id, its cached data and its place in the case list; the
         # label claims no removal, it only says the case is now 無.
         #
-        # The rule fires only where there is a stale state to replace: the
-        # case held milestones or a header before this refresh. A case that
-        # was always empty (a case id the search appended and the platform
-        # never answered for) has no stale state, and labelling it 無 would
-        # invent one.
-        if not fetched and not header and (before or cached.case_headers.get(cid)):
+        # The rule is unconditional: the LIVE read decides, not what the cache
+        # held. A case whose cached milestones are already empty (虎林38's
+        # 11410001) is exactly the shape the rule is for — the city emptied it
+        # and the cache never learned.
+        if not fetched and not header:
             was = cached.case_schedules.get(cid, "")
             if was != "無":
                 cached.case_schedules[cid] = "無"
@@ -3067,6 +3067,30 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
 _UNPLACED_FLAG = "節點未能對應平台案件(案名:{name}, 日期:{date})"
 
 
+def _flag_date(value: str) -> str:
+    """The date a review flag quotes, in one shape.
+
+    The node's own date reaches this flag in whatever form the pipeline
+    currently holds: slash-western from the PDF (97/1/2), ISO from a
+    --from-js rebuild. The flag text then changed between runs, so the
+    duplicate collapse (which is by exact text) stopped working and a node
+    carried the same finding twice, in two spellings — 15 nodes after the
+    D7 re-emit. The flag quotes a normalised date so the text is a function
+    of the node, not of the run.
+    """
+    text = (value or "").strip()
+    m = re.fullmatch(r"(\d{4})/(\d{1,2})/(\d{1,2})", text)
+    if m:
+        return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+    m = re.fullmatch(r"(\d{2,3})/(\d{1,2})/(\d{1,2})", text)
+    if m:
+        from urtpe.cleanse import roc_to_iso
+        iso, _ymd = roc_to_iso(text)
+        if iso:
+            return iso
+    return text
+
+
 def _is_parcel_less_name(case_name: str) -> bool:
     """A settlement-named unit (崇仁新村) carries no 地號 by design; its
     extraction returning "" is the parcel-less rule, not a parse failure
@@ -3338,7 +3362,7 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
                 if not resolved:
                     flag = _UNPLACED_FLAG.format(
                         name=(getattr(member, "name", "") or "")[:40],
-                        date=getattr(member, "date", "") or "")
+                        date=_flag_date(getattr(member, "date", "") or ""))
                     if flag not in member.review_flags:
                         member.review_flags = list(member.review_flags) + [flag]
 
@@ -3519,12 +3543,32 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
                 except Exception:
                     permits = []
                 if permits:
-                    best = permits[0]
-                    project.links["permit"] = {
-                        "permit_no": best.permit_no,
-                        "date": best.date,
-                        "permits": [p.permit_no for p in permits],
-                    }
+                    # D10: the witness is the permit whose 開工日期 equals the
+                    # city's. The permit index keys on the mono parcel, so a
+                    # section that redeveloped over time accumulates one permit
+                    # per building phase, and the old "first of the tie" rule
+                    # named the OLDEST one — 43 projects showed a 執照 date
+                    # that was not their own 使照, silently.
+                    #
+                    # The city's 開工 date is read from the SOURCE MAP, not
+                    # from the merged dict: the merged dict can be stale, and
+                    # the source map names the case that holds the value (the
+                    # same rule D4a established for the construction chain).
+                    city_start = _city_construction_start(project.links)
+                    best, ambiguous = select_permit_witness(permits, city_start)
+                    if best is not None:
+                        project.links["permit"] = {
+                            "permit_no": best.permit_no,
+                            "date": best.date,
+                            "permits": [p.permit_no for p in permits],
+                        }
+                    elif ambiguous:
+                        # no single permit: show the candidates rather than an
+                        # arbitrary one
+                        project.links["permit"] = {
+                            "ambiguous": True,
+                            "permits": [p.permit_no for p in permits],
+                        }
                 mt = project.links.get("milestones_taipei") or {}
                 mn = project.links.get("milestones_national") or {}
                 flags = permit_review_flags(
@@ -3540,6 +3584,40 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
     # §6.8: after node anchoring, surface fragment families as merge
     # candidates (review flags on anchor records; no family mutation).
     _flag_fragment_families(projects, detect_fragment_families(projects, discovered))
+
+
+def _city_construction_start(links: dict) -> str:
+    """The city's 開工日期, read from the milestone SOURCE MAP (D10).
+
+    The permit witness is chosen by the city's 開工 date, so the value must be
+    attributable and current. The merged ``milestones_taipei`` dict can be
+    stale — that is what D7 found — while ``milestones_source`` names the case
+    that holds each value. The same rule D4a established for the construction
+    chain.
+
+    The date is normalised to ISO, because the permit record's
+    ``construction_start`` is ISO and the city's value may be slash-western.
+
+    Returns "" when the project carries no 開工 date, or when the merged dict
+    holds one that no case in the source map backs.
+    """
+    merged = (links or {}).get("milestones_taipei") or {}
+    source = (links or {}).get("milestones_source") or {}
+    raw = merged.get("開工日期", "")
+    if not raw:
+        return ""
+    cid = source.get("開工日期")
+    if not cid:
+        # no source for the label: the value is unattributable, so it cannot
+        # choose the witness
+        return ""
+    m = re.fullmatch(r"(\d{4})/(\d{1,2})/(\d{1,2})", str(raw).strip())
+    if m:
+        return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+    m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", str(raw).strip())
+    if m:
+        return m.group(0)
+    return str(raw).strip()
 
 
 class LinksDiscovery:

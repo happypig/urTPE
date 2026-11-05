@@ -144,6 +144,48 @@ def records_of(index: dict) -> list[PermitRecord]:
     return list(seen.values())
 
 
+def select_permit_witness(permits: list[PermitRecord], city_start_date: str
+                           ) -> tuple[PermitRecord | None, bool]:
+    """The permit the project's own 使照 came from, and whether the tie is
+    unresolved (D10).
+
+    The permit index keys on the **mono** parcel, so a section that
+    redeveloped over time accumulates one permit per building phase (寶清57-13's
+    parcel 57 carries four, spanning 2004 to 2025). The old rule took the
+    first of the tie, which is the alphabetically first permit number — the
+    OLDEST one. 43 projects showed a 執照 date that was not their own 使照, and
+    the wrong witness was silent.
+
+    The tie-breaker is the city's **開工日期**: the permit whose
+    ``construction_start`` equals it. The two are the same event, so the match
+    is citable, not inferred.
+
+    The city's 使照 date is **never** used here. The permit witnesses that
+    date; a witness that matches the value it witnesses can never report a
+    disagreement.
+
+    Returns ``(witness, ambiguous)``:
+    - one permit → that permit, not ambiguous (there is nothing to choose);
+    - several permits and exactly one carries the city's 開工 date → that one;
+    - several permits and the 開工 date matches none or several → ``(None,
+      True)``: no single permit is shown as the project's own.
+
+    ``city_start_date`` is ISO (the city's 開工 date normalised by the
+    caller). The permit's ``construction_start`` is ISO too.
+    """
+    if not permits:
+        return None, False
+    if len(permits) == 1:
+        return permits[0], False
+    start = (city_start_date or "").strip()
+    if not start:
+        return None, True
+    hits = [p for p in permits if p.construction_start == start]
+    if len(hits) == 1:
+        return hits[0], False
+    return None, True
+
+
 def load_permit_index(archive_root: str | Path) -> dict | None:
     """The permit index for this run — downloads the two datasets when absent
     or changed (keyed by SHA-256, the gazette-detection rule: content hash,

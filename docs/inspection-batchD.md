@@ -2,9 +2,17 @@
 
 Findings from the post-Batch-B+C session (2026-11-04, payload at `47453f9`:
 1,442 records / 682 projects, the corpus converged after waves 1–3 of the
-Batch B + C plan). Eight findings, all measured (D4–D8 added 2026-11-05). The board follows the
+Batch B + C plan). Twelve findings, all measured (D4–D12 added 2026-11-05). The board follows the
 `docs/inspection-batchBC.md` structure: findings, then the integrated plan,
 then the decisions that gate execution.
+
+**Open items: three** (see "Decisions waiting on the user"): the D10 permit
+rule, when to ingest the 2026-11-03 gazette, and acceptance of the D6 restore
+method correction. The consolidated execution order is D9g.
+
+**Working-tree state (2026-11-05).** This board and about 20 scripts under
+`scripts/` are uncommitted. The D9 evidence files (`data/p168_*.json`) are
+gitignored, so the scripts are the only reproducible record.
 
 ## D1 — the orphan `milestones_national` key holds Taipei data (name wrong, data right)
 
@@ -559,10 +567,43 @@ view-derived fields and re-emit. Two options for the restore, both measured:
   it carries a `view.html` read on 2026-10-06 and needs a hand-written write into
   `.link_cache/` — the directory `AGENTS.md` names as the durable middle layer.
 
-**Decision needed (user).** Re-key only, or re-key plus restore; and for the
-restore, (a) or (b). An `unattached_overrides` that *refuses* rather than warns
-is a separate question and is not proposed here: `--links` stays advisory by
-design (`AGENTS.md` D5), and the coverage guard is what covers the default path.
+**Decision (user, 2026-11-05):** option **B** — re-key **and** restore.
+
+**Correction to the restore method (measured 2026-11-05).** The decision was
+recorded as "restore with `--fresh`". `--fresh` is **corpus-wide**, not
+project-scoped: `LinksDiscovery._fresh_backup` (`urtpe/links.py:3402-3417`)
+**renames the whole `data/.link_cache/`** to a timestamped backup and starts an
+empty one. That is the 2026-08-24 incident shape AGENTS.md warns about — one
+project's restore would wipe all 719 caches and orphan every mapping the index
+alone cannot rebuild. `--fresh` is therefore **not** the method.
+
+The targeted method is `refresh_project` (`urtpe/links.py:1786`), which
+re-fetches one project's cases and re-runs its view-page absorb
+(`urtpe/links.py:1998-2016`). Measured cache state for the target:
+
+| Cache dir | `twur_view_id` | `national_milestones` | `view.html` |
+|---|---|---|---|
+| `…等2筆` (live id) | `null` | 0 | — |
+| `…等_筆` (`?` → `_`) | `18` | 7 | yes |
+| `未解析-1354` | `18` | 7 | yes |
+
+`refresh_project` cannot do the restore: it never writes `national_milestones`
+(no `extract_tuidui_history_from_view` call in lines 1786–2074). The cache copy
+is the option the user did not choose.
+
+The faithful method is **`discover_project_links(project, cache_dir,
+fresh=True)` on this one project**, after the re-key. That function re-fetches
+the view page and extracts 推動歷程 (`urtpe/links.py:720-721`). It does not call
+`_fresh_backup`; only `LinksDiscovery.run` renames the cache. This keeps the
+user's intent (one portal request, a current page, all 7 labels) and touches
+one project only.
+
+**Status:** method correction — needs the user's confirmation (see
+"Decisions waiting on the user").
+
+An `unattached_overrides` that *refuses* rather than warns is a separate question
+and is not proposed here: `--links` stays advisory by design (`AGENTS.md` D5), and
+the coverage guard is what covers the default path.
 
 **Corpus.** 60 of 681 projects carry no `links.twur` today. Only one override
 record exists, so the re-key is the whole visible effect.
@@ -637,6 +678,12 @@ the data3 dates into `milestones_taipei` at emit time
 (`urtpe/links.py:3151-3158`), so a cache-level re-derivation must not displace
 that layer.
 
+**Decision (user, 2026-11-05):** option **A** — **overwrite**. The re-derivation
+projects `case_milestones` exactly; the 5 cause-2 values are dropped. The city
+re-dated 光華282's 審議通過日期, so keeping the old value would keep a false date.
+The withdrawn-approval rule (`_APPROVAL_FIELDS`) still governs the emit-time
+path; the cache-level re-derivation does not keep it.
+
 **Form:** openspec change (pipeline) + cache re-derive + re-emit. Same change as
 D8 — one `refresh_project` edit, one re-emit.
 
@@ -683,6 +730,11 @@ top of the 3 signals per project the corpus refresh already spends
 that driver is sliced and resumable. A size-triggered refetch — only where
 `implementation` is empty — costs 6 projects' cases and gets every date above.
 
+**Decision (user, 2026-11-05):** option **B** — refetch **only** where
+`implementation` is empty (6 projects). It recovers all 4 recoverable construction
+dates at a fraction of the request cost, and the WAF-capped endpoint makes the
+broad sweep the riskier choice.
+
 **Form:** openspec change (pipeline) + cache refresh + re-emit. Shares D7's edit
 and re-emit.
 
@@ -692,12 +744,24 @@ Priority: **P1** = wrong data on screen today; **P2** = a display gap with a
 known cause; **P3** = cosmetic or single-project. Dependency is the finding that
 must land first, because it changes the same code or the same re-emit.
 
+**All decisions are made (2026-11-05).** The consolidated order is D9g; this
+table is the per-finding view of it.
+
 | Step | Finding | Priority | Form | Depends on | Gate |
 | --- | --- | --- | --- | --- | --- |
-| D7 | `refresh_project` never re-derives `taipei_milestones` — 85 of 719 caches diverge, 84 lose or alter a label, 14 projects emit no construction date a case holds | **P1** | openspec change (pipeline) + cache re-derive + re-emit | — | decision: does the re-derive overwrite the 5 re-dated values, or keep them? |
-| D8 | `refresh_project` never re-fetches data3/data4 — 6 of 719 caches hold an empty `implementation`, 4 with a recoverable construction date | **P1** | openspec change (pipeline) + cache refresh + re-emit | **D7** (one edit, one re-emit) | confirm the size-triggered refetch cost (6 projects' cases) |
-| D6 | twur override key is the pre-`c2cfbb9` slug — the record never applies; 國 badge and 7 national milestones absent | **P2** | direct `fix:` (re-key + dataset-key test) + restore + re-emit | — | decision: re-key only, or re-key + restore; `--fresh` or cache copy |
-| D7b | the 50 divergences unexplained by subset or permutation | **P2** | investigation, then folded into D7 | D7 | — |
+| D7b | the 50 divergences unexplained by subset or permutation | **P1** | investigation, then folded into D7 | — | measured before the fix is written |
+| D7 | `refresh_project` never re-derives `taipei_milestones` — 85 of 719 caches diverge, 84 lose or alter a label, 14 projects emit no construction date a case holds | **P1** | openspec change (pipeline) + cache re-derive + re-emit | D7b | **decided: overwrite** (D7) |
+| D8 | `refresh_project` never re-fetches data3/data4 — 6 of 719 caches hold an empty `implementation`, 4 with a recoverable construction date | **P1** | openspec change (pipeline) + cache refresh + re-emit | **D7** (one edit, one re-emit) | **decided: refetch only empty** (D8) |
+| D10 | the permit witness names the first permit of a tie — 43 projects show a 執照 date that is not the project's own 使照 | **P2** | openspec change (`official-link-discovery`) + re-emit | **D7** (the flag path reads the dict D7 corrupts) | **open: user decision on the rule** (D10e) |
+| D6 | twur override key is the pre-`c2cfbb9` slug — the record never applies; 國 badge and 7 national milestones absent | **P2** | direct `fix:` (re-key + dataset-key test) + restore + re-emit | — | **decided: re-key + one-request restore**; method correction pending (D6) |
+| D9c-2 | `10708311` and `11412011` are absent from the city's parcel index — **DONE 2026-11-05** (live probe) | — | probe | — | — |
+| D9c-2a | second id source: header-confirmed ids join `city_case_ids` | **P2** | openspec change + code + test + refresh + re-emit | **D7** | single-writer rule |
+| D9a-5a | header pass over the 84 no-link cases (84 requests) — approved or not | **P2** | read-only probe | — | user approval for network |
+| D9e | 54 of 54 in-processing case_ids resolve — lock it in with an offline test | **P2** | `tests/` | — | — |
+| D11 | the A/B/C surfaces read one dict | — | docs only | — | **DONE** (recorded below) |
+| D9f | periodical 168 poller + hash change detection, coordinated with the PDF poll | **P3** | `scripts/probe_fetch_p168_list.py` + hash wrapper | — | — |
+| D9c-4 | monitor the cases D9a-5a confirms as not approved, after each new gazette | **P3** | re-run the cross-reference scripts | D9a-5a, D9f | new gazette published |
+| D12 | architecture concerns — recorded, constrain D9g steps 2–9 | — | docs only | — | **DONE** (recorded below) |
 | D3a | `nationalLabelKey` ordinal spelling — 223 labels never bind — **DONE** (`d8a63ca` + test at `tests/test_viewer_labels.py:560`); direct `fix:`, no openspec change and no re-emit needed | — | — | — | — |
 | D4a | 使照 national flag + source-map-first + first-holder provenance — DONE (viewer `57a70cf`, pipeline with D1, re-emit `2bb3013`): only 南港729 keeps an edge | — | — | — | — |
 | D4b–d | dead-end edges, list badges, 計畫與執行 filter — DONE `26e57f1`, archived `2026-11-05-viewer-deadend-and-filters` (`d2d15ee`) | — | — | — | — |
@@ -721,21 +785,501 @@ repairs every case the user asked about in A/B/C. D6 is a single record.
 
 ### Sequence
 
-1. **D7b first, as measurement only.** Name the 50 unexplained divergences
-   before the fix is written — a re-derivation rule that assumes "subset or
-   re-date" would be wrong on 50 caches and nothing would catch it.
-2. **D7 + D8 as one openspec change**, test-first, with D7's overwrite rule stated.
-3. **One cache pass + one re-emit** covering both.
-4. **D6** independently: it is a viewer/config record and needs no pipeline edit,
-   so it can land before, after, or beside the above.
+Superseded. The execution order is D9g.
 
 ## Decisions waiting on the user
 
 | Entry | Question | Blocks |
 | --- | --- | --- |
-| D6 | Re-key only, or re-key plus restore the view-derived fields? For the restore, `--fresh` (one request, all 7 labels) or copy the rich cache dir (offline, hand-written `.link_cache` write)? | the D6 fix + re-emit |
-| D7 | A re-derivation that projects `case_milestones` exactly would drop the 5 cause-2 values (光華282's re-dated 審議通過日期, 市府220-2's holder-less 公告公展日期). Overwrite them, or keep them under the withdrawn-approval rule? | the D7 re-derive rule |
-| D8 | Re-fetch data3/data4 for all 719 caches, or only where `implementation` is empty (6 projects)? The endpoint is WAF-capped and the corpus refresh is already sliced. | the D8 scope + cache pass |
+| D10 | Accept the rule "開工 match, otherwise mark ambiguous" (D10e)? | D9g step 3 |
+| Gazette 2026-11-03 | The PDF is in the archive and not ingested. Ingest it before D9g step 2, so one re-emit covers both? Or defer it and keep every D9/D10 count on the 2026-10-15 baseline? | D9g step 2 |
+| D6 | Accept the method correction: per-project `discover_project_links(fresh=True)` instead of `--fresh` (D6)? | D9g step 4 |
+
+Decided 2026-11-05 and moved into the findings: D2b (date-first sort), D4b
+(chain + dotted edges), D4c (literal reading, after the construction chip),
+D4d (計畫 options = the rest).
+
+## D9 — P_project168 cross-reference: 466 platform cases vs gazette (added 2026-11-05)
+
+**Finding.** The full `https://gis.uro.taipei/ashx/Get_project168.ashx` list (466 cases,
+pageSize=50, `transition` key accepted but returns identical rows) was cross-referenced
+against `data/projects.json` (gazette 2026-10-15, 681 projects) two ways:
+
+| Match method | Cases found |
+|---|---|
+| By `case_id` → a node's `links.taipei` | 341 of 466 |
+| By `case_id` → project-level `links.taipei` only | 35 more (376 total) |
+| **In neither link layer** | **90** |
+
+(An earlier "+338 by section + parcel" row came from a deep-match script that
+counted cases twice. It is withdrawn.) All 54 in-processing cases resolve.
+
+**Scope of the 168 list (measured 2026-11-05).** The gazette payload links
+**1,982** distinct case ids. Only **376** of them are on the 168 list; 1,606 are
+not. So the 168 list is a **subset** — its MEMO texts ("申請轉軌168專案") and the
+正軌/轉軌 lookup point at the 168 fast-track program, not at every case in
+review. It is **not** a complete register of cases awaiting approval. A case
+that is in review but outside the 168 program does not appear in it.
+
+### D9a — the 90 cases in neither link layer (recounted 2026-11-05)
+
+| Category | Count | Detail |
+|---|---|---|
+| No link and no parcel match: the section is in the gazette, the parcel is not | 65 | e.g. `10506301`, `11001292`, `11010251` |
+| No link and no parcel match: the section is not in the gazette | 19 | e.g. `11104211`, `11111151`, `11201191` |
+| Revoked approval (`業經本府撤銷核准`), never gazetted | 3 | `10112154`, `10702271`, `10904071` (see D9d) |
+| **Gazetted but unlinked** — the approval is in the gazette, `links.taipei` lacks the id | 2 | `10708311`, `11412011` (see D9c) |
+| **Pending amendment on a gazetted project** — not approved | 1 | `11410026` (header: `NAME` 其他, `phase` Z, no 核定 date) |
+
+The recount finds 0 unparseable names; the earlier "unparseable 3" row is
+withdrawn.
+
+**The 168 stage `-` does not mean "not gazetted".** All 87 cases with stage `-`
+include `10708311`, which was approved on 2019-11-20 and is in the gazette. So
+the 84 cases in the first two rows are "no link and no parcel match against the
+2026-10-15 gazette", not proven new. One header request per case
+(`get_project168_top.ashx`) decides each one: an empty `uro_chk_date` and
+`uro_chk_date2` means not approved. That pass (84 requests) also produces the
+"submitted, awaiting approval" list for the 168 subset. It is D9g step 5a.
+
+### D9b — the 54 in-processing cases: **0 missing from gazette**
+
+All 54 in-processing cases (`專案審查階段`, `審議階段`, `報核-公展階段`, `聽證階段`)
+were found in the gazette. Measured 2026-11-05: 52 in a node's `links.taipei`, all
+54 in the project-level `links.taipei`, **0 in neither**. None are "prospect
+projects under approval" absent from the gazette. They are amendment-pending cases:
+a previous version was gazetted, a new revision is in review.
+
+**Conclusion:** the gazette is complete for in-processing cases. The gap is only in
+case_id linkage (sibling case_ids, empty `links.taipei`, or case_id never discovered),
+not in project coverage.
+
+### D9c — mitigation options for the case_id linkage gap
+
+The gap is not project coverage: every in-processing case is in the gazette. The gap
+is that `links.taipei` does not carry the platform `case_id` for 3 matched-by-parcel
+cases (sibling case_ids, or empty `links.taipei`). Four options, measured:
+
+| Option | What it fixes | Code change? | Risk |
+|---|---|---|---|
+| **1. Correction ledger** (`confirm_merge`) | ~~Documents that the platform's referenced land core belongs to the gazette's actual project.~~ **Withdrawn** — see D9d: the ledger joins two *gazette* records and cannot add one the gazette does not hold | No — data only | None |
+| **2. Discovery: a second source of case ids** | The city's parcel search does not index `10708311` or `11412011` (live probe, D9c-2). Add a second id source beside the search: ids from the 168 list, each confirmed by its header before it enters `city_case_ids`. `_match_case_by_date` then binds them. | Yes — `urtpe/links.py` + test | Low — each id is confirmed by its own header |
+| **3. Discovery: populate empty `links.taipei`** | When `links.taipei` is empty at every level (`11410026`), retry discovery with looser matching. | Yes — `urtpe/links.py` | Medium — AGENTS.md warns against loosening the parcel matcher |
+| **4. Monitor un-gazetted cases** | Re-run the cross-reference after each new gazette ingestion; the cases step 5a confirms as not approved should resolve as they are gazetted. | No — script | None |
+
+**Accepted batch: 2 + 4** (option 1 withdrawn by D9d; option 3 not accepted).
+
+**D9c-2 — live probe result (2026-11-05, `scripts/probe_sibling_search.py`).**
+The city's parcel search (`Get_updcase_list.ashx`) does **not** return either
+sibling, with or without the §6.7 guard:
+
+| Search | Returned | Target present? |
+|---|---|---|
+| 南港段四小段 / 566 | `10708312` only | `10708311` — **no** |
+| 玉成段二小段 / 166 | `10901211`, `10901212`, `11412012` (+ `10405044`, guarded out) | `11412011` — **no** |
+
+So the guard is not the cause, and neither `refresh_project` nor a guard fix can
+recover these ids. The case headers confirm what they are:
+
+| Case | Header `CASE_NAME` / `NAME` | Approval date | Gazette node |
+|---|---|---|---|
+| `10708311` | 變更…南港段四小段566地號等6筆…事業計畫案 / 業經本府核定 | 2019-11-20 | recno 744 (2019-11-20), flagged `節點未能對應平台案件` today |
+| `11412011` | 變更(第二次)…166地號等12筆…-B區 / 業經本府核定 | 2026-02-03 | recno 75 (2026-02-03), holds the A區 twin `11412012` |
+| `11410026` | 變更…臨沂段三小段412…/ 其他, phase Z | none | none — the project's only node is recno 120 (擬訂) |
+
+If `10708311` were in `city_case_ids`, `_match_case_by_date` would bind it to
+node 744 with no other change. `11412011` would join its A區 twin on node 75, as
+`10901211`/`10901212` already share node 563. **The only gap is the id source.**
+`11410026` is a pending amendment, not a link gap; it leaves D9c.
+
+**Recall of the parcel search, corpus-wide.** 16 nodes in 11 projects carry the
+unplaced flag `節點未能對應平台案件`. Exactly **1** of them (node 744) has a
+case name equal to a 168-list name. So the 168 list fixes 1 of 16 unplaced
+nodes; the other 15 need another id source. Option 2 is worth an openspec change
+only if it is a general second id source, not a 168-only patch.
+
+**Priority / dependency order for batch processing:**
+
+| Step | Option | Priority | Form | Depends on | Gate |
+|---|---|---|---|---|---|
+| D9c-2 | Live parcel search probe — **DONE 2026-11-05**, both siblings absent from the city's index | — | probe | — | — |
+| D9c-2a | Second id source: header-confirmed ids join `city_case_ids` in a refresh step | P2 | openspec change + `urtpe/links.py` + test + targeted refresh + re-emit | **D7** | single-writer rule; never written by the poller |
+| D9c-4 | Monitor script: re-run cross-reference after each gazette ingest | P3 | `scripts/probe_crossref_p168_gazette.py` re-run | D9f | new gazette published |
+
+### D9d — the 3 uncovered cases: the ledger does NOT apply (corrected)
+
+**Correction (2026-11-05).** The first draft of D9d proposed a `confirm_merge`
+ledger entry for each of the 3 cases, keyed on the gazette project's
+`(land_core, iso_date)` with the platform's land core as `with_land_core`.
+Measurement against `data/projects.json` shows **all 3 entries would be unmatched**
+and would link nothing. The ledger's `apply` requires **both** keys to resolve to
+exactly one record each (`urtpe/ledger.py:222-234`); an unmatched entry is reported
+and links nothing, never guessed.
+
+| Case | Platform's land core | Gazette record with that land core? | Result |
+|---|---|---|---|
+| `10112154` | 大安段三小段260地號等15筆 | **No.** The gazette's 大安段三小段 project holds parcels 243, 243-1, 245, 245-1, 250, 250-1, 250-2, 251, 251-1, 251-2, 251-3, 251-5, 252, 252-1, 252-2 — parcel 260 is not among them | entry unmatched |
+| `10702271` | 豐年段四小段479-2地號等3筆 | **No.** Parcel 479-2 appears in **no** gazette section at all | entry unmatched |
+| `10904071` | 玉成段一小段36地號1筆 | **No.** The gazette's 玉成段一小段 project holds parcels 169, 238, 239, 251, 270, 271, 272, 273 — parcel 36 is not among them | entry unmatched |
+
+**Why the parcel match was wrong.** D9c's parcel match keyed on
+`(section, first_parcel)` and fell back to "any parcel in the list". For these 3
+cases the section matched but **no parcel matched at all** — the platform's parcel
+is in a different unit that happens to share the section name. The earlier
+cross-reference counted them as "matched" because the section name alone carried
+them.
+
+**Why they are genuinely outside the gazette.** Their `MEMO` approval dates
+(2019-07-23, 2021-12-21, 2021-08-31) match **no gazette row in their own
+section**. A revoked approval (`業經本府撤銷核准`) is not gazetted — the city
+prints approvals, not revocations. So all 3 are correctly absent from the gazette;
+their absence is the truth, not a gap.
+
+**Correction to D9a.** The "Already approved (`核定階段`) but not linked — 3"
+row is **wrong on both counts**: the platform stage is `核定階段` (the case
+reached 核定), but the *approval was revoked*, so it was never gazetted. These 3
+belong with the revoked row of D9a. The rest of the 90 split as D9a now shows:
+84 with no link and no parcel match, 2 gazetted but unlinked, 1 pending
+amendment.
+
+**Correction to D9c option 1.** A `confirm_merge` entry cannot express "this case
+is not in the gazette". The ledger joins two gazette records; it cannot add a
+record that does not exist. **Option 1 is withdrawn** for these 3 cases.
+
+### D9e — test: all 54 in-processing case_ids resolve
+
+Offline test asserting each of the 54 in-processing case_ids appears in
+`links.taipei` of some gazette project in `data/projects.json`. No re-emit, no
+network.
+
+Measured 2026-11-05: **54 of 54 pass** — 52 in a node's `links.taipei`, all 54 in
+the project-level `links.taipei`, **0 in neither**. The test locks this in.
+
+### D9f — periodical 168 source updates
+
+The 168 list is a living source: new cases are added, `stage` values change
+(`審查中` → `核定階段` → `已失效`/自行撤回/已駁回), and cases are withdrawn.
+A one-time snapshot goes stale. This is **acquisition**, separate from gazette
+ingestion (AGENTS.md: "Acquisition is separate from ingestion" and "Don't wire
+polling into ingestion").
+
+**Decision (user):** accept D9f, coordinated with periodical PDF update.
+
+**Proposed plan:**
+
+| Step | Action | Priority | Form | Depends on |
+|---|---|---|---|---|
+| D9f-1 | Poll script: fetch all pages of `Get_project168.ashx` (pageSize=50, all `transition` values), save snapshot with content hash | P2 | `scripts/probe_fetch_p168_list.py` + a hash/change-detection wrapper | — |
+| D9f-2 | Change detection: compare snapshot hash to previous; only re-cross-reference when hash changes | P2 | Same wrapper | D9f-1 |
+| D9f-3 | On change: re-run `scripts/probe_crossref_p168_gazette.py` + `probe_deep_crossref_unmatched.py` against latest gazette | P3 | Same wrapper, or a thin wrapper | D9f-2 |
+| D9f-4 | Store snapshots under `urtpe-gazettes/p168_snapshots/` (outside repo, like the gazette archive) | P2 | Directory layout | D9f-1 |
+
+**Design constraints (from AGENTS.md):**
+- Change detection by **content hash**, never by the platform's timestamp (the city re-uploads under later stamps).
+- Single-writer lock (`.pipeline.lock`) serialises writers — one run per output tree.
+- The poller never ingests; ingestion is a separate explicit act.
+- No `pyproject.toml`, no CI, no build step — plain Python, system interpreter.
+
+## D9g — consolidated execution order
+
+The five original decisions are made; three items are open (see "Decisions
+waiting on the user"). The measurements changed the order three times: D9c
+option 1 is withdrawn (D9d), D6's restore method is **not** `--fresh` (it
+renames the whole cache), and D9c-2's fix layer waits on a live search.
+
+**Order:**
+
+| Step | Finding | Priority | Form | Depends on | Gate |
+|---|---|---|---|---|---|
+| 1 | D7b — name the 50 divergences unexplained by subset or permutation | **P1** | measurement only | — | — |
+| 2 | D7 + D8 — one `refresh_project` edit (re-derive `taipei_milestones`; re-fetch `data3`/`data4` where `implementation` is empty) + one cache pass + one re-emit | **P1** | openspec change (pipeline) | step 1 | D7 rule = overwrite (decided) |
+| 3 | D10 — permit-witness selection: prefer the permit whose 開工日期 matches the city's, then the one whose 使照 matches; name the ambiguity when neither resolves | **P2** | openspec change (`official-link-discovery`) + re-emit | step 2 | 開工 date must come from the source map, not the merged dict |
+| 4 | D6 — re-key `data/twur_overrides.json` to `…等2筆`, correct `PID`, add the dataset-key test, then `discover_project_links(fresh=True)` on that one project | **P2** | direct `fix:` + one-project restore + re-emit | — | single-writer rule; **not** `--fresh`; method correction needs user confirmation |
+| 5 | D9c-2 — live parcel search for the 2 sibling projects | — | probe | — | **DONE 2026-11-05**: the city's search does not index either sibling |
+| 5a | Header pass over the 84 "no link, no parcel match" cases (84 requests): approved or not? | **P2** | read-only probe | — | user approval for network; produces the awaiting-approval list for the 168 subset |
+| 6 | D9c-2a — second id source: header-confirmed ids join `city_case_ids` in a refresh step, then one re-emit | **P2** | openspec change + `urtpe/links.py` + test | **step 2** | single-writer rule; no other session running |
+| 7 | D9e — offline test: all 54 in-processing case_ids resolve (54/54 pass today) | **P2** | `tests/` | — | — |
+| 8 | D11 — record the A/B/C shared-dependency finding | — | docs | — | **DONE** (this board) |
+| 9 | D9f — periodical 168 poller + hash change detection, coordinated with the PDF poll | **P3** | `scripts/probe_fetch_p168_list.py` + hash wrapper | — | — |
+| 10 | D9c-4 — monitor the cases step 5a confirms as not approved, after each new gazette | **P3** | re-run the cross-reference scripts | steps 5a, 9 | new gazette published |
+
+**Why this order.**
+
+- **Steps 1–2 first.** D7 and D8 are the only findings that put *wrong data on
+  screen today* (84 caches lose a milestone label; 14 projects hide a
+  construction date the city publishes). They share one `refresh_project` edit
+  and one re-emit, so splitting them would pay the ~23 MB write twice.
+- **Step 3 after step 2.** D10's flag path reads `links.milestones_taipei`
+  (`urtpe/links.py:3378-3381`) — the dict D7 corrupts. Landing D10 on the
+  repaired dict means the flag sees correct values, and step 2's re-emit can
+  carry D10's payload change with no extra write.
+- **Step 4 before step 6.** D6 is a config record plus a one-project cache
+  restore plus a re-emit. Doing it first means step 6's re-emit carries the
+  restored 國 badge too, and the re-emit count stays at 3 rather than 4.
+- **Step 5 is done.** The live search showed the fix belongs in the id source,
+  not in the search guard or the attach step.
+- **Step 6 after step 2.** `refresh_project` appends a newly found case id
+  without re-deriving `taipei_milestones` — that is D7 cause 1. Run before the
+  D7 fix, it would create a new divergence on the two sibling projects.
+- **Step 6 uses `refresh_project`, not `--fresh`.** `refresh_project`
+  (`urtpe/links.py:1786`) is project-scoped: it re-fetches one project's cases,
+  re-runs the parcel search (which is what surfaces the sibling case_id), and
+  re-runs the view-page absorb. `--fresh` would rename the whole cache
+  (`urtpe/links.py:3402`) — the 2026-08-24 incident shape.
+- **Steps 2, 3, 4, 6 share re-emits.** Each re-emit rewrites all six tracked
+  files plus `viewer/projects.data.js` (~23 MB). Do not batch them into one run
+  without measuring — D7 and D8's shared edit is justified because it is *one*
+  code change; D10, D6 and D9c-2a are separate concerns.
+- **Step 7 is offline.** It needs no re-emit and no network, so it can land
+  anywhere. It goes here because it locks in what D9b measured.
+- **Step 8 is docs only.** It records the A/B/C shared-dependency finding that
+  was answered in chat and never written down.
+- **Steps 9–10 last.** The 168 poller is acquisition, and the monitor depends on
+  it. Neither changes emitted data on the current gazette.
+
+**What D9c option 1 becomes.** Instead of a ledger entry, the 3 revoked cases
+are **recorded as a negative** — the platform's approval was revoked, so the
+gazette's silence is correct. The natural home is the same `no_match_ledger`
+pattern the national-portal sweep already uses (a negative that expires and is
+re-probed), not the correction ledger, which joins gazette records.
+
+**What D9c-2 changes — decided by the 2026-11-05 probe.** The city's parcel
+index does not hold `10708311` or `11412011`, guarded or not. So the fix is a
+second id source that confirms each id by its header and adds it to
+`city_case_ids` in a refresh step. The earlier branches ("the attach step drops
+one", "a refresh appends them", "fix the guard") are withdrawn.
+
+**Two-source coverage.** The recno PDF (gazette) and the 168 list together cover
+approved → in-processing → revoked **for the 168 subset only**. What they do not
+cover:
+
+| Stage | Covered by | Gap |
+|---|---|---|
+| Submitted, awaiting approval | 168 list (`審查中`, `專案審查階段`, `報核-公展階段`, `審議階段`, `聽證階段`) | **the 168 list holds 376 of the 1,982 case ids the gazette links** — cases in review outside the 168 program are not listed |
+| Approved | gazette PDF | none measured |
+| Revoked / rejected / withdrawn | 168 list (`stage` = `-` or a terminal state) | 3 revoked cases confirmed absent from the gazette — correct |
+| Construction execution (開工, 使照, 成果報備) | `third.ashx` / `fourth.ashx` | D8: 6 caches hold an empty `implementation`; 4 have a recoverable date |
+| Post-execution | `third.ashx` `Report_Date` | 65 of 2,951 cached payloads carry it |
+
+## D10 — the permit witness names the wrong permit (使照核發日期 vs 執照日期)
+
+**Question (user, 2026-11-05).** Why do 使照核發日期 and 執照日期 differ, for
+`松山區-寶清段一小段-57-13地號等1筆` (case `10212211`) and
+`大安區-金華段一小段-719地號等1筆` (case `10308211`)?
+
+**The mechanism.** The building authority's 使用執照摘要 open data is a **third
+witness** for the 使照 date (`urtpe/permit_sources.py`, the
+`building-permit-adapter` change). The viewer renders the witness beside the
+使照 slot (`viewer/app.js:1364-1375`):
+
+```
+使照核發日期：2025/06/25　執照093使字第0294號（2004-09-14）
+```
+
+The two dates differ because **the emitted `links.permit` names the first
+permit of a tie, not the permit the city's 使照 belongs to**.
+
+### D10a — the selection rule is "first winner", and the tie is common
+
+`attach_links_to_projects` (`urtpe/links.py:3371-3377`) takes `permits[0]`:
+
+```python
+if permits:
+    best = permits[0]
+    project.links["permit"] = {"permit_no": best.permit_no, "date": best.date, ...}
+```
+
+`match_project_permits` (`urtpe/permit_sources.py:113-135`) returns every
+permit whose parcel overlap ties for the highest count, sorted by permit number
+(`sorted(no for no, c in counts.items() if c == best)`). So `permits[0]` is the
+**alphabetically first permit number**, which is the *oldest* one — not the one
+the project's own 使照 came from.
+
+The permit index keys on the **mono** parcel (the sub-parcel is stripped at
+`urtpe/links.py:3359`, `mono = str(parcel).partition("-")[0]`). Every permit on
+that mono number lands on the same key, so a section that redeveloped over time
+accumulates permits — one per building phase.
+
+### D10b — the two named cases, measured
+
+**寶清57-13** — the project's parcel is `57-13`, so mono `57`. Four permits sit
+on that mono:
+
+| permit | 使照 | 開工 | 原核發執照 |
+|---|---|---|---|
+| 093使字第0294號 | 2004-09-14 | 2000-05-04 | 088建字第0418號 |
+| 107使字第0028號 | 2018-01-30 | 2015-01-08 | 103建字第0067號 |
+| 110使字第0038號 | 2021-03-23 | 2017-07-10 | 106建字第0020號 |
+| **114使字第0094號** | **2025-06-25** | **2020-05-06** | 108建字第0140號 |
+
+The city reports `Ulic_Date = 2025/06/25` and `Eng_Start_Date = 2020/05/06` —
+**both** point at `114使字第0094號`, the *last* permit. The emitted witness is
+`093使字第0294號` (2004-09-14), the *first*.
+
+**金華719** — the project's parcels span 719…739 across its nodes, so the index
+sees two mono keys with permits:
+
+| key | permits |
+|---|---|
+| (`大安區`, `金華段一小段`, `719`) | 115使字第0018號 (2026-01-28, 開工 2021-12-23) |
+| (`大安區`, `金華段一小段`, `739`) | 096使字第0079號 (2007-03-01), 096使字第0131號 (2007-04-20) |
+
+All three tie at 1 parcel each. The city reports `Ulic_Date = 2026/01/28` and
+`Eng_Start_Date = 2021/12/23` — **both** point at `115使字第0018號`, the one on
+parcel **719**, the parcel the anchor node (recno 81, 變更(第三次), 2026-01-07)
+carries. The emitted witness is `096使字第0079號` (2007-03-01), from parcel
+**739** — a parcel the anchor no longer lists.
+
+### D10c — corpus scale
+
+Measured over all 681 projects against the live permit index (19,216 keys):
+
+| Outcome | Count |
+|---|---|
+| City's 使照 == the **first** matched permit (witness is right) | 271 |
+| City's 使照 == a **later** matched permit (**witness is wrong**) | **20** |
+| City's 使照 matches **no** matched permit | 23 |
+| More than one matched permit | 33 (24 with a city date) |
+| **Emitted `links.permit.date` differs from the city's 使照** | **43** |
+
+So **43 projects show a permit date that is not the project's own 使照**. The
+flag mechanism does not catch them: `permit_review_flags`
+(`urtpe/links.py:3380-3381`) fires only when the **city** and **national** dates
+disagree, and these projects have no national 使用核發日期 at all — the flag
+needs two portal values, and here only one exists. The witness is wrong and
+**silent**.
+
+### D10d — the disambiguator that already exists
+
+The **開工日期** picks the right permit in both named cases and in **18 of the
+33** multi-permit projects that carry one:
+
+| Case | city's 開工 | permit with that 開工 | city's 使照 | that permit's 使照 |
+|---|---|---|---|---|
+| 寶清57-13 | 2020/05/06 | 114使字第0094號 | 2025/06/25 | 2025-06-25 ✓ |
+| 金華719 | 2021/12/23 | 115使字第0018號 | 2026/01/28 | 2026-01-28 ✓ |
+
+The permit record carries both dates (`PermitRecord.construction_start`,
+`urtpe/permit_sources.py:43`). The 開工 date is the city's *own* value
+(`Eng_Start_Date`), so it is a **citable disambiguator** — not an inference.
+
+### D10e — the fix shape
+
+**Proposed rule (needs a user decision):** when more than one permit matches,
+pick the one whose `construction_start` equals the city's 開工日期. When that
+does not leave exactly one, show **no single permit** and mark the payload
+`links.permit.ambiguous` with the candidate list.
+
+**Do not** fall back to "the permit whose date equals the city's 使照". That
+makes the witness copy the value it exists to check, so it could never expose a
+disagreement. The 開工 tier is safe because 開工 is a different field.
+
+Effect on the 33 multi-permit projects: 18 resolve by 開工; 4 have no 開工 date;
+11 have a 開工 date that matches zero or several permits. Those 15 show the
+ambiguity instead of an arbitrary permit.
+
+**Interaction with D8 (from `viewer-source-sync`).** 87 projects carry a permit
+but no city 使照 date. `permit_review_flags` compares only when both portal dates
+exist, so these 87 skip the comparison today. D8's refetch can fill 使照 for
+some of them and move them into the comparison. 實踐641 is the known case: its
+permit `096使字第0436號` (2007-10-31) equals the data3 使照 (2007/10/31), so after
+D8 it should show agreement and no flag. A flag there is a real signal, not D8
+noise.
+
+**Order matters:** the 開工 date must be read from the **source map**
+(`milestones_source`), not from `links.milestones_taipei` — the same rule D4a
+already established for the construction chain. Reading the merged dict would
+inherit D7's corruption.
+
+**D7 interaction.** The flag call reads `project.links["milestones_taipei"]`
+(`urtpe/links.py:3378-3381`) — the exact dict D7 finds corrupted. D7's fix
+therefore **repairs the flag path too**, which is why D7 must land before D10's
+re-emit.
+
+**Form:** openspec change (`official-link-discovery` — the permit-witness
+requirement) + payload re-emit. The selection rule is a pure function over
+`(permits, 開工 date, 使照 date)`, so it is test-first and offline.
+
+## D11 — the A/B/C surfaces share one milestone source, so D7 breaks all three
+
+*The three surfaces share one milestone source (`links.milestones_taipei`), so
+the D7 divergence is a single defect with three symptoms, not three defects.*
+
+**Finding (measured by the `viewer-source-sync` session, 2026-11-05, HEAD
+`6457de7`).** The three surfaces — A 相關連結, B graph node, C project list —
+read label and status from different places:
+
+| Surface | Label source | Status source | Code |
+| --- | --- | --- | --- |
+| A 相關連結 | `candidate_names[cid]` → node 案名; 國 = `twur_name` | `case_schedules[cid]` | `viewer/app.js:635-675`, `1516-1527` |
+| B graph node | node `case_name`; 國 = `bindNationalLabels` | `node.links.taipei`, `stage_事業計畫` / `stage_權利變換` | `viewer/app.js:176-198`, `465-472` |
+| C project list | `p.name` | `execStateOf` → `constructionStage` → `case_schedules` | `viewer/app.js:488-496` |
+
+Measured against `data/projects.json` (681 projects, gazette 2026-10-15):
+
+| Metric | Value |
+| --- | --- |
+| `candidate_names` | 674 of 681 |
+| `twur_name` | 621 (all twur projects) |
+| `case_schedules` | 622 |
+| case ids that render with no display name | **0** |
+| combined-track projects with a node carrying both sub-stages | 364 of 364 |
+
+"0 unnamed" means: every case id in a project's `links.taipei` is anchored on a
+node, or in `candidate_names`, `case_milestones` or `search_rejected`. None
+fails all four.
+
+**Conclusion.** The sync contract holds for name and status. It breaks only in
+the milestone projection, and all three surfaces read it. That is why 寶清599
+shows no 建照 in the list chip, none in the graph chain, and a 使照 國 badge
+without its 建照 partner — and why D7 is P1.
+
+
+## D12 — architecture concerns (review 2026-11-05)
+
+Four concerns, each measured or read from the code. None blocks the batch; each
+constrains how a D9g step is built.
+
+1. **The 168 list is a program subset, not a register.** It holds 376 of the
+   1,982 case ids the gazette links (D9). A poller over it sees the 168
+   fast-track program only. The D9f plan and any "awaiting approval" view must
+   say so, and must not present the list as the whole pipeline. A complete
+   pending-case source is still unknown; finding one is open research.
+2. **The parcel search has a recall limit.** The city's own parcel index omits
+   two approved cases (D9c-2), and 16 nodes in 11 projects are unplaced. The
+   pipeline has one id source; a missing id stays missing with no signal except
+   the unplaced flag. A second, header-confirmed id source (D9g step 6) is the
+   structural fix; the 168 list closes 1 of the 16 today.
+3. **Acquisition must not write durable state.** AGENTS.md: "Acquisition is
+   separate from ingestion." The D9f poller may write only snapshots under
+   `urtpe-gazettes/p168_snapshots/`. Ids from a snapshot enter `.link_cache`
+   only through a separate refresh step under the single-writer lock and the
+   coverage guard (`urtpe/coverage.py`).
+4. **Peer sessions share this tree and cache.** Several sessions work in
+   `D:\project\urTPE` at once. The lock serialises pipeline writers, but not
+   hand-run scripts or doc edits. Before any cache-writing step in D9g (2, 3, 4,
+   6), confirm no other session is running one.
+
+Two smaller ones:
+
+- **`--fresh` is a corpus-wide trap.** It renames the whole `.link_cache`
+  (D6). Its help text says only "強制重新爬取". A per-project fresh path exists
+  (`discover_project_links(fresh=True)`) but no CLI flag exposes it.
+- **One-shot scripts accumulate.** This review added about 25 scripts. They are
+  committed with the `probe_` prefix that AGENTS.md uses for archaeology, so
+  they are not read as durable tools.
+
+## Decisions made (2026-11-05)
+
+| Entry | Decision | Blocks |
+|---|---|---|
+| D6 | Option B — re-key `data/twur_overrides.json` to `…等2筆`, correct `PID`, restore with one portal request. Method correction pending: per-project `discover_project_links(fresh=True)`, not corpus-wide `--fresh` | D6 fix + re-emit |
+| D7 | Option A — overwrite (re-derive `taipei_milestones` exactly from `case_milestones`, drop the 5 re-dated values) | D7 re-derive rule |
+| D8 | Option B — refetch `data3`/`data4` only where `implementation` is empty (6 projects) | D8 scope + cache pass |
+| D9c | Options 1+2+4 → **option 1 withdrawn** (D9d: the ledger cannot add a record the gazette does not hold); **2+4 stand** | D9c-2, D9c-4 |
+| D9f | Accept periodical 168 poller plan, coordinated with periodical PDF update | D9f-1 |
+| D10 | **Open** — see "Decisions waiting on the user" | D10 openspec change |
+| D11 | Recorded — docs only, no decision needed | — |
 
 Decided 2026-11-05 and moved into the findings: D2b (date-first sort), D4b
 (chain + dotted edges), D4c (literal reading, after the construction chip),

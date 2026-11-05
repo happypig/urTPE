@@ -1156,7 +1156,7 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 | 9 | D9f — 168 poller + hash change detection in the `urtpe-poll` task, then one ingest of the 2026-11-03 gazette and a cross-reference against the fresh snapshot | **P2** | poller script + task action + ingest + re-emit | steps 0b, 2 | single-writer rule; poller writes snapshots only |
 | 10 | D9c-4 — monitor the 78 in-review cases after each new gazette | **P3** | re-run the cross-reference scripts | step 9 | new gazette published |
 | 11 | D13 — folded into step 2 (decided 2026-11-06) | — | — | — | see step 2 |
-| 12 | D15 — sort a node's `review_flags` by a stable key | **P3** | openspec change (emitter) + test | — | land before step 2 to ride its re-emit; otherwise the next one; do not re-emit for it alone |
+| 12 | D15 — sort a node's `review_flags` by a stable key | **P3** | openspec change (emitter) + test | — | **DONE** `cce5625`, archived `2026-11-06-stable-review-flag-order` (`13baf68`) — the emitter sorts by (case id, text); 20 nodes' flag order changes on the live payload, 0 flag sets and 0 flag counts change; suite 1020 passed / 1 skipped |
 
 **Why this order.**
 

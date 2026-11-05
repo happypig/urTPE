@@ -1784,7 +1784,8 @@ def fetch_taipei_case_header_api(case_id: str) -> dict:
 
 
 def refresh_project(cache_dir: Path, project_id: str, fetch=None,
-                    fetch_status=None, search=None, search_key=None) -> dict:
+                    fetch_status=None, search=None, search_key=None,
+                    fetch_implementation=None, fetch_rewards=None) -> dict:
     """Re-fetch the milestones and status of a cache's cases, in place.
 
     Thin driver over the platform adapters: ``fetch(case_id) -> {label: date}``
@@ -1811,6 +1812,17 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
     was otherwise invisible (虎林段四小段-38's 11510017). After the pass, a case
     whose header reads 無 is matched to the case the city re-filed it as
     (:func:`find_superseding_case`).
+
+    D7: after the per-case pass the merged milestone projection is re-derived
+    from the cases, so it cannot drift from them.
+
+    D8: ``fetch_implementation`` and ``fetch_rewards`` re-fetch the execution
+    and rewards layers for every live approved case that has no entry. They
+    default on only when ``fetch`` does too — the production call — so an
+    offline caller stays offline.
+
+    D13: a case whose header row AND milestones are both empty is labelled 無.
+    The id and the cached data stay; no removal is claimed.
     """
     if fetch is None:
         fetch = fetch_taipei_milestones_api
@@ -1818,13 +1830,19 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             fetch_status = fetch_taipei_case_header_api
         if search is None:
             search = search_taipei_cases_api
+        if fetch_implementation is None:
+            fetch_implementation = fetch_taipei_implementation_api
+        if fetch_rewards is None:
+            fetch_rewards = fetch_taipei_rewards_api
     cached = load_project_cache(Path(cache_dir), project_id)
     report: dict = {"project_id": project_id, "updated": [], "still_awaiting": [],
                     "closed": [], "status_changes": [], "removed": [],
                     "conflicts": [], "added": [], "superseded": [],
                     "no_successor": [], "ambiguous": [], "not_searched": False,
                     "view_rejected_ids": [], "view_label_errors": [],
-                    "view_not_confirmed": [], "error": ""}
+                    "view_not_confirmed": [], "labelled_wu": [],
+                    "implementation_refetched": [], "payload_sizes": [],
+                    "error": ""}
     if cached is None:
         report["error"] = "no cache"
         return report
@@ -1863,6 +1881,7 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
     # ── the per-case pass ──────────────────────────────────────────────────
     header_names: dict[str, str] = {}
     no_state: set[str] = set()
+    labelled_wu: list[str] = []
     for cid in list(cached.case_milestones.keys()):
         before = cached.case_milestones.get(cid) or {}
         try:
@@ -1871,6 +1890,28 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
         except Exception as exc:  # a source failure leaves the cache untouched
             report["error"] = f"{cid}: {type(exc).__name__}: {exc}"
             return report
+        # D13: the city moved a case to a new id and emptied the old one
+        # (青年130's 11501041 → 11510008; 虎林38's 11410001 → 11502012). One
+        # empty response is no evidence — the request may have failed — but TWO
+        # empty sources in the same refresh is the measured shape. The case
+        # keeps its id, its cached data and its place in the case list; the
+        # label claims no removal, it only says the case is now 無.
+        #
+        # The rule fires only where there is a stale state to replace: the
+        # case held milestones or a header before this refresh. A case that
+        # was always empty (a case id the search appended and the platform
+        # never answered for) has no stale state, and labelling it 無 would
+        # invent one.
+        if not fetched and not header and (before or cached.case_headers.get(cid)):
+            was = cached.case_schedules.get(cid, "")
+            if was != "無":
+                cached.case_schedules[cid] = "無"
+                labelled_wu.append(cid)
+                report["status_changes"].append(
+                    {"case_id": cid, "was": was, "now": "無",
+                     "name": "header and milestones both empty"})
+                changed = True
+
         if fetched:
             new = dict(fetched)
             for label, was in before.items():
@@ -1946,6 +1987,52 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             report["added"].append({"case_id": cid,
                                     "schedule": cached.case_schedules.get(cid, ""),
                                     "name": cached.case_headers.get(cid, "")})
+
+    # ── the implementation layer: re-fetch the cases that lack it ───────────
+    # D8: the refresh never fetched data3/data4, so a project whose payload
+    # was empty stayed empty forever (文山區-實踐段二小段-641's case 09009032
+    # holds 開工 2004/09/24 and 使照 2007/10/31 at the live endpoint, and the
+    # cache holds neither). The selection is PER CASE: a project whose payload
+    # holds entries for other cases still needs the missing one (青年130 holds
+    # entries for two of its three cases, and the third carries the dates).
+    for cid in list(cached.case_milestones.keys()):
+        if cached.case_schedules.get(cid) in TERMINAL_SCHEDULES:
+            continue
+        if cached.case_schedules.get(cid) == "無":
+            continue
+        ms = cached.case_milestones.get(cid) or {}
+        if not any(ms.get(f) for f in _APPROVAL_FIELDS):
+            continue
+        if cached.implementation.get(cid):
+            continue
+        before_impl = len(cached.implementation.get(cid) or {})
+        try:
+            impl = fetch_implementation(cid) if fetch_implementation else {}
+        except Exception as exc:  # a failed fetch leaves the cache untouched
+            report["error"] = f"{cid}: implementation {type(exc).__name__}: {exc}"
+            return report
+        if impl:
+            cached.implementation[cid] = impl
+            changed = True
+        try:
+            rew = fetch_rewards(cid) if fetch_rewards else {}
+        except Exception as exc:
+            report["error"] = f"{cid}: rewards {type(exc).__name__}: {exc}"
+            return report
+        if rew:
+            cached.rewards[cid] = rew
+            changed = True
+        report["implementation_refetched"].append(
+            {"case_id": cid, "implementation_keys": len(impl),
+             "reward_keys": len(rew), "before_keys": before_impl})
+        # the before/after size of the PROJECT payload, so a shrink is visible
+        # (雅祥227: the 無 case's 26-key payload gives way to the live
+        # sibling's 1-key payload — a real shrink, named in the report)
+        report["payload_sizes"].append({
+            "case_id": cid,
+            "implementation_keys": len(impl),
+            "reward_keys": len(rew),
+        })
 
     # ── the twin pass: which case did the city re-file a 無 case as? ─────────
     for cid in sorted(no_state):
@@ -2066,6 +2153,35 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
         if decision.not_confirmed:
             report["view_not_confirmed"] = list(decision.not_confirmed)
 
+    # ── D7: re-derive the merged milestone projection ───────────────────────
+    # The projection is written ONLY by the discovery path, so the refresh's
+    # per-case writes to case_milestones left the two apart: 85 of the 719
+    # caches that hold per-case milestones diverged (D7b), 14 projects emitted
+    # no construction date a case actually holds (寶清599's 建照 2006/05/12 sat
+    # in the cache and never reached the payload).
+    #
+    # The re-derivation projects the cases EXACTLY (the decided rule): a label
+    # no case carries any more leaves the projection, because the city
+    # withdrew or re-dated it. The per-case withdrawn-approval conflict rule
+    # is a different layer and is unchanged — it keeps a withdrawn approval
+    # date on the CASE, because that date decides the node binding.
+    #
+    # It runs LAST, so it sees every case id the refresh added: the search
+    # step's appended ids and the view absorb's ids.
+    merged: dict[str, str] = {}
+    merged_source: dict[str, str] = {}
+    for cid in cached.city_case_ids:
+        merge_stage_milestones(merged, merged_source, cid,
+                               cached.case_milestones.get(cid) or {})
+    if merged != cached.taipei_milestones or merged_source != cached.milestones_source:
+        changed = True
+    cached.taipei_milestones = merged
+    cached.milestones_source = merged_source
+
+    # every case the refresh labelled 無, named (a label that vanished
+    # silently would read as a complete dataset)
+    report["labelled_wu"] = list(labelled_wu)
+
     if changed or report["updated"] or cached.view_verified_case_ids:
         save_project_cache(Path(cache_dir), project_id, cached)
     report["error"] = report_error
@@ -2130,25 +2246,43 @@ IMPLEMENTATION_MILESTONE_FIELDS = [
 ]
 
 
-def select_best_payload(payloads: dict[str, dict]) -> tuple[str, dict, list[str]]:
+def select_best_payload(payloads: dict[str, dict],
+                        excluded: set[str] | None = None) -> tuple[str, dict, list[str]]:
     """Pick the best-populated payload whole (never field-merged) per design D5.
 
     Returns (case_id, payload, review_flags). Empty/absent payloads are ignored;
     conflicting values across multiple carriers surface review flags.
+
+    ``excluded`` names the cases that must not be ranked — the cases recorded
+    as 無 (D13). Their payload is a stale copy: the city moved the case to a new
+    id and emptied the old one, so the copy holds values the live case no
+    longer has. The exclusion applies even when the excluded payload is larger
+    than the live one (雅祥227: 26 keys vs 1) — a near-empty live payload is
+    the live answer, and the refresh report names the shrink.
     """
-    candidates = {cid: p for cid, p in (payloads or {}).items() if p}
+    skip = set(excluded or ())
+    candidates = {cid: p for cid, p in (payloads or {}).items()
+                  if p and cid not in skip}
     if not candidates:
         return "", {}, []
     best_cid = max(candidates, key=lambda cid: len(candidates[cid]))
     flags: list[str] = []
-    if len(candidates) > 1:
-        others = [cid for cid in candidates if cid != best_cid]
-        for key, val in candidates[best_cid].items():
-            for other in others:
-                if key in candidates[other] and candidates[other][key] != val:
-                    flags.append(
-                        f"payload {key} conflicts across cases: {best_cid}={val} vs {other}={candidates[other][key]}"
-                    )
+    # the conflict flags name EVERY carrier, including an excluded one: the
+    # disagreement is real and reporting it is the honest reading.
+    others = [cid for cid in candidates if cid != best_cid]
+    excluded_ids = [cid for cid in (payloads or {})
+                    if cid in skip and payloads[cid]]
+    for key, val in candidates[best_cid].items():
+        for other in others:
+            if key in candidates[other] and candidates[other][key] != val:
+                flags.append(
+                    f"payload {key} conflicts across cases: {best_cid}={val} vs {other}={candidates[other][key]}"
+                )
+        for other in excluded_ids:
+            if key in payloads[other] and payloads[other][key] != val:
+                flags.append(
+                    f"payload {key} conflicts across cases: {best_cid}={val} vs {other}={payloads[other][key]}"
+                )
     return best_cid, candidates[best_cid], flags
 
 
@@ -2160,7 +2294,8 @@ def select_best_payload(payloads: dict[str, dict]) -> tuple[str, dict, list[str]
 _PLAN_CASE_RE = re.compile(r"^擬訂.*都市更新(事業計畫|事業計畫及權利變換計畫)案")
 
 
-def pick_implementation_payload(payloads: dict, candidate_names: dict | None = None):
+def pick_implementation_payload(payloads: dict, candidate_names: dict | None = None,
+                                excluded: set[str] | None = None):
     """Dates follow the 擬訂 plan case; statistics keep the one-payload rule.
 
     Returns (dates, per-date source, statistics case_id, flags):
@@ -2172,11 +2307,18 @@ def pick_implementation_payload(payloads: dict, candidate_names: dict | None = N
       flagged; differing values for one field on 2+ plan cases conflict-flag.
     An area split is several plan cases (-A區/-B區/…): each carries its own
     building's dates, so the union is the intended reading, not a merge.
+
+    ``excluded`` names the cases recorded as 無 (D13). The exclusion covers
+    BOTH layers: the key-count pick and this plan-case date collection. A 無
+    case's payload is a stale copy, so it must supply neither a statistic nor
+    a date.
     """
     names = candidate_names or {}
+    skip = set(excluded or ())
     plan_cids = [cid for cid, p in (payloads or {}).items() if p
+                 and cid not in skip
                  and _PLAN_CASE_RE.match(names.get(cid, "") or "")]
-    best_cid, best_payload, d5_flags = select_best_payload(payloads)
+    best_cid, best_payload, d5_flags = select_best_payload(payloads, excluded=skip)
     flags = list(d5_flags)
     dates: dict[str, str] = {}
     source: dict[str, str] = {}
@@ -3137,10 +3279,17 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
         # attachment with case provenance (design D2/D5). Date fields surface as
         # milestones; the rest goes into the emitted objects.
         impl_all = getattr(disc, "implementation", None) or {}
-        impl_cid, impl_payload, impl_flags = select_best_payload(impl_all)
+        # D13: a case recorded as 無 carries a stale payload copy (the city
+        # moved the case to a new id and emptied the old one), so it is
+        # excluded from both selection layers — the key-count pick and the
+        # plan-case date collection.
+        wu_excluded = {cid for cid, s in (getattr(disc, "case_schedules", None) or {}).items()
+                       if s == "無"}
+        impl_cid, impl_payload, impl_flags = select_best_payload(impl_all, excluded=wu_excluded)
         # dates-follow-plan-case (C8a): the date fields follow the 擬訂 plan
         # case (per area), the statistics keep the D5 one-payload rule.
-        impl_dates, impl_date_source, _stats_cid, impl_date_flags =             pick_implementation_payload(impl_all, getattr(disc, "candidate_names", None) or {})
+        impl_dates, impl_date_source, _stats_cid, impl_date_flags =             pick_implementation_payload(impl_all, getattr(disc, "candidate_names", None) or {}, excluded=wu_excluded)
+
         if impl_payload:
             impl_out = dict(impl_payload)
             impl_out["case_id"] = impl_cid
@@ -3156,7 +3305,8 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
             for label, date in impl_dates.items():
                 project.links["milestones_taipei"][label] = date
                 project.links.setdefault("milestones_source", {})[label] = impl_date_source[label]
-        rew_cid, rew_payload, rew_flags = select_best_payload(getattr(disc, "rewards", None) or {})
+        rew_cid, rew_payload, rew_flags = select_best_payload(
+            getattr(disc, "rewards", None) or {}, excluded=wu_excluded)
         if rew_payload:
             rew_out = dict(rew_payload)
             rew_out["case_id"] = rew_cid

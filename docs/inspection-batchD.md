@@ -1145,8 +1145,8 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 | 0 | D14 — the `--from-js` loader round-trips `stage_事業計畫`, `stage_權利變換`, `recovery` and `district_land` (no coercion of `''`); round-trip test is the gate | **P1** | direct `fix:` + test (no re-emit of its own) | — | **DONE** `8d480a0` — 537 nodes changed a field across one rebuild before the fix (533 `stage_事業計畫`, 533 `stage_權利變換`, 4 `recovery`, 4 `district_land`), 0 after; suite 1005 passed / 1 skipped |
 | 0b | D14(b) — `_land_district` reads the collected 12-district enum (7 rows change) | **P2** | openspec change (`cleanse`) + 2 tests | — | **DONE** `12bfe5c`, archived `2026-11-06-district-land-from-district-enum` (`dc27ce0`) — 7 rows change (153, 382, 928 → 大安區; 926 → 士林區; 488, 558, 927 → `''`); 0 section / parcel / land_count / name / flag / other-field changes over the 1,442 rows; the flag still fires on 488/558/927; suite 1013 passed / 1 skipped |
 | 1 | D7b — name the 50 divergences unexplained by subset or permutation | **P1** | measurement only | — | **DONE** — 634 in sync, 35 explained by an ordered subset, 0 by a permutation, **50 unexplained**: 20 `STALE_MERGE` (a case still holds the stored value; only the merge moved), 16 `NEW_LABEL` (a case appended after the merge), 3 `WITHDRAWN`, 11 `MIXED`; 0 of the 50 explained by any of 5 merge orders; the fix (D7 = overwrite) repairs 36 of them and drops the withdrawn labels in 14 |
-| 2 | D7 + D8 + D13 — one `refresh_project` edit: re-derive `taipei_milestones`; re-fetch `data3`/`data4` **per case** (26 cases in 22 projects, offline count 2026-11-06); label a case 無 when its header row and data2 are both empty. One cache pass + one re-emit | **P1** | openspec change (pipeline) | steps 0, 1 | D7 = overwrite; D8 = per case; D13 = 無 orphan (all decided); a 無 case's payload never wins either selection layer (key-count pick for implementation/rewards, and plan-case dates); report before/after payload sizes for 青年130, 虎林38, 雅祥227, 立農163-2, 萬華894, 吉林705-3; tests pin 青年130, 虎林38 and the 美仁800 near-miss; read the 無 list and counts before the re-emit |
-| 3 | D10 — permit-witness selection: the permit whose 開工日期 matches the city's; otherwise mark `links.permit.ambiguous` (decided) | **P2** | openspec change (`official-link-discovery`) + re-emit | step 2 | 開工 date must come from the source map, not the merged dict |
+| 2 | D7 + D8 + D13 — one `refresh_project` edit: re-derive `taipei_milestones`; re-fetch `data3`/`data4` **per case**; label a case 無 when its header row and data2 are both empty. One cache pass + one re-emit | **P1** | openspec change (pipeline) | steps 0, 1 | **DONE** `2d9cccf`, archived `2026-11-06-refresh-rederive-and-refetch` (`054099a`), re-emit `0da2dd2` — 380 of 681 projects changed, **0 with no explained cause** (D7 274, D8 31, D10 30, REFRESH_STATUS 12, D15 19, D15b 11, D13 3); the 718 caches that hold per-case milestones are now **all in sync** (was 85 divergent, 50 unexplained); **3** cases labelled 無 (`11501041`, `11410001`, `10310102`); **41** implementation cases re-fetched; D8's scope is **37 cases in 32 projects**, not 26 in 22 (the board's probe's approval list omitted `權變核定日期` and `概要核准日期`); suite 1056 passed / 1 skipped; viewer smoke passed |
+| 3 | D10 — permit-witness selection: the permit whose 開工日期 matches the city's; otherwise mark `links.permit.ambiguous` (decided) | **P2** | openspec change (`official-link-discovery`) + re-emit | step 2 | **DONE** `38b411c`, archived `2026-11-06-permit-witness-by-construction-start` (`054099a`) — **15** witnesses moved to the right permit, **15** became ambiguous, 0 dropped; the projects whose witness date differs from the city's 使照 fall **43 → 23** (the 20 the board measured are fixed); 寶清57-13 now names `114使字第0094號`, 金華719 names `115使字第0018號`; the re-emit is `0da2dd2` |
 | 4 | D6 — re-key `data/twur_overrides.json` to `…等2筆`, correct `PID`, add the dataset-key test, then `discover_project_links(fresh=True)` on that one project (decided, option A) | **P2** | direct `fix:` + one-project restore + re-emit | step 0 | single-writer rule; **not** `--fresh` |
 | 5 | D9c-2 — live parcel search for the 2 sibling projects | — | probe | — | **DONE 2026-11-05**: the city's search does not index either sibling |
 | 5a | Header pass over the 84 "no link, no parcel match" cases | — | read-only probe | — | **DONE 2026-11-05**: 78 in review, 5 closed, 1 revoked |
@@ -1675,6 +1675,33 @@ orphan cases are found.
 **Impact.** Cosmetic in the viewer. It is the only D5-caused payload change
 outside 吉林676. A stable sort of `review_flags` (for example by case_id, then
 text) removes the order dependency. D9g step 12, P3.
+
+**DONE (2026-11-06).** `cce5625`, archived
+`2026-11-06-stable-review-flag-order` (`13baf68`). The emitter sorts a node's
+`review_flags` by (case id, text) — the case id the flag names, then the flag
+text; a flag that names no case id (the cleansing flags) sorts first. The sort
+lives in the emitter, not at the four raising sites, so a flag raised by any
+path lands in the same place. Measured on the live payload: **20** nodes' flag
+order changes, **0** flag sets and **0** flag counts change.
+
+### D15b — the unplaced-node flag quotes a date that changed shape between runs
+
+Found while attributing the step 2 re-emit (2026-11-06). The
+`節點未能對應平台案件` flag quotes the node's own date, and that date reached
+the flag in whatever form the pipeline held: **slash-western** from the PDF
+(`2013/11/5`), **ISO** from a `--from-js` rebuild (`2013-11-05`). The flag text
+therefore changed between runs, so the duplicate collapse — which is by exact
+text — stopped working, and the same finding appeared twice in two spellings.
+
+**Measured:** 15 nodes carried both spellings after the step 2 re-emit (the
+nodes whose date is read from a case whose milestones the D7 re-derivation
+rewrote).
+
+**Fix.** The flag quotes a **normalised** date (`_flag_date`,
+`urtpe/links.py`), and the `--from-js` loader normalises the stored copies
+(`_normalise_flags`, `urtpe/cli.py`). The flag's text is now a function of the
+node, not of the run, and the copies collapse again. 11 projects changed by
+this. Suite: `tests/test_flag_date_normalisation.py`.
 
 ## Decisions made (2026-11-05)
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from urtpe.links import attach_links_to_projects
 from urtpe.models import CleanRecord, Project
 
@@ -24,6 +26,31 @@ def _dedupe(flags) -> list[str]:
             seen.add(f)
             out.append(f)
     return out
+
+
+# D15 (inspection-batchD): the case id a flag names. The orphan and conflict
+# flags name the case they are about; the cleansing flags name none.
+_FLAG_CASE_RE = re.compile(r"案(\d+)")
+
+
+def _flag_key(flag: str) -> tuple[str, str]:
+    """The stable order key of a review flag: the case id it names, then the
+    text.
+
+    The order the flags were raised in was a function of the pipeline's
+    traversal order, and that order follows the family's member order — so a
+    ledger merge that reorders one family reorders the flags on the node it
+    anchors, with nothing in the data to say so (D5's 吉林676 merge moved
+    three orphan flags on 大龍265-7 node 1242). Sorting here, at the emitter,
+    covers every raising path at once.
+    """
+    m = _FLAG_CASE_RE.search(flag)
+    return (m.group(1) if m else "", flag)
+
+
+def _stable_flags(flags) -> list[str]:
+    """The node's flags: duplicates collapsed, then sorted by a stable key."""
+    return sorted(_dedupe(flags), key=_flag_key)
 
 
 def build_project_graph(project: Project, implementer: str, name: str, published_date: str = "") -> dict:
@@ -57,7 +84,7 @@ def build_project_graph(project: Project, implementer: str, name: str, published
             "area_section": r.area_section,
             "implementer": r.implementer,
             "planner": r.planner,
-            "review_flags": _dedupe(r.review_flags),
+            "review_flags": _stable_flags(r.review_flags),
             "auto_fixes": r.auto_fixes,
             # District fields for link discovery core building
             "district": r.district,

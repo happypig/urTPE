@@ -672,6 +672,76 @@ while case `11408032` now reads `2026/09/23`. 市府段二小段-220-2 holds 公
 artifact: for 0 of the 85 does a permutation of `city_case_ids` reproduce the
 stored dict. These need their own look before the fix is written.
 
+**D7b — the 50 are named (2026-11-06, `scripts/probe_d7b_naming.py`).**
+
+Reproduced offline over the 719 caches that hold per-case milestones:
+
+| | count |
+| --- | --- |
+| in sync with a merge over `city_case_ids` | 634 |
+| **explained — the stored dict is a merge over an ordered SUBSET** | **35** |
+| explained — a permutation of `city_case_ids` | 0 |
+| **unexplained** | **50** |
+
+The subset check scans every ordered subset (the merge is order-sensitive).
+Beyond 8 ids the full permutation space is too large, so the two shapes the
+pipeline produces are tried directly: every prefix and every single-id drop.
+Both of the >8-id caches (虎林38, 木柵623) are explained by a prefix — a case
+appended after the merge.
+
+**The 50 split into four named shapes.** The naming test asks, for every label
+where the stored value differs from the re-derived one: **does a case still
+hold the stored value today?**
+
+| Shape | Count | What it is |
+| --- | --- | --- |
+| `STALE_MERGE` | 20 | The stored value is **still held by a case**. Only the merge moved: a later case now carries the same label with a newer value, and the merged dict was never recomputed. |
+| `NEW_LABEL` | 16 | A case carries a label the merged dict **never received** — the case was appended to `city_case_ids` after the merge, and nothing re-merged over it. |
+| `WITHDRAWN` | 3 | The stored dict holds a label (or value) **no case carries any more** — the city withdrew it. |
+| `MIXED` | 11 | Both: some labels still held, some withdrawn, some new. |
+
+**The mechanism, confirmed at the code level.** `refresh_project`
+(`urtpe/links.py:1863-1890`) rewrites `case_milestones[cid]` per case and
+never re-merges. Two writes reach `case_milestones` after the merge:
+
+1. the per-case pass — a case's data2 gained or lost a label, and the
+   refresh wrote the new value into `case_milestones[cid]` while the merged
+   dict kept the old one;
+2. the search step (`urtpe/links.py:1845-1851`) — a case id the parcel search
+   returned was **appended** to `city_case_ids` with an empty
+   `case_milestones[cid]`, and the per-case pass then filled it. The merged
+   dict never saw it.
+
+Worked example — 中山區-吉林段四小段-508地號等17筆 (`STALE_MERGE`):
+
+| | |
+| --- | --- |
+| `city_case_ids` | `11011241, 11011242, 11508022, 11508023` |
+| `11508023` (appended after the merge) | `申請計畫日期 2026/08/25`, `申請權變日期 2026/08/25`, **`召開幹事會日期 2026/10/02`** |
+| `11011241` / `11011242` | `召開幹事會日期 2022/11/15` |
+| stored merged dict | `召開幹事會日期 = 2022/11/15`, source `11011242` |
+| re-derived | `召開幹事會日期 = 2026/10/02` (the later case wins) |
+
+The stored source map still names the case that holds the stored value, so the
+projection is not corrupt — it is **stale**. 1,684 of the 1,720 labels in the
+85 divergent caches still have a source map that agrees with the case data.
+
+**What this means for the fix.** The decided rule (D7 = overwrite) projects
+`case_milestones` exactly, so:
+
+- the 20 `STALE_MERGE` and 16 `NEW_LABEL` caches are **repaired** — the
+  re-derivation produces what a fresh discovery would produce;
+- the 3 `WITHDRAWN` caches **lose** the withdrawn label. That is the decided
+  behaviour (the city withdrew the date), and the withdrawn-approval rule
+  (`_APPROVAL_FIELDS`) still governs the emit-time path;
+- the 11 `MIXED` caches get both effects.
+
+**No merge order explains any of the 50.** `scripts/probe_d7b_orders.py` tries
+five orderings over the same ids — `city_case_ids` as stored, reversed, by
+approval date, by case id, by label count — and by prefix or single-id drop.
+**0 of the 50** is explained by any of them. The 50 are content differences,
+not ordering artifacts.
+
 **Blast radius is all three of the user's B/C surfaces at once.** 寶清599 shows
 no 建照 in the list chip (`constructionStage`), none in the graph chain
 (`buildConstructionChain`: verified in a VM — the chain holds 開工 and 使照 only),
@@ -1074,7 +1144,7 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 |---|---|---|---|---|---|
 | 0 | D14 — the `--from-js` loader round-trips `stage_事業計畫`, `stage_權利變換`, `recovery` and `district_land` (no coercion of `''`); round-trip test is the gate | **P1** | direct `fix:` + test (no re-emit of its own) | — | **DONE** `8d480a0` — 537 nodes changed a field across one rebuild before the fix (533 `stage_事業計畫`, 533 `stage_權利變換`, 4 `recovery`, 4 `district_land`), 0 after; suite 1005 passed / 1 skipped |
 | 0b | D14(b) — `_land_district` reads the collected 12-district enum (7 rows change) | **P2** | openspec change (`cleanse`) + 2 tests | — | **DONE** `12bfe5c`, archived `2026-11-06-district-land-from-district-enum` (`dc27ce0`) — 7 rows change (153, 382, 928 → 大安區; 926 → 士林區; 488, 558, 927 → `''`); 0 section / parcel / land_count / name / flag / other-field changes over the 1,442 rows; the flag still fires on 488/558/927; suite 1013 passed / 1 skipped |
-| 1 | D7b — name the 50 divergences unexplained by subset or permutation | **P1** | measurement only | — | — |
+| 1 | D7b — name the 50 divergences unexplained by subset or permutation | **P1** | measurement only | — | **DONE** — 634 in sync, 35 explained by an ordered subset, 0 by a permutation, **50 unexplained**: 20 `STALE_MERGE` (a case still holds the stored value; only the merge moved), 16 `NEW_LABEL` (a case appended after the merge), 3 `WITHDRAWN`, 11 `MIXED`; 0 of the 50 explained by any of 5 merge orders; the fix (D7 = overwrite) repairs 36 of them and drops the withdrawn labels in 14 |
 | 2 | D7 + D8 + D13 — one `refresh_project` edit: re-derive `taipei_milestones`; re-fetch `data3`/`data4` **per case** (26 cases in 22 projects, offline count 2026-11-06); label a case 無 when its header row and data2 are both empty. One cache pass + one re-emit | **P1** | openspec change (pipeline) | steps 0, 1 | D7 = overwrite; D8 = per case; D13 = 無 orphan (all decided); a 無 case's payload never wins either selection layer (key-count pick for implementation/rewards, and plan-case dates); report before/after payload sizes for 青年130, 虎林38, 雅祥227, 立農163-2, 萬華894, 吉林705-3; tests pin 青年130, 虎林38 and the 美仁800 near-miss; read the 無 list and counts before the re-emit |
 | 3 | D10 — permit-witness selection: the permit whose 開工日期 matches the city's; otherwise mark `links.permit.ambiguous` (decided) | **P2** | openspec change (`official-link-discovery`) + re-emit | step 2 | 開工 date must come from the source map, not the merged dict |
 | 4 | D6 — re-key `data/twur_overrides.json` to `…等2筆`, correct `PID`, add the dataset-key test, then `discover_project_links(fresh=True)` on that one project (decided, option A) | **P2** | direct `fix:` + one-project restore + re-emit | step 0 | single-writer rule; **not** `--fresh` |

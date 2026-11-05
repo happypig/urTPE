@@ -12,6 +12,9 @@ reconcile: (none) -> 2026-10-15
 
 解析缺漏記錄: 0 筆
 
+manual corrections applied: 0
+unmatched corrections: 0
+
 自動修正記錄: 0 筆
 
 需人工檢視記錄: 0 筆

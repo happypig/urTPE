@@ -99,8 +99,16 @@ def score(r1: CleanRecord, r2: CleanRecord) -> float:
     return 0.35 * sec + 0.2 * fp + 0.3 * jac + 0.1 * cnt
 
 
-def _clusters(records: list[CleanRecord], pairs: set[tuple[int, int]]) -> tuple[list[list[CleanRecord]], list[tuple[int, int, float]]]:
-    """Union-find connected components on links >= 0.7; collect borderline pairs."""
+def _clusters(records: list[CleanRecord], pairs: set[tuple[int, int]],
+              confirmed_pairs: list[tuple[int, int]] | tuple = ()) -> tuple[list[list[CleanRecord]], list[tuple[int, int, float]]]:
+    """Union-find connected components on links >= 0.7; collect borderline pairs.
+
+    ``confirmed_pairs`` (D5, ledger-confirm-merge) unions BEFORE scoring: a
+    ledger confirmation links its pair whatever the similarity rule says, and
+    the rule, the 0.7 threshold and the weights stay unchanged for every other
+    pair. Recnos are valid within one ingestion — the pairs are re-derived from
+    content keys on every run, never stored.
+    """
     by_recno = {r.recno: r for r in records}
     parent = {r.recno: r.recno for r in records}
     rank = {r.recno: 0 for r in records}
@@ -120,6 +128,9 @@ def _clusters(records: list[CleanRecord], pairs: set[tuple[int, int]]) -> tuple[
         parent[rb] = ra
         if rank[ra] == rank[rb]:
             rank[ra] += 1
+
+    for a, b in confirmed_pairs:
+        union(a, b)
 
     borderline: list[tuple[int, int, float]] = []
     for a, b in pairs:
@@ -176,10 +187,16 @@ def pick_anchor(members: list[CleanRecord]) -> CleanRecord:
     return min(tied, key=lambda m: m.recno)
 
 
-def merge(records: list[CleanRecord]) -> list[Project]:
-    """Cluster records into project families, anchor each, assign ids."""
+def merge(records: list[CleanRecord], confirmed_pairs=()) -> list[Project]:
+    """Cluster records into project families, anchor each, assign ids.
+
+    ``confirmed_pairs`` — recno pairs resolved from the correction ledger's
+    ``confirm_merge`` entries (D5, ledger-confirm-merge; the case-merging
+    requirement "A confirmed pair links regardless of score") — unions before
+    scoring, so the named pair links whatever the similarity rule computes.
+    """
     pairs = _candidates(records)
-    clusters, borderline = _clusters(records, pairs)
+    clusters, borderline = _clusters(records, pairs, confirmed_pairs)
     projects = []
     recno_to_project: dict[int, Project] = {}
     for members in clusters:

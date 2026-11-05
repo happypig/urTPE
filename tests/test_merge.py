@@ -211,3 +211,66 @@ def test_repaired_contradiction_merges_615_family():
     assert len(projects) == 1
     assert projects[0].project_id == "內湖區-文德段二小段-615地號等1筆"
     assert {m.recno for m in projects[0].members} == {759, 536, 314, 84}
+
+
+# --------------------------------------------------------------------------
+# confirm_merge (D5, ledger-confirm-merge) — 吉林676's 編號 1303 prints
+# `676地號等1筆` for the 18-parcel unit whose 擬訂 is 編號 1347. The pair
+# scores 0.567 (borderline) and needs a ledger confirmation, not a threshold
+# change; the family name then needs 1303's land_count corrected to 18.
+# --------------------------------------------------------------------------
+
+def _jl676(recno, date, count):
+    land = f"臺北市中山區吉林段四小段676地號等{count}筆土地"
+    name = (f"{'擬訂' if recno == 1347 else '變更'}臺北市中山區吉林段四小段"
+            f"676地號{'等' if count != 1 else ''}{count}筆土地都市更新事業計畫案")
+    if recno == 1347:  # the real 擬訂 cell holds all 18 parcels
+        land = ("臺北市中山區吉林段四小段671-3、671-5、676、677、678、679、680、"
+                "681、682、683、683-1、683-2、683-3、684、685、686、687、688地號等18筆土地")
+        name = "擬訂臺北市中山區吉林段四小段676地號等18筆土地都市更新事業計畫案"
+    return cleanse(_raw(recno, date, name, land, imp="甲公司", district="中山區"))
+
+
+def test_jilin676_borderline_pair_stays_two_families_without_confirmation():
+    r1303 = _jl676(1303, "2010/3/25", 1)
+    r1347 = _jl676(1347, "2008/12/31", 18)
+    assert round(score(r1303, r1347), 3) == 0.567
+    projects = merge([r1303, r1347])
+    assert len(projects) == 2
+
+
+def test_jilin676_confirmed_pair_forms_one_family():
+    r1303 = _jl676(1303, "2010/3/25", 1)
+    r1347 = _jl676(1347, "2008/12/31", 18)
+    projects = merge([r1303, r1347], confirmed_pairs=[(1303, 1347)])
+    assert len(projects) == 1
+    assert {m.recno for m in projects[0].members} == {1303, 1347}
+
+
+def test_jilin676_family_name_follows_the_anchor_rule():
+    # With the count corrected, the anchor 1303 carries 18 and the family is
+    # named `…等18筆`; with the confirmation alone, the anchor's own (wrong)
+    # count stands — the anchor rule is unchanged (case-merging scenario).
+    r1303 = _jl676(1303, "2010/3/25", 1)
+    r1347 = _jl676(1347, "2008/12/31", 18)
+    projects = merge([r1303, r1347], confirmed_pairs=[(1303, 1347)])
+    assert projects[0].project_id == "中山區-吉林段四小段-676地號等1筆"
+    r1303.land_count = 18
+    projects = merge([r1303, r1347], confirmed_pairs=[(1303, 1347)])
+    assert projects[0].project_id == "中山區-吉林段四小段-676地號等18筆"
+
+
+def test_unconfirmed_borderline_pair_in_same_input_still_not_merged():
+    r1303 = _jl676(1303, "2010/3/25", 1)
+    r1347 = _jl676(1347, "2008/12/31", 18)
+    other1 = _c("中正區", "永昌段三小段", "159", ["159", "888"], land_count=200, recno=900)
+    other2 = _c("中正區", "永昌段三小段", "888", ["888", "777"], land_count=200, recno=901)
+    projects = merge([r1303, r1347, other1, other2], confirmed_pairs=[(1303, 1347)])
+    pids = {id(p) for p in projects}
+    by_member = {}
+    for p in projects:
+        for m in p.members:
+            by_member[m.recno] = p
+    assert by_member[1303] is by_member[1347]           # confirmed: one family
+    assert by_member[900] is not by_member[901]          # unconfirmed: still two
+    assert any(p.borderline for p in projects)           # the borderline flag survives

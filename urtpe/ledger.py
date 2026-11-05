@@ -50,10 +50,25 @@ class Correction:
     # Removal acceptances let reconciliation proceed when the city has genuinely
     # dropped a record, instead of aborting forever.
     accept_removal: bool = False
+    # Merge confirmation (D5, ledger-confirm-merge): names a SECOND record by its
+    # content key and states the two belong to one project family, whatever the
+    # similarity score. Changes no field of either record — it answers a §6.8
+    # merge-candidate flag, it does not invent data.
+    confirm_merge: bool = False
+    with_land_core: str = ""
+    with_iso_date: str = ""
 
     def __post_init__(self) -> None:
         if not self.at:
             self.at = dt.datetime.now().astimezone().isoformat(timespec="seconds")
+        if self.confirm_merge:
+            if not self.with_land_core or not self.with_iso_date:
+                raise ValueError(
+                    "a confirm_merge entry must name the second record "
+                    "(with_land_core + with_iso_date)")
+            # A confirmation relates two records and sets nothing; its `field`
+            # stays empty the way an accept_removal's does.
+            return
         if self.field and self.field not in CORRECTABLE_FIELDS and not self.accept_removal:
             raise ValueError(
                 f"{self.field!r} is not correctable; expected one of {CORRECTABLE_FIELDS}")
@@ -62,7 +77,14 @@ class Correction:
     def key(self) -> tuple[str, str]:
         return (self.match_land_core, self.match_iso_date)
 
+    @property
+    def with_key(self) -> tuple[str, str]:
+        return (self.with_land_core, self.with_iso_date)
+
     def describe(self) -> str:
+        if self.confirm_merge:
+            return (f"confirm merge {self.match_land_core} @ {self.match_iso_date} "
+                    f"with {self.with_land_core} @ {self.with_iso_date} ({self.why})")
         if self.accept_removal:
             return f"accept removal of {self.match_land_core} @ {self.match_iso_date} ({self.why})"
         return f"{self.match_land_core} @ {self.match_iso_date}: {self.field} -> {self.to!r} ({self.why})"
@@ -75,9 +97,17 @@ class LedgerOutcome:
     applied: list[str] = field(default_factory=list)
     unmatched: list[str] = field(default_factory=list)
     superseded: list[str] = field(default_factory=list)
+    # Recno pairs a confirmed merge resolved to (both keys matched exactly one
+    # record each); merge() unions these before scoring (D5, ledger-confirm-merge).
+    confirmed_pairs: list[tuple[int, int]] = field(default_factory=list)
 
     def report(self) -> str:
         lines = [f"manual corrections applied: {len(self.applied)}"]
+        # Name every applied entry: a correction that turns out wrong affects
+        # every run until superseded, so the report is where a person sees what
+        # moved (and a confirmation names both of its keys).
+        for a in self.applied:
+            lines.append(f"  - applied: {a}")
         lines.append(f"unmatched corrections: {len(self.unmatched)}")
         for u in self.unmatched:
             lines.append(f"  - unmatched: {u}")
@@ -144,6 +174,13 @@ class CorrectionLedger:
         ``(land_core, iso_date)`` key; it defaults to the fields the cleansing step
         produces. Unmatched entries are reported, never fatal: a correction for a
         record that has not been republished yet is normal.
+
+        A ``confirm_merge`` entry sets no field: each of its two keys must match
+        exactly one record, and the recno pair lands on
+        ``LedgerOutcome.confirmed_pairs`` for ``merge()`` to union (D5). A key
+        matching no record, or two or more (a land cell + date printed twice),
+        leaves the confirmation unmatched — reported, linking nothing, never
+        guessed.
         """
         outcome = LedgerOutcome()
         if key_of is None:
@@ -157,30 +194,69 @@ class CorrectionLedger:
         for entry in entries:
             if entry.accept_removal:
                 continue
-            by_key.setdefault(entry.key, []).append(entry)
+            # Normalize the stored key the way default_key normalizes the record:
+            # an operator copies the 地號 cell verbatim from the gazette, so the
+            # entry may hold separators/wrapping the record key has already lost.
+            by_key.setdefault(_norm_key(entry.key), []).append(entry)
+
+        recs_by_key: dict[tuple[str, str], list] = {}
+        for rec in records:
+            recs_by_key.setdefault(key_of(rec), []).append(rec)
 
         matched_keys: set[tuple[str, str]] = set()
         for rec in records:
             key = key_of(rec)
             for entry in by_key.get(key, ()):
+                if entry.confirm_merge:
+                    continue  # set no field; resolved below from recs_by_key
                 if not hasattr(rec, entry.field):
                     continue
                 setattr(rec, entry.field, entry.to)
                 matched_keys.add(key)
                 outcome.applied.append(entry.describe())
 
+        # Merge confirmations: both keys must resolve to exactly one record.
         for entry in entries:
-            if entry.accept_removal:
+            if not entry.confirm_merge:
                 continue
-            if entry.key not in matched_keys:
+            first = recs_by_key.get(_norm_key(entry.key), [])
+            second = recs_by_key.get(_norm_key(entry.with_key), [])
+            if len(first) == 1 and len(second) == 1:
+                a, b = first[0].recno, second[0].recno
+                outcome.confirmed_pairs.append((min(a, b), max(a, b)))
+                matched_keys.add(_norm_key(entry.key))
+                matched_keys.add(_norm_key(entry.with_key))
+                outcome.applied.append(entry.describe())
+            else:
+                why = ("ambiguous: matches %d and %d records" % (len(first), len(second))
+                       if (len(first) > 1 or len(second) > 1)
+                       else "a named record matches no record in this gazette")
+                outcome.unmatched.append(f"{entry.describe()} [{why}]")
+
+        for entry in entries:
+            if entry.accept_removal or entry.confirm_merge:
+                continue
+            if _norm_key(entry.key) not in matched_keys:
                 outcome.unmatched.append(entry.describe())
 
-        all_describes = {e.describe() for e in self.entries()}
-        for entry in entries:
-            if entry.describe() in all_describes:
-                continue
-            outcome.superseded.append(entry.describe())
+        # Report the history: every entry a later one superseded (they are in
+        # the file, but effective() dropped them — they applied nothing here).
+        superseded_describes = {e.supersedes for e in self.entries() if e.supersedes}
+        for entry in self.entries():
+            if entry.describe() in superseded_describes:
+                outcome.superseded.append(entry.describe())
         return outcome
+
+
+def _norm_key(key: tuple[str, str]) -> tuple[str, str]:
+    """Normalize a stored entry key to the record-key form.
+
+    default_key normalizes a record's land cell (separators and whitespace
+    stripped); the ledger entry may hold the cell as copied verbatim from the
+    gazette. Matching compares like with like — see the D5 acceptance test that
+    caught the 18-parcel cell (its 、 separators) never matching.
+    """
+    return (normalize_land(key[0]), key[1])
 
 
 def default_key(record) -> tuple[str, str]:

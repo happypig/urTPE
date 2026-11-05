@@ -386,12 +386,16 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
             raise SystemExit(2)
 
     # --- ledger ------------------------------------------------------------
+    # Applies on every PDF ingest (D5): the parser default names the live
+    # ledger, so `ledger_path` is falsy only on an explicit empty-string opt-out.
     ledger_outcome = None
     if ledger_path:
         ledger = ledger_mod.CorrectionLedger(ledger_path)
         ledger_outcome = ledger.apply(clean, key_of=ledger_mod.default_key)
-        # A correction to an identity-bearing field must be reflected in identities.
-        projects = merge_mod.merge(clean)
+        # A correction to an identity-bearing field must be reflected in
+        # identities, and a confirmed merge (LedgerOutcome.confirmed_pairs)
+        # unions its pair before scoring (D5, ledger-confirm-merge).
+        projects = merge_mod.merge(clean, confirmed_pairs=ledger_outcome.confirmed_pairs)
         print(ledger_outcome.report())
 
     # --- archive write-back ------------------------------------------------
@@ -601,7 +605,9 @@ def _repo_viewer_dir(outdir: str) -> str | None:
     return None
 
 
-def main(argv: list[str] | None = None) -> int:
+def _build_parser() -> argparse.ArgumentParser:
+    """The CLI's argument wiring, split from main() so tests can parse argv
+    without running an ingest (the --ledger default is a contract, D5)."""
     parser = argparse.ArgumentParser(description="臺北市都市更新核定案件 PDF 管線")
     parser.add_argument("pdf", nargs="?", default="", help="來源 PDF 路徑 (不需提供若使用 --from-js)")
     parser.add_argument("-o", "--outdir", default="data", help="輸出目錄 (預設 data)")
@@ -619,8 +625,14 @@ def main(argv: list[str] | None = None) -> int:
                         help="gazette 封存目錄 (預設為 repo 外的 urtpe-gazettes)")
     parser.add_argument("--no-archive", action="store_true",
                         help="停用封存與 reconciliation (不建議)")
-    parser.add_argument("--ledger", metavar="PATH", default=None,
-                        help="人工修正 ledger 路徑 (JSONL, append-only)")
+    # The ledger applies on every PDF ingest (D5, ledger-confirm-merge): an
+    # operator cannot drop every correction by omitting the option. An explicit
+    # empty string still opts out (forensic runs); an absent file reports 0.
+    parser.add_argument("--ledger", metavar="PATH",
+                        default=str(ledger_mod.DEFAULT_LEDGER_PATH),
+                        help="人工修正 ledger 路徑 (JSONL, append-only; 預設 "
+                             "urtpe-gazettes/corrections.jsonl，可用 URTPE_LEDGER 覆寫；"
+                             "空字串停用)")
     parser.add_argument("--allow-reconcile-block", action="store_true",
                         help="即使 reconciliation 發現未解釋的變更也繼續寫出 (危險)")
     parser.add_argument("--recover-truncated", action="store_true",
@@ -632,6 +644,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="只封存 PDF，不執行完整 pipeline")
     parser.add_argument("--previous-projects-from", metavar="PATH", default=None,
                         help="用於辨識 project_id 搬移的上一版 projects.json")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _build_parser()
     args = parser.parse_args(argv)
 
     if args.add_mapping_file:

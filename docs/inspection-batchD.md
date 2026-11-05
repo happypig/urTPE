@@ -2,7 +2,7 @@
 
 Findings from the post-Batch-B+C session (2026-11-04, payload at `47453f9`:
 1,442 records / 682 projects, the corpus converged after waves 1–3 of the
-Batch B + C plan). Six findings, all measured (D4–D6 added 2026-11-05). The board follows the
+Batch B + C plan). Eight findings, all measured (D4–D8 added 2026-11-05). The board follows the
 `docs/inspection-batchBC.md` structure: findings, then the integrated plan,
 then the decisions that gate execution.
 
@@ -178,6 +178,12 @@ key: 0 national labels with 核定 or 核准 parse to null.
 
 **Form:** direct `fix:` in `nationalLabelKey` plus a test on the 吉林717
 node 762 shape (`tests/test_viewer_labels.py` runs the helpers in a VM).
+
+**DONE (2026-11-05).** Fixed at `d8a63ca` ("nationalLabelKey spells
+second-or-later 變更 as the nodes do"), test at
+`tests/test_viewer_labels.py:560`. Direct `fix:` as proposed — no openspec
+change, no re-emit (viewer only). The `變更(${raw}次)` spelling above is the
+pre-fix state; `viewer/app.js:32` now reads `` `變更(第${raw}次)` ``.
 
 ### D3b — the two extra routes add almost nothing
 
@@ -561,23 +567,175 @@ design (`AGENTS.md` D5), and the coverage guard is what covers the default path.
 **Corpus.** 60 of 681 projects carry no `links.twur` today. Only one override
 record exists, so the re-key is the whole visible effect.
 
+## D7 — `refresh_project` never re-derives the merged milestone projection (user, 2026-11-05)
+
+**Question (user, 2026-11-05).** 松山區-寶清段四小段-599地號等27筆 shows no
+建照核准 date, yet `uroTPE` holds it from data2. Why?
+
+**Finding.** The date is in the cache and not in the emitted payload:
+
+| location | 建照核發日期 |
+| --- | --- |
+| `case_milestones["09303270"]` | `2006/05/12` |
+| `taipei_milestones` (merged, cache) | **absent** |
+| emitted `links.milestones_taipei` | **absent** |
+
+`taipei_milestones` and `milestones_source` are written **only** by the full
+discovery path (`merge_stage_milestones`, `urtpe/links.py:672`, assigned at
+line 694; the view absorb re-merges at line 794). `refresh_project`
+(`urtpe/links.py:1868-1900`) rewrites `case_milestones` per case and never
+re-derives the merged dict. The two therefore drift apart, and the stale merged
+dict is what `attach_links_to_projects` (`urtpe/links.py:3077-3079`) copies into
+the project.
+
+**Mechanism, measured.** Rebuilding the merge from `case_milestones` over
+`city_case_ids` and comparing to the stored dict:
+
+| | count |
+| --- | --- |
+| caches with per-case milestones | 719 |
+| **merged projection diverges** | **85** |
+| of those, loses or alters ≥1 label | 84 |
+| of those, carries ≥1 conflicting value | 66 |
+
+Worst by label count: 南港段一小段-19-1 (32 labels, 3 cases), 敦化段二小段-449-12
+(29, 3), 玉成段二小段-253 (27, 2), 犁和段三小段-89 (23, 4).
+
+**Cause 1 — a case was appended after the merge (34 of 85).** 寶清599 is exact:
+the stored dict equals a merge over `['09303271','09303272']` alone. The third
+case, `09303270`, is in `city_case_ids` and holds 5 labels the merged dict lacks
+— 公告公展日期, 公展公聽會日期, 申請幹事會日期, 申請核定日期, **建照核發日期**.
+`refresh_project`'s search step appends a newly found case to `city_case_ids`
+(`urtpe/links.py:1855`) but nothing recomputes the projection over it.
+
+**Cause 2 — the city re-dated a label (5 of 85).** The stored dict holds a value
+no case carries any more. 光華段四小段-282: stored 審議通過日期 `2026/03/18`,
+while case `11408032` now reads `2026/09/23`. 市府段二小段-220-2 holds 公告公展
+日期 `2011/01/10` with no holder at all.
+
+**Cause 3 — 50 unexplained by subset or permutation.** Not a merge-order
+artifact: for 0 of the 85 does a permutation of `city_case_ids` reproduce the
+stored dict. These need their own look before the fix is written.
+
+**Blast radius is all three of the user's B/C surfaces at once.** 寶清599 shows
+no 建照 in the list chip (`constructionStage`), none in the graph chain
+(`buildConstructionChain`: verified in a VM — the chain holds 開工 and 使照 only),
+and a 使照 國 badge whose 建照 partner is missing. Measured: 14 projects emit no
+construction date that a case actually holds.
+
+`--from-js` cannot repair it. The round-trip re-derives provenance credit only
+for labels whose carriers agree on one value (`urtpe/links.py:3080-3097`); a
+label the merged dict never received stays absent.
+
+**Design question for the fix.** A re-derivation that projects `case_milestones`
+exactly would drop the 5 cause-2 values. For 光華282 that is right (the city
+re-dated it). For a label the city withdrew entirely it is a real removal, and
+the withdrawn-approval rule (`_APPROVAL_FIELDS`, `urtpe/links.py:1664`) exists
+precisely to keep such a date. So the re-derivation must state which of the two
+it does, rather than assume. Note also that `attach_links_to_projects` injects
+the data3 dates into `milestones_taipei` at emit time
+(`urtpe/links.py:3151-3158`), so a cache-level re-derivation must not displace
+that layer.
+
+**Form:** openspec change (pipeline) + cache re-derive + re-emit. Same change as
+D8 — one `refresh_project` edit, one re-emit.
+
+## D8 — `refresh_project` never re-fetches data3/data4, so an empty implementation is permanent (user, 2026-11-05)
+
+**Question (user, 2026-11-05).** 文山區-實踐段二小段-641地號等1筆 has no 開工
+and no 使照, yet the dates exist. Why?
+
+**Finding.** The live data3 endpoint holds both, and the cache holds neither:
+
+| layer | 開工 (`Eng_Start_Date`) | 使照 (`Ulic_Date`) |
+| --- | --- | --- |
+| live `third.ashx` for `09009032` | `2004/09/24` | `2007/10/31` |
+| cache `implementation` | `{}` | `{}` |
+| emitted `milestones_taipei` | absent | absent |
+
+`refresh_project` re-fetches only data2 (`fetch(cid)`) and the case header. It
+never calls `fetch_taipei_implementation_api` / `fetch_taipei_rewards_api` — no
+`implementation`, `third` or `rewards` write exists in the function (lines
+1786–2075). `discover_project_links` returns the cached object verbatim on the
+non-fresh path (`urtpe/links.py:597-612`), so the standing CLI run cannot repair
+it either. `fresh=True` does: verified against the live API, `09009032` returns
+34 fields and the run emits them.
+
+**Corpus.** 6 of 719 caches hold case ids with an empty `implementation`. Probed
+live, per project:
+
+| project | case with recoverable data3 | dates |
+| --- | --- | --- |
+| 中山區-長安段一小段-454 | `11407047` | 開工 2026/06/05 |
+| 內湖區-東湖段一小段-地號等?筆 | `10101081` | 開工 2014/10/16, 使照 2017/03/20 |
+| 南港區-玉成段二小段-253-1 | — | statistics only (24 fields) |
+| 南港區-玉成段二小段-733 | `11108191` | 開工 2025/07/11 |
+| 文山區-實踐段二小段-641 | `09009032` | 開工 2004/09/24, 使照 2007/10/31 |
+| 萬華區-華中段一小段-247 | — | statistics only (11–29 fields) |
+
+4 of the 6 have a recoverable construction date; all 6 have statistics that the
+emitted `implementation` card does not show. One case (`100904` in 東湖) returns
+0 fields — a genuinely empty endpoint answer, which is not a defect.
+
+**Cost of the fix.** Re-fetching data3 + data4 is 1–2 requests **per case**, on
+top of the 3 signals per project the corpus refresh already spends
+(`scripts/refresh_whole_corpus.py`). The endpoint is WAF-capped, which is why
+that driver is sliced and resumable. A size-triggered refetch — only where
+`implementation` is empty — costs 6 projects' cases and gets every date above.
+
+**Form:** openspec change (pipeline) + cache refresh + re-emit. Shares D7's edit
+and re-emit.
+
 ## Order
 
-| Step | Finding | Form | Gate |
-| --- | --- | --- | --- |
-| D3a | `nationalLabelKey` ordinal spelling — 223 labels never bind | direct `fix:` + test; no re-emit (viewer only) | — |
-| D4a | 使照 national flag + source-map-first + first-holder provenance — DONE (viewer `57a70cf`, pipeline with D1, re-emit `2bb3013`): only 南港729 keeps an edge | — | — |
-| D4b–d | dead-end edges, list badges, 計畫與執行 filter — DONE `26e57f1`, archived `2026-11-05-viewer-deadend-and-filters` (`d2d15ee`) | one openspec change, viewer only | — |
-| D1 | rename the orphan `milestones_national` key — DONE with D4a-pipeline (`d524fae`+`24694a5`, re-emit `2bb3013`, archived) | openspec change + `--from-js` load alias + re-emit | — |
-| D2 | `_ghost_node_date` track-aware + date-first sort — DONE (D2a re-emit `e97c18d`: 25→7 same-date pairs; D2b `56ae3ca`: 0 non-chronological projects, was 51) | openspec change, archived 2026-11-05 | — |
-| D5 | 吉林676 `confirm_merge` + `--ledger` default — DONE (code `1517300`; ingest with the two ledger entries, 682 → 681 projects, 吉林676 holds 1303 + 1347, no 片段家族合併候選 flag left; archived `ledger-confirm-merge`) | openspec change + PDF ingest | — |
-| D6 | twur override key is the pre-`c2cfbb9` slug — the record never applies; 國 badge and 7 national milestones absent | direct `fix:` (re-key + dataset-key test) + restore + re-emit | — |
+Priority: **P1** = wrong data on screen today; **P2** = a display gap with a
+known cause; **P3** = cosmetic or single-project. Dependency is the finding that
+must land first, because it changes the same code or the same re-emit.
+
+| Step | Finding | Priority | Form | Depends on | Gate |
+| --- | --- | --- | --- | --- | --- |
+| D7 | `refresh_project` never re-derives `taipei_milestones` — 85 of 719 caches diverge, 84 lose or alter a label, 14 projects emit no construction date a case holds | **P1** | openspec change (pipeline) + cache re-derive + re-emit | — | decision: does the re-derive overwrite the 5 re-dated values, or keep them? |
+| D8 | `refresh_project` never re-fetches data3/data4 — 6 of 719 caches hold an empty `implementation`, 4 with a recoverable construction date | **P1** | openspec change (pipeline) + cache refresh + re-emit | **D7** (one edit, one re-emit) | confirm the size-triggered refetch cost (6 projects' cases) |
+| D6 | twur override key is the pre-`c2cfbb9` slug — the record never applies; 國 badge and 7 national milestones absent | **P2** | direct `fix:` (re-key + dataset-key test) + restore + re-emit | — | decision: re-key only, or re-key + restore; `--fresh` or cache copy |
+| D7b | the 50 divergences unexplained by subset or permutation | **P2** | investigation, then folded into D7 | D7 | — |
+| D3a | `nationalLabelKey` ordinal spelling — 223 labels never bind — **DONE** (`d8a63ca` + test at `tests/test_viewer_labels.py:560`); direct `fix:`, no openspec change and no re-emit needed | — | — | — | — |
+| D4a | 使照 national flag + source-map-first + first-holder provenance — DONE (viewer `57a70cf`, pipeline with D1, re-emit `2bb3013`): only 南港729 keeps an edge | — | — | — | — |
+| D4b–d | dead-end edges, list badges, 計畫與執行 filter — DONE `26e57f1`, archived `2026-11-05-viewer-deadend-and-filters` (`d2d15ee`) | — | — | — | — |
+| D1 | rename the orphan `milestones_national` key — DONE with D4a-pipeline (`d524fae`+`24694a5`, re-emit `2bb3013`, archived) | — | — | — | — |
+| D2 | `_ghost_node_date` track-aware + date-first sort — DONE (D2a re-emit `e97c18d`: 25→7 same-date pairs; D2b `56ae3ca`: 0 non-chronological projects, was 51) | — | — | — | — |
+| D5 | 吉林676 `confirm_merge` + `--ledger` default — DONE (code `1517300`; ingest with the two ledger entries, 682 → 681 projects, 吉林676 holds 1303 + 1347, no 片段家族合併候選 flag left; archived `ledger-confirm-merge`) | — | — | — | — |
+
+### Why D7 and D8 share one change
+
+Both are one edit to `refresh_project`: recompute what the refresh just
+invalidated, and re-fetch the layer it never fetched. Both need the same cache
+pass and the same re-emit, and the re-emit is the ~23 MB write `AGENTS.md`
+warns about. Splitting them would pay that cost twice.
+
+### Why D7 is P1 and not P2
+
+84 caches lose or alter a milestone label, 66 carry a conflicting value, and 14
+projects hide a construction date the city publishes. The corrupted dict reaches
+**all three** display surfaces (list chip, graph chain, 相關連結), so one fix
+repairs every case the user asked about in A/B/C. D6 is a single record.
+
+### Sequence
+
+1. **D7b first, as measurement only.** Name the 50 unexplained divergences
+   before the fix is written — a re-derivation rule that assumes "subset or
+   re-date" would be wrong on 50 caches and nothing would catch it.
+2. **D7 + D8 as one openspec change**, test-first, with D7's overwrite rule stated.
+3. **One cache pass + one re-emit** covering both.
+4. **D6** independently: it is a viewer/config record and needs no pipeline edit,
+   so it can land before, after, or beside the above.
 
 ## Decisions waiting on the user
 
 | Entry | Question | Blocks |
 | --- | --- | --- |
 | D6 | Re-key only, or re-key plus restore the view-derived fields? For the restore, `--fresh` (one request, all 7 labels) or copy the rich cache dir (offline, hand-written `.link_cache` write)? | the D6 fix + re-emit |
+| D7 | A re-derivation that projects `case_milestones` exactly would drop the 5 cause-2 values (光華282's re-dated 審議通過日期, 市府220-2's holder-less 公告公展日期). Overwrite them, or keep them under the withdrawn-approval rule? | the D7 re-derive rule |
+| D8 | Re-fetch data3/data4 for all 719 caches, or only where `implementation` is empty (6 projects)? The endpoint is WAF-capped and the corpus refresh is already sliced. | the D8 scope + cache pass |
 
 Decided 2026-11-05 and moved into the findings: D2b (date-first sort), D4b
 (chain + dotted edges), D4c (literal reading, after the construction chip),

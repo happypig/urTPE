@@ -1075,7 +1075,7 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 | 0 | D14 — the `--from-js` loader round-trips `stage_事業計畫`, `stage_權利變換`, `recovery` and `district_land` (no coercion of `''`); round-trip test is the gate | **P1** | direct `fix:` + test (no re-emit of its own) | — | must land before the first `--from-js` re-emit (steps 2, 3, 4, 6 and every later one) |
 | 0b | D14(b) — `_land_district` reads the collected 12-district enum (7 rows change) | **P2** | openspec change (`cleanse`) + 2 tests | — | must land before step 9 (the next PDF ingest); no re-emit of its own |
 | 1 | D7b — name the 50 divergences unexplained by subset or permutation | **P1** | measurement only | — | — |
-| 2 | D7 + D8 + D13 — one `refresh_project` edit: re-derive `taipei_milestones`; re-fetch `data3`/`data4` **per case** (26 cases in 22 projects, offline count 2026-11-06); label a case 無 when its header row and data2 are both empty. One cache pass + one re-emit | **P1** | openspec change (pipeline) | steps 0, 1 | D7 = overwrite; D8 = per case; D13 = 無 orphan (all decided); a 無 case's payload never wins `select_best_payload`; tests pin 青年130, 虎林38 and the 美仁800 near-miss; read the 無 list and counts before the re-emit |
+| 2 | D7 + D8 + D13 — one `refresh_project` edit: re-derive `taipei_milestones`; re-fetch `data3`/`data4` **per case** (26 cases in 22 projects, offline count 2026-11-06); label a case 無 when its header row and data2 are both empty. One cache pass + one re-emit | **P1** | openspec change (pipeline) | steps 0, 1 | D7 = overwrite; D8 = per case; D13 = 無 orphan (all decided); a 無 case's payload never wins either selection layer (key-count pick for implementation/rewards, and plan-case dates); report before/after payload sizes for 青年130, 虎林38, 雅祥227, 立農163-2, 萬華894, 吉林705-3; tests pin 青年130, 虎林38 and the 美仁800 near-miss; read the 無 list and counts before the re-emit |
 | 3 | D10 — permit-witness selection: the permit whose 開工日期 matches the city's; otherwise mark `links.permit.ambiguous` (decided) | **P2** | openspec change (`official-link-discovery`) + re-emit | step 2 | 開工 date must come from the source map, not the merged dict |
 | 4 | D6 — re-key `data/twur_overrides.json` to `…等2筆`, correct `PID`, add the dataset-key test, then `discover_project_links(fresh=True)` on that one project (decided, option A) | **P2** | direct `fix:` + one-project restore + re-emit | step 0 | single-writer rule; **not** `--fresh` |
 | 5 | D9c-2 — live parcel search for the 2 sibling projects | — | probe | — | **DONE 2026-11-05**: the city's search does not index either sibling |
@@ -1475,6 +1475,35 @@ copies disagree (`Settle_Old_Doors` 0.0 vs the live 140.0). The 無 case keeps
 its id and its cached data (the user's decision: an orphan, no removal), but
 the payload selection (`implementation` and `rewards`) must skip a case
 labelled 無 when a live case has a payload. Add this to the step 2 tests.
+
+**The constraint covers both selection layers** (peer, verified 2026-11-06).
+`pick_implementation_payload` (`urtpe/links.py:2163`) has a second layer: it
+collects dates over every 擬訂 plan case (`_PLAN_CASE_RE` matches both
+`11501041` and `11510008`), and a field no plan case carries falls back to the
+`select_best_payload` pick. So the 無 exclusion must apply to (1) the
+key-count pick, for `implementation` and `rewards`, and (2) the plan-case date
+collection. For 青年130 neither payload carries a date today, so the visible
+effect is the statistics; the test must still cover both layers. The
+conflict flags that name the 無 case stay (honest reporting).
+
+**The constraint already changes projects today** (offline,
+`scripts/probe_d13_wu_payload_wins.py`, 2026-11-06). Existing 無 cases win the
+pick in:
+
+| Project | 無 case wins | live sibling payload |
+|---|---|---|
+| 信義區-雅祥段一小段-227-4地號等10筆 | `11009142` (26 keys) impl + rewards | `11009141`: **1 key** |
+| 北投區-立農段五小段-163-2地號等4筆 | `11211211` (22) impl + rewards | `11409026`: 17 |
+| 萬華區-萬華段二小段-894地號等22筆 | `11010191` (24) impl + rewards | `11507019`: 19 |
+| 中山區-吉林段四小段-705-3地號等14筆 | `10410012` rewards | — |
+
+No date today comes from a 無 case. 虎林38: `11410001` has an empty cached
+payload (0 keys), so it does not win; the 無 case `10806141` (30 keys) ties
+with two live 30-key cases and loses on order. **雅祥227 needs a look in
+step 2:** the rule would replace a 26-key payload with a 1-key one. The step 2
+change must state what happens when the live payload is near-empty, and the
+step 2 report must list these 4 projects with before/after payload sizes,
+together with 青年130 and 虎林38.
 
 ## D14 — the `--from-js` loader drops three node fields (peer graph-order-issues, 2026-11-05)
 

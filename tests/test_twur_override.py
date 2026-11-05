@@ -31,7 +31,7 @@ from urtpe.links import (  # noqa: E402
 )
 from urtpe.links import DiscoveryResult  # noqa: E402
 
-PID = "萬華區-崇仁新村青年段一小段-711-3地號等?筆"
+PID = "萬華區-崇仁新村青年段一小段-711-3地號等2筆"
 
 
 def _write_table(cache_dir: Path, payload) -> Path:
@@ -212,6 +212,36 @@ def test_the_shipped_table_points_at_a_real_portal_url():
     for pid, entry in (data.get("overrides") or {}).items():
         assert entry["twur_url"].startswith("https://twur.nlma.gov.tw/"), pid
         assert entry["twur_view_id"] in entry["twur_url"], pid
+
+
+def test_every_shipped_override_key_names_a_project_in_the_dataset():
+    """D6 (inspection-batchD): the record's key must name a project the
+    dataset actually holds.
+
+    The bug: the shipped record was keyed on the pre-`c2cfbb9` slug
+    `…地號等?筆`, and the id moved to `…地號等2筆` when the slug-count
+    fallback landed. `load_twur_overrides` keys on `project.project_id`, so
+    the lookup missed, `links.twur` emitted empty, and the 國 badge and the
+    7 national milestones never appeared — silently, because the guard only
+    warns and the emission-fault check only catches wholesale absence.
+
+    The suite passed throughout: the well-formedness test checked the
+    evidence fields and never the key."""
+    path = ROOT / "data" / "twur_overrides.json"
+    if not path.exists():
+        pytest.skip("table not present yet")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    dataset = ROOT / "data" / "projects.json"
+    if not dataset.exists():
+        pytest.skip("dataset not present")
+    projects = json.loads(dataset.read_text(encoding="utf-8"))
+    known = {p["project_id"] for p in projects["projects"]}
+
+    for pid in (data.get("overrides") or {}):
+        assert pid in known, (
+            "the override names a project the dataset does not hold: %s\n"
+            "the dataset holds: %s" % (
+                pid, ", ".join(sorted(k for k in known if "崇仁新村" in k))))
 
 
 # =============================================================================

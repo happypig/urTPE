@@ -3,12 +3,12 @@
   "_usage": "Applied by urtpe.links.load_twur_overrides at cache-load time, and ONLY where discovery found no link. A project that discovery resolved keeps its own link, so a record here can never overwrite what the portal actually returned. Records missing any evidence field are ignored and reported. Run `unattached_overrides` to find records whose project_id has moved and no longer applies.",
   "schema": "twur-overrides-v1",
   "overrides": {
-    "萬華區-崇仁新村青年段一小段-711-3地號等?筆": {
+    "萬華區-崇仁新村青年段一小段-711-3地號等2筆": {
       "twur_view_id": "18",
       "twur_url": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/18",
       "portal_title": "擬訂臺北市萬華區青年段一小段711地號、二小段18地號(原崇仁新村)都市更新事業計畫及權利變換計畫案",
       "verified_on": "2026-10-06",
-      "reason": "Two independent causes, either fatal alone. (1) Search key: we search 崇仁新村青年段一小段 and the portal indexes the unit as 崇仁新村 — searching that returns ['18'], searching ours returns nothing. (2) Matcher: the portal writes a two-section title with a (原崇仁新村) anchor and no 等N筆 clause, so parse_name_id extracts district='', section='', parcel='' from it and view_page_matches correctly returns False. Our parcel is 711-3 where the portal says 711 — a renumbering, the 689地號(原726地號) case. DO NOT 'fix' this by loosening the parcel matcher: that would have to adjudicate 23 sub-parcel projects, and a false positive silently attaches another project's 推動歷程 to this one. Population across all 75 twur-less projects: exactly one has a project_id of the form 等?筆, meaning the current node's land string carries no 等N筆 clause and the count never parsed. n=1 — revisit this decision if a second case appears.",
+      "reason": "Two independent causes, either fatal alone. (1) Search key: we search 崇仁新村青年段一小段 and the portal indexes the unit as 崇仁新村 — searching that returns ['18'], searching ours returns nothing. (2) Matcher: the portal writes a two-section title with a (原崇仁新村) anchor and no 等N筆 clause, so parse_name_id extracts district='', section='', parcel='' from it and view_page_matches correctly returns False. Our parcel is 711-3 where the portal says 711 — a renumbering, the 689地號(原726地號) case. DO NOT 'fix' this by loosening the parcel matcher: that would have to adjudicate 23 sub-parcel projects, and a false positive silently attaches another project's 推動歷程 to this one. Population across all 75 twur-less projects: exactly one had a project_id of the form 等?筆, meaning the current node's land string carried no 等N筆 clause and the count never parsed. n=1 — revisit this decision if a second case appears. D6 (2026-11-06): the key was re-keyed from 等?筆 to 等2筆, because the slug-count fallback (c2cfbb9) moved the id and the record stopped applying. The record's own reason text still names the old population shape, because it describes the state at the time of the review.",
       "verified_by": "human review of the portal page, confirmed the 二小段18 overlap with this project's land (青年段一小段711-3、青年段二小段18地號)"
     }
   }

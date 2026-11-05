@@ -73,11 +73,12 @@ help text for a reason.
   whoever runs second must respect the single-writer rule. Five `data/.link_cache_backup_*`
   directories (plus one `.link_cache_wip_*`) exist as a result of past incidents — do not
   delete them casually.
-- **The manual-correction ledger is designed but unused.** `--ledger`
-  (default `urtpe-gazettes/corrections.jsonl`, `urtpe/ledger.py`, the
-  `correction-ledger` spec) has never been written — no manual correction
-  has been needed; the file's absence is normal, not a defect
-  (user decision 2026-11-01).
+- **The manual-correction ledger applies on every PDF ingest.** `--ledger`
+  (default `urtpe-gazettes/corrections.jsonl`, `URTPE_LEDGER` override,
+  `urtpe/ledger.py`, the `correction-ledger` spec) holds its first entries
+  since 2026-11-05 (`confirm_merge` + `land_count` for 吉林676, D5). An
+  ingest without the flag still applies it; an explicit empty string opts
+  out. `--from-js` keeps families as emitted and never re-merges.
 - **`data/project_aliases.json` is tracked configuration, not derived data.** It migrates
   `.link_cache` directories across `project_id` churn and refuses ambiguous pairs;
   regenerate with `scripts/build_project_aliases.py`.

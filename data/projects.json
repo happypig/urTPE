@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-11-04T12:39:32+08:00",
+  "generated_at": "2026-11-05T10:31:05+08:00",
   "source": "D:/project/urtpe-gazettes/核定案件-2026-10-15.pdf",
   "published_date": "2026-10-15",
   "counts": {
-    "projects": 682,
+    "projects": 681,
     "records": 1442
   },
   "projects": [
@@ -281,8 +281,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09811141"
@@ -386,8 +386,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09811142"
@@ -1373,8 +1373,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10802161"
@@ -2180,8 +2180,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10810222"
@@ -2856,8 +2856,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10205221"
@@ -2968,8 +2968,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10205222"
@@ -4849,8 +4849,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09206102"
@@ -4950,8 +4950,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09206101"
@@ -5394,8 +5394,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10702121"
@@ -5838,8 +5838,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10203081"
@@ -6383,8 +6383,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10506011"
@@ -7588,8 +7588,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10611242"
@@ -7977,8 +7977,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10609191"
@@ -9016,8 +9016,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09506201"
@@ -9134,8 +9134,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09506204"
@@ -10234,8 +10234,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10311131"
@@ -10868,8 +10868,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09605192"
@@ -10994,8 +10994,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09605194"
@@ -11501,8 +11501,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11008091"
@@ -11786,8 +11786,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09912313"
@@ -12246,8 +12246,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10906092"
@@ -12337,8 +12337,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11403002"
@@ -13082,8 +13082,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09605193"
@@ -13182,8 +13182,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09605196"
@@ -13290,8 +13290,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10408311"
@@ -14068,8 +14068,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09111072"
@@ -14179,8 +14179,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09111071"
@@ -14276,8 +14276,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "09111073"
@@ -14655,8 +14655,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11011241",
@@ -16412,13 +16412,14 @@
     },
     {
       "project_id": "中山區-吉林段四小段-676地號等18筆",
-      "anchor_recno": 1347,
+      "anchor_recno": 1303,
       "district": "中山區",
       "section": "吉林段四小段",
       "implementer": "遠雄建設事業股份有限公司",
-      "name": "擬訂臺北市中山區吉林段四小段676地號等18筆土地都市更新事業計畫案",
+      "name": "變更臺北市中山區吉林段四小段676地號1筆土地都市更新事業計畫案",
       "member_recnos": [
-        1347
+        1347,
+        1303
       ],
       "nodes": [
         {
@@ -16428,7 +16429,7 @@
           "track": "事業計畫",
           "area": "",
           "stage_index": 0,
-          "is_current": true,
+          "is_current": false,
           "case_name": "擬訂臺北市中山區吉林段四小段676地號等18筆土地都市更新事業計畫案",
           "name_raw": "擬訂臺北市中山區吉林段四小段676地號等18筆土地都市更新事業計畫案",
           "land": "臺北市中山區吉林段四小段671-3、671-5、676、677、678、679、680、681、682、683、683-1、683-2、683-3、684、685、686、687、688地號等18筆土地",
@@ -16461,9 +16462,7 @@
           "area_section": "",
           "implementer": "遠雄建設事業股份有限公司",
           "planner": "正宇都市更新股份有限公司",
-          "review_flags": [
-            "片段家族合併候選: 全部 4 筆案例錨定於 中山區-吉林段四小段-676地號等1筆（合併候選，需人工確認）"
-          ],
+          "review_flags": [],
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
@@ -16521,286 +16520,7 @@
             "Landkind3_Area": "0.0",
             "case_id": "09703182"
           }
-        }
-      ],
-      "edges": [],
-      "links": {
-        "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/75",
-        "taipei": [
-          "09601260",
-          "09601262",
-          "09703182",
-          "09703184"
-        ],
-        "milestones_national": {
-          "事業計畫申請日期": "97.04.18",
-          "事業計畫核定日期": "97.12.31",
-          "第一次變更事業計畫核定日期": "99.03.25",
-          "使用核發日期": "100.08.24"
         },
-        "milestones_taipei": {
-          "計畫公聽會日期": "2009/10/16",
-          "概要公聽會日期": "2007/01/26",
-          "申請計畫日期": "2009/10/22",
-          "申請概要日期": "2007/03/13",
-          "概要核准日期": "2007/04/26",
-          "公告公展日期": "2009/12/03",
-          "公展公聽會日期": "2009/12/29",
-          "審議通過日期": "2010/01/25",
-          "申請幹事會日期": "2008/08/18",
-          "召開幹事會日期": "2010/01/14",
-          "召開審議會日期": "2010/01/25",
-          "申請核定日期": "2008/12/15",
-          "核定日期": "2010/03/25",
-          "建照核發日期": "2009/02/16",
-          "開工日期": "2009/07/23",
-          "使照核發日期": "2011/08/24",
-          "成果報備日期": "2011/12/01"
-        },
-        "milestones_source": {
-          "計畫公聽會日期": "09703184",
-          "概要公聽會日期": "09601260",
-          "申請計畫日期": "09703184",
-          "申請概要日期": "09601260",
-          "概要核准日期": "09703184",
-          "公告公展日期": "09703184",
-          "公展公聽會日期": "09703184",
-          "審議通過日期": "09703184",
-          "申請幹事會日期": "09703182",
-          "召開幹事會日期": "09703184",
-          "召開審議會日期": "09703184",
-          "申請核定日期": "09703182",
-          "核定日期": "09703184",
-          "建照核發日期": "09703182",
-          "開工日期": "09703182",
-          "使照核發日期": "09703182",
-          "成果報備日期": "09703182"
-        },
-        "case_milestones": {
-          "09601260": {
-            "計畫公聽會日期": "2007/07/18",
-            "概要公聽會日期": "2007/01/26",
-            "申請計畫日期": "2008/04/18",
-            "申請概要日期": "2007/03/13",
-            "概要核准日期": "2007/04/19"
-          },
-          "09601262": {
-            "計畫公聽會日期": "2007/07/18",
-            "概要公聽會日期": "2007/01/26",
-            "申請計畫日期": "2007/08/24",
-            "申請概要日期": "2007/03/13",
-            "概要核准日期": "2007/04/19"
-          },
-          "09703182": {
-            "計畫公聽會日期": "2008/03/18",
-            "概要公聽會日期": "2007/01/26",
-            "申請計畫日期": "2008/04/18",
-            "申請概要日期": "2007/03/13",
-            "概要核准日期": "2007/04/19",
-            "公告公展日期": "2008/07/09",
-            "公展公聽會日期": "2008/08/06",
-            "審議通過日期": "2008/12/01",
-            "申請幹事會日期": "2008/08/18",
-            "召開幹事會日期": "2008/09/01",
-            "召開審議會日期": "2008/11/03",
-            "申請核定日期": "2008/12/15",
-            "核定日期": "2008/12/31",
-            "建照核發日期": "2009/02/16"
-          },
-          "09703184": {
-            "計畫公聽會日期": "2009/10/16",
-            "概要公聽會日期": "2007/01/26",
-            "申請計畫日期": "2009/10/22",
-            "申請概要日期": "2007/03/13",
-            "概要核准日期": "2007/04/26",
-            "公告公展日期": "2009/12/03",
-            "公展公聽會日期": "2009/12/29",
-            "審議通過日期": "2010/01/25",
-            "召開幹事會日期": "2010/01/14",
-            "召開審議會日期": "2010/01/25",
-            "核定日期": "2010/03/25"
-          }
-        },
-        "candidate_names": {
-          "09601260": "擬訂臺北市中山區吉林段四小段676地號等18筆土地都市更新事業概要案",
-          "09601262": "擬訂臺北市中山區吉林段四小段676地號等18筆土地都市更新事業計畫案",
-          "09703182": "擬訂臺北市中山區吉林段四小段676地號等18筆土地都市更新事業計畫案",
-          "09703184": "變更臺北市中山區吉林段四小段676地號等18筆土地都市更新事業計畫案"
-        },
-        "case_schedules": {
-          "09601262": "自行撤回",
-          "09703182": "施工中",
-          "09703184": "施工中"
-        },
-        "twur_name": "擬訂臺北市中山區吉林段四小段676地號等18筆土地都市更新事業計畫案",
-        "view_verified_case_ids": [
-          "09703182"
-        ],
-        "orphan_nodes": [
-          {
-            "case_id": "09601260",
-            "case_name": "擬訂臺北市中山區吉林段四小段676地號等18筆土地都市更新事業概要案",
-            "orphan": true,
-            "provenance": "orphan-case-anchoring",
-            "stage": "擬訂",
-            "track": "事業概要",
-            "node_date": "2007-04-19",
-            "schedule": "",
-            "milestones_taipei": {},
-            "milestones_taipei_case": {
-              "計畫公聽會日期": "2007/07/18",
-              "概要公聽會日期": "2007/01/26",
-              "申請計畫日期": "2008/04/18",
-              "申請概要日期": "2007/03/13",
-              "概要核准日期": "2007/04/19"
-            }
-          },
-          {
-            "case_id": "09601262",
-            "case_name": "擬訂臺北市中山區吉林段四小段676地號等18筆土地都市更新事業計畫案",
-            "orphan": true,
-            "provenance": "orphan-case-anchoring",
-            "stage": "擬訂",
-            "track": "事業計畫",
-            "node_date": "",
-            "schedule": "自行撤回",
-            "milestones_taipei": {},
-            "milestones_taipei_case": {
-              "計畫公聽會日期": "2007/07/18",
-              "概要公聽會日期": "2007/01/26",
-              "申請計畫日期": "2007/08/24",
-              "申請概要日期": "2007/03/13",
-              "概要核准日期": "2007/04/19"
-            }
-          },
-          {
-            "case_id": "09703184",
-            "case_name": "變更臺北市中山區吉林段四小段676地號等18筆土地都市更新事業計畫案",
-            "orphan": true,
-            "provenance": "orphan-case-anchoring",
-            "stage": "變更",
-            "track": "事業計畫",
-            "node_date": "2010-03-25",
-            "schedule": "施工中",
-            "milestones_taipei": {
-              "計畫公聽會日期": "2009/10/16",
-              "概要公聽會日期": "2007/01/26",
-              "申請計畫日期": "2009/10/22",
-              "申請概要日期": "2007/03/13",
-              "概要核准日期": "2007/04/26",
-              "公告公展日期": "2009/12/03",
-              "公展公聽會日期": "2009/12/29",
-              "審議通過日期": "2010/01/25",
-              "召開幹事會日期": "2010/01/14",
-              "召開審議會日期": "2010/01/25",
-              "核定日期": "2010/03/25"
-            },
-            "milestones_taipei_case": {
-              "計畫公聽會日期": "2009/10/16",
-              "概要公聽會日期": "2007/01/26",
-              "申請計畫日期": "2009/10/22",
-              "申請概要日期": "2007/03/13",
-              "概要核准日期": "2007/04/26",
-              "公告公展日期": "2009/12/03",
-              "公展公聽會日期": "2009/12/29",
-              "審議通過日期": "2010/01/25",
-              "召開幹事會日期": "2010/01/14",
-              "召開審議會日期": "2010/01/25",
-              "核定日期": "2010/03/25"
-            }
-          }
-        ],
-        "permit": {
-          "permit_no": "097使字第0545號",
-          "date": "2008-12-29",
-          "permits": [
-            "097使字第0545號"
-          ]
-        }
-      },
-      "published_date": "2026-10-15",
-      "implementation": {
-        "Eng_Start_Date": "2009/07/23",
-        "Ulic_Date": "2011/08/24",
-        "Report_Date": "2011/12/01",
-        "Exe_Way": "協議合建",
-        "Base_Area": "1394.0",
-        "Old_Doors": "28.0",
-        "Settle_Doors": "2.0",
-        "New_Parkings2": "195.0",
-        "New_Parkings": "116.0",
-        "Welfare_Area": "0.0",
-        "Road_Cost": "4920000.0",
-        "Road_Length": "35.0",
-        "Road_Area": "30.0",
-        "Sidewalk_Length": "81.6",
-        "Sidewalk_Area": "480.0",
-        "Urban_Renew_Fee": "656813102.0",
-        "pc_afterUpdTotalValue": "1782130603.0",
-        "Private_Area": "1394.0",
-        "State_Area": "0.0",
-        "Muni_Area": "0.0",
-        "Land_Owners_Pir": "1.0",
-        "Land_Owners_Pub": "0.0",
-        "Bui_Owners_Legal": "1.0",
-        "Landkind1": "第四種商業區(特)(原商三)",
-        "Landkind1_Area": "1394.0",
-        "Landkind2_Area": "0.0",
-        "Landkind3_Area": "0.0",
-        "case_id": "09703182",
-        "review_flags": [
-          "payload Sidewalk_Length conflicts across cases: 09703182=81.6 vs 09703184=80.0",
-          "payload Urban_Renew_Fee conflicts across cases: 09703182=656813102.0 vs 09703184=655123058.0",
-          "payload pc_afterUpdTotalValue conflicts across cases: 09703182=1782130603.0 vs 09703184=1787402566.0",
-          "payload Landkind1 conflicts across cases: 09703182=第四種商業區(特)(原商三) vs 09601260=第四種特定商業區",
-          "payload Sidewalk_Length conflicts across cases: 09703182=81.6 vs 09703184=80.0",
-          "payload Urban_Renew_Fee conflicts across cases: 09703182=656813102.0 vs 09703184=655123058.0",
-          "payload pc_afterUpdTotalValue conflicts across cases: 09703182=1782130603.0 vs 09703184=1787402566.0",
-          "payload Landkind1 conflicts across cases: 09703182=第四種商業區(特)(原商三) vs 09601260=第四種特定商業區"
-        ]
-      },
-      "rewards": {
-        "name_reward_no": "建築基地1.5倍之基準容積",
-        "Park_Area": "600.0",
-        "Park_Cars": "40.0",
-        "F": "6842.77",
-        "F0": "5576.0",
-        "F1": "0.0",
-        "F2": "0.0",
-        "F3": "390.32",
-        "F4": "61.89",
-        "F4_1": "0.0",
-        "F4_2": "61.89",
-        "F4_3": "0.0",
-        "F5": "814.56",
-        "F5_1": "334.56",
-        "F5_2": "0.0",
-        "F5_3": "480.0",
-        "F5_4": "0.0",
-        "F5_5": "0.0",
-        "F5_6": "0.0",
-        "F6": "0.0",
-        "case_id": "09703182",
-        "review_flags": [
-          "payload name_reward_no conflicts across cases: 09703182=建築基地1.5倍之基準容積 vs 09601260=未申請獎勵(整建維護)",
-          "payload name_reward_no conflicts across cases: 09703182=建築基地1.5倍之基準容積 vs 09601262=未申請獎勵(整建維護)",
-          "payload F conflicts across cases: 09703182=6842.77 vs 09703184=6842.7",
-          "payload F4 conflicts across cases: 09703182=61.89 vs 09703184=61.82",
-          "payload F4_2 conflicts across cases: 09703182=61.89 vs 09703184=61.82"
-        ]
-      }
-    },
-    {
-      "project_id": "中山區-吉林段四小段-676地號等1筆",
-      "anchor_recno": 1303,
-      "district": "中山區",
-      "section": "吉林段四小段",
-      "implementer": "遠雄建設事業股份有限公司",
-      "name": "變更臺北市中山區吉林段四小段676地號1筆土地都市更新事業計畫案",
-      "member_recnos": [
-        1303
-      ],
-      "nodes": [
         {
           "recno": 1303,
           "date": "2010-03-25",
@@ -16818,15 +16538,13 @@
             "676"
           ],
           "aliases": {},
-          "land_count": 1,
+          "land_count": 18,
           "orig_count": null,
           "named_anchor": "",
           "area_section": "",
           "implementer": "遠雄建設事業股份有限公司",
           "planner": "正宇都市更新股份有限公司",
-          "review_flags": [
-            "片段家族合併候選: 全部 4 筆案例錨定於 中山區-吉林段四小段-676地號等18筆（合併候選，需人工確認）"
-          ],
+          "review_flags": [],
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
@@ -16877,7 +16595,18 @@
           }
         }
       ],
-      "edges": [],
+      "edges": [
+        {
+          "from": 1347,
+          "to": 1303,
+          "kind": "revision"
+        },
+        {
+          "from": 1347,
+          "to": 1303,
+          "kind": "track"
+        }
+      ],
       "links": {
         "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/75",
         "taipei": [
@@ -17026,44 +16755,13 @@
               "申請概要日期": "2007/03/13",
               "概要核准日期": "2007/04/19"
             }
-          },
-          {
-            "case_id": "09703182",
-            "case_name": "擬訂臺北市中山區吉林段四小段676地號等18筆土地都市更新事業計畫案",
-            "orphan": true,
-            "provenance": "orphan-case-anchoring",
-            "stage": "擬訂",
-            "track": "事業計畫",
-            "node_date": "2008-12-31",
-            "schedule": "施工中",
-            "milestones_taipei": {
-              "申請幹事會日期": "2008/08/18",
-              "申請核定日期": "2008/12/15",
-              "建照核發日期": "2009/02/16"
-            },
-            "milestones_taipei_case": {
-              "計畫公聽會日期": "2008/03/18",
-              "概要公聽會日期": "2007/01/26",
-              "申請計畫日期": "2008/04/18",
-              "申請概要日期": "2007/03/13",
-              "概要核准日期": "2007/04/19",
-              "公告公展日期": "2008/07/09",
-              "公展公聽會日期": "2008/08/06",
-              "審議通過日期": "2008/12/01",
-              "申請幹事會日期": "2008/08/18",
-              "召開幹事會日期": "2008/09/01",
-              "召開審議會日期": "2008/11/03",
-              "申請核定日期": "2008/12/15",
-              "核定日期": "2008/12/31",
-              "建照核發日期": "2009/02/16"
-            }
           }
         ],
         "permit": {
-          "permit_no": "100使字第0247號",
-          "date": "2011-08-24",
+          "permit_no": "097使字第0545號",
+          "date": "2008-12-29",
           "permits": [
-            "100使字第0247號"
+            "097使字第0545號"
           ]
         }
       },
@@ -17190,8 +16888,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10410011"
@@ -17856,8 +17554,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09307101"
@@ -19649,8 +19347,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10409213"
@@ -19729,8 +19427,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10409211"
@@ -19833,8 +19531,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "10409214"
@@ -20335,8 +20033,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11008281"
@@ -21078,8 +20776,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10301062"
@@ -21187,8 +20885,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10301063"
@@ -21502,8 +21200,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09001120",
@@ -21601,8 +21299,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09001121",
@@ -22912,8 +22610,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10811261"
@@ -23705,8 +23403,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10204221"
@@ -24625,8 +24323,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10603312"
@@ -25176,8 +24874,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11008311"
@@ -25511,8 +25209,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10412222"
@@ -25602,8 +25300,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11012303"
@@ -29068,8 +28766,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09205062"
@@ -29169,8 +28867,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09205061"
@@ -29523,8 +29221,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10008121"
@@ -29620,8 +29318,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10008122"
@@ -29961,8 +29659,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10208161"
@@ -30508,8 +30206,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09812042"
@@ -30933,8 +30631,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09912312"
@@ -31040,8 +30738,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09912315"
@@ -31129,8 +30827,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "09912316"
@@ -32779,14 +32477,12 @@
           "area_section": "",
           "implementer": "春風開發股份有限公司",
           "planner": "弘傑開發事業股份有限公司",
-          "review_flags": [
-            "片段家族合併候選: 全部 1 筆案例錨定於 中山區-長春段一小段-35地號等35筆（合併候選，需人工確認）"
-          ],
+          "review_flags": [],
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11010291"
@@ -34064,8 +33760,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10805131"
@@ -34154,8 +33850,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11503011"
@@ -35458,8 +35154,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09902121"
@@ -35964,8 +35660,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10302251"
@@ -36311,8 +36007,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09012313"
@@ -36485,8 +36181,8 @@
           "auto_fixes": [],
           "district": "中山區",
           "district_land": "中山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09012311"
@@ -39503,8 +39199,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10305271"
@@ -39611,8 +39307,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10305272"
@@ -40922,8 +40618,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09210160"
@@ -41049,8 +40745,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09210161"
@@ -41421,8 +41117,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10411101"
@@ -41540,8 +41236,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10809241"
@@ -42175,8 +41871,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11102081"
@@ -42470,8 +42166,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10012271"
@@ -42576,8 +42272,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11012302"
@@ -43112,8 +42808,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09912124"
@@ -43280,8 +42976,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第三次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11408019"
@@ -44960,8 +44656,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10108221"
@@ -45900,8 +45596,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10908181"
@@ -46350,8 +46046,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10806031"
@@ -47032,8 +46728,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09410151"
@@ -48513,8 +48209,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10105045"
@@ -49409,8 +49105,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09409102"
@@ -50103,8 +49799,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09410264"
@@ -51054,8 +50750,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11007091"
@@ -51600,8 +51296,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09407222"
@@ -52164,8 +51860,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10812272"
@@ -52248,8 +51944,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "11504008"
@@ -52706,8 +52402,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10302141"
@@ -53528,8 +53224,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10403071"
@@ -53598,6 +53294,25 @@
             "StateLand2_Area": "5.78",
             "StateLand3_Area": "26.3",
             "case_id": "10403071"
+          },
+          "recovery": {
+            "cases": [
+              "R089213-02"
+            ],
+            "api_cases": [
+              "10403071"
+            ],
+            "endpoint": "gis.uro.taipei/ashx",
+            "date_result": "exact",
+            "date_field": "uro_chk_date",
+            "list_source": "gazette fragment (partial)",
+            "flags": {
+              "partial": true,
+              "normalized": [],
+              "ambiguous-zone": false,
+              "date-pm1": false,
+              "similarity-band": false
+            }
           }
         }
       ],
@@ -53911,8 +53626,7 @@
           "planner": "奇模工程有限公司",
           "review_flags": [
             "案名與地號段小段不一致(地號為河堤段五小段)",
-            "節點未能對應平台案件(案名:變更(第三次)臺北市中正區河堤五小段399地號等3筆土地都市更新權利變換計畫案, 日期:2024/10/29)",
-            "節點未能對應平台案件(案名:變更(第三次)臺北市中正區河堤五小段399地號等3筆土地都市更新權利變換計畫案, 日期:2024-10-29)"
+            "節點未能對應平台案件(案名:變更(第三次)臺北市中正區河堤五小段399地號等3筆土地都市更新權利變換計畫案, 日期:2024/10/29)"
           ],
           "auto_fixes": [],
           "district": "中正區",
@@ -53999,8 +53713,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10205202"
@@ -54610,8 +54324,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11002261"
@@ -54740,8 +54454,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11409011"
@@ -55365,8 +55079,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09809291"
@@ -56273,8 +55987,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10601031"
@@ -56365,8 +56079,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11005051"
@@ -56871,8 +56585,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09809061"
@@ -56999,8 +56713,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09809062"
@@ -58901,8 +58615,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10212171"
@@ -59565,8 +59279,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09403261"
@@ -61573,8 +61287,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10008271"
@@ -63089,8 +62803,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "11410039"
@@ -63452,8 +63166,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10409101"
@@ -63546,8 +63260,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10409102"
@@ -64565,8 +64279,7 @@
           "implementer": "璞永建設股份有限公司",
           "planner": "里美都市開發股份有限公司",
           "review_flags": [
-            "節點未能對應平台案件(案名:擬訂臺北市中正區臨沂段三小段412地號等12筆(原11筆)土地都市更新事業計畫案, 日期:2025/7/22)",
-            "節點未能對應平台案件(案名:擬訂臺北市中正區臨沂段三小段412地號等12筆(原11筆)土地都市更新事業計畫案, 日期:2025-07-22)"
+            "節點未能對應平台案件(案名:擬訂臺北市中正區臨沂段三小段412地號等12筆(原11筆)土地都市更新事業計畫案, 日期:2025/7/22)"
           ],
           "auto_fixes": [],
           "district": "中正區",
@@ -64641,8 +64354,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11103051"
@@ -65712,8 +65425,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09710042"
@@ -65820,8 +65533,8 @@
           "auto_fixes": [],
           "district": "中正區",
           "district_land": "中正區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09710043"
@@ -66485,8 +66198,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10712281"
@@ -67347,14 +67060,13 @@
           "implementer": "欣偉傑建設股份有限公司",
           "planner": "園皓都市規劃有限公司",
           "review_flags": [
-            "節點未能對應平台案件(案名:擬訂臺北市信義區吳興一小段330地號等43筆土地都市更新事業計畫及權利變換計畫案, 日期:2021/9/15)",
-            "節點未能對應平台案件(案名:擬訂臺北市信義區吳興一小段330地號等43筆土地都市更新事業計畫及權利變換計畫案, 日期:2021-09-15)"
+            "節點未能對應平台案件(案名:擬訂臺北市信義區吳興一小段330地號等43筆土地都市更新事業計畫及權利變換計畫案, 日期:2021/9/15)"
           ],
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [],
             "milestones_national": {},
@@ -67989,8 +67701,7 @@
           "implementer": "信義區吳興街二期整宅地區都市更新會",
           "planner": "胡宗雄建築師事務所",
           "review_flags": [
-            "節點未能對應平台案件(案名:擬訂臺北市信義區吳興段二小段247地號等2筆土地(原吳興街二期整宅地區)都市更新, 日期:2004/6/24)",
-            "節點未能對應平台案件(案名:擬訂臺北市信義區吳興段二小段247地號等2筆土地(原吳興街二期整宅地區)都市更新, 日期:2004-06-24)"
+            "節點未能對應平台案件(案名:擬訂臺北市信義區吳興段二小段247地號等2筆土地(原吳興街二期整宅地區)都市更新, 日期:2004/6/24)"
           ],
           "auto_fixes": [],
           "district": "信義區",
@@ -68028,14 +67739,13 @@
           "implementer": "信義區吳興街二期整宅地區都市更新會",
           "planner": "胡宗雄建築師事務所",
           "review_flags": [
-            "節點未能對應平台案件(案名:變更臺北市信義區吳興段二小段247地號等2筆土地(原吳興街二期整宅地區)都市更新, 日期:2009/6/10)",
-            "節點未能對應平台案件(案名:變更臺北市信義區吳興段二小段247地號等2筆土地(原吳興街二期整宅地區)都市更新, 日期:2009-06-10)"
+            "節點未能對應平台案件(案名:變更臺北市信義區吳興段二小段247地號等2筆土地(原吳興街二期整宅地區)都市更新, 日期:2009/6/10)"
           ],
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [],
             "milestones_national": {},
@@ -68067,14 +67777,13 @@
           "implementer": "信義區吳興街二期整宅地區都市更新會",
           "planner": "聖洪建築師事務所、里成都市更新股份有限公司",
           "review_flags": [
-            "節點未能對應平台案件(案名:變更(第二次)臺北市信義區吳興街二期整宅地區都市更新事業計畫及變更權利變換計畫案, 日期:2020/3/19)",
-            "節點未能對應平台案件(案名:變更(第二次)臺北市信義區吳興街二期整宅地區都市更新事業計畫及變更權利變換計畫案, 日期:2020-03-19)"
+            "節點未能對應平台案件(案名:變更(第二次)臺北市信義區吳興街二期整宅地區都市更新事業計畫及變更權利變換計畫案, 日期:2020/3/19)"
           ],
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [],
             "milestones_national": {},
@@ -68906,8 +68615,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10404271"
@@ -69988,8 +69697,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10910071"
@@ -70927,8 +70636,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09812032"
@@ -71044,8 +70753,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09812033"
@@ -71720,8 +71429,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10410141"
@@ -71823,8 +71532,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10410142"
@@ -72506,8 +72215,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09511041"
@@ -72626,8 +72335,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09501142"
@@ -73332,8 +73041,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10211021"
@@ -73425,8 +73134,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10211022"
@@ -73831,8 +73540,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10203171"
@@ -73947,8 +73656,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10812301"
@@ -74462,8 +74171,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09608221"
@@ -74557,8 +74266,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09608223"
@@ -75262,8 +74971,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10203251"
@@ -75635,8 +75344,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10310091"
@@ -75728,8 +75437,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10907231"
@@ -77440,8 +77149,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09906112"
@@ -79731,8 +79440,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09110091"
@@ -80973,8 +80682,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10310222"
@@ -82622,8 +82331,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09702141"
@@ -82720,8 +82429,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09702142"
@@ -83202,8 +82911,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09912102"
@@ -83318,8 +83027,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10306302"
@@ -83775,8 +83484,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10612182"
@@ -83864,8 +83573,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10612183"
@@ -85028,8 +84737,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10202022"
@@ -85596,8 +85305,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10909091"
@@ -85971,8 +85680,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11509029"
@@ -86248,8 +85957,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11102151"
@@ -86631,8 +86340,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11410011"
@@ -86910,8 +86619,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09601041"
@@ -88285,8 +87994,8 @@
           "auto_fixes": [],
           "district": "信義區",
           "district_land": "信義區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10908291"
@@ -88978,8 +88687,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10712072"
@@ -89074,8 +88783,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11408004"
@@ -89147,8 +88856,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第三次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "11410035"
@@ -90241,8 +89950,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10712273"
@@ -91323,8 +91032,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09805252"
@@ -92163,8 +91872,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11406017"
@@ -92413,8 +92122,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11106211"
@@ -92967,8 +92676,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09807161"
@@ -94039,8 +93748,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09206191"
@@ -94162,8 +93871,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09206194"
@@ -94268,8 +93977,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "09206192"
@@ -95685,8 +95394,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10311011"
@@ -95794,8 +95503,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10311012"
@@ -96770,8 +96479,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10902223"
@@ -97922,8 +97631,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09605191"
@@ -98015,8 +97724,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09605197"
@@ -98094,8 +97803,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "09605195"
@@ -98553,8 +98262,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09209272"
@@ -99213,8 +98922,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11408002"
@@ -99451,8 +99160,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10101081"
@@ -99811,8 +99520,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11101281"
@@ -100077,8 +99786,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11502008"
@@ -100649,8 +100358,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10104051"
@@ -100757,8 +100466,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10104052"
@@ -101371,8 +101080,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11105281"
@@ -101450,8 +101159,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11410038"
@@ -102766,8 +102475,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10209172"
@@ -102868,8 +102577,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "10209173"
@@ -103543,8 +103252,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09811101"
@@ -103645,8 +103354,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09811102"
@@ -104158,8 +103867,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09911124"
@@ -105152,8 +104861,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10403041"
@@ -106014,8 +105723,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10504272"
@@ -106103,8 +105812,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10504273"
@@ -106713,8 +106422,8 @@
           "auto_fixes": [],
           "district": "內湖區",
           "district_land": "內湖區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11003312"
@@ -107053,8 +106762,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10312101"
@@ -107468,8 +107177,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10912091"
@@ -107942,8 +107651,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10012272"
@@ -108150,8 +107859,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第一次)",
           "links": {
             "taipei": [
               "10012274"
@@ -108982,8 +108691,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09805202"
@@ -109111,8 +108820,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09805203"
@@ -109216,8 +108925,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "11409002"
@@ -109584,8 +109293,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10401201"
@@ -109684,8 +109393,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10401202"
@@ -110397,8 +110106,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11409039"
@@ -112040,8 +111749,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10012263"
@@ -112141,8 +111850,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10012264"
@@ -112703,8 +112412,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11203071"
@@ -113500,8 +113209,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09707201"
@@ -113678,8 +113387,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "09707204"
@@ -114089,8 +113798,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10312303"
@@ -114757,8 +114466,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09707181"
@@ -116384,8 +116093,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10907181"
@@ -118456,8 +118165,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11305061"
@@ -118729,8 +118438,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10106084"
@@ -118835,8 +118544,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10106085"
@@ -120221,8 +119930,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10611281"
@@ -120325,8 +120034,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10611282"
@@ -120876,8 +120585,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10904302"
@@ -121663,8 +121372,8 @@
           "implementer": "士林開發股份有限公司",
           "planner": "弘傑城市開發股份有限公司",
           "review_flags": [
-            "孤兒案件未達相似度門檻(案11501007:0.00<0.70:擬訂臺北市北投區振興段四小段176地號等22筆土地都市更新事業計畫及權利變換計畫)",
-            "孤兒案件未達相似度門檻(案11106281:0.00<0.70:擬訂臺北市北投區振興段四小段176地號等22筆土地都市更新事業計畫案)"
+            "孤兒案件未達相似度門檻(案11106281:0.00<0.70:擬訂臺北市北投區振興段四小段176地號等22筆土地都市更新事業計畫案)",
+            "孤兒案件未達相似度門檻(案11501007:0.00<0.70:擬訂臺北市北投區振興段四小段176地號等22筆土地都市更新事業計畫及權利變換計畫)"
           ],
           "auto_fixes": [],
           "district": "北投區",
@@ -122151,8 +121860,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10411102"
@@ -122259,8 +121968,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10411104"
@@ -122364,8 +122073,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "10411105"
@@ -122799,8 +122508,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10512131"
@@ -124137,8 +123846,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11105101"
@@ -124423,8 +124132,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11407049"
@@ -124662,8 +124371,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11407012"
@@ -124954,8 +124663,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10510181"
@@ -125059,8 +124768,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11410019"
@@ -125343,8 +125052,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10001241"
@@ -125430,8 +125139,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10001242"
@@ -126144,8 +125853,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09504081"
@@ -126763,8 +126472,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10008051"
@@ -127684,8 +127393,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10404091"
@@ -127814,8 +127523,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10404092"
@@ -128851,8 +128560,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11409026"
@@ -129150,8 +128859,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10410031"
@@ -129247,8 +128956,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10410033"
@@ -130214,8 +129923,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11407030"
@@ -130449,8 +130158,8 @@
           "auto_fixes": [],
           "district": "北投區",
           "district_land": "北投區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09005081"
@@ -132103,8 +131812,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09707081"
@@ -132195,8 +131904,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09707082"
@@ -132918,8 +132627,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10204033"
@@ -133453,8 +133162,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10809251"
@@ -133763,8 +133472,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09910072"
@@ -133870,8 +133579,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09910073"
@@ -135013,8 +134722,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10111131"
@@ -135116,8 +134825,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10111132"
@@ -135628,8 +135337,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10212062"
@@ -136716,8 +136425,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09404141"
@@ -136821,8 +136530,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09404142"
@@ -137248,8 +136957,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09511061"
@@ -137387,8 +137096,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09511062"
@@ -137776,8 +137485,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09407071"
@@ -137888,8 +137597,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09407073"
@@ -138744,8 +138453,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09406021"
@@ -139171,8 +138880,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09406100"
@@ -139266,8 +138975,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09406101"
@@ -139621,8 +139330,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09606051"
@@ -139715,8 +139424,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10301281"
@@ -139810,8 +139519,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "10301282"
@@ -139880,8 +139589,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第三次)",
+          "stage_權利變換": "變更(第三次)",
           "links": {
             "taipei": [
               "10907301"
@@ -140452,8 +140161,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09311171"
@@ -141856,6 +141565,25 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "611.0",
             "case_id": "09412311"
+          },
+          "recovery": {
+            "cases": [
+              "R091007-02"
+            ],
+            "api_cases": [
+              "09412311"
+            ],
+            "endpoint": "gis.uro.taipei/ashx",
+            "date_result": "exact",
+            "date_field": "uro_chk_date",
+            "list_source": "gazette fragment (partial)",
+            "flags": {
+              "partial": true,
+              "normalized": [],
+              "ambiguous-zone": false,
+              "date-pm1": false,
+              "similarity-band": false
+            }
           }
         }
       ],
@@ -142356,8 +142084,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10712221"
@@ -143022,8 +142750,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10412193"
@@ -143427,8 +143155,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10710261"
@@ -145123,8 +144851,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10805101",
@@ -145626,8 +145354,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10205191"
@@ -145980,8 +145708,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10806041"
@@ -146287,8 +146015,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11011181"
@@ -146804,8 +146532,7 @@
           "implementer": "南榮開發建築股份有限公司",
           "planner": "紫陽工程顧問有限公司、台灣都市更新股份有限公司",
           "review_flags": [
-            "節點未能對應平台案件(案名:擬訂臺北市南港區南港段四小段566地號(原391地號)等6筆土地都市更新事業計畫, 日期:2016/2/25)",
-            "節點未能對應平台案件(案名:擬訂臺北市南港區南港段四小段566地號(原391地號)等6筆土地都市更新事業計畫, 日期:2016-02-25)"
+            "節點未能對應平台案件(案名:擬訂臺北市南港區南港段四小段566地號(原391地號)等6筆土地都市更新事業計畫, 日期:2016/2/25)"
           ],
           "auto_fixes": [],
           "district": "南港區",
@@ -146853,8 +146580,7 @@
           "implementer": "南榮開發建築股份有限公司",
           "planner": "安邦工程顧問股份有限公司",
           "review_flags": [
-            "節點未能對應平台案件(案名:變更臺北市南港區南港段四小段566地號等6筆土地都市更新事業計畫案, 日期:2019/11/20)",
-            "節點未能對應平台案件(案名:變更臺北市南港區南港段四小段566地號等6筆土地都市更新事業計畫案, 日期:2019-11-20)"
+            "節點未能對應平台案件(案名:變更臺北市南港區南港段四小段566地號等6筆土地都市更新事業計畫案, 日期:2019/11/20)"
           ],
           "auto_fixes": [],
           "district": "南港區",
@@ -147104,8 +146830,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09703181"
@@ -147198,8 +146924,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09703183"
@@ -147282,8 +147008,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "09703185"
@@ -148086,8 +147812,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09309221"
@@ -148205,8 +147931,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09309222"
@@ -148414,8 +148140,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第三次)",
+          "stage_權利變換": "變更(第三次)",
           "links": {
             "taipei": [
               "09309224"
@@ -150937,8 +150663,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11208111"
@@ -151329,8 +151055,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09508282"
@@ -151455,8 +151181,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10707172"
@@ -152435,8 +152161,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10901211",
@@ -152536,8 +152262,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11412012"
@@ -152979,15 +152705,14 @@
           "planner": "財團法人都市更新研究發展基金會",
           "review_flags": [
             "節點未能對應平台案件(案名:擬訂臺北市南港區玉成段二小段253-1地號等16筆土地都市更新事業計畫及權利變換, 日期:2022/1/4)",
-            "節點未能對應平台案件(案名:擬訂臺北市南港區玉成段二小段253-1地號等16筆土地都市更新事業計畫及權利變換, 日期:2022-01-04)",
             "孤兒案件未達相似度門檻(案10405043:0.54<0.70:變更臺北市南港區玉成段二小段253地號等9筆土地都市更新事業計畫及權利變換計畫案)",
             "片段家族合併候選: 全部 1 筆案例錨定於 南港區-玉成段二小段-253地號等9筆（合併候選，需人工確認）"
           ],
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [],
             "milestones_national": {},
@@ -153085,8 +152810,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10405041"
@@ -153340,8 +153065,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11402007"
@@ -153597,8 +153322,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10510141"
@@ -153691,8 +153416,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10510142"
@@ -154663,8 +154388,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11011161"
@@ -154970,8 +154695,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11108191"
@@ -155158,8 +154883,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09805061"
@@ -155277,8 +155002,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09805062"
@@ -155570,8 +155295,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10408181"
@@ -156063,8 +155788,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10406103"
@@ -156444,8 +156169,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11106151"
@@ -156536,8 +156261,8 @@
           "auto_fixes": [],
           "district": "南港區",
           "district_land": "南港區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11106152"
@@ -156822,8 +156547,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10303302"
@@ -157380,8 +157105,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10511292"
@@ -157472,8 +157197,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10511293"
@@ -157985,8 +157710,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10611221"
@@ -158073,8 +157798,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10611222"
@@ -158142,8 +157867,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "11501025"
@@ -158474,8 +158199,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10209162"
@@ -158848,8 +158573,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11407008"
@@ -159111,8 +158836,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10302101"
@@ -159225,8 +158950,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10302102"
@@ -160403,8 +160128,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09708071"
@@ -160813,8 +160538,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09306291"
@@ -160910,8 +160635,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09306293"
@@ -161215,8 +160940,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10208052"
@@ -161306,8 +161031,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10208053"
@@ -161873,8 +161598,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11010141"
@@ -162645,8 +162370,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10106117"
@@ -162770,8 +162495,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10106118"
@@ -162875,8 +162600,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第三次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "11405002"
@@ -163470,8 +163195,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10509261"
@@ -163863,8 +163588,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10605211"
@@ -164253,8 +163978,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10907061"
@@ -164505,8 +164230,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11008161"
@@ -164756,8 +164481,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10203162"
@@ -164856,8 +164581,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10709081"
@@ -165300,8 +165025,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10511081"
@@ -165663,8 +165388,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10910122"
@@ -166540,8 +166265,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10305091"
@@ -167014,8 +166739,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09911102"
@@ -167289,8 +167014,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10703211"
@@ -167405,8 +167130,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10703212"
@@ -168008,8 +167733,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10210311"
@@ -168397,9 +168122,9 @@
           ],
           "auto_fixes": [],
           "district": "士林區",
-          "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "district_land": "",
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10308261"
@@ -168586,8 +168311,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "10308263"
@@ -169075,8 +168800,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10107101"
@@ -169523,8 +169248,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10909221"
@@ -169963,8 +169688,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10905081"
@@ -170055,8 +169780,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11407025"
@@ -171557,8 +171282,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10910271"
@@ -171840,8 +171565,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10907081"
@@ -172595,8 +172320,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10103151"
@@ -172902,8 +172627,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更(第三次)",
           "links": {
             "taipei": [
               "10103154"
@@ -173638,8 +173363,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10109071"
@@ -174336,8 +174061,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10809052"
@@ -174670,8 +174395,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09810292"
@@ -175140,8 +174865,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10511161"
@@ -175249,8 +174974,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10712191"
@@ -175695,8 +175420,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11107151"
@@ -175989,8 +175714,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10304111"
@@ -176100,8 +175825,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10304112"
@@ -176186,8 +175911,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "10304113"
@@ -177109,8 +176834,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10403031"
@@ -178476,8 +178201,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10210081",
@@ -179076,8 +178801,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09708261"
@@ -179179,8 +178904,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09708262"
@@ -180079,8 +179804,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10001121"
@@ -180169,8 +179894,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10312231"
@@ -180609,8 +180334,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10101201"
@@ -180729,8 +180454,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10101202"
@@ -181212,8 +180937,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09509131"
@@ -181340,8 +181065,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09509132"
@@ -181762,8 +181487,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09712261"
@@ -181870,8 +181595,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09712262"
@@ -182327,8 +182052,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09601031"
@@ -182445,8 +182170,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09601032"
@@ -183008,8 +182733,7 @@
           "implementer": "孫立彬",
           "planner": "丹棠開發股份有限公司",
           "review_flags": [
-            "節點未能對應平台案件(案名:擬訂臺北市士林區陽明段二小段291號等5筆土地事業概要案, 日期:2020/12/3)",
-            "節點未能對應平台案件(案名:擬訂臺北市士林區陽明段二小段291號等5筆土地事業概要案, 日期:2020-12-03)"
+            "節點未能對應平台案件(案名:擬訂臺北市士林區陽明段二小段291號等5筆土地事業概要案, 日期:2020/12/3)"
           ],
           "auto_fixes": [],
           "district": "士林區",
@@ -183079,8 +182803,8 @@
           "auto_fixes": [],
           "district": "士林區",
           "district_land": "士林區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10903312"
@@ -183975,8 +183699,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09808111"
@@ -184664,8 +184388,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10904252"
@@ -185029,8 +184753,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10607231"
@@ -185199,8 +184923,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10607233"
@@ -186175,12 +185899,12 @@
           "planner": "弘傑不動產事業股份有限公司",
           "review_flags": [
             "階段與平台案件狀態不一致(公報變更(第三次)/平台變更)",
-            "孤兒案件未達相似度門檻(案10908272:0.54<0.70:擬訂臺北市大同區大龍段一小段265地號等27筆(原25筆)土地都市更新事業計畫及)",
             "孤兒案件未達相似度門檻(案11411017:0.54<0.70:變更(第二次)臺北市大同區大龍段一小段265地號等30筆(原27筆)土地都市更新)",
-            "孤兒案件未達相似度門檻(案10908273:0.54<0.70:變更臺北市大同區大龍段一小段265地號等30筆(原27筆)土地都市更新事業計畫案)",
+            "孤兒案件未達相似度門檻(案10908272:0.54<0.70:擬訂臺北市大同區大龍段一小段265地號等27筆(原25筆)土地都市更新事業計畫及)",
             "孤兒案件未達相似度門檻(案10908271:0.54<0.70:擬訂臺北市大同區大龍段一小段265地號等27筆(原25筆)土地都市更新事業計畫及)",
-            "孤兒案件未達相似度門檻(案10908274:0.54<0.70:變更臺北市大同區大龍段一小段265地號等30筆(原27筆)土地都市更新事業計畫案)",
-            "孤兒案件未達相似度門檻(案11411016:0.54<0.70:變更(第二次)臺北市大同區大龍段一小段265地號等30筆(原27筆)土地都市更新)"
+            "孤兒案件未達相似度門檻(案11411016:0.54<0.70:變更(第二次)臺北市大同區大龍段一小段265地號等30筆(原27筆)土地都市更新)",
+            "孤兒案件未達相似度門檻(案10908273:0.54<0.70:變更臺北市大同區大龍段一小段265地號等30筆(原27筆)土地都市更新事業計畫案)",
+            "孤兒案件未達相似度門檻(案10908274:0.54<0.70:變更臺北市大同區大龍段一小段265地號等30筆(原27筆)土地都市更新事業計畫案)"
           ],
           "auto_fixes": [],
           "district": "大同區",
@@ -187038,8 +186762,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10908271",
@@ -188157,8 +187881,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09303022"
@@ -188258,8 +187982,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09303023"
@@ -189531,8 +189255,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10003082"
@@ -189659,8 +189383,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10003083"
@@ -192301,8 +192025,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10608211"
@@ -192402,8 +192126,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11004141"
@@ -193600,8 +193324,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10005151"
@@ -194286,8 +194010,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10205091"
@@ -194429,8 +194153,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10205092"
@@ -195851,8 +195575,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09504261"
@@ -196018,8 +195742,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09504262"
@@ -196305,8 +196029,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第三次)",
+          "stage_權利變換": "變更(第三次)",
           "links": {
             "taipei": [
               "09504264"
@@ -196710,8 +196434,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10005141"
@@ -197768,8 +197492,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09610192"
@@ -197883,8 +197607,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09610193"
@@ -198711,8 +198435,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10110181"
@@ -199256,8 +198980,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10211271"
@@ -199357,8 +199081,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10806261"
@@ -200288,8 +200012,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09610124"
@@ -200414,8 +200138,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09610122"
@@ -200520,8 +200244,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "09610125"
@@ -200968,8 +200692,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09902024"
@@ -201785,8 +201509,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09903171"
@@ -201885,8 +201609,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09903173"
@@ -202552,8 +202276,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10011191"
@@ -202683,8 +202407,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10011193"
@@ -203501,8 +203225,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10006252"
@@ -204582,8 +204306,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10804091"
@@ -204999,8 +204723,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09502251"
@@ -205148,8 +204872,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09905201"
@@ -206784,8 +206508,8 @@
           "auto_fixes": [],
           "district": "大同區",
           "district_land": "大同區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10408242"
@@ -207502,8 +207226,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11211031"
@@ -207846,8 +207570,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11101271"
@@ -208415,8 +208139,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09211140"
@@ -208511,8 +208235,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09211141"
@@ -209259,8 +208983,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10907131"
@@ -209347,8 +209071,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10907132"
@@ -209666,8 +209390,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10301231"
@@ -211018,8 +210742,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10106073"
@@ -211710,8 +211434,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10004141"
@@ -212916,8 +212640,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10004292"
@@ -213025,8 +212749,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10004293"
@@ -215128,8 +214852,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10610271"
@@ -215423,8 +215147,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10405131"
@@ -215991,8 +215715,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10302223"
@@ -216413,8 +216137,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09909151"
@@ -217579,8 +217303,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10611122"
@@ -217728,8 +217452,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "11410021"
@@ -218071,8 +217795,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09810272"
@@ -218457,8 +218181,7 @@
           "implementer": "中興電工機械股份有限公司",
           "planner": "黃秀莊建築師事務所",
           "review_flags": [
-            "節點未能對應平台案件(案名:擬訂臺北市大安區復興段一小段3地號等5筆土地都市更新事業計畫案, 日期:2015/11/4)",
-            "節點未能對應平台案件(案名:擬訂臺北市大安區復興段一小段3地號等5筆土地都市更新事業計畫案, 日期:2015-11-04)"
+            "節點未能對應平台案件(案名:擬訂臺北市大安區復興段一小段3地號等5筆土地都市更新事業計畫案, 日期:2015/11/4)"
           ],
           "auto_fixes": [],
           "district": "大安區",
@@ -218499,8 +218222,7 @@
           "implementer": "中興電工機械股份有限公司",
           "planner": "黃秀莊建築師事務所",
           "review_flags": [
-            "節點未能對應平台案件(案名:變更臺北市大安區復興段一小段3地號等2筆(原5筆)土地都市更新事業計畫案, 日期:2020/7/30)",
-            "節點未能對應平台案件(案名:變更臺北市大安區復興段一小段3地號等2筆(原5筆)土地都市更新事業計畫案, 日期:2020-07-30)"
+            "節點未能對應平台案件(案名:變更臺北市大安區復興段一小段3地號等2筆(原5筆)土地都市更新事業計畫案, 日期:2020/7/30)"
           ],
           "auto_fixes": [],
           "district": "大安區",
@@ -218829,8 +218551,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10610301"
@@ -218914,8 +218636,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11507018"
@@ -219371,8 +219093,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10206032"
@@ -219814,8 +219536,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10901031"
@@ -220450,8 +220172,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10904201"
@@ -221075,8 +220797,7 @@
           "implementer": "大佑祥開發事業股份有限公司",
           "planner": "張國洋建築師事務所",
           "review_flags": [
-            "節點未能對應平台案件(案名:擬訂臺北市大安區懷生段一小段928地號1筆土地都市更新事業計畫案, 日期:2013/11/5)",
-            "節點未能對應平台案件(案名:擬訂臺北市大安區懷生段一小段928地號1筆土地都市更新事業計畫案, 日期:2013-11-05)"
+            "節點未能對應平台案件(案名:擬訂臺北市大安區懷生段一小段928地號1筆土地都市更新事業計畫案, 日期:2013/11/5)"
           ],
           "auto_fixes": [],
           "district": "大安區",
@@ -221167,8 +220888,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09403240",
@@ -221285,8 +221006,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09403241",
@@ -221390,8 +221111,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "09403246"
@@ -222909,8 +222630,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10505251"
@@ -224165,8 +223886,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09503208"
@@ -225029,8 +224750,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10007011"
@@ -225129,8 +224850,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10007012"
@@ -225201,8 +224922,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "10007013"
@@ -225848,8 +225569,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09803211"
@@ -225949,8 +225670,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10706051"
@@ -226530,8 +226251,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10904141"
@@ -226636,8 +226357,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10904142"
@@ -227121,8 +226842,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09610034"
@@ -227860,8 +227581,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10503012"
@@ -228709,8 +228430,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10611202"
@@ -229795,8 +229516,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10202061"
@@ -229888,8 +229609,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10202062"
@@ -230929,8 +230650,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10611111"
@@ -231345,8 +231066,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10111244"
@@ -231460,9 +231181,9 @@
           ],
           "auto_fixes": [],
           "district": "大安區",
-          "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "district_land": "",
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10111246"
@@ -231551,9 +231272,9 @@
           ],
           "auto_fixes": [],
           "district": "大安區",
-          "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "district_land": "",
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "10111248"
@@ -231645,7 +231366,7 @@
           ],
           "auto_fixes": [],
           "district": "大安區",
-          "district_land": "大安區",
+          "district_land": "",
           "stage_事業計畫": null,
           "stage_權利變換": null,
           "links": {
@@ -231903,24 +231624,6 @@
           "10111244",
           "10111248"
         ],
-        "orphan_nodes": [
-          {
-            "case_id": "09909301",
-            "case_name": "擬訂臺北市大安區辛亥段四小段496-13地號等11筆土地都市更新事業概要案",
-            "orphan": true,
-            "provenance": "orphan-case-anchoring",
-            "stage": "擬訂",
-            "track": "事業概要",
-            "node_date": "2011-08-11",
-            "schedule": "已失效",
-            "milestones_taipei": {},
-            "milestones_taipei_case": {
-              "概要公聽會日期": "2010/09/15",
-              "申請概要日期": "2010/09/30",
-              "概要核准日期": "2011/08/11"
-            }
-          }
-        ],
         "permit": {
           "permit_no": "114使字第0138號",
           "date": "2025-09-01",
@@ -232084,8 +231787,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10112191"
@@ -232184,8 +231887,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10410132"
@@ -232604,8 +232307,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11007311"
@@ -233446,8 +233149,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10609182"
@@ -234231,8 +233934,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11009241"
@@ -234836,8 +234539,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10706121"
@@ -235269,8 +234972,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10710021"
@@ -236595,8 +236298,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10910151"
@@ -238078,8 +237781,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10207101"
@@ -238190,8 +237893,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10207102"
@@ -238757,8 +238460,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10807031"
@@ -239294,8 +238997,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10202271"
@@ -239428,8 +239131,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10202272"
@@ -240985,8 +240688,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10912112"
@@ -241877,8 +241580,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10709282"
@@ -242952,8 +242655,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10108271"
@@ -243053,8 +242756,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10911201"
@@ -245163,8 +244866,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09510146"
@@ -245273,8 +244976,8 @@
           "auto_fixes": [],
           "district": "大安區",
           "district_land": "大安區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09510147"
@@ -246595,8 +246298,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09911092"
@@ -247142,8 +246845,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10208101"
@@ -247303,8 +247006,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10208102"
@@ -247824,8 +247527,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10401091"
@@ -248095,8 +247798,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10210151"
@@ -248961,8 +248664,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09010062"
@@ -249325,8 +249028,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09412272"
@@ -249452,8 +249155,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09412273"
@@ -250377,8 +250080,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09603171"
@@ -250472,8 +250175,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09603172"
@@ -250960,8 +250663,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09410044"
@@ -251577,8 +251280,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10204302"
@@ -251692,8 +251395,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10204303"
@@ -252569,8 +252272,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09507192"
@@ -252664,8 +252367,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09507193"
@@ -253052,8 +252755,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09908301"
@@ -253152,8 +252855,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09908302"
@@ -253872,8 +253575,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10907091"
@@ -254703,8 +254406,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09012251"
@@ -256176,8 +255879,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09103140"
@@ -256271,8 +255974,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09103141"
@@ -256363,8 +256066,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "09103143"
@@ -257317,8 +257020,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10401291"
@@ -259070,8 +258773,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "09609173"
@@ -259183,8 +258886,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第三次)",
           "links": {
             "taipei": [
               "09609174"
@@ -260436,8 +260139,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09906262"
@@ -260911,8 +260614,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11010082"
@@ -261628,8 +261331,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09409261"
@@ -261736,8 +261439,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09408232"
@@ -262310,8 +262013,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10103091",
@@ -262456,8 +262159,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10712251",
@@ -263192,8 +262895,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11105311"
@@ -263561,8 +263264,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10205271"
@@ -264139,8 +263842,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09901284"
@@ -264553,8 +264256,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09308101"
@@ -265581,8 +265284,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10608041"
@@ -265691,8 +265394,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10608042"
@@ -267131,8 +266834,8 @@
           "auto_fixes": [],
           "district": "文山區",
           "district_land": "文山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10303241"
@@ -267737,6 +267440,25 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "1301.0",
             "case_id": "09611281"
+          },
+          "recovery": {
+            "cases": [
+              "09611281"
+            ],
+            "api_cases": [
+              "09611281"
+            ],
+            "endpoint": "gis.uro.taipei/ashx",
+            "date_result": "exact",
+            "date_field": "uro_chk_date",
+            "list_source": "gazette fragment (partial)",
+            "flags": {
+              "partial": true,
+              "normalized": [],
+              "ambiguous-zone": false,
+              "date-pm1": false,
+              "similarity-band": false
+            }
           }
         }
       ],
@@ -269095,8 +268817,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09906202"
@@ -269412,8 +269134,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10101071"
@@ -269854,8 +269576,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10012251"
@@ -272066,8 +271788,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09009034"
@@ -272471,8 +272193,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "08901201"
@@ -272567,8 +272289,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "08901202"
@@ -272900,8 +272622,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09409201"
@@ -273033,8 +272755,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09409202"
@@ -273421,8 +273143,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10903181"
@@ -273823,8 +273545,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10612011"
@@ -274218,8 +273940,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11104221"
@@ -274527,8 +274249,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10001251",
@@ -274644,8 +274366,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10001253"
@@ -274740,8 +274462,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更(第二次)",
           "links": {
             "taipei": [
               "10001254",
@@ -275336,8 +275058,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09009033"
@@ -276211,8 +275933,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09912305"
@@ -277009,8 +276731,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10203032"
@@ -277115,8 +276837,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10712241"
@@ -277651,8 +277373,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10811021"
@@ -278352,8 +278074,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10507051"
@@ -279689,8 +279411,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10909041"
@@ -280015,8 +279737,8 @@
           ],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11501039"
@@ -280559,8 +280281,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09601264"
@@ -281077,8 +280799,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11412024"
@@ -281443,8 +281165,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10810041"
@@ -282097,8 +281819,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11105251"
@@ -282375,8 +282097,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09308061"
@@ -282466,8 +282188,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09308062"
@@ -282785,8 +282507,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10310211"
@@ -282871,8 +282593,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10905072"
@@ -283316,8 +283038,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09809231"
@@ -283425,8 +283147,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09809232"
@@ -283959,8 +283681,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10209291"
@@ -284998,8 +284720,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10906101",
@@ -285102,8 +284824,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10906103",
@@ -288254,8 +287976,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11411014"
@@ -290247,8 +289969,8 @@
           "auto_fixes": [],
           "district": "松山區",
           "district_land": "松山區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10812291"
@@ -290811,8 +290533,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09112120"
@@ -290908,8 +290630,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09112121"
@@ -291714,8 +291436,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10303191"
@@ -292404,8 +292126,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09703201"
@@ -292609,8 +292331,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "09703202"
@@ -293633,8 +293355,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10405291"
@@ -293736,8 +293458,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "10405292"
@@ -295286,8 +295008,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10301091"
@@ -295693,8 +295415,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10504191"
@@ -295990,8 +295712,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11508002"
@@ -296287,8 +296009,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09809072"
@@ -297585,8 +297307,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10609071"
@@ -298778,8 +298500,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10610121"
@@ -298908,8 +298630,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [
               "11412022"
@@ -299772,8 +299494,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更(第二次)",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09407303",
@@ -300104,8 +299826,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "10608262"
@@ -302733,8 +302455,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09707263"
@@ -303554,14 +303276,13 @@
           "planner": "弘傑不動產事業股份有限公司",
           "review_flags": [
             "案名與地號段小段不一致(地號為萬大段一小段)",
-            "節點未能對應平台案件(案名:擬訂臺北市萬華區萬華段一小段519-2地號等35筆土地都市更新事業計畫及權利變換, 日期:2017/4/18)",
-            "節點未能對應平台案件(案名:擬訂臺北市萬華區萬華段一小段519-2地號等35筆土地都市更新事業計畫及權利變換, 日期:2017-04-18)"
+            "節點未能對應平台案件(案名:擬訂臺北市萬華區萬華段一小段519-2地號等35筆土地都市更新事業計畫及權利變換, 日期:2017/4/18)"
           ],
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [],
             "milestones_national": {},
@@ -303625,14 +303346,13 @@
           "planner": "弘傑不動產事業股份有限公司",
           "review_flags": [
             "案名與地號段小段不一致(地號為萬大段一小段)",
-            "節點未能對應平台案件(案名:變更臺北市萬華區萬華段一小段519-2地號等35筆土地都市更新事業計畫及權利變換, 日期:2022/4/19)",
-            "節點未能對應平台案件(案名:變更臺北市萬華區萬華段一小段519-2地號等35筆土地都市更新事業計畫及權利變換, 日期:2022-04-19)"
+            "節點未能對應平台案件(案名:變更臺北市萬華區萬華段一小段519-2地號等35筆土地都市更新事業計畫及權利變換, 日期:2022/4/19)"
           ],
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "變更",
+          "stage_權利變換": "變更",
           "links": {
             "taipei": [],
             "milestones_national": {},
@@ -304563,8 +304283,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "11507019"
@@ -305631,8 +305351,8 @@
           "auto_fixes": [],
           "district": "萬華區",
           "district_land": "萬華區",
-          "stage_事業計畫": null,
-          "stage_權利變換": null,
+          "stage_事業計畫": "擬訂",
+          "stage_權利變換": "擬訂",
           "links": {
             "taipei": [
               "09610231"
@@ -305988,6 +305708,27 @@
             "StateLand2_Area": "416.0",
             "StateLand3_Area": "303.0",
             "case_id": "09610235"
+          },
+          "recovery": {
+            "cases": [
+              "09610235",
+              "09610236"
+            ],
+            "api_cases": [
+              "09610235",
+              "09610236"
+            ],
+            "endpoint": "gis.uro.taipei/ashx",
+            "date_result": "exact",
+            "date_field": "uro_chk_date",
+            "list_source": "gazette fragment (partial)",
+            "flags": {
+              "partial": true,
+              "normalized": [],
+              "ambiguous-zone": true,
+              "date-pm1": false,
+              "similarity-band": false
+            }
           }
         },
         {
@@ -306641,7 +306382,7 @@
           "implementer": "臺北市萬華區南機場十三號基地整宅更新地區青年段一小段130地號等3筆土地更新單元都市更新會",
           "planner": "聖洪建築師事務所、里成都市更新股份有限公司",
           "review_flags": [
-            "節點未能對應平台案件(案名:擬訂臺北市萬華區青年段一小段130地號等3筆土地都市更新事業計畫案, 日期:2026-01-20)"
+            "節點未能對應平台案件(案名:擬訂臺北市萬華區青年段一小段130地號等3筆土地都市更新事業計畫案, 日期:2026/1/20)"
           ],
           "auto_fixes": [],
           "district": "萬華區",
@@ -306669,28 +306410,6 @@
               "申請核定日期": "2025/06/26",
               "核定日期": "2026/01/20"
             }
-          },
-          "implementation": {
-            "Exe_Way": "事業計畫",
-            "Base_Area": "2232.41",
-            "Old_Doors": "140.0",
-            "Settle_Old_Doors": "0.0",
-            "Settle_Doors": "0.0",
-            "Road_Area": "0.0",
-            "Sidewalk_Area": "188.16",
-            "Urban_Renew_Fee": "2662743785.0",
-            "pc_afterUpdTotalValue": "5952389940.0",
-            "Private_Area": "1826.0",
-            "State_Area": "0.0",
-            "Muni_Area": "406.41",
-            "Land_Owners_Pir": "169.0",
-            "Land_Owners_Pub": "1.0",
-            "Bui_Owners_Legal": "140.0",
-            "Landkind1": "第一種商業區(特)",
-            "Landkind1_Area": "2232.41",
-            "StateLand1_Owner": "臺北市/財政局",
-            "StateLand1_Area": "406.41",
-            "case_id": "11501041"
           }
         }
       ],

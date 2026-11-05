@@ -2,17 +2,20 @@
 
 Findings from the post-Batch-B+C session (2026-11-04, payload at `47453f9`:
 1,442 records / 682 projects, the corpus converged after waves 1–3 of the
-Batch B + C plan). Twelve findings, all measured (D4–D12 added 2026-11-05). The board follows the
+Batch B + C plan). Fifteen findings, all measured (D4–D15 added 2026-11-05). The board follows the
 `docs/inspection-batchBC.md` structure: findings, then the integrated plan,
 then the decisions that gate execution.
 
-**Open items: none** (2026-11-05). The user decided the D10 rule, the
-2026-11-03 gazette timing, the D6 restore method and step 5a. The consolidated
-execution order is D9g.
+**Open items: none** (2026-11-06). The user decided D13, the D8 scope
+(per case) and D14(b) (cleanse by the collected district enum) on 2026-11-06. The user decided the D10 rule, the 2026-11-03 gazette
+timing, the D6 restore method and step 5a. The consolidated execution order is
+D9g.
 
-**Working-tree state (2026-11-05).** This board and about 20 scripts under
-`scripts/` are uncommitted. The D9 evidence files (`data/p168_*.json`) are
-gitignored, so the scripts are the only reproducible record.
+**Working-tree state (2026-11-05).** This board and the `probe_*` scripts are
+committed (`87b79d0`, `caa2159`, `43cb9bf`), but not pushed: origin/main is at
+`6457de7`. The D9 evidence files (`data/p168_*.json`) are gitignored, so the
+scripts are the only reproducible record. D13–D15 came from the peer session
+graph-order-issues (HEAD then `16b418a`, after the D5 ingest `28d1eb5`).
 
 ## D1 — the orphan `milestones_national` key holds Taipei data (name wrong, data right)
 
@@ -755,14 +758,18 @@ Priority: **P1** = wrong data on screen today; **P2** = a display gap with a
 known cause; **P3** = cosmetic or single-project. Dependency is the finding that
 must land first, because it changes the same code or the same re-emit.
 
-**All decisions are made (2026-11-05).** The consolidated order is D9g; this
-table is the per-finding view of it.
+**All decisions are made (2026-11-06).** The consolidated order is D9g; this
+table is the per-finding view of it. Where the two differ, D9g wins.
 
 | Step | Finding | Priority | Form | Depends on | Gate |
 | --- | --- | --- | --- | --- | --- |
 | D7b | the 50 divergences unexplained by subset or permutation | **P1** | investigation, then folded into D7 | — | measured before the fix is written |
 | D7 | `refresh_project` never re-derives `taipei_milestones` — 85 of 719 caches diverge, 84 lose or alter a label, 14 projects emit no construction date a case holds | **P1** | openspec change (pipeline) + cache re-derive + re-emit | D7b | **decided: overwrite** (D7) |
-| D8 | `refresh_project` never re-fetches data3/data4 — 6 of 719 caches hold an empty `implementation`, 4 with a recoverable construction date | **P1** | openspec change (pipeline) + cache refresh + re-emit | **D7** (one edit, one re-emit) | **decided: refetch only empty** (D8) |
+| D8 | `refresh_project` never re-fetches data3/data4 — 6 of 719 caches hold an empty `implementation`, 4 with a recoverable construction date | **P1** | openspec change (pipeline) + cache refresh + re-emit | **D7** (one edit, one re-emit) | **decided: refetch per case** (26 cases / 22 projects; amended 2026-11-06) |
+| D13 | 青年130 node 78 — stale cache: the city emptied `11501041`, the refresh kept it 已核准 | **P1** | part of the D7+D8 change | **D7**, **D8** | **decided: label 無, keep as orphan** |
+| D14 | `--from-js` loader drops 3 node fields and coerces `district_land` `''` | **P1** | direct `fix:` + round-trip test | — | before the first re-emit |
+| D14(b) | `district_land` from the collected 12-district enum (7 rows) | **P2** | openspec change (`cleanse`) + 2 tests | — | before the next PDF ingest (D9f) |
+| D15 | review-flag order depends on cluster order (大龍265-7) | **P3** | openspec change (emitter) + test | — | rides a re-emit |
 | D10 | the permit witness names the first permit of a tie — 43 projects show a 執照 date that is not the project's own 使照 | **P2** | openspec change (`official-link-discovery`) + re-emit | **D7** (the flag path reads the dict D7 corrupts) | **decided: 開工 match, else ambiguous** (D10e) |
 | D6 | twur override key is the pre-`c2cfbb9` slug — the record never applies; 國 badge and 7 national milestones absent | **P2** | direct `fix:` (re-key + dataset-key test) + restore + re-emit | — | **decided: re-key + per-project `discover_project_links(fresh=True)`** (D6) |
 | D9c-2 | `10708311` and `11412011` are absent from the city's parcel index — **DONE 2026-11-05** (live probe) | — | probe | — | — |
@@ -770,7 +777,7 @@ table is the per-finding view of it.
 | D9a-5a | header pass over the 84 no-link cases — **DONE 2026-11-05**: 0 approved; 78 in review, 5 closed, 1 revoked | — | read-only probe | — | — |
 | D9e | 54 of 54 in-processing case_ids resolve — lock it in with an offline test | **P2** | `tests/` | — | — |
 | D11 | the A/B/C surfaces read one dict | — | docs only | — | **DONE** (recorded below) |
-| D9f | periodical 168 poller + hash change detection, coordinated with the PDF poll | **P3** | `scripts/probe_fetch_p168_list.py` + hash wrapper | — | — |
+| D9f | periodical 168 poller + hash change detection, coordinated with the PDF poll; then the 2026-11-03 ingest | **P2** | poller script + task action + ingest + re-emit | **D7**, **D14(b)** | single-writer rule |
 | D9c-4 | monitor the cases D9a-5a confirms as not approved, after each new gazette | **P3** | re-run the cross-reference scripts | D9a-5a, D9f | new gazette published |
 | D12 | architecture concerns — recorded, constrain D9g steps 2–9 | — | docs only | — | **DONE** (recorded below) |
 | D3a | `nationalLabelKey` ordinal spelling — 223 labels never bind — **DONE** (`d8a63ca` + test at `tests/test_viewer_labels.py:560`); direct `fix:`, no openspec change and no re-emit needed | — | — | — | — |
@@ -802,7 +809,7 @@ Superseded. The execution order is D9g.
 
 | Entry | Question | Blocks |
 | --- | --- | --- |
-| — | None. All were decided on 2026-11-05 (see "Decisions made"). | — |
+| — | None. D13, D8 (per case) and D14(b) were decided on 2026-11-06 (see "Decisions made"). | — |
 
 Decided 2026-11-05 and moved into the findings: D2b (date-first sort), D4b
 (chain + dotted edges), D4c (literal reading, after the construction chip),
@@ -1057,7 +1064,7 @@ snapshot. The 2026-11-03 gazette is the first such ingest.
 
 ## D9g — consolidated execution order
 
-Every decision is made (2026-11-05); nothing is open. The measurements changed the order three times: D9c
+Every decision is made (D13, D8 per case and D14(b) on 2026-11-06). The measurements changed the order three times: D9c
 option 1 is withdrawn (D9d), D6's restore method is **not** `--fresh` (it
 renames the whole cache), and D9c-2's fix layer waits on a live search.
 
@@ -1065,24 +1072,40 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 
 | Step | Finding | Priority | Form | Depends on | Gate |
 |---|---|---|---|---|---|
+| 0 | D14 — the `--from-js` loader round-trips `stage_事業計畫`, `stage_權利變換`, `recovery` and `district_land` (no coercion of `''`); round-trip test is the gate | **P1** | direct `fix:` + test (no re-emit of its own) | — | must land before the first `--from-js` re-emit (steps 2, 3, 4, 6 and every later one) |
+| 0b | D14(b) — `_land_district` reads the collected 12-district enum (7 rows change) | **P2** | openspec change (`cleanse`) + 2 tests | — | must land before step 9 (the next PDF ingest); no re-emit of its own |
 | 1 | D7b — name the 50 divergences unexplained by subset or permutation | **P1** | measurement only | — | — |
-| 2 | D7 + D8 — one `refresh_project` edit (re-derive `taipei_milestones`; re-fetch `data3`/`data4` where `implementation` is empty) + one cache pass + one re-emit | **P1** | openspec change (pipeline) | step 1 | D7 rule = overwrite (decided) |
+| 2 | D7 + D8 + D13 — one `refresh_project` edit: re-derive `taipei_milestones`; re-fetch `data3`/`data4` **per case** (26 cases in 22 projects, offline count 2026-11-06); label a case 無 when its header row and data2 are both empty. One cache pass + one re-emit | **P1** | openspec change (pipeline) | steps 0, 1 | D7 = overwrite; D8 = per case; D13 = 無 orphan (all decided); read the 無 list and counts before the re-emit |
 | 3 | D10 — permit-witness selection: the permit whose 開工日期 matches the city's; otherwise mark `links.permit.ambiguous` (decided) | **P2** | openspec change (`official-link-discovery`) + re-emit | step 2 | 開工 date must come from the source map, not the merged dict |
-| 4 | D6 — re-key `data/twur_overrides.json` to `…等2筆`, correct `PID`, add the dataset-key test, then `discover_project_links(fresh=True)` on that one project (decided, option A) | **P2** | direct `fix:` + one-project restore + re-emit | — | single-writer rule; **not** `--fresh` |
+| 4 | D6 — re-key `data/twur_overrides.json` to `…等2筆`, correct `PID`, add the dataset-key test, then `discover_project_links(fresh=True)` on that one project (decided, option A) | **P2** | direct `fix:` + one-project restore + re-emit | step 0 | single-writer rule; **not** `--fresh` |
 | 5 | D9c-2 — live parcel search for the 2 sibling projects | — | probe | — | **DONE 2026-11-05**: the city's search does not index either sibling |
 | 5a | Header pass over the 84 "no link, no parcel match" cases | — | read-only probe | — | **DONE 2026-11-05**: 78 in review, 5 closed, 1 revoked |
 | 6 | D9c-2a — (a) merge the stranded `南港566…等6筆` cache into the live `…等1筆` dir (offline; binds nodes 744 and 1063); (b) second id source for ids in no cache (`11412011`); (c) stop a stub from shadowing an aliased dir. One re-emit | **P2** | (a) cache merge; (b)+(c) openspec change + `urtpe/links.py` + test | **step 2** | single-writer rule; no other session running |
 | 7 | D9e — offline test: all 54 in-processing case_ids resolve (54/54 pass today) | **P2** | `tests/` | — | — |
 | 8 | D11 — record the A/B/C shared-dependency finding | — | docs | — | **DONE** (this board) |
-| 9 | D9f — 168 poller + hash change detection in the `urtpe-poll` task, then one ingest of the 2026-11-03 gazette and a cross-reference against the fresh snapshot | **P2** | poller script + task action + ingest + re-emit | step 2 | single-writer rule; poller writes snapshots only |
+| 9 | D9f — 168 poller + hash change detection in the `urtpe-poll` task, then one ingest of the 2026-11-03 gazette and a cross-reference against the fresh snapshot | **P2** | poller script + task action + ingest + re-emit | steps 0b, 2 | single-writer rule; poller writes snapshots only |
 | 10 | D9c-4 — monitor the 78 in-review cases after each new gazette | **P3** | re-run the cross-reference scripts | step 9 | new gazette published |
+| 11 | D13 — folded into step 2 (decided 2026-11-06) | — | — | — | see step 2 |
+| 12 | D15 — sort a node's `review_flags` by a stable key | **P3** | openspec change (emitter) + test | — | land before step 2 to ride its re-emit; otherwise the next one; do not re-emit for it alone |
 
 **Why this order.**
 
+- **Step 0 first.** D14 is a loss on the rebuild path. Every re-emit in steps
+  2, 3, 4, 6 and 9 runs through `--from-js`, so each one would drop the 533
+  sub-stages again. A restore from `viewer/projects.data.js` is not lossless
+  until D14 lands. It is small and has no network or cache dependency.
+- **Step 0b before step 9.** The enum read is a cleanse rule, and only a PDF
+  ingest re-cleanses. Step 9 is the next ingest (the 2026-11-03 gazette).
+  `--from-js` re-emits in steps 2–6 carry the stored value, so they do not
+  need 0b.
 - **Steps 1–2 first.** D7 and D8 are the only findings that put *wrong data on
   screen today* (84 caches lose a milestone label; 14 projects hide a
-  construction date the city publishes). They share one `refresh_project` edit
-  and one re-emit, so splitting them would pay the ~23 MB write twice.
+  construction date the city publishes). D13 is the same `refresh_project`
+  edit (a stale 已核准 on an emptied case). They share one edit and one
+  re-emit, so splitting them would pay the ~23 MB write twice. D8 is now per
+  case, so the cache pass refetches 26 cases in 22 projects, not 6 projects.
+- **Step 12 (D15) before step 2, if ready.** It is an emitter sort and adds no
+  write of its own; it rides step 2's re-emit, or the next one.
 - **Step 3 after step 2.** D10's flag path reads `links.milestones_taipei`
   (`urtpe/links.py:3378-3381`) — the dict D7 corrupts. Landing D10 on the
   repaired dict means the flag sees correct values, and step 2's re-emit can
@@ -1323,7 +1346,9 @@ constrains how a D9g step is built.
    say so, and must not present the list as the whole pipeline. A complete
    pending-case source is still unknown; finding one is open research.
 2. **The parcel search has a recall limit.** The city's own parcel index omits
-   two approved cases (D9c-2), and 16 nodes in 11 projects are unplaced. The
+   two approved cases (D9c-2), and 16 nodes in 11 projects are unplaced
+   (recounted after the `28d1eb5` ingest by graph-order-issues; step 6(a)
+   fixes 2, D13 explains 1). The
    pipeline has one id source; a missing id stays missing with no signal except
    the unplaced flag. A second, header-confirmed id source (D9g step 6) is the
    structural fix; the 168 list closes 1 of the 16 today.
@@ -1346,13 +1371,197 @@ Two smaller ones:
   committed with the `probe_` prefix that AGENTS.md uses for archaeology, so
   they are not read as durable tools.
 
+## D13 — 青年130 node 78 lost its `implementation` payload (peer graph-order-issues, 2026-11-05)
+
+Project `萬華區-青年段一小段-130地號等3筆`, node recno 78 (2026-01-20).
+
+**Cause.** The cache holds two live cases with the same name: `11501041`
+(已核准) and `11510008` (已核定). Their `case_milestones` are identical; both
+show 核定 2026/01/20. `_bind_from_name_step` binds only when exactly one live
+case matches. With two matches and no area suffix, it returns `[]`. Node 78
+thus has `links.taipei = []` and the flag 節點未能對應平台案件. A node takes
+`implementation` only from an anchored case (`urtpe/links.py:3235-3241`), and
+the one payload is under `11501041`.
+
+**History.** `11510008` entered the cache in `c084833` (whole-corpus refresh,
+2026-11-04). The `--from-js` re-emits copied the old `implementation` forward
+and hid the loss. The PDF ingest `28d1eb5` re-derived every node and showed it.
+A no-ledger A/B run shows the same loss, so D5 did not cause it.
+
+**Live re-check (2026-11-06, user request) — the cache is stale.** The user
+saw on the city platform that `11501041` is empty and `11510008` holds the
+data. Ten read-only requests confirm it:
+
+| Source | `11501041` | `11510008` |
+|---|---|---|
+| header (`get_project168_top.ashx`) | empty | 事業計畫階段─業經本府核定, `uro_chk_date` 2026-01-20 |
+| data2 milestones | empty | 14 dates, same as the cache |
+| data3 implementation | empty | 9 keys (`Settle_Old_Doors` now 140.0; the cache's `11501041` copy says 0.0) |
+| data4 rewards | empty | 18 keys, same values as the cache's `11501041` copy |
+| parcel search 青年段一小段/130 | **not returned** | returned, 已核定 |
+
+The city moved the case from `11501041` to `11510008` and emptied the old id.
+The cache still holds the old id as live (已核准) with the old payload.
+
+**Why the refresh kept the stale case.**
+
+1. `refresh_project` treats an empty header as no evidence
+   (`urtpe/links.py:1895`: "a missing row ({} / None) is no evidence"). So
+   `11501041` keeps 已核准.
+2. An empty data2 keeps the cached milestones (`urtpe/links.py:1886`).
+3. A case id that the parcel search no longer returns stays in
+   `city_case_ids`. The refresh only appends.
+4. `refresh_project` never fetches data3/data4 (D8). So `11510008` has no
+   `implementation` entry. **D8's decided scope (option B: refetch only where
+   the project's `implementation` is empty) misses this project**, because the
+   dict holds entries for `10006192` and `11501041`.
+
+Rule 1 is deliberate: one empty response can be a transient failure. The gap
+is that no rule tells "the city removed this id" from "the request failed".
+
+**Options (user decision), revised:**
+
+1. **Retire a case the city removed.** Trigger: all of (a) header, data2,
+   data3 and data4 are empty, (b) the parcel search no longer returns the id,
+   and (c) a same-name sibling is live. Then mark the id 無 (or record
+   `superseded_by`). The existing 無 rule in `filter_live_cases` then binds
+   `11510008` alone. Add the per-case data3/data4 fetch for `11510008`.
+2. **Prefer the case with a header** (tie-break in `filter_live_cases`). This
+   binds `11510008` but leaves the stale `11501041` data in the cache.
+3. **Leave it unanchored.**
+
+Option 1 fixes the cause; option 2 hides it. Each needs an openspec change, a
+test and a count of the other caches the rule changes.
+
+**Decision (user, 2026-11-06): keep the empty case as an orphan, labelled
+[無].** The city states nothing about a removal, so the pipeline must not
+claim one: no retirement, no `superseded_by`, the id stays in
+`city_case_ids`. The rule: when a refresh reads an **empty** header row
+**and** empty data2 for a case, it records the case's state as 無 (it no
+longer keeps the stale 已核准). The existing rule in `filter_live_cases` (a 無
+case yields to a live sibling with a state) then binds `11510008` to node 78.
+The per-case data3/data4 fetch (D8, per case) gives `11510008` its
+`implementation`. Both go into the step 2 change.
+
+- **Why two empty sources, not one.** One empty response can be a transient
+  failure (the reason for `urtpe/links.py:1895`). Two endpoints empty in the
+  same refresh is the measured shape here.
+- **Scope, offline (2026-11-06).** 59 live cases have no cached header; 3 of
+  them have a same-name sibling (青年130 `11501041`, 虎林38 `11410001`, 中山57
+  `09801094`). Which cases become 無 is known only after the live refresh, so
+  the refresh report must list every case it labels 無, and the count must be
+  read before the re-emit.
+
+## D14 — the `--from-js` loader drops three node fields (peer graph-order-issues, 2026-11-05)
+
+`_load_projects_from_js` builds each `CleanRecord` at `urtpe/cli.py:102-132`.
+It does not set `stage_事業計畫`, `stage_權利變換` or `recovery`. The PDF path
+sets them (`urtpe/cleanse.py:294-306,330-336`), and the emitter writes them
+(`urtpe/graph.py:66-67,78-80`). Thus every `--from-js` re-emit drops them from
+every node.
+
+**`district_land` is coerced, not dropped.** `urtpe/cli.py:73` reads
+`node.get("district_land", "") or node_district`. An emitted `''` thus becomes
+the node's district on the first `--from-js` run, and later runs carry that
+value forward. Four nodes show it (verified 2026-11-06, `1517300` vs now):
+
+| recno | land cell starts | `1517300` (from-js) | now (PDF ingest) |
+|---|---|---|---|
+| 153, 382, 928 | 臺北大安區辛亥段四小段… | 大安區 | `''` |
+| 926 | 臺北士林區百齡段二小段… | 士林區 | `''` |
+
+The cells print 臺北X區 with no 市. `DISTRICT_RE` (`urtpe/cleanse.py:19`) is
+`臺北市(.{1,4}?區)`, so `_land_district` returns `''`.
+
+**A second question this raises (not decided).** The cell does name the
+district (大安區, 士林區); only 市 is missing. So `''` is what the regex reads,
+but it may not be what the cell means. Two separate fixes are possible: (a) the
+loader round-trips `''` as-is (the D14 fix, below); (b) `DISTRICT_RE` also
+accepts 臺北X區. (b) is a cleanse rule change and needs its own openspec change.
+Without (b), (a) makes 4 nodes show no land district.
+
+Peer measurement for (b) (graph-order-issues, 2026-11-06): across 1,442
+`clean.tsv` rows, `district_land` is empty on exactly these 4 rows, and they
+are the only land cells that start 臺北 without 市. A loose
+`臺北市?(.{1,4}?區)` changes these 4 rows only (1,438 identical) and reads the
+row's own district column each time. The 案名 of the same rows prints 臺北市,
+and all 4 already carry 案名與地號段小段不一致. So `''` is a reader artifact.
+**(b) must not absorb the 臺北市投區 typo** (recnos 488, 558, 927, a missing
+北, flagged 行政區與地號行政區不一致). Both regexes read 投區; that is a
+separate defect. (b) needs its own test: a 臺北大安區 cell reads
+`district_land = 大安區`. The round-trip test alone would also pass on `''`.
+
+**Decision (user, 2026-11-06): cleanse from the collected enum, not a looser
+regex.** `_land_district` reads the first district name from the 12 values
+collected in `clean.tsv`'s `district` column (中山區 中正區 信義區 內湖區 北投區
+南港區 士林區 大同區 大安區 文山區 松山區 萬華區). Measured offline on 1,442
+rows: **7 rows change, none other.**
+
+| recno | land cell starts | today | enum read |
+|---|---|---|---|
+| 153, 382, 928 | 臺北大安區… | `''` | 大安區 |
+| 926 | 臺北士林區… | `''` | 士林區 |
+| 488, 558, 927 | 臺北市投區… | 投區 | `''` |
+
+The 投區 rows now read `''`: 投區 is not a district, and the enum does not
+guess the missing 北 (never repair by inference). Their flag
+行政區與地號行政區不一致(地號為投區) must still fire — the test must pin it,
+because its text interpolates the land district. `_section`
+(`urtpe/cleanse.py:92`) also splits on `DISTRICT_RE`; the change must keep the
+section and parcels of these 7 rows unchanged, or report the diff. The enum
+change only takes effect on a **PDF ingest** (`--from-js` does not re-cleanse),
+so it must land before D9g step 9. Tests: a 臺北大安區 cell reads 大安區; a
+臺北市投區 cell reads `''` and keeps its flag.
+
+**Measured drift** (true pre-ingest baseline `1517300` vs the ingest
+`28d1eb5`, peer re-measure): `stage_事業計畫` filled on 533 nodes,
+`stage_權利變換` on 533, `recovery` on 4, `district_land` changed on 4,
+`implementation` 1 (value → none: D13's node 78), `is_current` 1 (吉林676 node
+1347, caused by D5's merge). Of the 533, 79 nodes change on screen. This is why
+the PDF ingest changed 375 projects after the three `--from-js` re-emits (D1
+`2bb3013`, D2a `e97c18d`, D2b).
+
+**View impact.** `viewer/app.js:468` reads `n.stage_權利變換 || ""` with no
+fallback to `n.stage`. So 79 nodes show a different 權利變換 sub-stage after
+the ingest than after a `--from-js` re-emit.
+
+**Fix shape.** The loader must round-trip, not coerce.
+
+1. Restore `stage_事業計畫`, `stage_權利變換` and `recovery`, in the same
+   pattern as the `implementation` and `links` restore lines
+   (`urtpe/cli.py:133-138`).
+2. Read `district_land` as-is, including `''`. Keep the fallback only when the
+   key is absent (older payloads):
+   `node["district_land"] if "district_land" in node else node_district`.
+3. Gate: a round-trip test. Emit, load with `--from-js`, emit again. The four
+   fields must be identical on every node. This is not D7 or D8 (both are about `refresh_project`); it is the
+rebuild path. D9g step 0.
+
+## D15 — the D5 ledger reorders the review flags on 大龍265-7 (peer graph-order-issues, 2026-11-05)
+
+Project `大同區-大龍段一小段-265-7地號等2筆`, node recno 1242. An A/B run
+against `--ledger ""` (same PDF, same flags) isolates one change: 3
+`review_flags` are reordered, not added. `10908274`, `11411017` and
+`10908273` swap places. The flag text (孤兒案件未達相似度門檻, same case ids,
+same scores) does not change.
+
+**Cause.** The second ledger entry (吉林676 merge) changes the family's member
+order. That changes the cluster iteration order, and so the order in which the
+orphan cases are found.
+
+**Impact.** Cosmetic in the viewer. It is the only D5-caused payload change
+outside 吉林676. A stable sort of `review_flags` (for example by case_id, then
+text) removes the order dependency. D9g step 12, P3.
+
 ## Decisions made (2026-11-05)
 
 | Entry | Decision | Blocks |
 |---|---|---|
 | D6 | Re-key `data/twur_overrides.json` to `…等2筆`, correct `PID`, restore with per-project `discover_project_links(fresh=True)` (option A, 2026-11-05) — not corpus-wide `--fresh` | D6 fix + re-emit |
 | D7 | Option A — overwrite (re-derive `taipei_milestones` exactly from `case_milestones`, drop the 5 re-dated values) | D7 re-derive rule |
-| D8 | Option B — refetch `data3`/`data4` only where `implementation` is empty (6 projects) | D8 scope + cache pass |
+| D8 | Option B — refetch `data3`/`data4` only where `implementation` is empty (6 projects). **Amended 2026-11-06: per case** — every live case with an approval date and no `implementation` entry (26 cases in 22 projects); the per-project rule missed 青年130 (D13) | D8 scope + cache pass |
+| D13 | Keep the emptied case as an orphan labelled 無 (no removal claimed); a refresh labels a case 無 when its header row and data2 are both empty; folded into D9g step 2 (2026-11-06) | D9g step 2 |
+| D14(b) | Cleanse `district_land` from the collected 12-district enum, not a looser regex (2026-11-06); 7 rows change | D9g step 0b |
 | D9c | Options 1+2+4 → **option 1 withdrawn** (D9d: the ledger cannot add a record the gazette does not hold); **2+4 stand** | D9c-2, D9c-4 |
 | D9f | Accept periodical 168 poller plan, coordinated with periodical PDF update | D9f-1 |
 | D10 | The permit whose 開工日期 matches the city's; otherwise `links.permit.ambiguous` (2026-11-05) | D10 openspec change |

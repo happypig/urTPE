@@ -1075,7 +1075,7 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 | 0 | D14 — the `--from-js` loader round-trips `stage_事業計畫`, `stage_權利變換`, `recovery` and `district_land` (no coercion of `''`); round-trip test is the gate | **P1** | direct `fix:` + test (no re-emit of its own) | — | must land before the first `--from-js` re-emit (steps 2, 3, 4, 6 and every later one) |
 | 0b | D14(b) — `_land_district` reads the collected 12-district enum (7 rows change) | **P2** | openspec change (`cleanse`) + 2 tests | — | must land before step 9 (the next PDF ingest); no re-emit of its own |
 | 1 | D7b — name the 50 divergences unexplained by subset or permutation | **P1** | measurement only | — | — |
-| 2 | D7 + D8 + D13 — one `refresh_project` edit: re-derive `taipei_milestones`; re-fetch `data3`/`data4` **per case** (26 cases in 22 projects, offline count 2026-11-06); label a case 無 when its header row and data2 are both empty. One cache pass + one re-emit | **P1** | openspec change (pipeline) | steps 0, 1 | D7 = overwrite; D8 = per case; D13 = 無 orphan (all decided); read the 無 list and counts before the re-emit |
+| 2 | D7 + D8 + D13 — one `refresh_project` edit: re-derive `taipei_milestones`; re-fetch `data3`/`data4` **per case** (26 cases in 22 projects, offline count 2026-11-06); label a case 無 when its header row and data2 are both empty. One cache pass + one re-emit | **P1** | openspec change (pipeline) | steps 0, 1 | D7 = overwrite; D8 = per case; D13 = 無 orphan (all decided); a 無 case's payload never wins `select_best_payload`; tests pin 青年130, 虎林38 and the 美仁800 near-miss; read the 無 list and counts before the re-emit |
 | 3 | D10 — permit-witness selection: the permit whose 開工日期 matches the city's; otherwise mark `links.permit.ambiguous` (decided) | **P2** | openspec change (`official-link-discovery`) + re-emit | step 2 | 開工 date must come from the source map, not the merged dict |
 | 4 | D6 — re-key `data/twur_overrides.json` to `…等2筆`, correct `PID`, add the dataset-key test, then `discover_project_links(fresh=True)` on that one project (decided, option A) | **P2** | direct `fix:` + one-project restore + re-emit | step 0 | single-writer rule; **not** `--fresh` |
 | 5 | D9c-2 — live parcel search for the 2 sibling projects | — | probe | — | **DONE 2026-11-05**: the city's search does not index either sibling |
@@ -1451,6 +1451,30 @@ The per-case data3/data4 fetch (D8, per case) gives `11510008` its
   `09801094`). Which cases become 無 is known only after the live refresh, so
   the refresh report must list every case it labels 無, and the count must be
   read before the re-emit.
+
+**Second instance and a near-miss (peer graph-order-issues, live 2026-11-06).**
+
+- **虎林38 `11410001`** (`信義區-虎林段四小段-38地號等138筆`): header empty,
+  data2/data3/data4 empty, not in the parcel search. Its same-name sibling
+  `11502012` is live (事業計畫階段─業經本府核定; data2 12, data3 25, data4 18
+  keys). Same shape as `11501041`. The rule's live population is 2.
+- **美仁800 `09707196`** is **not** this shape. Its header reads
+  業經本府撤銷核准 and data2/data3/data4 are live (17/32/20 keys). It is a
+  revoked case, not an emptied one. The rule fires only on an **empty**
+  header, so it does not touch this case. The test must pin that. Its cached
+  schedule is none, so the header wording decides, not the schedule.
+- **The parcel search is not part of the rule.** The search omits approved
+  ids for known reasons (D9c-2: `10708311`, `11412011`). This agrees with the
+  user's decision: the rule claims no removal.
+
+**Constraint on step 2: a 無 case's cached payload must not win the project
+payload.** `select_best_payload` (`urtpe/links.py:2133`) picks the payload
+with the most keys. After the per-case refetch, `11510008` holds 9 keys and
+the stale `11501041` copy holds 19, so the stale copy would still win. The two
+copies disagree (`Settle_Old_Doors` 0.0 vs the live 140.0). The 無 case keeps
+its id and its cached data (the user's decision: an orphan, no removal), but
+the payload selection (`implementation` and `rewards`) must skip a case
+labelled 無 when a live case has a payload. Add this to the step 2 tests.
 
 ## D14 — the `--from-js` loader drops three node fields (peer graph-order-issues, 2026-11-05)
 

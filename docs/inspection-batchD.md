@@ -2,7 +2,7 @@
 
 Findings from the post-Batch-B+C session (2026-11-04, payload at `47453f9`:
 1,442 records / 682 projects, the corpus converged after waves 1–3 of the
-Batch B + C plan). Four findings, all measured (D4 added 2026-11-05). The board follows the
+Batch B + C plan). Six findings, all measured (D4–D6 added 2026-11-05). The board follows the
 `docs/inspection-batchBC.md` structure: findings, then the integrated plan,
 then the decisions that gate execution.
 
@@ -429,6 +429,138 @@ family name. Then run a PDF ingest with `--ledger`.
 defaults to `urtpe-gazettes/corrections.jsonl` (option A: a forgotten flag
 must not drop corrections silently). Change: `ledger-confirm-merge`.
 
+## D6 — the twur override stopped applying when the slug changed (user, 2026-11-05)
+
+**Question (user, 2026-11-05).** `https://twur.nlma.gov.tw/zh/urban/rebuild/view/18`
+is not in 相關連結 for `萬華區-崇仁新村青年段一小段-711-3地號等2筆`. Also: how do
+the two city cases (`09112120`, `09112121`) join that project?
+
+**Finding 1 — the record is present and well-formed, but its key matches no
+project.** `data/twur_overrides.json` holds the record under the key
+`萬華區-崇仁新村青年段一小段-711-3地號等?筆`. The dataset's id is
+`…等2筆`. `load_twur_overrides` keys on `project.project_id`
+(`urtpe/links.py:713`), so the lookup misses, `links.twur` emits empty, and
+`getNodeMilestoneBadges` (`viewer/app.js:192`) draws no 國 badge. The override
+table holds exactly one record, so this is its whole population.
+
+**Finding 2 — the slug change caused it.** Commit `c2cfbb9` (2026-11-01, Wave 4,
+"the slug count falls back to the family before rendering ?") made `slug_for`
+read the count from the family. Its own commit message names this project:
+
+```
+萬華區-崇仁新村青年段一小段-711-3地號等?筆 -> ...等2筆 (member count 2)
+```
+
+The emission trace pins the break to that window:
+
+| commit | date | project_id | `links.twur` |
+| --- | --- | --- | --- |
+| `a90c2a1` | 2026-11-01 | `…等?筆` | `…/view/18` |
+| `ad6b767` | 2026-11-02 | `…等2筆` | **empty** |
+
+`data/twur_overrides.json` was not updated in that window. No `?筆` id remains
+in the dataset (0 of 681), so the record can never apply as written.
+
+**Finding 3 — the guard fired on 2026-11-03 and nobody acted.**
+`unattached_overrides` (`urtpe/links.py:1567`) exists for this exact failure.
+The CLI calls it on every `--links` run (`urtpe/links.py:3432`, from
+`urtpe/cli.py:518`). It printed, at `data/reemit_viewgate_20261104.log:4`:
+
+```
+[WARN] twur override names a project not in the dataset: 萬華區-崇仁新村青年段一小段-711-3地號等?筆
+```
+
+A warning does not stop the run. `emission_faults` (`urtpe/emission.py:43`)
+faults only *wholesale* absence, so 60 twur-less of 681 projects is conforming
+by design — `--links` is advisory (the D5 recorded in `AGENTS.md`, not this
+board's D5). Nothing refused, nothing re-checked.
+
+**Finding 4 — the emission also lost the 7 national milestones, and the re-key
+alone does not bring them back.** Measured on the current payload:
+
+| field on the live project | today | before `ad6b767` |
+| --- | --- | --- |
+| `links.twur` | `""` | `…/view/18` |
+| `links.milestones_national` | `{}` | 7 labels (93.04.22 … 97.01.03) |
+| `links.twur_name` | absent | (never populated) |
+
+The re-key restores only two fields: `load_project_cache`'s gap-fill copies
+`twur_view_id` and `twur_url` alone (`urtpe/links.py:1606-1610`), and
+`discover_project_links` returns that cached object verbatim on the non-fresh
+path (`urtpe/links.py:597-612`). Verified: re-keyed, non-fresh → `twur_url`
+present, `national_milestones` **0**. The 國 milestone labels need the view page
+re-fetched.
+
+**Finding 5 — a stub now shadows the rich cache, so an alias cannot help.**
+Three cache directories hold this one unit:
+
+| directory | `twur_view_id` | national ms | `view.html` |
+| --- | --- | --- | --- |
+| `…等2筆` (live id) | `null` | 0 | — |
+| `…等_筆` (`?` → `_`) | `18` | 7 | yes |
+| `未解析-1354` | `18` | 7 | yes |
+
+`resolve_cache_dir` (`urtpe/links.py:1580`) returns the direct directory
+whenever it exists, so an alias entry for the live id can never be consulted —
+the 2026-11-02 run wrote a stub at the new id, and that stub shadows the richer
+one. `data/project_aliases.json` holds no `?筆` → `2筆` entry either. Verified:
+re-keyed against today's stub → `twur_url` present, `national_milestones` **0**;
+with `fresh=True` (view page re-fetched) → `twur_url` present, **7** labels and
+`twur_name` populated.
+
+**Finding 6 — the join the user asked about already works, and works for the
+right reason.** Both cases are in the payload, one per node:
+
+| recno | stage | 核定日期 | case_id |
+| --- | --- | --- | --- |
+| 1423 | 擬訂 | 2005-02-24 | `09112120` |
+| 1375 | 變更 | 2008-01-02 | `09112121` |
+
+Three mechanisms do it, all of them built for this unit's shape:
+
+1. `_section_variants` (`urtpe/links.py:1417`) strips the place prefix —
+   `崇仁新村青年段一小段` → `青年段一小段`, the form the city indexes. Verified:
+   returns both variants.
+2. `_corroborated_area` (`urtpe/links.py:1396`) admits a parcel-less case name
+   when it shares a place-name run with the gazette 案名. Both case names carry
+   no 地號, so `_case_name_carries_parcel` returns False for both and
+   corroboration is what does the work. Verified: True for both names against
+   both gazette 案名.
+3. `_match_case_by_date` (`urtpe/links.py:3181`) binds each node to the case
+   with the same 核定日期, which is why 擬訂 and 變更 carry different ids.
+
+The viewer draws 北 per node from `node.links.taipei`
+(`viewer/app.js:184-187`). Only the 國 badge depends on `links.twur`. Note the
+相關連結 section itself is a debug toggle, default OFF
+(`viewer/app.js:1502-1508`).
+
+**Gap in the tests.** No test ties the override key to the dataset.
+`test_the_shipped_override_table_is_well_formed`
+(`tests/test_twur_override.py:193`) checks the evidence fields only, and its
+`PID` constant (line 34) is the stale `?筆` spelling — the suite passes while
+the shipped record is inert. The record's own `reason` warns "revisit this
+decision if a second case appears"; here the population went to n=0 the other
+way, by the id moving rather than a second case arriving.
+
+**Proposed form:** direct `fix:` — re-key the record to `…等2筆`, correct `PID`,
+and add a test that asserts every key in `data/twur_overrides.json` names a
+project in `data/projects.json` (offline, no re-emit needed). Then restore the
+view-derived fields and re-emit. Two options for the restore, both measured:
+
+- **(a) `--fresh` on the affected project**: the view page is re-fetched and all
+  7 labels plus `twur_name` come back. Costs one portal request.
+- **(b) copy the rich cache directory to the live id**: offline, no request, but
+  it carries a `view.html` read on 2026-10-06 and needs a hand-written write into
+  `.link_cache/` — the directory `AGENTS.md` names as the durable middle layer.
+
+**Decision needed (user).** Re-key only, or re-key plus restore; and for the
+restore, (a) or (b). An `unattached_overrides` that *refuses* rather than warns
+is a separate question and is not proposed here: `--links` stays advisory by
+design (`AGENTS.md` D5), and the coverage guard is what covers the default path.
+
+**Corpus.** 60 of 681 projects carry no `links.twur` today. Only one override
+record exists, so the re-key is the whole visible effect.
+
 ## Order
 
 | Step | Finding | Form | Gate |
@@ -439,11 +571,13 @@ must not drop corrections silently). Change: `ledger-confirm-merge`.
 | D1 | rename the orphan `milestones_national` key — DONE with D4a-pipeline (`d524fae`+`24694a5`, re-emit `2bb3013`, archived) | openspec change + `--from-js` load alias + re-emit | — |
 | D2 | `_ghost_node_date` track-aware + date-first sort — DONE (D2a re-emit `e97c18d`: 25→7 same-date pairs; D2b `56ae3ca`: 0 non-chronological projects, was 51) | openspec change, archived 2026-11-05 | — |
 | D5 | 吉林676 `confirm_merge` + `--ledger` default — DONE (code `1517300`; ingest with the two ledger entries, 682 → 681 projects, 吉林676 holds 1303 + 1347, no 片段家族合併候選 flag left; archived `ledger-confirm-merge`) | openspec change + PDF ingest | — |
+| D6 | twur override key is the pre-`c2cfbb9` slug — the record never applies; 國 badge and 7 national milestones absent | direct `fix:` (re-key + dataset-key test) + restore + re-emit | — |
 
 ## Decisions waiting on the user
 
 | Entry | Question | Blocks |
 | --- | --- | --- |
+| D6 | Re-key only, or re-key plus restore the view-derived fields? For the restore, `--fresh` (one request, all 7 labels) or copy the rich cache dir (offline, hand-written `.link_cache` write)? | the D6 fix + re-emit |
 
 Decided 2026-11-05 and moved into the findings: D2b (date-first sort), D4b
 (chain + dotted edges), D4c (literal reading, after the construction chip),

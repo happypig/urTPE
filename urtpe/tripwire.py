@@ -99,6 +99,106 @@ class Tripwire:
 
         return faults
 
+    def check_emitted_partition(self, doc: dict,
+                                reference_recnos: set[int] | None = None) -> list[str]:
+        """The same partition check, over an emitted payload document.
+
+        :meth:`check_partition` compares domain objects, so it can only run on
+        the PDF path where the cleansed records and the families are both in
+        memory. The ``--from-js`` path reads a payload that was emitted
+        earlier and re-emits it, and it had no partition check at all: a
+        payload missing one node loaded as 1,443 members and was written back
+        as a complete dataset (measured 2026-11-06).
+
+        The check reads the document's own ``counts`` as the expected total,
+        because that is the number the payload claims. A payload whose nodes
+        do not sum to its own count is corrupt, and the check names the
+        missing recnos.
+
+        ``reference_recnos`` is the independent reference: the recnos of
+        ``clean.tsv``, the file the ingest wrote. A payload that lost a record
+        AND had its count rewritten to match is internally consistent, so no
+        internal check can see the loss — only a reference outside the payload
+        can.
+        """
+        faults: list[str] = []
+        projects = doc.get("projects") or []
+        if not projects:
+            return ["the payload holds no projects"]
+
+        owner: dict[int, str] = {}
+        for project in projects:
+            for node in project.get("nodes") or ():
+                recno = node.get("recno")
+                if recno is None:
+                    faults.append(
+                        "a node in %s carries no 編號" % project.get("project_id", "?"))
+                    continue
+                recno = int(recno)
+                if recno in owner:
+                    faults.append(
+                        "record %d appears in two families: %s and %s"
+                        % (recno, owner[recno], project.get("project_id", "?")))
+                else:
+                    owner[recno] = project.get("project_id", "?")
+
+        counts = doc.get("counts") or {}
+        claimed = counts.get("records")
+        present = len(owner)
+        if claimed is not None and int(claimed) != present:
+            faults.append(
+                "the payload claims %d records but its nodes hold %d" % (claimed, present))
+
+        claimed_projects = counts.get("projects")
+        if claimed_projects is not None and int(claimed_projects) != len(projects):
+            faults.append(
+                "the payload claims %d projects but holds %d"
+                % (claimed_projects, len(projects)))
+
+        # A family that claims members its nodes do not carry is a second way
+        # to lose a record: the node list is what the viewer reads, but the
+        # member list is what the partition count is built from.
+        for project in projects:
+            members = project.get("member_recnos")
+            nodes = {int(n["recno"]) for n in (project.get("nodes") or ())
+                     if n.get("recno") is not None}
+            if members is not None:
+                missing = sorted(set(int(m) for m in members) - nodes)
+                if missing:
+                    faults.append(
+                        "family %s lists %d member(s) its nodes do not carry: %s"
+                        % (project.get("project_id", "?"), len(missing),
+                           ", ".join(str(v) for v in missing[:10])))
+            # The anchor is the family's own identity: the emitter resolves it
+            # to build the node, so a family whose anchor is missing cannot be
+            # emitted at all. Without this the run died with a bare
+            # StopIteration (exit 1) — a crash, not a refusal.
+            anchor = project.get("anchor_recno")
+            if anchor is not None and int(anchor) not in nodes:
+                faults.append(
+                    "family %s anchors on record %s, which its nodes do not carry"
+                    % (project.get("project_id", "?"), anchor))
+
+        # The independent reference. A record clean.tsv holds and the payload
+        # does not was lost between the ingest and this payload.
+        if reference_recnos is not None:
+            lost = sorted(reference_recnos - set(owner))
+            if lost:
+                preview = ", ".join(str(v) for v in lost[:20])
+                more = f" (+{len(lost) - 20} more)" if len(lost) > 20 else ""
+                faults.append(
+                    "the payload holds %d of the %d records clean.tsv holds; "
+                    "%d are missing: %s%s"
+                    % (len(set(owner) & reference_recnos), len(reference_recnos),
+                       len(lost), preview, more))
+            extra = sorted(set(owner) - reference_recnos)
+            if extra:
+                faults.append(
+                    "the payload holds %d record(s) clean.tsv does not: %s"
+                    % (len(extra), ", ".join(str(v) for v in extra[:10])))
+
+        return faults
+
     def check_partition(self, clean: list, projects: list,
                         *, emitted_records: int | None = None) -> list[str]:
         """The merge census: the partition must be total, disjoint, and agree with

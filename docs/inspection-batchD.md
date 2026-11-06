@@ -12,6 +12,15 @@ and added the 168 list's `MEMO` as a fourth source (D9f-2). Both are
 2026-10-28 gazette is ingested, `編號 3`'s date is recovered, and the corpus
 stands at **1,444 records / 682 projects**.
 
+The three coverage questions (D18) are **answered and proved**:
+`scripts/probe_three_coverage_proofs.py` re-derives every number from the
+emitted files. **7** projects carry no case id (so they are in neither list);
+**0** recno sit in no project (the partition is total and disjoint); **13**
+nodes carry no 北 badge, and **all 13** are named by the flag that says why.
+Proving them exposed **two gates that did not hold** — the `--from-js` path
+had no partition gate at all (D18b), and the census gate checked the
+pre-ledger partition (D18c). Both are **fixed**.
+
 The MEMO is **measured and cannot serve as a date source** — it is empty for
 all 33 cases where the PDF and the platform disagree, and it is a different
 date (the 核定公告) where it is present — so it joins the rule as a **flag**.
@@ -2255,6 +2264,147 @@ the widening lands. Otherwise every candidate reads as an exact match.
 
 **Status: not fixed.** It is a one-line guard, but it belongs with D9f-1's
 change, not ahead of it.
+
+## D18 — three coverage questions, and two gates that did not hold (2026-11-06)
+
+The user asked three questions about the emitted dataset: are there projects
+not in the lists; are there recno in no project; does every recno carry a 北
+badge. Each is answered below, with the proof that answers it. Two of the
+answers exposed gates that did not hold, and both gates are now closed.
+
+### D18a — the three questions, answered
+
+**Proof script:** `scripts/probe_three_coverage_proofs.py` (read-only; re-derives
+every number from the emitted files).
+
+**Q1 — projects not in the lists.** A project is *in* a list when one of the
+case ids it carries is on that list.
+
+| Population | Count |
+|---|---|
+| projects in the corpus | **682** |
+| on the 168 list (`Get_project168.ashx`, 466 cases) | **215** |
+| carry case ids, none of them on the 168 list | **460** |
+| carry **no** case id at all → in neither list by construction | **7** |
+
+The 168 list is a **subset**, not a register of every case: it holds the 168
+fast-track program. A case in review outside that program is not on it. The
+88 ids the list holds that the payload does not name resolve as 84 not
+approved (the header pass, D9g step 5a), 1 revoked (`11104211`), and 3 never
+gazetted.
+
+The 7 projects with no case id:
+
+| Project | Why |
+|---|---|
+| 中正區-河堤五小段-399地號等3筆 | the 地號 cell says 河堤段**五**小段, the 案名 says 四 — the platform search finds nothing |
+| 中正區-臨沂段三小段-412地號等12筆 | `11410026` — the platform's sibling case, never gazetted |
+| 信義區-吳興一小段-330地號等43筆 | no platform case |
+| 信義區-吳興段二小段-163-2地號等2筆 | the unit is named 吳興街二期整宅地區; the search does not reach it |
+| 大安區-復興段一小段-3地號等2筆 | no platform case |
+| 大安區-懷生段一小段-928地號等1筆 | no platform case |
+| 萬華區-萬華段一小段-519-2地號等35筆 | the 地號 cell says 萬**大**段一小段, the 案名 says 萬華段 — the platform search finds nothing |
+
+The national portal's list is reached by **land core**, not by case id, and
+its crawl is **WAF-capped** (110 entries). A partial crawl is not a missing
+project: proving that list complete needs a live re-crawl, not the cached
+file. The payload names 620 distinct view ids; 109 of them are in the crawled
+index.
+
+**Q2 — recno in no project.** **None.** The merge partition is total and
+disjoint over the 1,444 cleansed records:
+
+| Check | Count |
+|---|---|
+| clean.tsv records | 1,444 |
+| payload nodes | 1,444 |
+| distinct node recnos | 1,444 |
+| a recno in **two** nodes | **0** |
+| a cleansed record in **no** project | **0** |
+| a node whose record is not cleansed | **0** |
+| merged.tsv rows / distinct project_id | 1,444 / 682 |
+
+**Q3 — every recno attached to a 北 badge (case_id).** **13 of 1,444 nodes
+carry no case id, and all 13 are named.** The badge is drawn from a node's
+`links.taipei` (`viewer/app.js`, `getNodeMilestoneBadges`); the flag
+`節點未能對應平台案件` names the same condition. The two agree **exactly**:
+
+| Check | Count |
+|---|---|
+| nodes carrying a case id | 1,431 |
+| nodes carrying **no** case id | **13** |
+| nodes flagged 節點未能對應平台案件 | **13** |
+| of those flagged, carrying a case id anyway | **0** |
+
+No node is silently unbound: every node with no badge carries the flag that
+says why.
+
+### D18b — the `--from-js` path had no partition gate at all
+
+**Found 2026-11-06, while proving Q2.** The census gate
+(`Tripwire.check_partition`) compares domain objects, so it only runs on the
+PDF path. The `--from-js` path — the re-emit path, used for every refresh
+since 2026-08 — had **no** partition check.
+
+**Measured.** A payload missing one node loaded as **1,443** members with no
+complaint, and was written back as a complete dataset. Three corruption
+shapes reached the emitter; two were refused and one crashed:
+
+| Shape | Before | After |
+|---|---|---|
+| a node dropped, the count left alone | loaded silently (1,443) | **exit 4**, the count and the recno named |
+| a node dropped, the count rewritten to match | loaded silently | **exit 4**, the recno named against `clean.tsv` |
+| a family whose anchor node was dropped | **exit 1** (`StopIteration` in `graph.py:181`) — a crash, not a refusal | **exit 4**, the family and its anchor named |
+
+**The fix.** `Tripwire.check_emitted_partition` reads the payload document
+*as it is on disk*, before the loader rebuilds it. It checks the count
+against the nodes, the family member list against the family's nodes, the
+anchor against the family's nodes, and — the independent reference —
+`clean.tsv`, the file the ingest wrote. A payload that lost a record **and**
+had its count rewritten is internally consistent, so only a reference outside
+the payload can see the loss.
+
+### D18c — the census gate checked the wrong partition
+
+**Found 2026-11-06, while proving Q2.** The gate ran **before** the ledger's
+confirmed merge (D5), so it checked the **pre-ledger** family set:
+
+| | Count |
+|---|---|
+| families the gate checked | **683** |
+| families the payload carried | **682** |
+| families `review_report.txt` printed (`專案家族: 682`) | 682 |
+| families the tripwire report printed (`projects: 683`) | **683** |
+
+The gate was one family short of the truth and still passed, and the report
+printed a count the payload did not have. The ledger now runs **before** the
+census gate and before the tripwire report, so both speak about the partition
+that is actually emitted. The reconciler already compared against the
+post-ledger set, so that comparison is unchanged and now consistent with the
+gate.
+
+### D18d — the badge and the flag could disagree, and nothing checked
+
+**Found 2026-11-06, while proving Q3.** The flag is raised and cleared only
+on the `--links` path. A payload that kept the flag after the binding
+survived the round trip as a stale finding, and a node that bound nothing
+without the flag was silently unbound.
+
+`urtpe/emission.py` now checks the two against each other: a node with no
+case id and no flag, or a node with a case id and the flag, is **named**.
+The check applies only to a project that link discovery reached — a run
+without `--links` binds nothing, and a check that fires on every run is a
+check nobody reads.
+
+### D18e — the board header, and what it claimed
+
+The board header read "**Open items: none**" and the corpus "**1,444 records
+/ 682 projects**". Both were right about the payload and wrong about the
+**gate**: the gate checked 683. The header stays as it is — the payload never
+moved — but the sentence that claimed the corpus was sound now rests on a
+gate that holds.
+
+**Status: fixed.** Three gates, one probe, ten tests.
 
 ## Decisions made (2026-11-05)
 

@@ -21,6 +21,11 @@ LINK_FIELDS = ("twur", "taipei", "milestones_national", "milestones_taipei")
 # The step that attaches them, named so the cause is readable from the output alone.
 LINK_STEP = "link discovery (the --links run step)"
 
+# The flag a node carries when it binds no Taipei case. The viewer draws the
+# 北 badge from the same fact (the node's links.taipei), so the flag and the
+# badge must agree.
+UNPLACED_FLAG_PREFIX = "節點未能對應平台案件"
+
 
 def _links(project: dict[str, Any]) -> dict[str, Any]:
     value = project.get("links")
@@ -47,6 +52,12 @@ def emission_faults(projects: Sequence[dict[str, Any]]) -> list[str]:
     Only *wholesale* absence is a fault. Partial coverage is the expected state — the
     portals do not cover every project — so a dataset in which some projects carry link
     data is conforming, and 7 of 709 without is not a defect.
+
+    The one exception is the badge/flag agreement. A node that binds no Taipei
+    case renders no 北 badge, and the unplaced-node flag names the same
+    condition. The two must agree: a node with neither is silently unbound, and
+    a node that binds a case while carrying the flag is a stale finding. Both
+    are named, because both are invisible in the viewer.
     """
     faults: list[str] = []
     total = len(projects)
@@ -72,6 +83,59 @@ def emission_faults(projects: Sequence[dict[str, Any]]) -> list[str]:
             f"The implementation and reward cards cannot render. This run did not "
             f"execute {LINK_STEP}")
 
+    faults.extend(_badge_flag_faults(projects))
+
+    return faults
+
+
+def _badge_flag_faults(projects: Sequence[dict[str, Any]]) -> list[str]:
+    """The nodes whose badge state and flag state disagree.
+
+    The badge comes from a node's ``links.taipei`` (the viewer draws 北 from
+    it). The flag ``節點未能對應平台案件`` says the same thing in words. A
+    node that has one and not the other is a finding the reader cannot see.
+
+    The check only applies to a project that link discovery reached. A run
+    without ``--links`` binds none, so every node would trip it — and a check
+    that fires on every run is a check nobody reads. The wholesale-absence
+    fault above already names a run with no link data at all.
+
+    A project counts as reached when its own links carry anything: an empty
+    link set means discovery found no portal record for it, which is the
+    expected state for a project the portals do not cover.
+    """
+    faults: list[str] = []
+    silent: list[str] = []
+    stale: list[str] = []
+    for project in projects:
+        if not _links(project):
+            continue  # discovery found nothing for this project
+        pid = project.get("project_id", "?")
+        for node in project.get("nodes") or ():
+            recno = node.get("recno")
+            where = "%s node %s" % (pid, recno)
+            has_case = bool((node.get("links") or {}).get("taipei"))
+            flagged = any(f.startswith(UNPLACED_FLAG_PREFIX)
+                          for f in (node.get("review_flags") or ()))
+            if not has_case and not flagged:
+                silent.append(where)
+            elif has_case and flagged:
+                stale.append(where)
+
+    if silent:
+        preview = "; ".join(silent[:10])
+        more = f" (+{len(silent) - 10} more)" if len(silent) > 10 else ""
+        faults.append(
+            f"{len(silent)} node(s) bind no Taipei case and carry no "
+            f"{UNPLACED_FLAG_PREFIX} flag: they render no 北 badge and name no "
+            f"review finding, so the loss is invisible: {preview}{more}")
+    if stale:
+        preview = "; ".join(stale[:10])
+        more = f" (+{len(stale) - 10} more)" if len(stale) > 10 else ""
+        faults.append(
+            f"{len(stale)} node(s) bind a Taipei case but still carry the "
+            f"{UNPLACED_FLAG_PREFIX} flag that says they bind none: the flag is "
+            f"stale: {preview}{more}")
     return faults
 
 

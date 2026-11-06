@@ -76,12 +76,48 @@ def _normalise_flags(flags) -> list[str]:
     return out
 
 
-def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
-    """Load projects and metadata from projects.data.js."""
+def _reference_recnos(outdir: str) -> set[int] | None:
+    """The recnos of the output tree's clean.tsv, when it holds one.
+
+    clean.tsv is the ingest's own record of every cleansed row, so it is the
+    one file that can say a payload lost a record even when the payload's
+    counts were rewritten to match the loss. A tree without a clean.tsv (a
+    fresh output directory, a test fixture) has no reference, and the gate
+    falls back to the payload's internal consistency.
+    """
+    path = Path(outdir) / "clean.tsv"
+    if not path.is_file():
+        return None
+    import csv as _csv
+
+    out: set[int] = set()
+    try:
+        with path.open(encoding="utf-8") as fh:
+            for row in _csv.DictReader(fh, delimiter="\t"):
+                value = (row.get("recno") or "").strip()
+                if value.isdigit():
+                    out.add(int(value))
+    except OSError:
+        return None
+    return out or None
+
+
+def _read_payload_document(js_path: str) -> dict:
+    """The payload document as it is on disk, before the loader rebuilds it.
+
+    The loader turns nodes into families, so a payload that lost a node has
+    no trace of the loss by the time the loader returns. The partition gate
+    reads the document itself for that reason.
+    """
     text = Path(js_path).read_text(encoding="utf-8")
     json_text = re.sub(r"^window\.PROJECTS\s*=\s*", "", text.strip())
     json_text = re.sub(r";\s*$", "", json_text)
-    doc = json.loads(json_text)
+    return json.loads(json_text)
+
+
+def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
+    """Load projects and metadata from projects.data.js."""
+    doc = _read_payload_document(js_path)
 
     projects = []
     for pg in doc["projects"]:
@@ -342,6 +378,28 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
     districts = cleanse_mod.collect_districts(raw_recs)
     clean = cleanse_mod.cleanse_all(raw_recs, districts)
     projects = merge_mod.merge(clean)
+
+    # --- ledger ------------------------------------------------------------
+    # Applies on every PDF ingest (D5): the parser default names the live
+    # ledger, so `ledger_path` is falsy only on an explicit empty-string opt-out.
+    #
+    # The ledger runs BEFORE the census gate and before the tripwire report,
+    # because both must speak about the partition that is actually emitted.
+    # The gate used to run first, on the pre-ledger merge: it checked 683
+    # families while the payload carried 682, because the ledger's confirmed
+    # merge (D5) unions one pair afterwards. The gate was one family short of
+    # the truth and still passed, and the report printed the count the payload
+    # did not have (measured 2026-11-06).
+    ledger_outcome = None
+    if ledger_path:
+        ledger = ledger_mod.CorrectionLedger(ledger_path)
+        ledger_outcome = ledger.apply(clean, key_of=ledger_mod.default_key)
+        # A correction to an identity-bearing field must be reflected in
+        # identities, and a confirmed merge (LedgerOutcome.confirmed_pairs)
+        # unions its pair before scoring (D5, ledger-confirm-merge).
+        projects = merge_mod.merge(clean, confirmed_pairs=ledger_outcome.confirmed_pairs)
+        print(ledger_outcome.report())
+
     tw_result = tripwire_mod.TripwireResult(
         ok=not faults, faults=faults,
         calendar=extract_meta.get("calendar", "unknown"),
@@ -434,19 +492,6 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
                 print(f"  - {b}", file=sys.stderr)
             raise SystemExit(2)
 
-    # --- ledger ------------------------------------------------------------
-    # Applies on every PDF ingest (D5): the parser default names the live
-    # ledger, so `ledger_path` is falsy only on an explicit empty-string opt-out.
-    ledger_outcome = None
-    if ledger_path:
-        ledger = ledger_mod.CorrectionLedger(ledger_path)
-        ledger_outcome = ledger.apply(clean, key_of=ledger_mod.default_key)
-        # A correction to an identity-bearing field must be reflected in
-        # identities, and a confirmed merge (LedgerOutcome.confirmed_pairs)
-        # unions its pair before scoring (D5, ledger-confirm-merge).
-        projects = merge_mod.merge(clean, confirmed_pairs=ledger_outcome.confirmed_pairs)
-        print(ledger_outcome.report())
-
     # --- archive write-back ------------------------------------------------
     if archive is not None:
         dest, entry = archive.record_ingest(
@@ -516,6 +561,25 @@ def _run_locked(pdf: str, outdir: str, no_tsv: bool, viewer_dir: str | None = No
     # Load projects from JS (primary) or PDF
     if from_js:
         print(f"[INFO] Loading projects from {from_js}")
+        # The partition gate runs BEFORE the loader, on the document as it is
+        # on disk. The loader rebuilds families from the nodes, so a payload
+        # missing a node loses that record silently and the re-emit writes it
+        # back as a complete dataset (measured 2026-11-06: a payload missing
+        # one node loaded as 1,443 members with no complaint). The gate reads
+        # the document's own counts and names the missing recnos.
+        from_js_doc = _read_payload_document(from_js)
+        partition_faults = tripwire_mod.Tripwire().check_emitted_partition(
+            from_js_doc, reference_recnos=_reference_recnos(outdir))
+        if partition_faults:
+            for f in partition_faults:
+                print("[CENSUS] %s" % f, file=sys.stderr)
+            tw = tripwire_mod.TripwireResult(
+                ok=False, faults=partition_faults,
+                calendar="unknown",
+                record_count=int((from_js_doc.get("counts") or {}).get("records") or 0),
+                project_count=len(from_js_doc.get("projects") or []),
+            )
+            raise tripwire_mod.TripwireFailure(tw)
         projects, meta = _load_projects_from_js(from_js)
         raw_recs = []
         clean = []

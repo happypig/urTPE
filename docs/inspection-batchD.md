@@ -1283,6 +1283,14 @@ field carries the approval date for the *approved* rows, and carries nothing
 for this one. The date is recoverable, but from the **city's own case
 record**, not from the list.
 
+**A measurement trap, for whoever repeats this.** The predecessor for the
+reconciliation is the **previous gazette's rows** — the current `clean.tsv`,
+1,442 rows. It is NOT `urtpe.corpus.build_corpus`, which returns candidates
+from **every** archived gazette (79,895 rows on this archive) for the
+recovery pass's use. Reconciling against the corpus reports a nonsensical
+"79895 → 1440" and 790 re-dated rows. The figures above are the ones against
+`clean.tsv`.
+
 **What was NOT done in step 9.** The cross-reference against the fresh 168
 snapshot (`scripts/probe_crossref_p168_gazette.py`) was not re-run: it reads
 `data/projects.json`, and the dataset is still the 2026-10-15 one. The

@@ -77,6 +77,18 @@ class IndexEntry:
     # later stamp, so it is never evidence that a gazette is new.
     acquisition: str = ""
     publisher_stamp: str = ""
+    # The URL the document was served from, when it was fetched. The publisher
+    # serves one PDF link at a time and repoints it on every publication, so the
+    # live link names "whatever is newest" rather than "this document". The
+    # version-specific URL stays a durable address for that document afterwards
+    # (measured 2026-11-06: the URL that served the 2026-10-15 gazette still
+    # serves the 2026-10-15 document, a different digest from the current one,
+    # while a fabricated path answers 404), so it is recorded at the time.
+    #
+    # Additive: an entry written before this field existed carries none, and
+    # that publication is reported as having no recorded URL rather than being
+    # treated as having one.
+    publisher_url: str = ""
     # Departures from descending approval date, with the count of records a date could be
     # read from. Both are stored because a zero-violation result over too few dated
     # records means the date parser failed, not that the publication is well ordered.
@@ -126,7 +138,7 @@ class GazetteArchive:
     def store(self, pdf_path: Path | str, gazette_id: str, *, published_date: str = "",
               record_count: int = 0, project_count: int = 0, calendar: str = "",
               source_path: str = "", acquisition: str = "", publisher_stamp: str = "",
-              **_ignored) -> Path:
+              publisher_url: str = "", **_ignored) -> Path:
         """Retain a verbatim copy of ``pdf_path``, named by publication date.
 
         Re-storing the same publication date replaces the copy only when the content
@@ -160,6 +172,7 @@ class GazetteArchive:
                 sha256=_sha256(dest),
                 event="re-store",
                 supersedes=superseded,
+                publisher_url=publisher_url,
             ))
         return dest
 
@@ -167,6 +180,59 @@ class GazetteArchive:
         """Append one entry. Existing entries are never read back or rewritten."""
         with self.index_path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(asdict(entry), ensure_ascii=False) + "\n")
+
+    def record_publisher_url(self, gazette_id: str, url: str, sha256: str,
+                             publisher_stamp: str = "") -> IndexEntry:
+        """Record the publisher URL that serves a publication, verified by digest.
+
+        The publisher serves one PDF link at a time and repoints it on every
+        publication, so the live link names "whatever is newest". A
+        version-specific URL names one document and stays a durable address for
+        it (measured 2026-11-06: the URL that served the 2026-10-15 gazette
+        still serves the 2026-10-15 document, a different digest from the
+        current one, while a fabricated path answers 404).
+
+        A URL learned after the fact — recovered from the repository's own
+        history, for instance — is worth recording too, and this is where it
+        goes. The digest is the proof: the URL is accepted only when the
+        document it serves hashes to the digest the archive already holds for
+        that publication. A URL that serves a different document is refused
+        rather than recorded, because a link to the wrong gazette looks
+        correct.
+
+        ``publisher_stamp`` is the publisher's 資料更新 timestamp for the
+        document that URL serves. It is recorded with the URL because the two
+        belong together: a date beside a link dates the document the link
+        serves, and a release must not inherit another release's date.
+
+        Appended as its own entry. The index is append-only, so an entry
+        written before the field existed keeps its shape and this one adds the
+        address without rewriting anything.
+        """
+        if not url:
+            raise ValueError("no URL to record")
+        if not sha256:
+            raise ValueError("no digest to verify the URL against")
+        known = {e.sha256 for e in self.entries() if e.sha256}
+        if sha256 not in known:
+            raise ValueError(
+                "%s is not a digest the archive holds; refusing to record a URL "
+                "for a document this archive does not have" % sha256[:12])
+        entry = IndexEntry(
+            gazette_id=gazette_id,
+            published_date=gazette_id,
+            ingested_at=dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+            record_count=0,
+            project_count=0,
+            reader_version=READER_VERSION,
+            filename=self.path_for(gazette_id).name,
+            sha256=sha256,
+            event="publisher-url",
+            publisher_url=url,
+            publisher_stamp=publisher_stamp,
+        )
+        self.append_index(entry)
+        return entry
 
     def record_ingest(self, pdf_path: Path | str, gazette_id: str, **kwargs) -> tuple[Path, IndexEntry]:
         """Store the gazette and append its index entry."""
@@ -189,6 +255,7 @@ class GazetteArchive:
             dated_records=kwargs.get("dated_records", -1),
             supersedes=kwargs.get("supersedes", ""),
             restored_from=kwargs.get("restored_from", ""),
+            publisher_url=kwargs.get("publisher_url", ""),
         )
         self.append_index(entry)
         return dest, entry

@@ -24,6 +24,19 @@ header {
   flex-wrap: wrap;
 }
 header h1 { font-size: 18px; margin: 0; }
+/* The release-diff report lives outside the viewer directory, so the link is
+   relative. It sits with the title rather than in the filter bar, so it is
+   present before any data loads and is not mistaken for a filter control. */
+.navlink {
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+.navlink:hover { border-color: var(--accent); }
 .meta { color: var(--muted); font-size: 12px; flex: 1; }
 .muted { color: var(--muted); font-size: 12px; }
 #filter {

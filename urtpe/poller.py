@@ -73,6 +73,17 @@ class PollOutcome:
     ingested: bool = False           # always False; acquisition is not ingestion (D4)
     pending_gazette_id: str = ""      # what a later, explicit ingestion would take
     dry_run: bool = False
+    # The URL the document was served from. The publisher serves one PDF link
+    # at a time and repoints it on every publication, so the live link names
+    # "whatever is newest" rather than "this document". A version-specific URL
+    # stays a durable address for that document afterwards (measured
+    # 2026-11-06: the URL that served the 2026-10-15 gazette still serves the
+    # 2026-10-15 document, a different digest from the current one, while a
+    # fabricated path answers 404). It is recorded on every retrieval,
+    # including one that found the content already held, because the city
+    # repointing its link without changing the document is exactly the event
+    # that would otherwise lose the association.
+    publisher_url: str = ""
 
     @property
     def changed(self) -> bool:
@@ -250,6 +261,10 @@ class Poller:
         outcome = classify_offer(hash_matches_archive=held)
         outcome.publisher_stamp = stamp
         outcome.sha256 = digest
+        # The URL the document came from, recorded on every retrieval that
+        # reached one — including the re-upload, where the city has repointed
+        # its link without changing the document.
+        outcome.publisher_url = href
 
         if outcome.status == "reuploaded":
             outcome.gazette_id = state.known_hashes.get(digest, "")
@@ -267,7 +282,7 @@ class Poller:
                 outcome.detail = "new content; not archived because this was a dry run"
             else:
                 gazette_id = self._gazette_id_for(body, stamp)
-                self._archive(body, gazette_id, digest, stamp)
+                self._archive(body, gazette_id, digest, stamp, href)
                 outcome.gazette_id = gazette_id
                 outcome.detail = "archived as a new gazette; awaiting explicit ingestion"
                 state.known_hashes[digest] = gazette_id
@@ -339,13 +354,19 @@ class Poller:
             return dt.date(y + 1911, mo, d).isoformat()
         raise PollerError("could not determine a gazette id from the document or stamp")
 
-    def _archive(self, body: bytes, gazette_id: str, digest: str, stamp: str) -> None:
+    def _archive(self, body: bytes, gazette_id: str, digest: str, stamp: str,
+                 publisher_url: str = "") -> None:
         """Retain the document and index it as fetched.
 
         Archive only. Nothing here reads or writes the emitted dataset: an unattended run
         that could ingest is one that could overwrite a good dataset with a bad one
         (design D4).
+
+        The URL is indexed with the document: the publisher repoints its one
+        link on every publication, so the address that served this document is
+        provenance that is lost unless it is written down now.
         """
         self.archive.record_ingest_bytes(
             body, gazette_id, published_date=gazette_id,
-            acquisition="fetched", publisher_stamp=stamp, sha256=digest)
+            acquisition="fetched", publisher_stamp=stamp, sha256=digest,
+            publisher_url=publisher_url)

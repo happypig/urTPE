@@ -11,7 +11,8 @@
     "viewer/index.html",
     "viewer/app.js",
     "viewer/app.css",
-    "viewer/projects.data.js"
+    "viewer/projects.data.js",
+    "docs/release-diff.html"
   ],
   "notes": [
     "The final path segment of pages_base is case-sensitive and MUST equal the repository",

@@ -565,8 +565,16 @@ problems**, and only one of them breaks a reader.
 ### 11.1 The corpus: 6 records, 3 projects, harmless
 
 **6 of 1,444 records** carry U+F901 (更), U+F963 (北), and U+FA26 (都) — all three in
-each affected record's `case_name` and `name_raw`. They sit in the district name
-臺北市, not in a track keyword.
+each affected record's `name` and `name_raw`.
+
+Measured over every text column of `clean.tsv`:
+
+| column | rows carrying a compatibility ideograph |
+| --- | --- |
+| `name` | **6** — recnos 8, 121, 179, 611, 613, 615 |
+| `name_raw` | **6** — the same rows |
+| `land` (the 地號 cell) | **0** |
+| every other text column | **0** |
 
 | Project | 編號 |
 | --- | --- |
@@ -574,15 +582,18 @@ each affected record's `case_name` and `name_raw`. They sit in the district name
 | 北投區-桃源段四小段-424-8地號等15筆 | 8, 615 |
 | 南港區-南港段三小段-274地號等16筆 | 179, 613 |
 
-The recnos are **8, 121, 179, 611, 613, 615**.
-
 `parse_name_id()` in `urtpe/cleanse.py:31` returns `('', '', '', None)` on them, because
 the regex cannot match a compatibility 北 or 都. So the national portal index core falls
 through to the crude string-strip fallback at `urtpe/links.py:503`.
 
-**This side is harmless to the track reader.** The district comes from the 行政區 column,
-not from the 案名. Measured: **0 of the 1,444 rows change track after folding.** But the
-index core is still wrong for these 6.
+**This side is harmless to the track reader, and the reason is stronger than "the
+district comes from another column".** The real reason: **no track keyword carries a
+compatibility ideograph.** The reader tests four literals — 事業概要, 事業計畫, 權利變換,
+都市更新計畫 — and none of the four contains one. The corpus's 北 / 都 / 更 are therefore
+never compared against anything.
+
+Measured: **0 of the 1,444 rows change track after folding.** But the index core is
+still wrong for these 6.
 
 ### 11.2 The live case name: 1 occurrence, and it breaks the track reader
 
@@ -606,13 +617,16 @@ index core is still wrong for these 6.
 | The compat title, NFKC-normalised | `['事業計畫', '權利變換']` |
 
 Measured over the whole corpus and the whole link cache, this is the **only** reader
-that changes:
+that changes. **One case** is affected — case `11507018` — and it is the same case in
+every scope. The link cache stores it twice, in `candidate_names` and in
+`case_case_names` of the same cache entry, so the raw entry count is 2 while the
+distinct-case count is 1:
 
-| Scope | Names carrying a compat ideograph | Track changes after folding | Plan-case outcome changes |
-| --- | --- | --- | --- |
-| Payload case names | 1 | 1 | **0** |
-| Link cache case names (4,192) | 2 (the same case, in two fields) | 1 | **0** |
-| Corpus rows (1,444) | 6 | **0** | — |
+| Scope | Entries with a compat ideograph | Distinct cases | Track changes after folding | Plan-case outcome changes |
+| --- | --- | --- | --- | --- |
+| Payload case names (1,987) | 1 | 1 | 1 | **0** |
+| Link cache case names (4,192) | 2 (one case, two fields) | 1 | 1 | **0** |
+| Corpus rows (1,444) | 6 | — | **0** | — |
 
 **`_PLAN_CASE_RE` at `urtpe/links.py:2536` is NOT affected.** It requires the name to
 start with 擬訂, and this case's name starts with 變更, so it matches neither way:
@@ -636,18 +650,22 @@ compat title.
 **The change has one reader to fix.** The track reader, where a city's case name is
 compared to a gazette 案名. One live case. A corpus that does not move.
 
-**The test-first group must pin three things:**
+**The test-first group must pin four things:**
 
 1. The live case reads **both** tracks after folding.
 2. The 6 corpus records are unchanged in track.
 3. **The corpus record count does not move.** A normalisation at the cleansing
    boundary runs before merge, so a change there moves project counts. Pinning the
    count is what catches that.
+4. **The live case is checked by name, not by count.** A corpus-only test would pass
+   while the live bug survived.
 
-A test that checks only the corpus would pass while the live bug survived. The 6
-corpus characters sit in the 臺北市 of the **地號 cell**, and the district is read from
-the 行政區 column. The live character sits in the **案名**. Same character class, two
-different places, two different consequences.
+**Why a corpus-only test is not enough.** The corpus's 6 characters are at index 3 (in
+臺北市) and index 24–29 (in 都市更新). The live case's character, U+F9DD, is at index
+32 of 38 — **inside 權利變換, which is a keyword**. The difference is *where* the
+character sits, not *which* character it is. The corpus's six are never compared
+against anything, because no keyword carries one; the live one is compared against a
+keyword, and fails.
 
 **This is a pipeline defect, independent of both the dashboard and the UI work.** It
 belongs in its own change.
@@ -672,6 +690,21 @@ I made the same kind of error twice while checking this. First I read a compatib
 which is true whenever one side is `None`, and reported 762 names changing when the
 correct figure is **0**. Both errors produced a wrong number that looked plausible.
 Both were caught by checking the shape of the measurement rather than its output.
+
+**A third correction, 2026-11-07, to the field.** An earlier revision of §11.3 said the
+corpus's 6 characters sit in the 臺北市 of the **地號 cell**. **That was wrong.** They
+sit in the **`name` column** — the `land` column carries none. The peer measured it over
+every text column of `clean.tsv` and I verified it independently.
+
+The conclusion did not move, and the real reason is stronger than the one I gave. I had
+said the corpus is harmless because the district is read from the 行政區 column. That is
+true, but it is not why the track survives. **No track keyword carries a compatibility
+ideograph** — the reader tests 事業概要, 事業計畫, 權利變換 and 都市更新計畫, and none of
+the four contains one. So the corpus's 北 / 都 / 更 are never compared against anything.
+
+The peer's framing is the better one: **the difference is where the character sits, not
+which character it is.** The corpus's six sit in text no keyword touches. The live case's
+sits inside 權利變換, which is a keyword.
 
 ---
 
@@ -745,7 +778,7 @@ Measured, and verified independently:
 | Scope | Names with a compat ideograph | Track changes | Plan-case outcome changes |
 | --- | --- | --- | --- |
 | Payload case names | 1 | 1 | **0** |
-| Link cache case names (4,192) | 2 | 1 | **0** |
+| Link cache case names (4,192) | 2 (one case, two fields) | 1 | **0** |
 | Corpus rows (1,444) | 6 | **0** | — |
 
 **The dashboard figures did not move.** Nothing in §3 or §4 depends on this. The
@@ -755,6 +788,22 @@ payload blob is still `1ddffa1b`, still 682 projects / 1,444 records.
 compatibility 利 by eye instead of by codepoint, and I compared two regex `Match`
 objects with `!=`, which reports 762 names changing where the true figure is 0. A
 plausible number is not a verified one.
+
+**A third error, also mine, on the field.** §11.3 said the corpus's 6 characters sit in
+the 臺北市 of the **地號 cell**. They sit in the **`name` column**; `land` carries none.
+Verified by counting every text column of `clean.tsv`.
+
+The conclusion did not move, and the reason is stronger than the one I gave. I had said
+the corpus is harmless because the district is read from the 行政區 column. That is
+true, but it is not why the track survives. **No track keyword carries a compatibility
+ideograph** — the reader tests 事業概要, 事業計畫, 權利變換 and 都市更新計畫, and none of
+the four contains one. The corpus's 北 / 都 / 更 are never compared against anything.
+
+**The difference is where the character sits, not which character it is.** The corpus's
+six sit in text no keyword touches, at index 3 (臺北市) and index 24–29 (都市更新). The
+live case's sits at index 32 of 38, inside 權利變換 — a keyword. A test that checks only
+the corpus passes while the live bug survives, and it passes for a reason the live case
+does not share. The test-first group therefore checks the live case **by name**.
 
 ### 14.1 2026-11-06, final revision — the settled corpus
 

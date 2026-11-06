@@ -9,6 +9,10 @@ remains open. It is a review document, not a change proposal.
   generated 2026-11-05T10:31:05+08:00
 - **Status:** nothing implemented. No openspec change is open. `openspec/changes/` holds
   only `archive/`.
+- **Payload revision:** the 行政時程 and 資料時效 figures were re-derived on 2026-11-06
+  against payload blob `e51272a2`, after the D9g Batch D re-emit (D7, D8, D13, D6, D10,
+  D15, D14). The project and record counts did not change. **The durations did.** The
+  first version of these notes was pinned to blob `0b3a22b9`; see §14.
 
 ---
 
@@ -57,11 +61,11 @@ counts projects that reached the stage and have not reached the next one.
 
 | Stage | Ever reached | Stands here | Median days waiting | n waiting |
 | --- | --- | --- | --- | --- |
-| 核定 | 669 | 155 | 890 | 155 |
-| 建照 | 514 | 23 | 387 | 23 |
-| 開工 | 495 | 168 | 1,094 | 168 |
-| 使照 | 328 | 278 | **2,010** | 278 |
-| 成果報備 | 50 | 50 | **5,190** | 50 |
+| 核定 | 672 | 145 | 890 | 145 |
+| 建照 | 527 | 27 | 324 | 27 |
+| 開工 | 503 | 175 | 1,094 | 175 |
+| 使照 | 329 | 278 | **2,010** | 278 |
+| 成果報備 | 51 | 51 | **5,211** | 51 |
 
 Waiting days are measured from the stage date to 2026-10-15.
 
@@ -75,16 +79,16 @@ Each row uses the earliest "from" date and the earliest "to" date per project.
 
 | Transition | n | Median (d) | p75 (d) | Max (d) |
 | --- | --- | --- | --- | --- |
-| 申請 → 核定 | 669 | 386 | 897 | 7,544 |
-| 核定 → 建照 | 514 | 326 | 1,575 | 6,684 |
-| 建照 → 開工 | 491 | 170 | 263 | 2,246 |
-| 開工 → 使照 | 327 | **1,164** | 1,445 | 3,704 |
-| 核定 → 使照 | 328 | 1,658 | 2,685 | 7,846 |
-| 使照 → 成果報備 | 50 | 342 | 466 | 1,197 |
-| 申請 → 成果報備 | 50 | **2,229** | 2,685 | 3,352 |
+| 申請 → 核定 | 672 | 382 | 894 | 7,544 |
+| 核定 → 建照 | 527 | 329 | 1,546 | 6,684 |
+| 建照 → 開工 | 500 | 170 | 262 | 2,246 |
+| 開工 → 使照 | 328 | **1,164** | 1,444 | 3,704 |
+| 核定 → 使照 | 329 | 1,655 | 2,682 | 7,846 |
+| 使照 → 成果報備 | 51 | 339 | 466 | 1,197 |
+| 申請 → 成果報備 | 51 | **2,163** | 2,680 | 3,352 |
 
-**Read every median with its p75 and its max.** 核定 → 建照 has a median of 326 days and
-a p75 of 1,575 days — nearly five times larger. A dashboard that shows only the median
+**Read every median with its p75 and its max.** 核定 → 建照 has a median of 329 days and
+a p75 of 1,546 days — nearly five times larger. A dashboard that shows only the median
 hides that spread. The 7,544-day 申請 → 核定 outlier is 20.7 years.
 
 ### 3.3 申請 → 核定 by track
@@ -93,51 +97,51 @@ Track comes from the project's current node.
 
 | Track | n | Median (d) | p75 (d) | Max (d) |
 | --- | --- | --- | --- | --- |
-| 事業計畫 | 260 | 372 | 818 | 7,544 |
-| 權利變換 | 217 | 390 | 809 | 7,544 |
-| 事業計畫、權利變換 | 181 | **445** | 1,015 | 4,639 |
-| 事業概要 | 11 | 347 | 397 | 573 |
+| 事業計畫 | 260 | 382 | 843 | 7,544 |
+| 權利變換 | 217 | 351 | 788 | 7,544 |
+| 事業計畫、權利變換 | 182 | **432** | 996 | 4,639 |
+| 事業概要 | 13 | 347 | 439 | 573 |
 
-Combined-track projects wait longest. 事業概要 has only 11 members, so its median is
+Combined-track projects wait longest. 事業概要 has only 13 members, so its median is
 not a stable figure.
 
 ### 3.4 By district
 
 | District | Projects | n 申請→核定 | Median (d) | p75 (d) | 使照, no 成果報備 | No 建照 | Not 核定 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 大安區 | 86 | 84 | 392 | 927 | 32 | 21 | 2 |
-| 中山區 | 83 | 83 | 314 | 790 | 38 | 15 | 0 |
-| 士林區 | 63 | 63 | 509 | 974 | 26 | 8 | 0 |
-| 北投區 | 58 | 58 | 366 | 1,009 | 29 | 17 | 0 |
-| 南港區 | 57 | 55 | 379 | 804 | 17 | 15 | 2 |
-| 松山區 | 54 | 53 | **570** | 886 | 20 | 14 | 1 |
-| 中正區 | 53 | 50 | 363 | 788 | 24 | 14 | 3 |
-| 文山區 | 50 | 50 | 318 | 849 | 22 | 13 | 0 |
+| 大安區 | 86 | 84 | 368 | 835 | 32 | 20 | 2 |
+| 中山區 | 83 | 83 | 296 | 740 | 38 | 15 | 0 |
+| 士林區 | 63 | 63 | 462 | 974 | 26 | 6 | 0 |
+| 北投區 | 58 | 58 | 446 | 1,036 | 29 | 16 | 0 |
+| 南港區 | 57 | 56 | 382 | 914 | 17 | 11 | 1 |
+| 松山區 | 54 | 54 | **574** | 910 | 20 | 10 | 0 |
+| 中正區 | 53 | 51 | 356 | 781 | 24 | 14 | 2 |
+| 文山區 | 50 | 50 | 285 | 717 | 22 | 12 | 0 |
 | 信義區 | 51 | 49 | 470 | 1,089 | 15 | 17 | 2 |
 | 大同區 | 47 | 46 | 262 | 537 | 20 | 11 | 1 |
 | 內湖區 | 40 | 40 | 348 | 658 | 18 | 9 | 0 |
 | 萬華區 | 39 | 38 | 398 | **1,246** | 17 | 13 | 1 |
-| **Total** | **681** | **669** | | | **278** | **167** | **12** |
+| **Total** | **681** | **672** | | | **278** | **154** | **9** |
 
-District medians span 262 to 570 days. 萬華區's p75 is 1,246 days, the widest spread of
+District medians span 262 to 574 days. 萬華區's p75 is 1,246 days, the widest spread of
 any district. **Never show one number per district.**
 
 ### 3.5 成果報備 is a dead field
 
-`成果報備日期` exists on 50 projects. Every date falls in a ten-year band:
+`成果報備日期` exists on 51 projects. Every date falls in a ten-year band:
 
 | 2006 | 2007 | 2008 | 2009 | 2010 | 2011 | 2012 | 2013 | 2014 | 2015 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 3 | 2 | 4 | 1 | 3 | 9 | 7 | 4 | 8 | 9 |
+| 3 | 2 | 5 | 1 | 3 | 9 | 7 | 4 | 8 | 9 |
 
 **No project has a 成果報備 date after 2015-12-17.** The city stopped publishing the
 field. The dataset carries no evidence of when the city stopped.
 
-**This changes the dashboard design.** A funnel ending at 成果報備 would show 631
-projects waiting for a date the city no longer publishes. That reads as 631 stalled
+**This changes the dashboard design.** A funnel ending at 成果報備 would show 630
+projects waiting for a date the city no longer publishes. That reads as 630 stalled
 projects. It is false.
 
-The dashboard must show 成果報備 as a **historical cohort** — a labelled chart of the 50
+The dashboard must show 成果報備 as a **historical cohort** — a labelled chart of the 51
 projects that have it, with the date range stated — and must not use it as a funnel
 step.
 
@@ -149,18 +153,18 @@ on the right years.
 
 ### 3.6 使用核發日期 is the national portal's own completion date
 
-`milestones_national.使用核發日期` exists on 287 projects. Excluding the corrupted record in
-§3.7, the 286 real dates span 2004-03-30 to 2024-12-31. It is not the same event as
+`milestones_national.使用核發日期` exists on 288 projects. Excluding the corrupted record in
+§3.7, the 287 real dates span 2004-03-30 to 2024-12-31. It is not the same event as
 the city's `使照核發日期`:
 
 | Relation | Count |
 | --- | --- |
-| Both present, same date | 265 |
+| Both present, same date | 266 |
 | Both present, different date | 21 |
 | 使用核發日期 only | 1 |
 | 使照核發日期 only | 42 |
 
-**The two fields agree on 265 of 286 projects where both exist.** They are the same
+**The two fields agree on 266 of 287 projects where both exist.** They are the same
 event seen by two portals, and the city is authoritative. A dashboard that shows both
 as separate funnel steps would double-count. Use 使照核發日期 for the 行政時程 funnel,
 and offer 使用核發日期 as a cross-check.
@@ -176,11 +180,11 @@ for that project to 70,461 days, which is what made the 70,461-day outlier appea
 earlier draft.
 
 **The current node is not a status.** The `is_current` node carries only the
-*administrative* milestones of its own approval (核定日期, 申請計畫日期, 審議通過日期,
-建照核發日期 on 127 projects). It carries no 開工日期, no 使照核發日期, and no
-成果報備日期 at all. So a "current node" funnel reports 0 projects at 開工 and 0 at
-使照, while 495 and 328 projects have reached those stages. **Read construction stages
-from the project level, never from the current node.**
+*administrative* milestones of its own approval (核定日期 on 445 projects, 申請計畫日期,
+審議通過日期, 建照核發日期 on 130 projects). It carries no 開工日期, no 使照核發日期,
+and no 成果報備日期 at all. So a "current node" funnel reports 0 projects at 開工 and 0
+at 使照, while 503 and 329 projects have reached those stages. **Read construction
+stages from the project level, never from the current node.**
 
 ---
 
@@ -229,7 +233,7 @@ Six of 681 is 0.9%. The viewer shows none of them today.
 | Check | Result |
 | --- | --- |
 | Ledger entries that are payload projects | 50 of 74 |
-| Ledger entries whose own cache is stale | 25 of 74 |
+| Ledger entries whose own cache is stale | 6 of 74 |
 | Cache-stale payload projects | 6 |
 | Of those 6, present in the ledger | 6 |
 | Ledger entries with `twur_class == "no-cases"` | 6 |
@@ -249,7 +253,7 @@ source.
 
 | Predicate on project `links` | Matches | Equal to the stale set? |
 | --- | --- | --- |
-| `twur` empty | 60 | No — 54 extra |
+| `twur` empty | 59 | No — 53 extra |
 | `taipei` empty | 7 | No — 1 extra |
 | `case_milestones` empty | 7 | No — 1 extra |
 | **`twur` empty AND `taipei` empty** | **6** | **Yes, exactly** |
@@ -442,6 +446,13 @@ dashboard must render only visible rows.
 - **A link from the viewer header**, and one back from the dashboard.
 - **The dashboard reads `projects.data.js` directly.** No new data file, no pipeline
   change for the 行政時程 content.
+- **A build script computes the aggregates.** The dashboard must not embed hand-written
+  figures. A payload re-emit on 2026-11-06 moved the durations while the project count
+  stayed the same — see §14.1. The aggregates are derived at build time and written into
+  a data file the page reads, or computed in the page from the payload. **Either way,
+  the numbers come from the payload, never from a human typing them.**
+- **A cache-stale column needs the pipeline** if Option C is chosen. That is the one
+  content item the dashboard cannot derive from the payload alone.
 
 ## 10. Decided: dashboard content
 
@@ -475,14 +486,22 @@ own change.
 
 ## 12. Repo housekeeping
 
-- **`AGENTS.md` says "689 tests".** The real count is 1,001 collected, 1,000 passed, 1
-  skipped. The skip is deliberate, at `tests/test_idempotent_flags.py:117`. Refresh the
-  count when `AGENTS.md` is next touched.
+- **`AGENTS.md` says "689 tests".** The real count was 1,001 collected on 2026-11-05.
+  **It is now 1,069 collected** after the Batch D work. A full run reports the passed
+  and skipped counts; the deliberate skip sits at
+  `tests/test_idempotent_flags.py:117`. Refresh the count when `AGENTS.md` is next
+  touched.
 - **`docs/viewer-UX.md` has 8 entries, §1 through §8, and all 8 shipped.** Each has an
   archived openspec change. The status table in that file still reads "design settled"
   and "ready" for several of them, which is stale. New UI work goes in as **§9 onward**;
   the file is append-only and entries must not be inserted above §8.
-- **Deploy state at the time of writing:** all 4 artifacts FRESH.
+- **The deployed payload is STALE.** As of 2026-11-06, `scripts/check_deploy.py` reports
+  `viewer/projects.data.js` as stale: the served blob is `a1556c88`, the committed blob
+  is `24c05a89`. The other three artifacts are FRESH. **The live site does not carry
+  the payload these notes were measured against.** Every measurement in §6 was taken
+  against the live site before this re-emit, so the performance figures in §6 describe
+  the deployed build, not the current `main`. Re-measure after the deploy, or quote §6
+  as a measurement of the 2026-10-15 payload.
 - **A separate session was editing `docs/inspection-batchD.md` and adding
   `scripts/check_*.py` files.** These notes do not touch them.
 
@@ -514,10 +533,55 @@ which is the better shape.
 
 ---
 
+## 14. Revision record
+
+### 14.1 2026-11-06 — payload re-emit moved the durations
+
+The D9g Batch D step landed a re-emit while these notes were open. The payload blob
+changed from `0b3a22b9` to `e51272a2`. **The project count and record count did not
+change: 681 projects, 1,442 records.** Every duration figure did.
+
+| Figure | Before | After |
+| --- | --- | --- |
+| 核定 ever reached | 669 | 672 |
+| 建照 ever reached | 514 | 527 |
+| 開工 ever reached | 495 | 503 |
+| 使照 ever reached | 328 | 329 |
+| 成果報備 ever reached | 50 | 51 |
+| 申請 → 核定 median | 386 d | 382 d |
+| 核定 → 建照 median | 326 d | 329 d |
+| 開工 → 使照 median | 1,164 d | 1,164 d |
+| 核定 → 使照 median | 1,658 d | 1,655 d |
+| 申請 → 成果報備 median | 2,229 d | 2,163 d |
+| 成果報備 median wait | 5,190 d | 5,211 d |
+| 事業概要 n | 11 | 13 |
+| 使用核發日期 projects | 287 | 288 |
+| Districts with no 建照 | 167 | 154 |
+| Projects not 核定 | 12 | 9 |
+
+**What did not change.** The 278 projects stuck at 使照 and their 2,010-day median wait.
+The 97 awaiting-approval projects and their district split. The 6 cache-stale projects
+and their names. The ROC year 291. The `twur` empty AND `taipei` empty predicate
+matching the stale set exactly. Every viewer-side measurement in §6 and §7.
+
+**The lesson.** The re-emit added milestone coverage — more projects now carry 建照 and
+核定 dates — so the funnel widened at the top and narrowed at "no 建照". A dashboard
+built on the old numbers would have understated the first stage and overstated the
+third. **The dashboard must compute its figures at build time, not embed them.** This
+is the strongest argument for a build script that reads the payload, and against
+hand-written numbers in the page.
+
+### 14.2 2026-11-05 — first version
+
+First draft, pinned to payload blob `0b3a22b9`. It recorded the 報核 → 成果報備
+correction, the ledger correction, and the ROC 291 defect.
+
+---
+
 ## Appendix A — how to reproduce the numbers
 
-Every figure comes from `viewer/projects.data.js` at commit `43cb9bf` and the cache
-directory `data/.link_cache/`. The computation is:
+Every figure comes from `viewer/projects.data.js` at payload blob `e51272a2` (commit
+`ecb203f`) and the cache directory `data/.link_cache/`. The computation is:
 
 1. Read `viewer/projects.data.js`, strip the `window.PROJECTS = ` prefix and the
    trailing `;`, and parse the JSON.
@@ -539,3 +603,6 @@ directory `data/.link_cache/`. The computation is:
 **Two cautions.** The ROC year 291 in §3.7 corrupts any duration that includes
 `使用核發日期` for that one project. And the "current node" reading in §3.7 counts
 construction stages as zero, which is wrong.
+
+**The step-by-step recipe above is the specification for a build script.** See §14.1
+for why the figures must not be hand-written.

@@ -5,14 +5,14 @@ improvements. This document records what was measured, what was decided, and wha
 remains open. It is a review document, not a change proposal.
 
 - **Author:** Claude Code, 2026-11-05
-- **Dataset:** `viewer/projects.data.js`, 681 projects / 1,442 records, 統計至 2026-10-15,
-  generated 2026-11-05T10:31:05+08:00
+- **Dataset:** `viewer/projects.data.js`, **682 projects / 1,444 records**, 統計至
+  **2026-10-28**, generated 2026-11-06T15:34:59+08:00, payload blob `1ddffa1b`
+  (commit `4b67a8f`)
 - **Status:** nothing implemented. No openspec change is open. `openspec/changes/` holds
   only `archive/`.
-- **Payload revision:** the 行政時程 and 資料時效 figures were re-derived on 2026-11-06
-  against payload blob `d6d62109`, after the D9g Batch D re-emit (D7, D8, D13, D6, D10,
-  D15, D14, D9c-2a). The project and record counts did not change. **The durations
-  did.** The first version of these notes was pinned to blob `0b3a22b9`; see §14.
+- **Payload revision:** the figures were re-derived four times on 2026-11-06 as the
+  D9g plan landed. The last re-derivation is on the **settled** corpus, after the
+  2026-10-28 ingest. The first version was pinned to blob `0b3a22b9`; see §14.
 
 ---
 
@@ -61,16 +61,16 @@ counts projects that reached the stage and have not reached the next one.
 
 | Stage | Ever reached | Stands here | Median days waiting | n waiting |
 | --- | --- | --- | --- | --- |
-| 核定 | 673 | 144 | 876 | 144 |
-| 建照 | 529 | 27 | 324 | 27 |
-| 開工 | 505 | 176 | 1,108 | 176 |
-| 使照 | 330 | 279 | **2,001** | 279 |
-| 成果報備 | 51 | 51 | **5,211** | 51 |
+| 核定 | 674 | 145 | 874 | 145 |
+| 建照 | 529 | 27 | 337 | 27 |
+| 開工 | 505 | 176 | 1,120 | 176 |
+| 使照 | 330 | 279 | **2,014** | 279 |
+| 成果報備 | 51 | 51 | **5,224** | 51 |
 
-Waiting days are measured from the stage date to 2026-10-15.
+Waiting days are measured from the stage date to 2026-10-28, the gazette date.
 
 **The dominant wait is 開工 → 使照.** 279 projects reached 使照 and stopped there. The
-median wait since is 2,001 days, about 5.5 years. **The current viewer shows none of
+median wait since is 2,014 days, about 5.5 years. **The current viewer shows none of
 this.** It renders the per-project graph, but no aggregate duration anywhere.
 
 ### 3.2 Stage-to-stage durations
@@ -79,7 +79,7 @@ Each row uses the earliest "from" date and the earliest "to" date per project.
 
 | Transition | n | Median (d) | p75 (d) | Max (d) |
 | --- | --- | --- | --- | --- |
-| 申請 → 核定 | 673 | 385 | 896 | 7,544 |
+| 申請 → 核定 | 674 | 382 | 895 | 7,544 |
 | 核定 → 建照 | 529 | 329 | 1,540 | 6,684 |
 | 建照 → 開工 | 502 | 169 | 262 | 2,246 |
 | 開工 → 使照 | 329 | **1,164** | 1,448 | 3,704 |
@@ -99,7 +99,7 @@ Track comes from the project's current node.
 | --- | --- | --- | --- | --- |
 | 事業計畫 | 260 | 386 | 889 | 7,544 |
 | 權利變換 | 217 | 351 | 788 | 7,544 |
-| 事業計畫、權利變換 | 183 | **432** | 994 | 4,639 |
+| 事業計畫、權利變換 | 184 | **423** | 991 | 4,639 |
 | 事業概要 | 13 | 347 | 439 | 573 |
 
 Combined-track projects wait longest. 事業概要 has only 13 members, so its median is
@@ -118,12 +118,12 @@ not a stable figure.
 | 中正區 | 53 | 51 | 356 | 781 | 24 | 14 | 2 |
 | 文山區 | 50 | 50 | 285 | 717 | 22 | 12 | 0 |
 | 信義區 | 51 | 49 | 470 | 1,089 | 15 | 17 | 2 |
-| 大同區 | 47 | 46 | 262 | 537 | 20 | 11 | 1 |
+| 大同區 | 48 | 47 | 277 | 519 | 20 | 12 | 1 |
 | 內湖區 | 40 | 40 | 348 | 658 | 18 | 9 | 0 |
 | 萬華區 | 39 | 38 | 398 | **1,246** | 17 | 13 | 1 |
-| **Total** | **681** | **673** | | | **279** | **152** | **8** |
+| **Total** | **682** | **674** | | | **279** | **153** | **8** |
 
-District medians span 262 to 574 days. 萬華區's p75 is 1,246 days, the widest spread of
+District medians span 277 to 574 days. 萬華區's p75 is 1,246 days, the widest spread of
 any district. **Never show one number per district.**
 
 ### 3.5 成果報備 is a dead field
@@ -137,8 +137,8 @@ any district. **Never show one number per district.**
 **No project has a 成果報備 date after 2015-12-17.** The city stopped publishing the
 field. The dataset carries no evidence of when the city stopped.
 
-**This changes the dashboard design.** A funnel ending at 成果報備 would show 630
-projects waiting for a date the city no longer publishes. That reads as 630 stalled
+**This changes the dashboard design.** A funnel ending at 成果報備 would show 631
+projects waiting for a date the city no longer publishes. That reads as 631 stalled
 projects. It is false.
 
 The dashboard must show 成果報備 as a **historical cohort** — a labelled chart of the 51
@@ -180,7 +180,7 @@ for that project to 70,461 days, which is what made the 70,461-day outlier appea
 earlier draft.
 
 **The current node is not a status.** The `is_current` node carries only the
-*administrative* milestones of its own approval (核定日期 on 446 projects, 申請計畫日期,
+*administrative* milestones of its own approval (核定日期 on 447 projects, 申請計畫日期,
 審議通過日期, 建照核發日期 on 131 projects). It carries no 開工日期, no 使照核發日期,
 and no 成果報備日期 at all. So a "current node" funnel reports 0 projects at 開工 and 0
 at 使照, while 505 and 330 projects have reached those stages. **Read construction
@@ -198,7 +198,7 @@ application date and no approval date, and is neither terminal (自行撤回 / �
 
 | | Count |
 | --- | --- |
-| Projects awaiting an approval | **97** of 681 (14%) |
+| Projects awaiting an approval | **97** of 682 (14%) |
 
 By district: 大安區 14, 南港區 12, 中山區 10, 信義區 10, 中正區 8, 北投區 8, 文山區 8,
 松山區 7, 大同區 6, 內湖區 5, 士林區 5, 萬華區 4.
@@ -223,7 +223,7 @@ date. This is the same rule `cache_is_stale_for()` applies at `urtpe/links.py:16
 | 大安區-懷生段一小段-928地號等1筆 |
 | 萬華區-萬華段一小段-519-2地號等35筆 |
 
-Six of 681 is 0.9%. The viewer shows none of them today.
+Six of 682 is 0.9%. The viewer shows none of them today.
 
 **Call these 資料未驗證 (unverified), not 資料過期 (stale).** §5.2 measures why: these
 6 are exactly the caches the Batch D refresh pass did not rewrite. They are the
@@ -259,7 +259,7 @@ source.
 
 | Predicate on project `links` | Matches | Equal to the stale set? |
 | --- | --- | --- |
-| `twur` empty | 59 | No — 53 extra |
+| `twur` empty | 60 | No — 54 extra |
 | `taipei` empty | 7 | No — 1 extra |
 | `case_milestones` empty | 7 | No — 1 extra |
 | **`twur` empty AND `taipei` empty** | **6** | **Yes, exactly** |
@@ -275,7 +275,7 @@ not the definition. It will drift when a project gains a twur link.
 | --- | --- | --- | --- |
 | **A** — copy `no_match_ledger.json` into `viewer/` | **No.** Marks 50, truth is 6 | Low | Wrong column |
 | **B** — payload predicate `twur` empty AND `taipei` empty | Yes — the 6 unverified | **None** | Drifts from the definition |
-| **C** — emit the cache mtime into the payload | **No** — the mtime is the write time, and the cache pass rewrites 642 of 726 | Medium | Would read as fresh for all 681 |
+| **C** — emit the cache mtime into the payload | **No** — the mtime is the write time, and the cache pass rewrites 642 of 727 | Medium | Would read as fresh for all 682 |
 | **D** — omit the column | n/a | None | Loses 6 projects |
 
 ### 5.2 The write-time risk, measured
@@ -299,14 +299,14 @@ not the **fetch** time. The measurement:
 
 | | Count |
 | --- | --- |
-| Cache directories | 726 |
+| Cache directories | 727 |
 | With a `view.html` (a page was fetched at some point) | 643 |
 | `result.json` newer than `view.html` — rewritten with **no** fetch | **642** |
 | `result.json` and `view.html` written together | 1 |
-| No `view.html` at all | 83 |
+| No `view.html` at all | 84 |
 
-The `result.json` mtimes cluster on 2026-11-06 (661 files) and 2026-11-04 (59). **Six
-carry 2026-08-29** — and those six are exactly the unverified projects.
+The `result.json` mtimes cluster on 2026-11-06 and 2026-11-04. **Six carry
+2026-08-29** — and those six are exactly the unverified projects.
 
 `refresh_project()` re-fetches the city's case milestones, headers, implementation and
 rewards, then calls `save_project_cache()` — which writes `result.json` and leaves
@@ -317,7 +317,7 @@ The lag is not noise. It runs from 29 days to 70.9 days, with a median of 70.7 d
 The 642 rewritten caches carry a `result.json` written on 2026-11-06 over a
 `view.html` fetched on 2026-08-27.
 
-**A `view.html` mtime is not a fetch time either.** Under that rule **642 of 726**
+**A `view.html` mtime is not a fetch time either.** Under that rule **642 of 727**
 caches are stale. The `view.html` files cluster on 2026-08-27 (396), 2026-08-29 (166)
 and 2026-08-30 (75), with only 6 fetched since. The national portal was not crawled
 again after the Batch D pass, which re-fetches the city's cases but never the
@@ -348,7 +348,7 @@ empty selects exactly the 6 unverified projects, costs nothing, and needs no pip
 change. It survived three payload revisions without moving.
 
 Option C would emit a field whose value is the write time, which the cache pass sets
-on every run. It would read as fresh for all 681 projects and tell the dashboard
+on every run. It would read as fresh for all 682 projects and tell the dashboard
 nothing.
 
 **Rename the column.** Call it 資料未驗證 (unverified), not 資料過期 (stale). It says
@@ -384,6 +384,11 @@ Measured in Chrome against the live site, `https://happypig.github.io/urTPE/view
 dispatching real `input` events against the `#filter` element and forcing layout with
 `list.offsetHeight` so paint cost is included. Medians of 12 runs after 3 warm-up rounds.
 
+**These were measured on the 681-project payload.** The corpus now stands at 682, and
+the viewer's render path grew by 7 lines for a badge. The row count drives the cost,
+so a 682-row render costs about the same as the 681-row one measured here. **Re-measure
+before quoting a number.**
+
 ### 6.1 Render cost scales with rows built, not with the query
 
 | Query | Rows built | Median (ms) | Max (ms) |
@@ -413,7 +418,7 @@ Typing `大安區通化段` one character at a time: 86.4, 128.7, 21.5, 11.2, 8.
 **This is why a debounce is a weaker win than it first appears.** The cost tracks the
 row count. As the reader types, the list narrows, so most keystrokes render *fewer*
 rows. A debounce mainly helps the worst case: clearing the box, or a query that matches
-all 681.
+all rows.
 
 ### 6.4 The real fix is a windowed list
 
@@ -431,7 +436,7 @@ obtained.**
 
 ## 7. Measured: viewer accessibility and state gaps
 
-Checked by search across `viewer/app.js` (1,641 lines):
+Checked by search across `viewer/app.js` (1,648 lines):
 
 | Capability | Occurrences |
 | --- | --- |
@@ -515,7 +520,7 @@ dashboard must render only visible rows.
   against the served bytes. It currently lists 4 artifacts:
   `viewer/index.html`, `viewer/app.js`, `viewer/app.css`, `viewer/projects.data.js`.
 - **`?v=` cache-bust token.** `viewer/index.html` loads
-  `projects.data.js?v=20261015cb69` and `app.js?v=20261015cb69`. The dashboard needs
+  `projects.data.js?v=202610280223` and `app.js?v=202610280223`. The dashboard needs
   its own matching token, or browsers serve a stale `dashboard.js` after a deploy.
 - **A link from the viewer header**, and one back from the dashboard.
 - **The dashboard reads `projects.data.js` directly.** No new data file, no pipeline
@@ -541,17 +546,33 @@ dashboard must render only visible rows.
 5. **使照核發日期 is the funnel's completion stage.** 使用核發日期 is a cross-check, not
    a second funnel.
 6. **Per-project drill-down** from any aggregate cell.
-7. **n is always shown next to every figure.** A median over 11 projects is not a
+7. **n is always shown next to every figure.** A median over 13 projects is not a
    district finding.
 
 ---
 
 ## 11. Separate, small: the compatibility-ideograph defect
 
-6 of 1,442 records carry CJK compatibility ideographs — U+F901 (更), U+F963 (北),
-U+FA26 (都), U+F9DD (利). `parse_name_id()` in `urtpe/cleanse.py:31` returns
-`('', '', '', None)` on them, so the national portal index core falls through to the
-crude string-strip fallback at `urtpe/links.py:503`.
+**6 of 1,444 records** carry CJK compatibility ideographs. Three forms appear, each
+36 times in total inside the records: U+F901 (更), U+F963 (北), U+FA26 (都). The 6
+The 6 records sit in 3 projects:
+
+| Project | 編號 |
+| --- | --- |
+| 信義區-三興段一小段-972地號等9筆 | 121, 611 |
+| 北投區-桃源段四小段-424-8地號等15筆 | 8, 615 |
+| 南港區-南港段三小段-274地號等16筆 | 179, 613 |
+
+Each affected record carries all three forms in its `case_name` and `name_raw`.
+
+`parse_name_id()` in `urtpe/cleanse.py:31` returns `('', '', '', None)` on them, so the
+national portal index core falls through to the crude string-strip fallback at
+`urtpe/links.py:503`.
+
+**A correction on the character list.** An earlier draft named U+F9DD (利) as a fourth
+form. It is not one. The single U+F9DD in the payload is a normal 利 in
+權利變換計畫案, inside `links.candidate_names` for 大安區-復興段三小段-3地號等2筆 — an
+ordinary character, not a compatibility form. Only three forms appear.
 
 The fix is an NFKC normalisation at the cleansing boundary, plus a test. **This is a
 pipeline defect, independent of both the dashboard and the UI work.** It belongs in its
@@ -562,19 +583,22 @@ own change.
 ## 12. Repo housekeeping
 
 - **`AGENTS.md` says "689 tests".** The real count was 1,001 collected on 2026-11-05.
-  **It is now 1,073 collected** after the Batch D work. A full run reports the passed
-  and skipped counts; the deliberate skip sits at
+  **It is now 1,116 collected** after the D9g plan. A full run reports the passed and
+  skipped counts; the deliberate skip sits at
   `tests/test_idempotent_flags.py:117`. Refresh the count when `AGENTS.md` is next
   touched.
 - **`docs/viewer-UX.md` has 8 entries, §1 through §8, and all 8 shipped.** Each has an
   archived openspec change. The status table in that file still reads "design settled"
   and "ready" for several of them, which is stale. New UI work goes in as **§9 onward**;
   the file is append-only and entries must not be inserted above §8.
-- **Deploy state as of 2026-11-06: all 4 artifacts FRESH.** The peer deployed after the
-  D9c-2a re-emit, so the live site now carries the same payload these notes were
-  measured against. The §6 performance figures were taken against an earlier deploy of
-  the same 681-project payload; the row count did not change, so they still describe
-  the live list.
+- **Deploy state as of 2026-11-06: all 4 artifacts FRESH.** The live site carries the
+  settled 682-project payload. The §6 performance figures were measured on the
+  681-project payload; the corpus has since gained one project, and the viewer's
+  render path grew by 7 lines for a badge. Re-measure before quoting a number.
+- **The `--from-js` path now carries a partition gate.** A payload missing one node
+  used to load as 1,443 members and be written back as a complete dataset. It is
+  refused with exit 4 now. This matters for the dashboard: a build script that reads
+  the payload can rely on the partition being complete.
 - **A separate session was editing `docs/inspection-batchD.md` and adding
   `scripts/check_*.py` files.** These notes do not touch them.
 
@@ -615,7 +639,53 @@ which is the better shape.
 
 ## 14. Revision record
 
-### 14.1 2026-11-06, third revision — D9c-2a re-emit
+### 14.1 2026-11-06, final revision — the settled corpus
+
+Payload blob `d6d62109` → `1ddffa1b`. **The corpus settled.** The 2026-10-28 gazette
+was ingested (the tripwire refused it earlier; the empty 核定日期 cell for 編號 3 was
+recovered by the `recover-truncated-date-cells` change), and the whole D9g plan landed.
+
+**The corpus moved for the first time.** 681 projects → **682**. 1,442 records →
+**1,444**. The gazette date moved 2026-10-15 → **2026-10-28**.
+
+| Figure | Third | Final |
+| --- | --- | --- |
+| Projects | 681 | **682** |
+| Records | 1,442 | **1,444** |
+| 核定 ever reached | 673 | 674 |
+| 建照 ever reached | 529 | 529 |
+| 開工 ever reached | 505 | 505 |
+| 使照 ever reached | 330 | 330 |
+| 成果報備 ever reached | 51 | 51 |
+| Projects stuck at 使照 | 279 | 279 |
+| 核定 median wait | 876 d | 874 d |
+| 開工 median wait | 1,108 d | 1,120 d |
+| 使照 median wait | 2,001 d | 2,014 d |
+| 成果報備 median wait | 5,211 d | 5,224 d |
+| 申請 → 核定 median | 385 d | 382 d |
+| 核定 → 建照 median | 329 d | 329 d |
+| 開工 → 使照 median | 1,164 d | 1,164 d |
+| 核定 → 使照 median | 1,658 d | 1,658 d |
+| 申請 → 成果報備 median | 2,163 d | 2,163 d |
+| 事業計畫、權利變換 n | 183 | 184 |
+| Districts with no 建照 | 152 | 153 |
+| Projects not 核定 | 8 | 8 |
+| 大同區 projects | 47 | 48 |
+
+**Waiting days are now measured to 2026-10-28**, the new gazette date. The 13-day
+shift explains the +13 d on every "median wait" row.
+
+**What did not change.** The 97 awaiting-approval projects and their district split.
+The 6 unverified projects and their names. The ROC year 291. The payload predicate
+matching the unverified set exactly. 成果報備 (51 projects, still ending 2015-12-17).
+The 開工 → 使照 transition median, still 1,164 days. 大同區 gained the one new project.
+
+**A new gate now protects this.** Proving the partition exposed that the `--from-js`
+path had no partition gate: a payload missing one node loaded as 1,443 members and was
+written back as a complete dataset. That is fixed and refused with exit 4. **A payload
+that reaches the dashboard now carries a gate.**
+
+### 14.2 2026-11-06, third revision — D9c-2a re-emit
 
 Payload blob `e51272a2` → `d6d62109`. The D9c-2a re-emit carried the aliased cases
 into the payload.
@@ -674,7 +744,7 @@ skipped the correction ledger, and the ledger's two 吉林676 entries merge one 
 new approval. Each was checked against the repo and the payload. The board was
 corrected at `4f9dfd8`.
 
-### 14.2 2026-11-06, second revision — D9g Batch D re-emit
+### 14.3 2026-11-06, second revision — D9g Batch D re-emit
 
 The D9g Batch D step landed a re-emit while these notes were open. The payload blob
 changed from `0b3a22b9` to `e51272a2`. **The project count and record count did not
@@ -710,12 +780,12 @@ third. **The dashboard must compute its figures at build time, not embed them.**
 is the strongest argument for a build script that reads the payload, and against
 hand-written numbers in the page.
 
-### 14.3 2026-11-05 — first version
+### 14.4 2026-11-05 — first version
 
 First draft, pinned to payload blob `0b3a22b9`. It recorded the 報核 → 成果報備
 correction, the ledger correction, and the ROC 291 defect.
 
-### 14.4 The pattern across all three revisions
+### 14.5 The pattern across all four revisions
 
 | | First | Second | Third |
 | --- | --- | --- | --- |
@@ -726,23 +796,42 @@ correction, the ledger correction, and the ROC 291 defect.
 | 使照 ever reached | 328 | 329 | 330 |
 | Projects stuck at 使照 | 278 | 278 | 279 |
 
-**Three re-emits, three different sets of durations, one unchanged project count.**
-The counts are stable; the durations are not. A reader who quoted the first version's
-medians would be wrong today by up to 66 days on 申請 → 成果報備.
+| | First | Second | Third | Final |
+| --- | --- | --- | --- | --- |
+| Payload blob | `0b3a22b9` | `e51272a2` | `d6d62109` | `1ddffa1b` |
+| Projects | 681 | 681 | 681 | **682** |
+| Records | 1,442 | 1,442 | 1,442 | **1,444** |
+| 核定 ever reached | 669 | 672 | 673 | 674 |
+| 使照 ever reached | 328 | 329 | 330 | 330 |
+| Projects stuck at 使照 | 278 | 278 | 279 | 279 |
+| 申請 → 成果報備 median | 2,229 d | 2,163 d | 2,163 d | 2,163 d |
+| 使用核發日期 projects | 287 | 288 | 288 | 288 |
 
-**The stable findings.** 97 awaiting-approval projects. 6 cache-stale projects. The
-ROC year 291. 成果報備 ending in 2015. The 使照 bottleneck. The current-node defect.
-None of these moved across any revision, because none of them depends on the milestone
-coverage that the re-emits change.
+**Four revisions, four sets of durations.** The counts held at 681 for three of them,
+then moved to 682 when the gazette was ingested. The durations moved every time.
 
-**The design consequence is settled.** Compute at build time. Never embed.
+A reader who quoted the first version's medians would be wrong today by up to 66 days
+on 申請 → 成果報備, and by 13 days on every "waiting since" figure — the last shift is
+the gazette date moving, not the data.
+
+**The stable findings, across all four revisions.** 97 awaiting-approval projects and
+their district split. The 6 unverified projects and their names. The ROC year 291.
+成果報備 ending in 2015-12-17. The 使照 bottleneck. The current-node defect. The
+payload predicate matching the unverified set exactly.
+
+**None of these moved once.** They do not depend on the milestone coverage the
+re-emits change, and the 2026-10-28 gazette added approvals rather than correcting old
+ones. That is why they are the findings worth putting in a dashboard.
+
+**The design consequence is settled.** Compute at build time. Never embed. Four
+revisions in one day is the argument.
 
 ---
 
 ## Appendix A — how to reproduce the numbers
 
-Every figure comes from `viewer/projects.data.js` at payload blob `d6d62109` (commit
-`1cb32f4`) and the cache directory `data/.link_cache/`. The computation is:
+Every figure comes from `viewer/projects.data.js` at payload blob `1ddffa1b` (commit
+`4b67a8f`) and the cache directory `data/.link_cache/`. The computation is:
 
 1. Read `viewer/projects.data.js`, strip the `window.PROJECTS = ` prefix and the
    trailing `;`, and parse the JSON.
@@ -758,8 +847,11 @@ Every figure comes from `viewer/projects.data.js` at payload blob `d6d62109` (co
    between the two nearest order statistics), and the max.
 6. For the funnel, "stands here" means the stage milestone exists and the next stage's
    milestone does not.
-7. For 資料時效, compare each project's `data/.link_cache/<project_id>/result.json`
-   mtime against 2026-10-15.
+7. For the waiting-since figures, measure from the stage date to the **gazette date**,
+   which is `published_date` in the payload — not a hard-coded date. The gazette date
+   moved from 2026-10-15 to 2026-10-28 between revisions.
+8. For 資料時效, compare each project's `data/.link_cache/<project_id>/result.json`
+   mtime against the gazette date.
 
 **Two cautions.** The ROC year 291 in §3.7 corrupts any duration that includes
 `使用核發日期` for that one project. And the "current node" reading in §3.7 counts

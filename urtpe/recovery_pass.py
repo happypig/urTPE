@@ -36,15 +36,23 @@ def default_clients() -> tuple[AshxClient, GeoServerClient]:
 
 
 def recover_marked_rows(marked: list[dict], ashx: AshxClient | None = None,
-                        geoserver: GeoServerClient | None = None) -> RecoveryOutcome:
-    """Resolve every marked row; never raise for a source failure."""
+                        geoserver: GeoServerClient | None = None,
+                        memo_source=None) -> RecoveryOutcome:
+    """Resolve every marked row; never raise for a source failure.
+
+    ``memo_source`` is the 168 list's 核定公告 date source (a callable
+    ``case_id -> iso date or ""``). It is a **flag**, never a date source: the
+    核定公告 date is a different date from the 核定日期, and it is empty for
+    every case where the publication's date and the platform's date disagree
+    (measured 2026-11-06). It is read only when a row's date was recovered.
+    """
     ashx = ashx if ashx is not None else AshxClient()
     geoserver = geoserver if geoserver is not None else GeoServerClient()
     outcome = RecoveryOutcome()
     for row in marked:
         recno = row.get("recno") or "?"
         try:
-            recovered, audit = _recover_one(row, ashx, geoserver)
+            recovered, audit = _recover_one(row, ashx, geoserver, memo_source)
         except SourceUnavailable as exc:
             outcome.residuals.append(row)
             outcome.audit.append(
@@ -56,6 +64,88 @@ def recover_marked_rows(marked: list[dict], ashx: AshxClient | None = None,
             outcome.recovered.append(recovered)
         outcome.audit.append(audit)
     return outcome
+
+
+def _recover_date(row: dict, ashx: AshxClient,
+                  memo_source=None) -> tuple[dict | None, str]:
+    """Recover a row whose 核定日期 cell the publisher left empty (D9f-1).
+
+    The mirror image of the 地號 path: the row's identity is intact (its 案名
+    and its 地號 cell are complete) and the DATE is what is missing. So the
+    candidate is chosen by the name alone — same unit, the declared counts
+    agree, the stage ordinal agrees, the track set equals the row's — and the
+    accepted candidates must agree on exactly ONE approval date.
+
+    Zero or several dates leave the row a residual: the date would be a guess.
+
+    The 168 list's 核定公告 date is compared as a **second confirmation** and a
+    disagreement is recorded as a review flag (D9f-2). The recovered date
+    itself comes from the city's own approval date.
+    """
+    recno = row.get("recno") or "?"
+    name = row.get("name") or ""
+    identity = R.parse_identity(R.nfkc(name))
+    if identity is None:
+        return None, (f"編號 {recno}: INCOMPLETE — the 案名 carries no "
+                      f"parseable land core")
+
+    family = ashx.case_family(identity.section, identity.mono, identity.suno)
+    hits = [c for c in family if R.name_only_candidate(identity, name, c)]
+    for cand in hits:
+        cid = cand.get("api_case_id") or ""
+        if cid:
+            top = ashx.case_top(cid)
+            cand["uro_chk_date"] = str(top.get("uro_chk_date") or "")
+            cand["uro_chk_date2"] = str(top.get("uro_chk_date2") or "")
+    iso, cases, seen = R.recover_date_from_name(identity, name, hits)
+    if not iso:
+        if seen:
+            return None, (f"編號 {recno}: INCOMPLETE — the named cases carry "
+                          f"{len(seen)} different approval dates "
+                          f"({', '.join(seen)}); the date would be a guess")
+        return None, (f"編號 {recno}: INCOMPLETE — no candidate carried an "
+                      f"approval date ({len(family)} family members, "
+                      f"{len(hits)} name hits)")
+
+    # the 168 list's 核定公告 date: a second confirmation, never the source
+    memo = ""
+    if memo_source is not None:
+        for cid in cases:
+            try:
+                memo = memo_source(cid) or ""
+            except Exception:
+                memo = ""
+            if memo:
+                break
+    flags = {
+        "partial": False,
+        "normalized": [],
+        "ambiguous-zone": False,
+        "date-pm1": False,
+        "similarity-band": False,
+    }
+    recovered = {k: v for k, v in row.items()
+                 if k not in ("source_fault", "fault_cause")}
+    recovered["date"] = iso
+    recovered["recovery"] = {
+        "cases": cases,
+        "api_cases": cases,
+        "endpoint": _ASHX_ENDPOINT,
+        "date_result": "exact",
+        "date_field": "uro_chk_date/uro_chk_date2",
+        "list_source": "the 案名 alone (the 核定日期 cell was empty)",
+        "flags": flags,
+        "recovered_field": "核定日期",
+        "memo_date": memo,
+    }
+    if memo and memo != iso:
+        flags["memo-disagrees"] = True
+    audit = (f"編號 {recno}: RECOVERED 核定日期 {iso} "
+             f"(cases {','.join(cases) or '?'}, from the 案名 alone)")
+    if memo:
+        audit += (f", 核定公告 {memo}"
+                  + (" — DISAGREES, flagged" if memo != iso else " — agrees"))
+    return recovered, audit
 
 
 def _geo_keys(case_id: str) -> list[str]:
@@ -70,8 +160,11 @@ def _geo_keys(case_id: str) -> list[str]:
 
 
 def _recover_one(row: dict, ashx: AshxClient,
-                 geoserver: GeoServerClient) -> tuple[dict | None, str]:
+                 geoserver: GeoServerClient,
+                 memo_source=None) -> tuple[dict | None, str]:
     recno = row.get("recno") or "?"
+    if row.get("source_fault") == "truncated_date_cell":
+        return _recover_date(row, ashx, memo_source)
     identity = R.parse_identity(row.get("name") or "")
     if identity is None:
         return None, f"編號 {recno}: INCOMPLETE — the 案名 carries no parseable land core"

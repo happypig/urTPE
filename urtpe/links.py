@@ -1554,6 +1554,44 @@ def fetch_taipei_168_list_api(page_size: int = 0) -> list[dict]:
     return rows_out
 
 
+_MEMO_DATE_RE = re.compile(r"(\d{4})/(\d{1,2})/(\d{1,2})")
+
+
+def _memo_date(memo: str) -> str:
+    """The 核定公告 date in a 168 list row's MEMO, as ISO ("" when absent)."""
+    m = _MEMO_DATE_RE.search(memo or "")
+    if not m:
+        return ""
+    return "%s-%02d-%02d" % (m.group(1), int(m.group(2)), int(m.group(3)))
+
+
+def memo_date_source(rows: list[dict] | None = None):
+    """``case_id -> 核定公告 date`` from the 168 list (D9f-2).
+
+    The 核定公告 date is the day the city **announced** an approval, which is a
+    **different date** from the 核定日期 (measured 2026-11-06: the two agree in
+    99 of the 109 joinable rows and differ in 10, by weeks or months). It is
+    therefore a **second confirmation**, never the source of a recovered date —
+    and it is empty for every case where the publication's date and the
+    platform's date disagree, so it cannot settle those either.
+
+    The rows are read once and cached for the run: the list is one request
+    (see :func:`fetch_taipei_168_list_api`).
+    """
+    cache: dict[str, str] = {}
+
+    def source(case_id: str) -> str:
+        if not cache:
+            for r in (rows if rows is not None else fetch_taipei_168_list_api()):
+                cid = str((r or {}).get("case_id") or "")
+                d = _memo_date(str((r or {}).get("MEMO") or ""))
+                if cid and d:
+                    cache[cid] = d
+        return cache.get(case_id, "")
+
+    return source
+
+
 def _project_cache_dir(cache_dir: Path, project_id: str) -> Path:
     safe_id = re.sub(r"[^\w\-]", "_", project_id)
     return cache_dir / safe_id

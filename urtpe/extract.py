@@ -621,6 +621,7 @@ def _page_records(page, faults: list[Fault],
             land = _clean_cell(row[4])
             land, footer_removed = strip_page_footer(land, page_no)
             name = _clean_cell(row[3])
+            date_text = _clean_cell(row[1])
             # Publisher-truncation decision (check-declared-parcel-counts): the
             # tail pattern is the primary signal; the declared-count check is
             # the safety net for cuts that end where no tail pattern matches.
@@ -697,9 +698,37 @@ def _page_records(page, faults: list[Fault],
                 faults.append(_fault(page_no, i, "地號", "cell ends mid-enumeration",
                                      "after removing page furniture"))
                 continue
+            # D9f-1: an EMPTY 核定日期 cell is a publisher defect, not a reader
+            # fault — there is nothing in the cell to read. Measured 2026-11-06
+            # on the 2026-10-28 gazette: 編號 3's cell holds no ink (the page's
+            # words jump from the 編號 straight to the 行政區). The row's other
+            # cells are complete, so the identity is intact and only the date
+            # is missing — the mirror image of a truncated 地號 cell, and the
+            # recovery pass recovers it from the name alone.
+            if not date_text and to_iso(date_text)[0] is None:
+                if retain_truncated:
+                    records.append({
+                        "recno": recno_text,
+                        "date": date_text,
+                        "district": _clean_cell(row[2]),
+                        "name": name,
+                        "land": land,
+                        "implementer": _clean_cell(row[5]),
+                        "planner": _clean_cell(row[6]),
+                        "source_fault": "truncated_date_cell",
+                        "fault_cause": "empty_date_cell",
+                    })
+                    continue
+                cell_faults.append(CellFault(
+                    page=page_no, row=i, column="核定日期",
+                    kind="source_empty_date_cell", recno=recno_text,
+                    cause="empty_date_cell",
+                    detail="the publisher printed no 核定日期 for this row",
+                ))
+                continue
             records.append({
                 "recno": recno_text,
-                "date": _clean_cell(row[1]),
+                "date": date_text,
                 "district": _clean_cell(row[2]),
                 "name": name,
                 "land": land,
@@ -858,7 +887,13 @@ def to_raw_records(recs: list[dict[str, str]]) -> list:
         source_fault = rec.get("source_fault") or ""
         if source_fault:
             cause = rec.get("fault_cause") or "unknown"
-            errors.append(f"地號publisher-truncated(保留待復原:{cause})")
+            # the two source faults are named apart: a truncated 地號 cell and
+            # an empty 核定日期 cell are different defects with different
+            # recoveries (D9f-1)
+            if source_fault == "truncated_date_cell":
+                errors.append(f"核定日期publisher-truncated(保留待復原:{cause})")
+            else:
+                errors.append(f"地號publisher-truncated(保留待復原:{cause})")
         out.append(
             RawRecord(
                 recno=int(rec.get("recno") or 0),

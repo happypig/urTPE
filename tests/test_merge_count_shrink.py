@@ -10,6 +10,7 @@ which share one national page.
 """
 
 import csv
+import re
 import os
 import sys
 import unittest
@@ -57,18 +58,34 @@ class TestShrinkBridge(unittest.TestCase):
 class TestMeasuredPairs(unittest.TestCase):
     """Task 1.2 — the 11 measured recno pairs all link."""
 
+    # The pairs are identified by their CONTENT, not by 編號: 編號 is a
+    # coordinate in the published list, and the list re-sorts its history by
+    # 核定日期, so a new gazette moves every 編號 (measured 2026-11-06: the
+    # 2026-10-28 gazette renumbered the whole corpus — 681 projects changed,
+    # 680 of them with identical content). Keying the test on 編號 would make
+    # it a test of the gazette's ordering, not of the merge rule.
+    #
+    # Each entry: (the unit's section+parcel fragment, the shrink row's
+    # declared count, the older row's declared count). The counts pick the two
+    # rows when the unit carries several approvals of the same count.
+    #
+    # Two of the eleven units are no longer in the corpus (桃源段三小段251 and
+    # 玉成段五小段545 — measured 2026-11-06; neither was in the 2026-10-15
+    # corpus either, so they had gone before). The rule they exercised is
+    # still covered by the constructed pair above and by the measured pairs
+    # that remain, so the absent ones are skipped with a count.
     PAIRS = [
-        ("978", "1157"),   # 吳興790-6 4/29
-        ("699", "952"),    # 中山202 1/12
-        ("485", "949"),    # 中正44 1/5
-        ("506", "817"),    # 犁和89 1/16
-        ("1237", "1336"),  # 桃源251 2/17
-        ("656", "1013"),   # 立農513 3/17
-        ("359", "1063"),   # 南港566 1/6
-        ("336", "730"),    # 玉成545 4/8
-        ("807", "1024"),   # 芝蘭130 1/9
-        ("875", "1099"),   # 玉泉91 7/42
-        ("81", "880"),     # 金華719 1/11
+        ("吳興段二小段790-6", 4, 29),
+        ("中山段二小段202", 1, 12),
+        ("中正段一小段44", 1, 5),
+        ("犁和段三小段89", 1, 16),
+        ("桃源段三小段251", 2, 17),
+        ("立農段一小段513", 3, 17),
+        ("南港段四小段566", 1, 6),
+        ("玉成段五小段545", 4, 8),
+        ("芝蘭段四小段130", 1, 9),
+        ("玉泉段二小段91", 7, 42),
+        ("金華段一小段719", 1, 11),
     ]
 
     def setUp(self):
@@ -86,12 +103,35 @@ class TestMeasuredPairs(unittest.TestCase):
                                      r.get("planner", "")))
         return {k: to_rec(k) for k in rows}
 
+    def _find(self, recs, fragment, count):
+        """The record whose 案名 names the unit AND declares the count, or None
+        when the unit is not in the corpus.
+
+        The fragment must be followed by the parcel, not merely contained: the
+        unit 中正段一小段44 and the unit 中正段一小段446-1 both carry the
+        fragment 中正段一小段44."""
+        hits = [r for r in recs.values()
+                if fragment in r.name and (r.land_count or 0) == count
+                and re.search(re.escape(fragment) + r"(?![\d-])", r.name)]
+        return hits[0] if hits else None
+
     def test_every_measured_pair_links(self):
         recs = self._load()
-        for shrink, older in self.PAIRS:
+        absent = []
+        for fragment, shrink_count, older_count in self.PAIRS:
+            shrink = self._find(recs, fragment, shrink_count)
+            older = self._find(recs, fragment, older_count)
+            if shrink is None or older is None:
+                absent.append(fragment)
+                continue
             self.assertGreaterEqual(
-                score(recs[shrink], recs[older]), LINK_THRESHOLD,
-                f"{shrink}/{older} must link across the shrink")
+                score(shrink, older), LINK_THRESHOLD,
+                f"{fragment} {shrink_count}/{older_count} must link across "
+                f"the shrink (recnos {shrink.recno}/{older.recno})")
+        # the units that left the corpus are reported, not silently dropped
+        self.assertLessEqual(
+            len(absent), 2,
+            f"more than two measured units left the corpus: {absent}")
 
 
 class TestNoBridgeWithoutShrink(unittest.TestCase):

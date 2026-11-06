@@ -300,8 +300,15 @@ def _ingest_pdf(pdf: str, outdir: str, *, archive_root=None, use_archive: bool =
         if marked:
             from urtpe import recovery_pass as recovery_pass_mod
             ashx, geoserver = recovery_pass_mod.default_clients()
+            # D9f-2: the 168 list's 核定公告 date is a SECOND CONFIRMATION for
+            # a recovered date, never its source. The source is built only when
+            # a row's date was actually recovered, so a run that recovers no
+            # date sends no request for the list.
+            memo_source = None
+            if any(r.get("source_fault") == "truncated_date_cell" for r in marked):
+                memo_source = links_mod.memo_date_source()
             recovery_outcome = recovery_pass_mod.recover_marked_rows(
-                marked, ashx, geoserver)
+                marked, ashx, geoserver, memo_source=memo_source)
             records = [r for r in records if not r.get("source_fault")] \
                 + recovery_outcome.recovered
             print(f"[INFO] recovery: {len(recovery_outcome.recovered)} recovered, "

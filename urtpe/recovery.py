@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import difflib
 import re
+import unicodedata
 from dataclasses import dataclass, field
 
 from urtpe.extract import PARCEL_TOKEN_RE, SECTION_PREFIX_RE
@@ -107,7 +108,16 @@ def date_check(d1: str, d2: str, want: str) -> tuple[str, str]:
     權變 stages carry their date in field 2 alone (measured: 851, 863, 902, 912,
     930, 997), so both fields are checked and the provenance records which one
     closed. Returns (``exact`` | ``pm1`` | ``none``, field name or "").
+
+    **An empty ``want`` never closes** (D17). Without the guard, the empty
+    second header field matched the empty ``want`` and the function reported
+    ``("exact", "uro_chk_date2")`` — a false exact match. It was latent while
+    the caller refused an unparseable date before reaching here; the
+    date-truncated path hands an empty ``want`` on every call, so the guard
+    belongs here.
     """
+    if not want:
+        return "none", ""
     for field_name, value in (("uro_chk_date", d1), ("uro_chk_date2", d2)):
         if _iso(value) == want:
             return "exact", field_name
@@ -192,6 +202,147 @@ def match_row(identity: RowIdentity, gazette_iso: str, candidates: list[dict],
         flag.append("similarity-band")
     return RowMatch(status="matched", cases=chosen, flags=flag,
                     date_field=chosen[0]["date_field"] if chosen else "")
+
+
+# --- the name-only rule: a truncated DATE cell (D9f-1) -----------------------
+#
+# For a truncated 地號 row the date anchors the identity and the name filters
+# it. For a truncated DATE row the roles reverse: the 案名 must carry the
+# identity alone, and the date is what gets recovered. So the rule inverts:
+# the date check is replaced by two checks that separate a unit's successive
+# revisions, and the acceptance becomes "the candidates agree on ONE date".
+#
+# Measured over 59 gazette rows (2026-11-06): 57 recoverable, 2 residual,
+# 0 ambiguous. The name alone leaves 10 of 23 rows ambiguous — the candidates
+# are the unit's revisions, each with its own approval date.
+
+# The stage ordinal the city writes at the head of a 案名.
+_STAGE_ORDINAL_RE = re.compile(r"^(擬訂|變更(?:\(第[一二三四五六七八九十]+次\))?)")
+# The count the 案名 declares, written either 等N筆 or 地號N筆.
+_DECLARED_COUNT_RE = re.compile(r"等(\d+)筆")
+_PLAIN_COUNT_RE = re.compile(r"地號(\d+)筆")
+
+
+def nfkc(text: str) -> str:
+    """The text in its canonical form.
+
+    The city writes some characters as CJK compatibility ideographs — 利 as
+    U+F9DD in one case name (measured 2026-11-06) — which render identically
+    but do not match a keyword such as `權利變換`. NFKC folds every
+    compatibility ideograph to its unified form and leaves everything else
+    alone. It is a canonicalisation, not a repair.
+    """
+    return unicodedata.normalize("NFKC", text or "")
+
+
+def declared_count(name: str) -> int | None:
+    """The parcel count a 案名 declares, whichever way it writes it."""
+    n = normalize_name(nfkc(name))
+    m = _DECLARED_COUNT_RE.search(n)
+    if m:
+        return int(m.group(1))
+    m = _PLAIN_COUNT_RE.search(n)
+    if m:
+        return int(m.group(1))
+    return None
+
+
+def stage_ordinal(name: str) -> str:
+    """The stage ordinal a 案名 carries at its head — 擬訂 / 變更 / 變更(第二次)."""
+    m = _STAGE_ORDINAL_RE.match(normalize_name(nfkc(name)))
+    return m.group(1) if m else ""
+
+
+def track_set(name: str) -> frozenset:
+    """The tracks a 案名 names — 事業計畫 / 權利變換, one or both."""
+    from urtpe.cleanse import _tracks
+    return frozenset(_tracks(normalize_name(nfkc(name))))
+
+
+def name_only_candidate(identity: RowIdentity, row_name: str,
+                        cand: dict) -> bool:
+    """Whether the candidate's name carries the row's identity (D9f-1).
+
+    Checks 1–4, each independent:
+
+    1. same unit — district + 段/小段;
+    2. the declared counts agree, compared as NUMBERS (the city writes
+       `等N筆` and `地號N筆` on both sides, so a text comparison would refuse
+       rows that agree);
+    3. the stage ordinal agrees — it separates a unit's revisions;
+    4. the track set EQUALS the row's — it separates the combined-track
+       twins of an area split. Equality, not a subset: a subset admits the
+       twin, which carries a different approval date.
+
+    The name is compared after NFKC normalisation, so a compatibility
+    ideograph does not hide a keyword.
+    """
+    name = normalize_name(nfkc(cand.get("case_name") or ""))
+    if not (identity.district in name and identity.section in name):
+        return False
+    row_count = declared_count(row_name)
+    cand_count = declared_count(name)
+    if row_count is not None and cand_count is not None:
+        if row_count != cand_count:
+            return False
+    elif identity.count_fragment and identity.count_fragment not in name:
+        return False
+    row_ord = stage_ordinal(row_name)
+    cand_ord = stage_ordinal(name)
+    if row_ord and cand_ord and row_ord != cand_ord:
+        return False
+    row_tracks = track_set(row_name)
+    cand_tracks = track_set(name)
+    if row_tracks and cand_tracks and cand_tracks != row_tracks:
+        return False
+    if identity.address_core and identity.address_core in name:
+        return True
+    return name_similarity(identity.name, name) >= LINK_THRESHOLD
+
+
+def recover_date_from_name(identity: RowIdentity, row_name: str,
+                           candidates: list[dict]) -> tuple[str, list[str], list[str]]:
+    """The one approval date the named candidates agree on (D9f-1).
+
+    ``candidates`` are the name-matching cases, each carrying its header's
+    approval dates under ``uro_chk_date`` / ``uro_chk_date2``. Returns
+    ``(cell_date, case_ids, dates_seen)`` — the date **in the publication's own
+    cell format** (`YYYY/M/D`), the cases that carry it, and every date seen.
+
+    The cell format matters: the reader's `to_iso` accepts `2026/10/15` and
+    `115/8/27` and **not** an ISO hyphenated date, so a recovered date in the
+    wrong shape would fail the tripwire's date rule and the cleanser.
+
+    Zero or several dates leave the row a residual: the date would be a guess.
+    """
+    dates: dict[str, list[str]] = {}
+    for cand in candidates:
+        cid = str(cand.get("api_case_id") or cand.get("case_id") or "")
+        for field_name in ("uro_chk_date", "uro_chk_date2"):
+            iso = _iso(str(cand.get(field_name) or ""))
+            if iso:
+                dates.setdefault(iso, []).append(cid)
+                break
+    if len(dates) != 1:
+        return "", [], sorted(dates)
+    iso = next(iter(dates))
+    return _iso_to_cell(iso), sorted(dates[iso]), sorted(dates)
+
+
+def _iso_to_cell(iso: str) -> str:
+    """An ISO date in the publication's own cell format: ``2026/10/15``.
+
+    The reader's `to_iso` accepts `YYYY/M/D` and `YY/M/D` and rejects the
+    hyphenated form, so a recovered date has to be written the way the city
+    writes it. The year is written in full: the calendar decision is made per
+    cell, and a 4-digit year is unambiguous to `to_iso` (it reads a year under
+    1911 as ROC).
+    """
+    parts = (iso or "").split("-")
+    if len(parts) != 3:
+        return iso or ""
+    return "%s/%s/%s" % (parts[0], parts[1].lstrip("0") or "0",
+                          parts[2].lstrip("0") or "0")
 
 
 # --- zone markers vs named anchors (D-G / T11) --------------------------------

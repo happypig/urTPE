@@ -1447,6 +1447,13 @@ function init() {
       if (f["ambiguous-zone"]) parts.push('<span class="badge">A/B併案</span>');
       if (f["date-pm1"]) parts.push('<span class="badge">日期±1</span>');
       if (f["similarity-band"]) parts.push('<span class="badge">相似度帶</span>');
+      // D9f-2: the 168 list's 核定公告 date disagreed with the recovered
+      // 核定日期 — the city announced the approval on a different day than it
+      // approved it.
+      if (f["memo-disagrees"]) {
+        const memo = r.memo_date ? `核定公告 ${escapeHtml(r.memo_date)}` : "核定公告";
+        parts.push(`<span class="badge">${memo}與核定日期不符</span>`);
+      }
       const cases = (r.cases || []).join("、");
       const list = r.list_source ? `<span class="muted">${escapeHtml(r.list_source)}</span>` : "";
       return parts.join(" ") + (cases ? ` 案號 ${escapeHtml(cases)}` : "") + " " + list;

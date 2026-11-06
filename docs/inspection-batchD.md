@@ -2270,30 +2270,6 @@ scope is 2 readers**, not 1 — the track reader (1 live case) and
 small, but "small" is a measurement, not a scope. Recorded here so it is not
 lost with the D9f-1 decision.
 
-### D16 — the general form: a scope is a claim about what was not measured
-
-Six corrections were made to the D16 finding while it was being measured, in
-two sessions, and the shape was the same each time: **a scope was drawn from
-a partial measurement and stated as settled.** Two sessions produced them, in
-both directions — a scope overstated and a scope understated — so the pattern
-belongs to neither and is recorded here as the board's own conclusion.
-
-| the correction | what was stated | what was true |
-|---|---|---|
-| a character read by eye | "3 compatibility forms" | **4** across the data — 3 in the corpus (U+F901, U+F963, U+FA26) and the live U+F9DD |
-| a match compared against `None` | "762 names would change" | 0 — a `Match` is never equal to `None` |
-| a field guessed from the neighbouring column | "the corpus's characters sit in the 地號 cell" | the 案名 — the 地號 column carries 0 |
-| a reader count taken from the reader in view | "1 reader is affected" | 2 — `parse_name_id` also breaks |
-| a denominator taken from a sample | "1 in 360" | 1 in the **2,024** city case names we hold |
-| a blast radius read as a scope | "the population is 1 case in 360" | 1 live case **and** 6 corpus rows |
-
-**The rule this produces: a measurement is not a scope, and a scope is a
-claim about what was not measured.** "Small" is a measurement. "One reader"
-is a scope, and it was wrong in both directions before it was right. So the
-finding is recorded as the **measurements** (D16a–D16c) with the probes that
-produced them, and a reader who wants to check the scope can re-run them
-instead of trusting a conclusion that has already been wrong six times.
-
 ### D16a — what NFKC would change, measured over the whole corpus (2026-11-06)
 
 The peer session asked for this before any NFKC change is opened: run the
@@ -2472,6 +2448,43 @@ change. The test-first group should pin:
 4. **the live case is checked by name, not by count** — the corpus's six are
    harmless for a reason the live case does not share, so a test that only
    checks the corpus would pass while the live bug survived.
+
+### D16d — the general form: a scope is a claim about what was not measured
+
+Six corrections were made to the D16 finding while it was being measured, in
+two sessions, and the shape was the same each time: **a scope was drawn from
+a partial measurement and stated as settled.** Two sessions produced them, in
+both directions — a scope overstated and a scope understated — so the pattern
+belongs to neither and is recorded here as the board's own conclusion.
+
+| the correction | what was stated | what was true |
+|---|---|---|
+| a character read by eye | "3 compatibility forms" | **4** across the data — 3 in the corpus (U+F901, U+F963, U+FA26) and the live U+F9DD |
+| a match compared against `None` | "762 names would change" | 0 — a `Match` is never equal to `None` |
+| a field guessed from the neighbouring column | "the corpus's characters sit in the 地號 cell" | the 案名 — the 地號 column carries 0 |
+| a reader count taken from the reader in view | "1 reader is affected" | 2 — `parse_name_id` also breaks |
+| a denominator taken from a sample | "1 in 360" | 1 in the **2,024** city case names we hold |
+| a blast radius read as a scope | "the population is 1 case in 360" | 1 live case **and** 6 corpus rows |
+
+**The rule this produces: a measurement is not a scope, and a scope is a
+claim about what was not measured.** "Small" is a measurement. "One reader"
+is a scope, and it was wrong in both directions before it was right.
+
+**And the second form, which the table's own first row exposed: a figure is a
+claim about what was counted.** The wrong "2" was not a wrong measurement —
+it was a different **unit** from every other row: two groups rather than two
+characters, in a table where every other row counts things. A row can be
+consistent with itself and inconsistent with the table around it. The two
+forms are the same failure seen from two sides: one counted the wrong set,
+the other counted the wrong thing.
+
+So the finding is recorded as the **measurements** (D16a–D16c) with the probes
+that produced them, and a reader who wants to check the scope can re-run them
+instead of trusting a conclusion that has already been wrong six times. The
+same six corrections, in the same table, are recorded in
+`docs/DashboardNUXUI.md` §14.0 — and
+`scripts/probe_two_correction_tables.py` compares the two tables cell for
+cell, so their agreement is measured rather than believed.
 
 ### D17 — `date_check` reports a false "exact" match on an empty date (found 2026-11-06)
 

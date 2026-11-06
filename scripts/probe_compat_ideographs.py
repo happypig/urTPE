@@ -46,14 +46,18 @@ def main() -> None:
     for r in rows:
         for ch in compat_chars(r["name"]):
             corpus_hits[ch] += 1
-    print("the corpus's own 案名 (1,442 rows, from the PDF):")
+    print("the corpus's own 案名 (%d rows, from the PDF):" % len(rows))
     print("   rows carrying a compatibility ideograph:",
           sum(1 for r in rows if compat_chars(r["name"])))
     print("   the characters:", {c: n for c, n in corpus_hits.items()})
     print()
 
-    # 2. the city's live case names — the parcel search over a sample of units
-    print("the city's live case names (one parcel search per unit):")
+    # 2. the city's live case names — the parcel search over a SAMPLE of units.
+    #    The figure below is a sample, not a population: it reads the names
+    #    the first 60 units' searches return. The population we HOLD is the
+    #    link cache — see scripts/probe_compat_population.py, which counts it
+    #    offline. Both reach the same single affected case.
+    print("the city's live case names (one parcel search per unit, a SAMPLE):")
     ashx = AshxClient()
     units = []
     seen = set()

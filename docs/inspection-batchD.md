@@ -1358,12 +1358,14 @@ resolves 8 of those; the track resolves the rest.
   COMPATIBILITY IDEOGRAPH-F9DD) in one case name (`11507018`), not U+5229.
   The character looks identical; the keyword `權利變換` does not match, and the
   row reads as 事業計畫 alone. **NFKC** folds it. Measured
-  (`scripts/probe_compat_ideographs.py`): the corpus's own 1,442 案名 carry
-  compatibility ideographs in **6** rows — but for 北 / 都 / 更, which sit in
-  the district name (read from the 行政區 column, so the corpus is
-  unaffected) — and **0** rows carry a compatibility 利. The city's live names
-  carry exactly **1** in 360 read (the `11507018` case). So the corpus is
-  clean; the platform side is not.
+  (`scripts/probe_compat_ideographs.py` live, `scripts/probe_compat_population.py`
+  offline): the corpus's own 1,444 案名 carry compatibility ideographs in
+  **6** rows — but for 北 / 都 / 更, which sit in the district name and in
+  都市更新, where no track keyword touches them (the corpus is unaffected
+  **by the track reader**; see D16a, D16c) — and **0** rows carry a
+  compatibility 利. The city's case names carry exactly **1** of the 2,024 we
+  hold (the `11507018` case). So the corpus is clean for the track; the
+  platform side is not.
 - **F2 — the count is written two ways.** A 案名 may write `地號N筆` rather
   than `等N筆`. The existing count-fragment check then rejects **every**
   candidate, including the right ones. The fix compares the **declared
@@ -2225,12 +2227,23 @@ U+5229 (CJK UNIFIED IDEOGRAPH-5229). The character renders identically; the
 keyword `權利變換` does not match, so the case reads as 事業計畫 alone and the
 rule cannot pair it with the gazette row.
 
-**Measured** (`scripts/probe_compat_ideographs.py`):
+**Measured** (`scripts/probe_compat_ideographs.py`, live; and
+`scripts/probe_compat_population.py`, offline):
 
 | side | names read | carrying a compatibility ideograph |
 |---|---|---|
-| the corpus's own 案名 (1,442 rows, from the PDF) | 1,442 | **6** — for 北 / 都 / 更 |
-| the city's live case names | 360 | **1** — for 利 |
+| the corpus's own 案名 (1,444 rows, from the PDF) | 1,444 | **6** — for 北 / 都 / 更 |
+| the city's case names (the 2,024 we hold) | 2,024 | **1** — for 利 |
+
+The original measurement read the city's names live, from **60 parcel
+searches** — 360 names. That is a **sample**, and it is the source of the
+"1 in 360" figure quoted elsewhere. (The sample's size is not stable either:
+a re-run on 2026-11-07 read 357 names, because the searches return what they
+return.) The population we hold is the link cache: **2,024 distinct city case
+ids**, of which **1** carries a compatibility ideograph — the same case,
+`11507018`. The live-case finding does not change; only its denominator
+does, and the denominator is now the whole set we hold rather than 60 units'
+worth.
 
 **The corpus is not affected by the TRACK reader.** Its 6 compatibility
 characters sit in the **案名** — in the `臺北市` of the district prefix (北 as
@@ -2252,10 +2265,34 @@ on the 2026-10-26 gazette (計劃→計畫, ㄧ→一, full-width parens, spacin
 **Status: not fixed.** It is folded in the D9f-1 probe only. A general fix
 would touch `R.normalize_name` (the recovery pass's own normalisation) and
 the places that compare a 案名 to a platform name. **Measured (D16a–D16c): the
-scope is 2 readers**, not 1 — the track reader (1 live case in 360) and
+scope is 2 readers**, not 1 — the track reader (1 live case) and
 `parse_name_id` (6 corpus rows in 3 projects, latent). The blast radius is
-small, but "small" is a measurement, not a reason to guess the scope.
-Recorded here so it is not lost with the D9f-1 decision.
+small, but "small" is a measurement, not a scope. Recorded here so it is not
+lost with the D9f-1 decision.
+
+### D16 — the general form: a scope is a claim about what was not measured
+
+Six corrections were made to the D16 finding while it was being measured, in
+two sessions, and the shape was the same each time: **a scope was drawn from
+a partial measurement and stated as settled.** Two sessions produced them, in
+both directions — a scope overstated and a scope understated — so the pattern
+belongs to neither and is recorded here as the board's own conclusion.
+
+| the correction | what was stated | what was true |
+|---|---|---|
+| a character read by eye | "3 compatibility forms" | 2 in the corpus, and the live one is U+F9DD |
+| a match compared against `None` | "762 names would change" | 0 — a `Match` is never equal to `None` |
+| a field guessed from the neighbouring column | "the corpus's characters sit in the 地號 cell" | the 案名 — the 地號 column carries 0 |
+| a reader count taken from the reader in view | "1 reader is affected" | 2 — `parse_name_id` also breaks |
+| a denominator taken from a sample | "1 in 360" | 1 in the **2,024** city case names we hold |
+| a blast radius read as a scope | "the population is 1 case in 360" | 1 live case **and** 6 corpus rows |
+
+**The rule this produces: a measurement is not a scope, and a scope is a
+claim about what was not measured.** "Small" is a measurement. "One reader"
+is a scope, and it was wrong in both directions before it was right. So the
+finding is recorded as the **measurements** (D16a–D16c) with the probes that
+produced them, and a reader who wants to check the scope can re-run them
+instead of trusting a conclusion that has already been wrong six times.
 
 ### D16a — what NFKC would change, measured over the whole corpus (2026-11-06)
 

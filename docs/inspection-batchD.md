@@ -6,10 +6,19 @@ Batch B + C plan). Fifteen findings, all measured (D4–D15 added 2026-11-05). T
 `docs/inspection-batchBC.md` structure: findings, then the integrated plan,
 then the decisions that gate execution.
 
-**Open items: none** (2026-11-06). The user decided D13, the D8 scope
-(per case) and D14(b) (cleanse by the collected district enum) on 2026-11-06. The user decided the D10 rule, the 2026-11-03 gazette
-timing, the D6 restore method and step 5a. The consolidated execution order is
-D9g.
+**Open items: one** (2026-11-06). Every decision is made and every step of
+D9g is done **except step 9's ingest**, which the tripwire **refused**
+(exit 4): the 2026-10-28 gazette prints **no 核定日期** for 編號 3. The
+publisher's defect, not the reader's — the date cell holds no ink. The three
+ways past it (the city re-prints; the recovery pass widens to a truncated
+*date*; the row is excluded and named) are **not decided**, and they are the
+user's to decide. See "D9f — the ingest is refused" below.
+
+The 168 poller and the `urtpe-poll` task action are **done**; the gazette the
+poller archived (`核定案件-2026-10-28.pdf`, published 2026-11-03) is archived
+and awaiting ingestion.
+
+The consolidated execution order is D9g.
 
 **Working-tree state (2026-11-05).** This board and the `probe_*` scripts are
 committed (`87b79d0`, `caa2159`, `43cb9bf`), but not pushed: origin/main is at
@@ -1132,6 +1141,103 @@ snapshot. The 2026-11-03 gazette is the first such ingest.
 - The poller never ingests; ingestion is a separate explicit act.
 - No `pyproject.toml`, no CI, no build step — plain Python, system interpreter.
 
+### D9f — the ingest is refused (HARD STOP, 2026-11-06)
+
+The 168 poller and the task action are **done**. The **ingest is refused** by
+the tripwire, and the refusal is correct.
+
+**What is done.**
+
+- `scripts/poll_p168.py` — the 168 poller. It fetches the list (one request,
+  sized by the `TotalCount` the endpoint reports), writes a snapshot under
+  `urtpe-gazettes/p168_snapshots/`, and detects a change by **content hash**.
+  It never ingests and never writes `data/.link_cache/` — the gazette poller's
+  rule (AGENTS.md: "Acquisition is separate from ingestion").
+- The Windows task `urtpe-poll` now runs **both** pollers, still weekly on
+  Monday 06:30. Task run 2026-11-06 09:43, **Last Result 0**. The 168 log
+  shows the first snapshot, then "unchanged" on the next check.
+- The gazette poller found a **new gazette** on that run and archived it:
+  `核定案件-2026-10-28.pdf`, publisher 資料更新 115-11-03 13:47, SHA-256
+  `2afa1ba6…`. It is archived and **awaiting explicit ingestion** — the
+  poller never ingests.
+
+**The naming, first.** The board calls it "the 2026-11-03 gazette". That is
+the **publication date** (the publisher's 資料更新 stamp), not the gazette's
+identity. The document's own 統計至 line reads **115年10月28日** = 2026-10-28,
+and the two files in the archive are **byte-identical** (both SHA-256
+`2afa1ba6…`): `核定案件-2026-11-03.pdf` (saved by hand on 2026-11-03 15:56) and
+`核定案件-2026-10-28.pdf` (archived by the poller). One document, two names.
+
+**The refusal.**
+
+```
+tripwire: FAIL (1 fault(s))
+  records: 1440  projects: 680
+  calendar: mixed:gregorian  duplicate 編號: 0
+  INCOMPLETE: 4 record(s) excluded because the publisher truncated their 地號 cell
+  - 1 record(s) with an unparsed 核定日期: 3
+```
+
+Exit code **4** (`TripwireFailure`). Per the contract, **nothing was
+written**: `data/projects.json` is byte-identical to its pre-ingest state
+(SHA-256 `355b8208e9d4…`), and `clean.tsv`, `merged.tsv` and
+`viewer/projects.data.js` keep their earlier timestamps.
+
+**The fault is the publisher's, not the reader's.** 編號 3 is
+`變更(第二次)臺北市大安區通化段四小段336地號等26筆（原22筆）土地都市更新事業計畫案`
+(大安區, 永陞建設股份有限公司, 奇模工程有限公司). Every other cell is
+complete; the 核定日期 cell is **empty**. Verified three ways
+(`scripts/probe_p20261103_row3.py`):
+
+1. the ruled table's own cell for row 3 reads `['3', '', '大安區', '變更(第二次)…']`;
+2. the page's text jumps from `3` straight to `大安區` — **no ink at all** in
+   the date column (the words inside the row's bounding box are `3`,
+   `大安區`, the 案名, the 地號, the 實施者, the 規劃單位 — and nothing in
+   between);
+3. the extracted record carries `date: ""` and every other field verbatim.
+
+So the publisher printed a row with no approval date. The tripwire's rule is
+the spec's rule ("Never repair absent data by inference"), and a record whose
+date is unknown cannot be placed on a timeline, dated, or reconciled against
+its predecessor.
+
+**Why this is a hard stop, not a problem to work around.** The plan's hard
+stops name a non-zero CLI exit (2, 3, 4, 5, 1) and a tripwire raise. Exit 4
+is both. The way past it is **not** a bypass flag — the tripwire has no
+bypass — and it is not a reader change, because the reader is right.
+
+**What the ingest would have produced** (measured offline, not written): 1,422
+records read, 23 excluded as publisher-truncated (編號 69, 81, 190, 572, 674,
+697, 704, 721, 728, 798, 829, 853, 865, 904, 914, 921, 932, 946, 999, 1007,
+1133, 1208), 1,422 cleansed, **677 projects** (today: 681 on the 2026-10-15
+gazette). The reconciliation against the 2026-10-15 predecessor was not
+reached — the tripwire runs before it.
+
+**What would unblock it.** Three readings, in the order they cost:
+
+1. **The city re-prints the row with its date.** Then the ingest runs as
+   planned. The publisher's stamp is 115-11-03, so a corrected document may
+   already exist.
+2. **The approval date is recoverable from another source** — the city's
+   platform holds the case by 案名 and 核定日期 (the `11412011` shape), so the
+   date could be recovered by the **recovery pass** (`--recover-truncated`),
+   which the spec already has for exactly this class of publisher defect. The
+   record's 地號 cell is complete, so it is not a truncated 地號 row; it is a
+   truncated **date**, and the recovery pass's scope would have to widen.
+3. **The row is excluded and named**, like the 23 publisher-truncated 地號
+   rows. That is honest — the exclusion count is reported — but it drops a
+   real approval from the dataset, and the tripwire's date rule would need to
+   learn the exclusion.
+
+**Not decided.** The user's decisions cover the pipeline's behaviour; this one
+is about a publisher's defect in a document the user has not seen. Per the
+plan, the step stops here and the reason is recorded.
+
+**What was NOT done in step 9.** The cross-reference against the fresh 168
+snapshot (`scripts/probe_crossref_p168_gazette.py`) was not re-run: it reads
+`data/projects.json`, and the dataset is still the 2026-10-15 one. The
+re-emit did not happen, because the ingest did not.
+
 ## D9g — consolidated execution order
 
 Every decision is made (D13, D8 per case and D14(b) on 2026-11-06). The measurements changed the order three times: D9c
@@ -1153,7 +1259,7 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 | 6 | D9c-2a — (a) merge the stranded `南港566…等6筆` cache into the live `…等1筆` dir (offline; binds nodes 744 and 1063); (b) second id source for ids in no cache (`11412011`); (c) stop a stub from shadowing an aliased dir. One re-emit | **P2** | (a) cache merge; (b)+(c) openspec change + `urtpe/links.py` + test | **step 2** | **DONE** `a2f307b`, archived `2026-11-06-cache-alias-merge-and-second-id-source` (`0f238b8`), re-emit `1cb32f4` — **4** projects changed, all explainable (南港566 the merge, 玉成166 `11412011` added, 玉成253-1 `10203261`/`10203262` added, 青年130 node 78 binds `11510008`); the unplaced flag falls **16 nodes in 11 projects → 13 in 9**; the 168 list's paging is broken (each page advances by 1 row) — one request with `TotalCount` returns all 466; the scope is the section AND the parcel, adjacent; suite 1069 passed / 1 skipped; viewer smoke passed |
 | 7 | D9e — offline test: all 54 in-processing case_ids resolve (54/54 pass today) | **P2** | `tests/` | — | **DONE** `02b71fa` — `tests/test_in_processing_cases_resolve.py`: 54 of 54 resolve (52 at the node level, all 54 at the project level, 0 in neither); offline, no network; suite 1072 passed / 1 skipped |
 | 8 | D11 — record the A/B/C shared-dependency finding | — | docs | — | **DONE** (this board) |
-| 9 | D9f — 168 poller + hash change detection in the `urtpe-poll` task, then one ingest of the 2026-11-03 gazette and a cross-reference against the fresh snapshot | **P2** | poller script + task action + ingest + re-emit | steps 0b, 2 | single-writer rule; poller writes snapshots only |
+| 9 | D9f — 168 poller + hash change detection in the `urtpe-poll` task, then one ingest of the 2026-11-03 gazette and a cross-reference against the fresh snapshot | **P2** | poller script + task action + ingest + re-emit | steps 0b, 2 | **HARD STOP** — the poller and the task action are **DONE** (`scripts/poll_p168.py`, the task now runs both pollers; task run 2026-11-06 09:43, Last Result 0); the **ingest is REFUSED** by the tripwire (exit 4): the **2026-10-28** gazette prints **no 核定日期** for 編號 3. Nothing was written. See "D9f — the ingest is refused" below |
 | 10 | D9c-4 — monitor the 78 in-review cases after each new gazette | **P3** | re-run the cross-reference scripts | step 9 | new gazette published |
 | 11 | D13 — folded into step 2 (decided 2026-11-06) | — | — | — | see step 2 |
 | 12 | D15 — sort a node's `review_flags` by a stable key | **P3** | openspec change (emitter) + test | — | **DONE** `cce5625`, archived `2026-11-06-stable-review-flag-order` (`13baf68`) — the emitter sorts by (case id, text); 20 nodes' flag order changes on the live payload, 0 flag sets and 0 flag counts change; suite 1020 passed / 1 skipped |

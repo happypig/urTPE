@@ -2326,8 +2326,38 @@ point where a city's case name is compared to a gazette 案名. The
 implementation-dates path is not involved. A claim that NFKC would restore
 the implementation dates for this case is **not supported** by the data.
 
-**Status: measured, not fixed.** The fix waits for the user to open the
-change. The test-first group should pin:
+### D16b — the 都市更新計畫 keyword is not exposed either (2026-11-06)
+
+The peer session raised the edge the framing above puts me closest to: the
+keyword `都市更新計畫` contains 更, and the corpus's 更 (U+F901) also sits
+inside `都市更新`. If a name held **both** — the keyword in its unified form
+and the compat 更 inside 都市更新 — the substring test could in principle
+match across the boundary.
+
+**Measured** (`scripts/probe_nfkc_keyword_exposure.py`):
+
+| | Count |
+|---|---|
+| corpus names containing the literal `都市更新計畫` | **0** |
+| corpus names where a compat char sits immediately before a 更 | **0** |
+| link-cache case names containing the literal `都市更新計畫` | **0** |
+| the boundary shape anywhere in the cache | **0** |
+| **payload node names containing the literal `都市更新計畫`** | **10** |
+
+**The 10 are all in `name_raw`**, the PDF's untouched text — the PDF prints
+`土地都市更新計畫案` (the abbreviation the cleanser then rewrites to
+`土地都市更新事業計畫案`). All 10 carry **no** compatibility character, and
+the **cleaned** `name` no longer contains the keyword at all. Their tracks are
+unchanged by folding (`事業計畫` before and after).
+
+**So the exposure does not exist anywhere.** The keyword's own 更 is the
+unified U+66F4; the corpus's 更 is U+F901; and no name in the corpus, the
+payload's cleaned names or the cache carries the literal four-character
+keyword at all.
+
+**Status: measured.** One reader, one live case, four pins, no exposure.
+
+**The test-first group, when the user opens the change:**
 
 1. the one live case reads both tracks after folding;
 2. the 6 corpus records are unchanged in track;

@@ -581,7 +581,8 @@ the regex cannot match a compatibility 北 or 都. So the national portal index 
 through to the crude string-strip fallback at `urtpe/links.py:503`.
 
 **This side is harmless to the track reader.** The district comes from the 行政區 column,
-not from the 案名. But the index core is still wrong for these 6.
+not from the 案名. Measured: **0 of the 1,444 rows change track after folding.** But the
+index core is still wrong for these 6.
 
 ### 11.2 The live case name: 1 occurrence, and it breaks the track reader
 
@@ -595,7 +596,7 @@ not from the 案名. But the index core is still wrong for these 6.
 | `unicodedata.name(ch)` | `CJK COMPATIBILITY IDEOGRAPH-F9DD` |
 | `unicodedata.decomposition(ch)` | `5229` — the compatibility decomposition |
 
-**This one breaks a reader.** `_tracks()` at `urtpe/cleanse.py:230` matches the keyword
+**This one breaks one reader.** `_tracks()` at `urtpe/cleanse.py:230` matches the keyword
 權利變換 literally:
 
 | Title | `_tracks()` |
@@ -604,25 +605,49 @@ not from the 案名. But the index core is still wrong for these 6.
 | 事業計畫及權<U+F9DD>變換計畫案 | `['事業計畫']` — **the track is lost** |
 | The compat title, NFKC-normalised | `['事業計畫', '權利變換']` |
 
-The same break hits `_PLAN_CASE_RE` at `urtpe/links.py:2536`:
+Measured over the whole corpus and the whole link cache, this is the **only** reader
+that changes:
 
-| 擬訂 title | `_PLAN_CASE_RE.match()` |
+| Scope | Names carrying a compat ideograph | Track changes after folding | Plan-case outcome changes |
+| --- | --- | --- | --- |
+| Payload case names | 1 | 1 | **0** |
+| Link cache case names (4,192) | 2 (the same case, in two fields) | 1 | **0** |
+| Corpus rows (1,444) | 6 | **0** | — |
+
+**`_PLAN_CASE_RE` at `urtpe/links.py:2536` is NOT affected.** It requires the name to
+start with 擬訂, and this case's name starts with 變更, so it matches neither way:
+
+| The live name | `_PLAN_CASE_RE.match()` |
 | --- | --- |
-| 擬訂…事業計畫及權利變換計畫案 (unified) | matches |
-| 擬訂…事業計畫及權<U+F9DD>變換計畫案 | **no match** — the case is not a plan case |
+| 變更…事業計畫及權<U+F9DD>變換計畫案, as-is | no match |
+| The same name, NFKC-normalised | no match |
 
-So a compatibility 利 can cost a case its 權利變換 track and its plan-case
-implementation dates. **The case name that carries it today starts with 變更, so it
-does not match the plan-case pattern either way** — the live damage is bounded. The
-reader is still wrong, and a future 擬訂 name with the same character would lose its
-dates.
+The regex is genuinely compatibility-blind — a 擬訂 title carrying the compat form
+fails as-is and matches after folding — but **no name in the payload or the cache is
+that counterfactual**. So the implementation-dates path is not involved.
 
 ### 11.3 The fix
 
 **An NFKC normalisation at the cleansing boundary, plus a test.** NFKC folds U+F9DD to
 U+5229, U+F963 to U+5317, U+FA26 to U+90FD, and U+F901 to U+66F4. Verified: it makes
-`parse_name_id()` succeed on the 6 corpus records, and it restores both `_tracks()` and
-`_PLAN_CASE_RE` on the compat title.
+`parse_name_id()` succeed on the 6 corpus records, and it restores `_tracks()` on the
+compat title.
+
+**The change has one reader to fix.** The track reader, where a city's case name is
+compared to a gazette 案名. One live case. A corpus that does not move.
+
+**The test-first group must pin three things:**
+
+1. The live case reads **both** tracks after folding.
+2. The 6 corpus records are unchanged in track.
+3. **The corpus record count does not move.** A normalisation at the cleansing
+   boundary runs before merge, so a change there moves project counts. Pinning the
+   count is what catches that.
+
+A test that checks only the corpus would pass while the live bug survived. The 6
+corpus characters sit in the 臺北市 of the **地號 cell**, and the district is read from
+the 行政區 column. The live character sits in the **案名**. Same character class, two
+different places, two different consequences.
 
 **This is a pipeline defect, independent of both the dashboard and the UI work.** It
 belongs in its own change.
@@ -633,6 +658,20 @@ An earlier draft said the single U+F9DD was "a normal 利 in 權利變換計畫�
 three forms instead of four. **That was wrong.** The character is the compatibility form,
 and the peer's byte-level check caught it. The distinction matters: a normal 利 is
 harmless, and a compatibility 利 silently loses a track.
+
+**A second correction, 2026-11-07.** An earlier revision of §11.2 said the defect broke
+**two** readers — the track reader and `_PLAN_CASE_RE` at `urtpe/links.py:2536` — and
+that a compatibility 利 could cost a case its plan-case implementation dates. **That was
+wrong.** The peer measured it and I verified it: `_PLAN_CASE_RE` requires the name to
+start with 擬訂, the live name starts with 變更, and **0 names in the payload or the
+link cache would change their plan-case outcome after folding**. The implementation-dates
+path is not involved. **One reader is affected, not two.**
+
+I made the same kind of error twice while checking this. First I read a compatibility
+利 by eye instead of by codepoint. Then I compared two regex `Match` objects with `!=`,
+which is true whenever one side is `None`, and reported 762 names changing when the
+correct figure is **0**. Both errors produced a wrong number that looked plausible.
+Both were caught by checking the shape of the measurement rather than its output.
 
 ---
 
@@ -694,6 +733,28 @@ which is the better shape.
 ---
 
 ## 14. Revision record
+
+### 14.0 2026-11-07 — the two-reader claim withdrawn
+
+**The ideograph defect affects one reader, not two.** §11.2 and §11.3 previously said
+that a compatibility 利 could cost a case both its 權利變換 track and its plan-case
+implementation dates. The second half is **not supported** and is withdrawn.
+
+Measured, and verified independently:
+
+| Scope | Names with a compat ideograph | Track changes | Plan-case outcome changes |
+| --- | --- | --- | --- |
+| Payload case names | 1 | 1 | **0** |
+| Link cache case names (4,192) | 2 | 1 | **0** |
+| Corpus rows (1,444) | 6 | **0** | — |
+
+**The dashboard figures did not move.** Nothing in §3 or §4 depends on this. The
+payload blob is still `1ddffa1b`, still 682 projects / 1,444 records.
+
+**Two measurement errors, both mine, both caught by checking the shape.** I read a
+compatibility 利 by eye instead of by codepoint, and I compared two regex `Match`
+objects with `!=`, which reports 762 names changing where the true figure is 0. A
+plausible number is not a verified one.
 
 ### 14.1 2026-11-06, final revision — the settled corpus
 
@@ -848,12 +909,18 @@ The distinction is not cosmetic. Verified in the repo:
 | Reader | Unified | Compatibility |
 | --- | --- | --- |
 | `_tracks()` at `cleanse.py:230` | `['事業計畫', '權利變換']` | `['事業計畫']` — track lost |
-| `_PLAN_CASE_RE` at `links.py:2536`, on a 擬訂 title | matches | **no match** — dates dropped |
 | `parse_name_id()` on the 6 corpus records | — | `('', '', '', None)` |
 
-NFKC fixes all three. §11 now separates the two problems: the 6 corpus records (北/都/更
+NFKC fixes both. §11 now separates the two problems: the 6 corpus records (北/都/更
 in the district name, harmless to the track reader) and the 1 live case name (利, which
 does break the reader).
+
+**Updated 2026-11-07.** This entry originally listed a third reader,
+`_PLAN_CASE_RE` at `links.py:2536`, as "no match — dates dropped". **That row was
+wrong.** The regex requires the name to start with 擬訂; the live name starts with
+變更, so it matches neither way, and **0 names in the payload or the link cache change
+their plan-case outcome after folding**. The peer measured it and I verified it
+independently. **One reader is affected, not two.** See §11.4.
 
 ### 14.5 2026-11-05 — first version
 

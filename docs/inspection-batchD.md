@@ -7,18 +7,16 @@ Batch B + C plan). Fifteen findings, all measured (D4–D15 added 2026-11-05). T
 then the decisions that gate execution.
 
 **Open items: none** (2026-11-06). The user **agreed** the rule (D9f-1)
-and added the 168 list's `MEMO` as a fourth source (D9f-2). The MEMO is
-**measured and cannot serve as a date source** — it is empty for all 33 cases
-where the PDF and the platform disagree, and it is a different date (the
-核定公告) where it is present — so it joins the rule as a **flag**. The
-implementation is step **9a**, which gates step 9's ingest.
+and added the 168 list's `MEMO` as a fourth source (D9f-2). Both are
+**implemented** (step 9a) and the ingest they unblocked **succeeded**: the
+2026-10-28 gazette is ingested, `編號 3`'s date is recovered, and the corpus
+stands at **1,444 records / 682 projects**.
 
-Everything else in D9g is done. The 168 poller and the `urtpe-poll` task
-action are **done**; the gazette the poller archived
-(`核定案件-2026-10-28.pdf`, published 2026-11-03) is archived and awaiting
-ingestion.
+The MEMO is **measured and cannot serve as a date source** — it is empty for
+all 33 cases where the PDF and the platform disagree, and it is a different
+date (the 核定公告) where it is present — so it joins the rule as a **flag**.
 
-The consolidated execution order is D9g.
+Every step of D9g is done. The consolidated execution order is D9g.
 
 **Working-tree state (2026-11-05).** This board and the `probe_*` scripts are
 committed (`87b79d0`, `caa2159`, `43cb9bf`), but not pushed: origin/main is at
@@ -1145,12 +1143,66 @@ snapshot. The 2026-11-03 gazette is the first such ingest.
 - The poller never ingests; ingestion is a separate explicit act.
 - No `pyproject.toml`, no CI, no build step — plain Python, system interpreter.
 
-### D9f — the ingest is refused (HARD STOP, 2026-11-06)
+### D9f — the ingest was refused, then unblocked (2026-11-06)
 
-The 168 poller and the task action are **done**. The **ingest is refused** by
-the tripwire, and the refusal is correct.
+**RESOLVED.** The ingest was first **refused** by the tripwire, and the
+refusal was correct. It was then unblocked by step 9a (D9f-1, the widened
+recovery pass) and **succeeded**. This section records the refusal, because
+the reason it was right is what made the fix possible.
 
-**What is done.**
+**The outcome, measured.**
+
+```
+[INFO] recovery: 5 recovered, 0 residual of 5 truncated row(s)
+  編號 3: RECOVERED 核定日期 2026/10/15 (cases 11501034, from the 案名 alone)
+  編號 190, 1007, 1133, 1208: RECOVERED (the 地號 truncations)
+tripwire: PASS
+  records: 1444  projects: 682
+reconcile: 2026-10-15 -> 2026-10-28
+  new approvals: 2   net change: +6 (1438 -> 1444)
+  historical rows changed: re-dated 0, edited 0, vanished 0 (accepted: 0)
+  recovered by this reader: 4
+manual corrections applied: 2
+unmatched corrections: 0
+```
+
+**The corpus stands at 1,444 records / 682 projects.** The approval the city
+reprinted with an empty date is **not** reported as a withdrawal — the
+recovered date matches the predecessor's identity key exactly.
+
+**Two corrections the implementation did not need.** The design assumed the
+tripwire would need an exemption for the recovered row and the reconciler a
+new field. Neither was needed:
+
+- the **tripwire** — the recovery pass runs *before* it (`urtpe/cli.py:292`
+  against `:322`), and the recovered date is written in the cell format the
+  reader parses, so the tripwire sees a date and passes;
+- the **reconciler** — `key_from_raw` is `(normalized_land, iso_date)`, and the
+  recovered date equals the predecessor's, so the row's key matches and
+  `withdrawn_recent` does not fire. The `recovered_records` parameter was
+  already wired and already routes the row out of the edit count.
+
+**The 編號 renumbered the whole corpus.** The payload diff: 681 projects
+changed and 1 is new — and **680 of the 681 changed projects have identical
+content** (dates, names, stages, land, links). The change is the 編號: the
+2026-10-28 gazette re-sorts its history by 核定日期, so every 編號 moved
+(編號 is a coordinate, not an identity — AGENTS.md). The one project whose
+content differs gained the new 2026-10-28 approval (case `10609183`).
+
+That renumbering broke `tests/test_merge_count_shrink.py`, which keyed its
+measured pairs on 編號. The pairs are now identified by their **content** (the
+unit's fragment and the two counts). Two of the eleven units (桃源段三小段251,
+玉成段五小段545) are no longer in the corpus — and were absent from the
+2026-10-15 corpus too, so they had gone before.
+
+**The cross-reference, re-run against the fresh payload:** 429 unmatched, 338
+found by section+parcel, **88 genuinely unmatched** — 0 in processing, **3
+already approved** (the known revoked cases of D9d), 85 undated (the in-review
+cases).
+
+**What follows is the record of the refusal.**
+
+**What was done.**
 
 - `scripts/poll_p168.py` — the 168 poller. It fetches the list (one request,
   sized by the `TotalCount` the endpoint reports), writes a snapshot under
@@ -1241,9 +1293,11 @@ report is clean: 2 corrections applied, **0 unmatched**.
    real approval from the dataset, and the tripwire's date rule would need to
    learn the exclusion.
 
-**Not decided.** The user's decisions cover the pipeline's behaviour; this one
-is about a publisher's defect in a document the user has not seen. Per the
-plan, the step stops here and the reason is recorded.
+**DECIDED and IMPLEMENTED (user, 2026-11-06).** The user agreed reading 2
+— the widened recovery pass — and added the 168 list's `MEMO` as a fourth
+source. The implementation landed as step 9a, and the ingest it unblocked
+succeeded. See "D9f-1" below for the rule and the measurements, and "D9f — the
+ingest was refused, then unblocked" above for the outcome.
 
 ### D9f-1 — the recovery pass, widened to a truncated DATE (explored 2026-11-06)
 
@@ -1466,35 +1520,44 @@ platform disagree, and it is a different date (the 核定公告) where it is
 present. The recovered date comes from the platform's own `核定日期`; a MEMO
 that disagrees with it is recorded as a flag.
 
-**The implementation is not written yet.** The change is five edits across
-four modules plus a spec delta:
+**The implementation is done** (`836b289`, archived
+`2026-11-06-recover-truncated-date-cells` `8512063`). The change was five
+edits across four modules plus a spec delta — and **two of the five turned
+out to be unnecessary**:
 
 1. `urtpe/extract.py` — the reader marks a truncated **date** cell with its own
    `source_fault` (today it only marks a truncated 地號 cell), and
-   `to_raw_records` carries it.
+   `to_raw_records` carries it. **Done.**
 2. `urtpe/recovery.py` — the name-only rule (F1's NFKC, F2's count
    comparison, checks 3 and 4), plus **D17**: `date_check` must refuse an
-   empty `want`.
+   empty `want`. **Done.** Plus one thing the design did not foresee: the
+   recovered date must be written in the **cell format** (`2026/10/15`), because
+   the reader's `to_iso` accepts `YYYY/M/D` and `YY/M/D` and **rejects** the
+   hyphenated form — an ISO date would have failed the tripwire and the
+   cleanser.
 3. `urtpe/recovery_pass.py` — the widened path: the date is recovered, the
    MEMO is compared and flagged, and the provenance records which source
-   closed.
-4. `urtpe/tripwire.py` — a **recovered** row is exempt from the date rule (the
-   row is recovered before the tripwire's date check, or the tripwire must
-   learn the exemption).
-5. `urtpe/reconcile.py` — the recovered row is listed in `recovered_records`,
-   so the run does not report the city as having edited or withdrawn an
-   approval it never touched.
+   closed. **Done.**
+4. `urtpe/tripwire.py` — a **recovered** row is exempt from the date rule.
+   **NOT NEEDED.** The recovery pass runs *before* the tripwire
+   (`urtpe/cli.py:292` against `:322`), and the recovered date is written in a
+   format the reader parses, so the tripwire sees a date and passes.
+5. `urtpe/reconcile.py` — the recovered row is listed in `recovered_records`.
+   **NOT NEEDED.** The recovered date equals the predecessor's, so the row's
+   identity key matches and `withdrawn_recent` does not fire; the
+   `recovered_records` parameter was already wired and already routes the row
+   out of the edit count.
 
-**The board's D9g order changes.** Step **9a** is now the implementation of
-the agreed rule, and it **gates step 9's ingest** — it is a precondition, not
-a follow-up. The D9f-2 addition (the MEMO as a flag) is part of 9a's change,
-not a separate step.
+**The board's D9g order changed as planned.** Step **9a** was the
+implementation of the agreed rule, and it **gated step 9's ingest** — a
+precondition, not a follow-up. The D9f-2 addition (the MEMO as a flag) was
+part of 9a's change, not a separate step.
 
-### What the reconciliation would have said (measured, 2026-11-06)
+### What the reconciliation would have said (measured, 2026-11-06, superseded)
 
 The tripwire runs before the reconciliation, so the reconciliation never ran
-inside the CLI. Measured offline against the current `clean.tsv` as the
-predecessor:
+inside the CLI on the refused ingest. Measured offline against the current
+`clean.tsv` as the predecessor:
 
 ```
 reconcile: 2026-10-15 -> 2026-10-28
@@ -1508,7 +1571,9 @@ reconcile: 2026-10-15 -> 2026-10-28
 
 **Only 2 approvals are genuinely new**: 玉泉段二小段452-2 (大同區) and
 通化段一小段812 (大安區). The rest of the document re-publishes what the
-dataset already holds.
+dataset already holds. **The real ingest agrees**: 2 new approvals, and
+**0 re-dated, 0 edited, 0 vanished** — because the recovery pass completed
+the empty date and the row's identity key then matched the predecessor's.
 
 **編號 3 IS the 2026-10-15 approval, re-published with an empty date.** The
 reconciler names it as a *withdrawn recent approval* — because the row's date
@@ -1567,8 +1632,8 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 | 6 | D9c-2a — (a) merge the stranded `南港566…等6筆` cache into the live `…等1筆` dir (offline; binds nodes 744 and 1063); (b) second id source for ids in no cache (`11412011`); (c) stop a stub from shadowing an aliased dir. One re-emit | **P2** | (a) cache merge; (b)+(c) openspec change + `urtpe/links.py` + test | **step 2** | **DONE** `a2f307b`, archived `2026-11-06-cache-alias-merge-and-second-id-source` (`0f238b8`), re-emit `1cb32f4` — **4** projects changed, all explainable (南港566 the merge, 玉成166 `11412011` added, 玉成253-1 `10203261`/`10203262` added, 青年130 node 78 binds `11510008`); the unplaced flag falls **16 nodes in 11 projects → 13 in 9**; the 168 list's paging is broken (each page advances by 1 row) — one request with `TotalCount` returns all 466; the scope is the section AND the parcel, adjacent; suite 1069 passed / 1 skipped; viewer smoke passed |
 | 7 | D9e — offline test: all 54 in-processing case_ids resolve (54/54 pass today) | **P2** | `tests/` | — | **DONE** `02b71fa` — `tests/test_in_processing_cases_resolve.py`: 54 of 54 resolve (52 at the node level, all 54 at the project level, 0 in neither); offline, no network; suite 1072 passed / 1 skipped |
 | 8 | D11 — record the A/B/C shared-dependency finding | — | docs | — | **DONE** (this board) |
-| 9 | D9f — 168 poller + hash change detection in the `urtpe-poll` task, then one ingest of the 2026-11-03 gazette and a cross-reference against the fresh snapshot | **P2** | poller script + task action + ingest + re-emit | steps 0b, 2, **9a** | **HARD STOP** — the poller and the task action are **DONE** (`scripts/poll_p168.py`, the task now runs both pollers; task run 2026-11-06 09:43, Last Result 0); the **ingest is REFUSED** by the tripwire (exit 4): the **2026-10-28** gazette prints **no 核定日期** for 編號 3. Nothing was written. See "D9f — the ingest is refused" below |
-| 9a | **D9f-1 + D9f-2** — widen the recovery pass to a truncated **date** cell; the 168 list's `MEMO` is the fourth source (as a **flag**) | **P1** | openspec change (`truncated-row-recovery` + `pdf-tsv-extraction` + `gazette-reconciliation`) + code + test + one ingest | step 9 | **AGREED** (user, 2026-11-06) — **not yet implemented**. The rule recovers the date for **57 of 59** gazette rows with **0** ambiguous, and for 編號 3 it recovers **2026-10-15**, the date the corpus already holds. The MEMO is **measured** and cannot be a date source: it is empty for all **33** PDF-vs-platform disagreement cases, and it is the 核定**公告** date where it is present — so it joins as a flag. Five edits: the reader's marker, the name-only rule + D17's guard, the widened path, the tripwire's exemption, the reconciliation's `recovered_records`. See "D9f-1" and "D9f-2" below |
+| 9 | D9f — 168 poller + hash change detection in the `urtpe-poll` task, then one ingest of the 2026-11-03 gazette and a cross-reference against the fresh snapshot | **P2** | poller script + task action + ingest + re-emit | steps 0b, 2, **9a** | **DONE** — the poller and the task action (`scripts/poll_p168.py`; the task runs both pollers; task run 2026-11-06 09:43, Last Result 0); the **ingest succeeds** with `--recover-truncated`: **exit 0**, tripwire **PASS**, `編號 3: RECOVERED 核定日期 2026/10/15 (cases 11501034, from the 案名 alone)`, 5 recovered / 0 residual; reconcile **0 re-dated, 0 edited, 0 vanished**, 2 new approvals, net +6; ledger 2 applied / 0 unmatched; **1,444 records / 682 projects**; the cross-reference re-run against the fresh payload (429 unmatched, 338 found by section+parcel, 88 genuinely, 3 of them the known revoked cases); re-emit `eafb9dd` |
+| 9a | **D9f-1 + D9f-2** — widen the recovery pass to a truncated **date** cell; the 168 list's `MEMO` is the fourth source (as a **flag**) | **P1** | openspec change (`truncated-row-recovery` + `pdf-tsv-extraction` + `gazette-reconciliation`) + code + test + one ingest | step 9 | **DONE** `836b289`, archived `2026-11-06-recover-truncated-date-cells` (`8512063`) — the rule recovers **57 of 59** gazette rows with **0** ambiguous; the recovered date equals the corpus's own date in **55 of 57**; 編號 3 → **2026/10/15**, the date the corpus already holds. The MEMO is a **flag** (empty for all 33 PDF-vs-platform disagreement cases; a different date where present). **The tripwire needed no exemption** — the recovery runs before it — and the reconciliation needed no change: the recovered date makes the row's key match the predecessor's. Suite 1086 passed / 1 skipped |
 | 10 | D9c-4 — monitor the 78 in-review cases after each new gazette | **P3** | re-run the cross-reference scripts | step 9 | new gazette published |
 | 11 | D13 — folded into step 2 (decided 2026-11-06) | — | — | — | see step 2 |
 | 12 | D15 — sort a node's `review_flags` by a stable key | **P3** | openspec change (emitter) + test | — | **DONE** `cce5625`, archived `2026-11-06-stable-review-flag-order` (`13baf68`) — the emitter sorts by (case id, text); 20 nodes' flag order changes on the live payload, 0 flag sets and 0 flag counts change; suite 1020 passed / 1 skipped |

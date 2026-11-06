@@ -209,7 +209,7 @@ strict subset of the 181. The extra 84 hold a case whose approval arrived after 
 cache was written, so the payload has no approval date for it yet. That is correct
 behaviour, not a gap: a case the city has not approved is a live case, not stale data.
 
-### 4.2 Cache older than the gazette — 6 projects
+### 4.2 Unverified projects — 6
 
 The signal is the `result.json` mtime, because no project cache stores a publication
 date. This is the same rule `cache_is_stale_for()` applies at `urtpe/links.py:1629`.
@@ -224,6 +224,12 @@ date. This is the same rule `cache_is_stale_for()` applies at `urtpe/links.py:16
 | 萬華區-萬華段一小段-519-2地號等35筆 |
 
 Six of 681 is 0.9%. The viewer shows none of them today.
+
+**Call these 資料未驗證 (unverified), not 資料過期 (stale).** §5.2 measures why: these
+6 are exactly the caches the Batch D refresh pass did not rewrite. They are the
+projects the city's parcel search does not match and the national portal has no page
+for. Their data is old because nothing has re-checked it. A project whose data is old
+but was re-checked yesterday is not in this set.
 
 ### 4.3 The ledger is not a freshness signal
 
@@ -263,16 +269,16 @@ not the definition. It will drift when a project gains a twur link.
 
 ---
 
-## 5. Open decision 1 — the source of the cache-stale column
+## 5. Open decision 1 — the source of the unverified column
 
 | Option | Correct? | Cost | Risk |
 | --- | --- | --- | --- |
 | **A** — copy `no_match_ledger.json` into `viewer/` | **No.** Marks 50, truth is 6 | Low | Wrong column |
-| **B** — payload predicate `twur` empty AND `taipei` empty | Yes today | **None** | Drifts from the definition |
-| **C** — emit the cache mtime into the payload | Yes | Medium | Write time ≠ fetch time |
+| **B** — payload predicate `twur` empty AND `taipei` empty | Yes — the 6 unverified | **None** | Drifts from the definition |
+| **C** — emit the cache mtime into the payload | **No** — the mtime is the write time, and the cache pass rewrites 642 of 726 | Medium | Would read as fresh for all 681 |
 | **D** — omit the column | n/a | None | Loses 6 projects |
 
-### Option C in detail
+### 5.2 The write-time risk, measured
 
 Add a `cache_written_at` field. The pipeline already computes the value — it is thrown
 away at `urtpe/cli.py:526-534`, where the stale count is printed and discarded.
@@ -288,16 +294,84 @@ missing from that round trip is dropped silently on the next run. The archived
 `supersede-headerless-cases` change left a comment at `urtpe/links.py:3051` about
 exactly this failure mode.
 
-**The risk in Option C.** `discover_project_links()` returns a cached result without a
-network request, but `save_project_cache()` still rewrites `result.json` when
-`twur_name` was missing from the cache. The mtime is therefore the **write** time, not
-the **fetch** time. A run that rewrites a cache makes it look fresh, and the cache may
-still hold old data. **This was not measured.** It needs a check before Option C ships.
+**The risk in Option C, measured 2026-11-06.** The cache mtime is the **write** time,
+not the **fetch** time. The measurement:
 
-### Recommendation
+| | Count |
+| --- | --- |
+| Cache directories | 726 |
+| With a `view.html` (a page was fetched at some point) | 643 |
+| `result.json` newer than `view.html` — rewritten with **no** fetch | **642** |
+| `result.json` and `view.html` written together | 1 |
+| No `view.html` at all | 83 |
 
-**Option C, after one more check on the write-time issue.** Option B is the fallback and
-costs nothing. Option D is defensible: the dashboard ships with the 97 and the 6 follows.
+The `result.json` mtimes cluster on 2026-11-06 (661 files) and 2026-11-04 (59). **Six
+carry 2026-08-29** — and those six are exactly the unverified projects.
+
+`refresh_project()` re-fetches the city's case milestones, headers, implementation and
+rewards, then calls `save_project_cache()` — which writes `result.json` and leaves
+`view.html` alone. It never touches the national portal page. So **642 of the 726 caches
+have a `result.json` mtime that says nothing about when their data was fetched.**
+
+The lag is not noise. It runs from 29 days to 70.9 days, with a median of 70.7 days.
+The 642 rewritten caches carry a `result.json` written on 2026-11-06 over a
+`view.html` fetched on 2026-08-27.
+
+**A `view.html` mtime is not a fetch time either.** Under that rule **642 of 726**
+caches are stale. The `view.html` files cluster on 2026-08-27 (396), 2026-08-29 (166)
+and 2026-08-30 (75), with only 6 fetched since. The national portal was not crawled
+again after the Batch D pass, which re-fetches the city's cases but never the
+national page. That would flag the whole corpus.
+
+**This kills Option C as stated.** A `cache_written_at` field carries the write time,
+and the write time is now meaningless: the Batch D cache pass rewrote 642 caches
+without fetching a single national page. Every one of them would read as fresh.
+
+### 5.3 The signal that actually works
+
+**The 6 stale projects are the ones the refresh pass did not touch.** They are exactly
+the caches with no `view.html` and no rewrite — `result.json` dated 2026-08-29, the day
+the cache was first built. The Batch D pass rewrote everything else.
+
+So the 6 are stale in a real sense: **no refresh has reached them.** They are the
+projects the city's search does not match and the national portal has no page for.
+
+This reframes the column. It is not "the cache is old". It is **"our copy is
+unverified"** — no pass has confirmed these projects against the city. That is a more
+useful thing for the dashboard to say, and it is what the payload already shows:
+`links.twur` empty AND `links.taipei` empty, exactly the 6.
+
+### 5.4 Recommendation
+
+**Option B, not Option C.** The payload predicate `links.twur` empty AND `links.taipei`
+empty selects exactly the 6 unverified projects, costs nothing, and needs no pipeline
+change. It survived three payload revisions without moving.
+
+Option C would emit a field whose value is the write time, which the cache pass sets
+on every run. It would read as fresh for all 681 projects and tell the dashboard
+nothing.
+
+**Rename the column.** Call it 資料未驗證 (unverified), not 資料過期 (stale). It says
+what the 6 actually are. A project whose data is old but was re-checked is not stale;
+a project nobody has re-checked is unverified, and that is the case that needs work.
+
+**Option D stays defensible** if the dashboard must ship without the column, but the
+column is now cheap and meaningful, so I would take Option B.
+
+### 5.5 The write-time check, if the pipeline ever wants it
+
+The pipeline must record the **fetch** time, not the write time. Two options:
+
+1. Store a `fetched_at` field inside `result.json` and update it only on a real
+   request. The field survives the rewrite, because the rewrite preserves the
+   `DiscoveryResult` fields it does not touch.
+2. Use `case_headers` presence as the proxy. A cache the refresh pass reached has
+   `case_headers`; the 6 do not. 628 of 726 caches lack `case_headers` today, so this
+   proxy is too coarse on its own — it would flag far more than the 6.
+
+**Option 1 is the one that works.** It is a bigger change than Option C and it is not
+needed for the dashboard. It belongs on the list only if a future feature needs a
+per-project freshness date.
 
 **A practical path exists either way.** The dashboard can ship with the 97 awaiting
 projects and add the 6 cache-stale projects later. The 97 need no pipeline change.
@@ -447,12 +521,13 @@ dashboard must render only visible rows.
 - **The dashboard reads `projects.data.js` directly.** No new data file, no pipeline
   change for the 行政時程 content.
 - **A build script computes the aggregates.** The dashboard must not embed hand-written
-  figures. A payload re-emit on 2026-11-06 moved the durations while the project count
-  stayed the same — see §14.1. The aggregates are derived at build time and written into
-  a data file the page reads, or computed in the page from the payload. **Either way,
-  the numbers come from the payload, never from a human typing them.**
-- **A cache-stale column needs the pipeline** if Option C is chosen. That is the one
-  content item the dashboard cannot derive from the payload alone.
+  figures. Three payload re-emits on 2026-11-06 each moved the durations while the
+  project count stayed the same — see §14.4. The aggregates are derived at build time
+  and written into a data file the page reads, or computed in the page from the payload.
+  **Either way, the numbers come from the payload, never from a human typing them.**
+- **The unverified column needs no pipeline change.** Under Option B it is
+  `links.twur` empty AND `links.taipei` empty, both already in the payload. **The whole
+  dashboard is viewer-side.**
 
 ## 10. Decided: dashboard content
 
@@ -509,12 +584,19 @@ own change.
 
 Two answers:
 
-1. **The cache-stale column** — Option C (emit the mtime, after the write-time check),
-   Option B (the payload predicate, free), or Option D (omit it).
+1. **The unverified column** — **Option B** (the payload predicate, free, and the
+   recommendation as of §5.4) or Option D (omit it). Option C is out: the measurement
+   in §5.2 shows the cache mtime is the write time, and the cache pass rewrites 642 of
+   726 caches without fetching anything.
 2. **Part 1 scope** — the six steps in §8.3, or a smaller slice.
 
 On those answers, the openspec changes open: one for the dashboard, one for the viewer
 UI work, one for the compatibility-ideograph fix.
+
+**The dashboard needs no pipeline change** under Option B. That means the dashboard
+change is viewer-side only, and its test-first group can be a pytest case over a
+fixture payload plus a smoke check. It does not need the corpus to be stable, because
+every aggregate is computed from the payload at build time.
 
 ### 13.1 The openspec gate
 
@@ -562,15 +644,35 @@ gazette prints an empty 核定日期 cell for 編號 3 — so the emitted datase
 The cache writes of steps 2, 4 and 6 did land, and the D9c-2a re-emit followed them.
 
 **The next gazette will move the corpus more than a re-emit does.** The refused ingest
-read 1,422 records, excluded 23 as publisher-truncated, and produced **677 projects
+read 1,422 records, excluded 23 as publisher-truncated, and produced **676 projects
 against today's 681**. So the next successful ingest changes the project count by
-about 4, not 0. Every aggregate in these notes moves again then. This is the third
+5, not 0. Every aggregate in these notes moves again then. This is the third
 revision in one day, and the next one will be larger than the first two.
+
+**The −5 is mostly the reader's own exclusions, not new approvals.** The peer measured
+the reconciliation offline against `clean.tsv` (the tripwire blocks it inside the CLI):
+only 2 approvals are genuinely new — 玉泉段二小段452-2 and 通化段一小段812 — and both
+land in projects the payload already holds. The net change comes from the 23
+publisher-truncated rows and the 5 families they belong to. The gazette holds 1,442
+編號; the reconciliation compares the 1,422 read rows against the predecessor's 1,442.
+
+**編號 3 is not a new approval.** It is the 2026-10-15 approval re-published with an
+empty date cell. The current payload already holds it: 大安區-通化段四小段-336地號等26筆,
+node recno 1, dated 2026-10-15, bound to city case 11501034, whose 核定日期 reads
+2026-10-15. The reconciler names it as a "withdrawn recent approval" only because the
+empty date breaks its identity key.
 
 **The 成果報備 and 使照 findings survive that.** Both depend on dates the city
 published before 2016, and a new gazette adds approvals, not corrections to old ones.
 But the counts will shift, and the dashboard must read them from the payload at build
 time.
+
+**Corroborated by the peer, 2026-11-06.** Three corrections to an earlier draft of
+this paragraph: the project count is 676 (not 677 — the figure came from a probe that
+skipped the correction ledger, and the ledger's two 吉林676 entries merge one pair); the
+−5 frame is exclusions rather than new approvals; and 編號 3 is a re-publication, not a
+new approval. Each was checked against the repo and the payload. The board was
+corrected at `4f9dfd8`.
 
 ### 14.2 2026-11-06, second revision — D9g Batch D re-emit
 

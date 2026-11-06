@@ -2321,10 +2321,15 @@ flip: as-is no match, after folding a match. The regex's keyword
 one. The counterfactual is a property of the **regex**, not of any name in
 the corpus or the cache.
 
-**So the fix has exactly one reader to change:** the track reader, at the
-point where a city's case name is compared to a gazette 案名. The
-implementation-dates path is not involved. A claim that NFKC would restore
-the implementation dates for this case is **not supported** by the data.
+**So the fix has exactly one reader to change on the LIVE side:** the track
+reader, at the point where a city's case name is compared to a gazette 案名.
+The implementation-dates path is not involved. A claim that NFKC would
+restore the implementation dates for this case is **not supported** by the
+data.
+
+**But this is not the whole change.** The corpus's own 6 records have a
+**second** reader affected — `parse_name_id` — and it is the more consequential
+of the two. See **D16c**.
 
 ### D16b — the 都市更新計畫 keyword is not exposed either (2026-11-06)
 
@@ -2355,7 +2360,65 @@ unified U+66F4; the corpus's 更 is U+F901; and no name in the corpus, the
 payload's cleaned names or the cache carries the literal four-character
 keyword at all.
 
-**Status: measured.** One reader, one live case, four pins, no exposure.
+### D16c — a SECOND reader is affected: `parse_name_id` (2026-11-06)
+
+The peer session's document named a third reader, and it holds. **My "one
+reader" conclusion above was wrong**: the compatibility form breaks
+`parse_name_id` as well, and that is the more consequential of the two.
+
+**Measured** (`scripts/probe_compat_name_id.py`):
+
+| | Count |
+|---|---|
+| corpus rows whose `parse_name_id` changes after folding | **6 of 1,444** — the same 6 |
+| of those, the parse is empty today | **6** — `('', '', '', None)` |
+
+For all 6, the parse returns **nothing at all** today and the full identity
+after folding:
+
+| recno | now | folded |
+|---|---|---|
+| 8, 615 | `('', '', '', None)` | `('北投區', '桃源段四小段', '424-8', 15)` |
+| 121, 611 | `('', '', '', None)` | `('信義區', '三興段一小段', '972', 9)` |
+| 179, 613 | `('', '', '', None)` | `('南港區', '南港段三小段', '274', 16)` |
+
+**Why it is harmless today, and why it still matters.** The index core the
+national portal is keyed on is built from the **portal's own title**, not
+from the corpus's 案名 — and the portal's titles for these 3 units carry no
+compatibility form. Measured (`scripts/probe_compat_index_core.py`): the
+crawled index holds **no** core for these 3 units at all, so the lookup
+misses either way, and the 3 projects' portal links came from elsewhere
+(the cached view pages: view/791, view/793, view/253).
+
+So the defect costs **nothing today** — but it means the corpus's own land
+core for these 3 projects is empty, and any reader that builds a core from
+the corpus's 案名 gets nothing. That is the same population the
+`land-identity-fallback` spec covers, and the same reason the fallback
+exists.
+
+**The change therefore has TWO readers to fix**, not one:
+
+1. **the track reader**, where a city's case name is compared to a gazette
+   案名 — the one live case, `11507018`;
+2. **`parse_name_id`**, where the corpus's own 案名 yields no identity — the 6
+   records in 3 projects.
+
+**Status: measured, not fixed.** The fix waits for the user to open the
+change. The test-first group should pin:
+
+1. the one live case reads both tracks after folding;
+2. the 6 corpus records are unchanged in track;
+3. **the corpus record count does not move** — a normalisation at the
+   cleansing boundary runs before merge, so a change there moves the project
+   counts. Pinning the count is what catches that;
+4. **the live case is checked by name, not by count** — the corpus's six are
+   harmless for a reason the live case does not share, so a test that only
+   checks the corpus would pass while the live bug survived;
+5. **the 6 records parse to their identity after folding**, and the 3
+   projects' land core becomes the folded one — the second reader, which a
+   track-only test would not catch;
+6. **the 3 projects' portal links do not move** — they are already right, and
+   a change at the cleansing boundary must not disturb them.
 
 **The test-first group, when the user opens the change:**
 

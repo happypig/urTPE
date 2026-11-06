@@ -42,8 +42,8 @@
 
 - [x] 5.1 The full suite passes (`python -m pytest`) — **1137 passed, 1 skipped** (the deliberate skip at `tests/test_idempotent_flags.py`)
 - [x] 5.2 `python scripts/release_diff_report.py` regenerates the report and the committed copy is byte-identical, so a re-run does not churn the file — the publication step compares with the generation timestamp masked out, and restores the committed timestamp when nothing else moved
-- [ ] 5.3 The report's links are checked by opening both pages: the viewer's header link reaches the report, and the report's back link reaches the viewer
-- [ ] 5.4 `python scripts/check_deploy.py` is run against the published site once the push lands, and the report is reported fresh (or stale, with the reason)
+- [x] 5.3 The report's links are checked by opening both pages: the viewer's header link reaches the report, and the report's back link reaches the viewer — verified in Chrome against a local server (2026-11-06): the header link resolves to `../docs/release-diff.html`, the back link to `../viewer/index.html`, 8 release rows render, and the report makes **no external request**
+- [x] 5.4 `python scripts/check_deploy.py` is run against the published site once the push lands — **all 5 artifacts fresh** (2026-11-06): `viewer/index.html`, `viewer/app.js`, `viewer/app.css`, `viewer/projects.data.js`, `docs/release-diff.html`
 - [x] 5.5 `python scripts/baseline_silent_failures.py` still passes
 - [x] 5.6 `AGENTS.md` records the new scheduled action, the new artifact, and the `publisher_url` field in the archive index
 

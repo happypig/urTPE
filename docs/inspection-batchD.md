@@ -1617,6 +1617,12 @@ Every decision is made (D13, D8 per case and D14(b) on 2026-11-06). The measurem
 option 1 is withdrawn (D9d), D6's restore method is **not** `--fresh` (it
 renames the whole cache), and D9c-2's fix layer waits on a live search.
 
+**ALL STEPS ARE DONE (2026-11-06).** Step 9a was added when step 9's ingest
+was refused — the widened recovery pass (D9f-1) became the precondition for
+the ingest, not a follow-up — and the user's fourth source (D9f-2, the 168
+list's 核定公告 date) joined it as a **flag**. The corpus stands at **1,444
+records / 682 projects**, published 統計至 2026-10-28.
+
 **Order:**
 
 | Step | Finding | Priority | Form | Depends on | Gate |

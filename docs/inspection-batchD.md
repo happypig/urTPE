@@ -9,10 +9,16 @@ then the decisions that gate execution.
 **Open items: one** (2026-11-06). Every decision is made and every step of
 D9g is done **except step 9's ingest**, which the tripwire **refused**
 (exit 4): the 2026-10-28 gazette prints **no 核定日期** for 編號 3. The
-publisher's defect, not the reader's — the date cell holds no ink. The three
-ways past it (the city re-prints; the recovery pass widens to a truncated
-*date*; the row is excluded and named) are **not decided**, and they are the
-user's to decide. See "D9f — the ingest is refused" below.
+publisher's defect, not the reader's — the date cell holds no ink.
+
+**Reading 2 is now explored and measured** (D9f-1, below). The widened
+recovery pass recovers the date for **57 of 59** gazette rows with **0**
+ambiguous, and for 編號 3 it recovers **2026-10-15** — the date the corpus
+already holds. The adoption is the **user's**, because the rule writes the
+**platform's** date, and 2 of the 59 show the platform and the PDF
+disagreeing (by 1 day and by 16 days). Four decisions ride on it: the
+tripwire's exemption, the reader's marker, the 編號, and the reconciliation's
+`recovered_records`.
 
 The 168 poller and the `urtpe-poll` task action are **done**; the gazette the
 poller archived (`核定案件-2026-10-28.pdf`, published 2026-11-03) is archived
@@ -849,6 +855,9 @@ table is the per-finding view of it. Where the two differ, D9g wins.
 | D14 | `--from-js` loader drops 3 node fields and coerces `district_land` `''` | **P1** | direct `fix:` + round-trip test | — | before the first re-emit |
 | D14(b) | `district_land` from the collected 12-district enum (7 rows) | **P2** | openspec change (`cleanse`) + 2 tests | — | before the next PDF ingest (D9f) |
 | D15 | review-flag order depends on cluster order (大龍265-7) | **P3** | openspec change (emitter) + test | — | rides a re-emit |
+| **D9f-1** | the 2026-10-28 gazette prints no 核定日期 for 編號 3 — the recovery pass, widened to a truncated **date** | **P1** | openspec change (`truncated-row-recovery` + `pdf-tsv-extraction` + `gazette-reconciliation`) + code + test + one ingest | D9f | **EXPLORED, NOT ADOPTED** — the rule recovers **57 of 59** rows with **0** ambiguous; 編號 3 → **2026-10-15**, the date the corpus already holds. The adoption is the user's (the rule writes the **platform's** date) |
+| **D16** | the city writes 利 as U+F9DD, a compatibility ideograph — `權利變換` does not match | **P2** | `fix:` in the 案名 normalisation + test | — | found 2026-11-06; 1 case in 360 live names, **0** corpus rows; folded into D9f-1's NFKC |
+| **D17** | `date_check` reports a false "exact" match when the wanted date is empty | **P2** | `fix:` — refuse an empty `want` + test | — | latent today (the caller guards); **must** land with D9f-1, which hands it an empty date on every call |
 | D10 | the permit witness names the first permit of a tie — 43 projects show a 執照 date that is not the project's own 使照 | **P2** | openspec change (`official-link-discovery`) + re-emit | **D7** (the flag path reads the dict D7 corrupts) | **decided: 開工 match, else ambiguous** (D10e) |
 | D6 | twur override key is the pre-`c2cfbb9` slug — the record never applies; 國 badge and 7 national milestones absent | **P2** | direct `fix:` (re-key + dataset-key test) + restore + re-emit | — | **decided: re-key + per-project `discover_project_links(fresh=True)`** (D6) |
 | D9c-2 | `10708311` and `11412011` are absent from the city's parcel index — **DONE 2026-11-05** (live probe) | — | probe | — | — |
@@ -1231,6 +1240,7 @@ report is clean: 2 corrections applied, **0 unmatched**.
    which the spec already has for exactly this class of publisher defect. The
    record's 地號 cell is complete, so it is not a truncated 地號 row; it is a
    truncated **date**, and the recovery pass's scope would have to widen.
+   **Explored below — the rule exists and works.**
 3. **The row is excluded and named**, like the 23 publisher-truncated 地號
    rows. That is honest — the exclusion count is reported — but it drops a
    real approval from the dataset, and the tripwire's date rule would need to
@@ -1239,6 +1249,147 @@ report is clean: 2 corrections applied, **0 unmatched**.
 **Not decided.** The user's decisions cover the pipeline's behaviour; this one
 is about a publisher's defect in a document the user has not seen. Per the
 plan, the step stops here and the reason is recorded.
+
+### D9f-1 — the recovery pass, widened to a truncated DATE (explored 2026-11-06)
+
+Reading 2 was explored to the point where the rule is written down. **It
+works.** The date is recoverable, the acceptance is provable, and the
+residual is small and characterised. What is left is the user's call on
+whether to adopt it, because it changes what the pipeline writes.
+
+**The shape of the defect.** For a truncated 地號 row the recovery pass
+anchors on the **date** and the name is a filter: the 地號 cell is the
+damaged part, so the surviving date identifies the case. For a truncated
+**date** row the roles reverse — the 案名 must carry the identity alone, and
+the date is what gets recovered. That is why the existing rule cannot be
+reused as it stands: `match_row`'s check 4 asks the candidate's date to equal
+the gazette's, and the gazette's is exactly what is missing.
+
+**What the row keeps.** 編號 3's 案名 is complete, and
+`R.parse_identity` reads it without help: district 大安區, section 通化段四小段,
+mono 0336, count fragment `等26筆(原22筆)`, address core
+`臺北市大安區通化段四小段336地號等26筆(原22筆)`. The 地號 cell is complete
+too — 26 parcels, and the 案名 declares 26. So the row's **identity** needs
+nothing repaired; only its date is missing.
+
+**The rule, measured over 59 gazette rows** (one parcel search per row, one
+header per candidate; `scripts/probe_recovery_date_rule_final.py`):
+
+| check | what it reads |
+|---|---|
+| 1 | same unit — district + 段/小段 (the existing rule) |
+| 2 | the **declared count** agrees (the existing rule, compared as a count — see F2) |
+| 3 | the **stage ordinal** agrees — 擬訂 / 變更 / 變更(第二次) … (**new**) |
+| 4 | the **track set** equals the row's — 事業計畫 / 權利變換 / both (**new**) |
+| 5 | the approved candidates carry **ONE** date — the acceptance |
+
+| Outcome | Count |
+|---|---|
+| **recoverable — exactly one date** | **57** |
+| no candidate survives the name rule | 2 |
+| **several dates — ambiguous** | **0** |
+
+Checks 3 and 4 are what make it work. The name alone leaves **10 of 23**
+rows ambiguous in the first measurement: the candidates are the unit's
+successive revisions, each with its own approval date. The stage ordinal
+resolves 8 of those; the track resolves the rest.
+
+**Three defects the measurement found**, each fixed in the probe:
+
+- **F1 — a compatibility ideograph.** The city writes 利 as **U+F9DD** (CJK
+  COMPATIBILITY IDEOGRAPH-F9DD) in one case name (`11507018`), not U+5229.
+  The character looks identical; the keyword `權利變換` does not match, and the
+  row reads as 事業計畫 alone. **NFKC** folds it. Measured
+  (`scripts/probe_compat_ideographs.py`): the corpus's own 1,442 案名 carry
+  compatibility ideographs in **6** rows — but for 北 / 都 / 更, which sit in
+  the district name (read from the 行政區 column, so the corpus is
+  unaffected) — and **0** rows carry a compatibility 利. The city's live names
+  carry exactly **1** in 360 read (the `11507018` case). So the corpus is
+  clean; the platform side is not.
+- **F2 — the count is written two ways.** A 案名 may write `地號N筆` rather
+  than `等N筆`. The existing count-fragment check then rejects **every**
+  candidate, including the right ones. The fix compares the **declared
+  counts**, not the fragment strings — which also makes a real disagreement
+  refuse (recno 40: the row says `等12筆`, the city says `等13筆`).
+- **F3 — the track relation is equality, not a subset.** A subset relation
+  admits the area-split twin (recno 10: `10012274` is 事業計畫, `11507024` is
+  權利變換, and the row names 權利變換 alone) and creates a new ambiguity
+  (recno 27). Equality keeps the residual at **0** ambiguous rows.
+
+**A latent bug the exploration exposed.** `R.date_check(d1, d2, want)` with an
+**empty** `want` returns `("exact", "uro_chk_date2")` — it matches the *empty*
+second header field against the empty `want` and reports the wrong field
+name. A false "exact". It is **latent today**: `_recover_one` returns early
+when the date does not parse (`urtpe/recovery_pass.py:79-80`), so
+`date_check` never sees an empty `want`. But a widened rule would hand it one
+on every call, so the guard has to move (or `date_check` has to refuse an
+empty `want`) before the widening lands.
+
+**The accuracy, measured against the corpus's own dates.** The rule's job is
+to replace a missing date, so it must recover the date the row would have
+carried. Over the same 59 rows:
+
+| | Count |
+|---|---|
+| the recovered date **equals** the corpus's own date | **55** |
+| the recovered date differs | 2 |
+
+The 2 disagreements are two distinct shapes:
+
+- **recno 37** — 1 day apart (corpus 2026-07-01, platform 2026-07-02). The
+  existing `date_check` already calls this `pm1` and accepts it when no exact
+  candidate exists. The city and the platform differ by a day — the case the
+  flag exists for.
+- **recno 47** — 16 days apart (corpus 2026-06-01, platform 2026-06-17). **No
+  candidate carries 2026-06-01** — not `11410007` (2026-01-21 / 2026-05-08 /
+  2026-06-17), not `10912091` (2023-11-23), not `10501282` (2020-09-30). The
+  PDF and the platform genuinely disagree, and **the name-only rule cannot
+  recover the PDF's date** — it would write the platform's date instead.
+
+**That is the rule's honest limit, and it is the decision the user faces.** The
+rule recovers **the platform's** approval date. Where the PDF and the platform
+agree — 55 of 57 — the recovered date is the date the row would have carried,
+and the PDF's empty cell is filled with the city's own statement. Where they
+disagree, the rule writes the platform's date, and the disagreement is
+**invisible** unless it is flagged.
+
+For **編號 3 specifically** the two agree: the rule recovers **2026-10-15**
+from one candidate (`11501034`, `uro_chk_date`), and the corpus already holds
+that exact date as node recno 1 of `大安區-通化段四小段-336地號等26筆`. So for
+this row the widened rule and the current dataset would not disagree.
+
+**What the widened rule must also do, beyond the date** (each is a separate
+decision):
+
+1. **The tripwire must learn the exclusion.** The date rule fires on the
+   *read* rows; a recovered row must be exempt, or the tripwire still refuses.
+2. **The reader must mark the row.** The extraction path marks a truncated
+   地號 cell with `source_fault`; a truncated date needs its own marker, and
+   `to_raw_records` must carry it (`urtpe/extract.py:856-861` already appends
+   `核定日期缺漏` to `parse_error`).
+3. **The 編號 must not be trusted.** The row is 編號 3 in the new document and
+   recno 1 in the old one. 編號 is a coordinate, not an identity (AGENTS.md),
+   so the recovered row must key on its land core and date, not its 編號.
+4. **The reconciliation must not read the recovery as publisher movement.**
+   The reconciler has a `recovered_records` parameter for exactly this — "a
+   reader-side completion filed in the publisher's column" — and the recovered
+   row must be listed there, or the run reports the city as having edited or
+   withdrawn an approval it never touched.
+
+**The 2 residual rows are not rule gaps.** recno 40's count disagreement (the
+city says 13 parcels, the row says 12) and recno 53's missing candidate (the
+row's 變更/權利變換 approval is not in the family's candidate set at all — a
+pre-existing parcel-search recall limit, the D9c-2 shape). Both must refuse.
+
+**The cost.** One parcel search and one header per candidate, per row with a
+truncated date. The 2026-10-28 gazette has **1** such row. The reader's own
+23 excluded rows are the publisher-truncated 地號 rows, which the pass already
+handles.
+
+**Not adopted.** This is an exploration and a rule, not an implementation. The
+changes above are four edits across three modules plus a spec delta, and the
+user has not seen this measurement. The board's D9g order does not change:
+step 9 stays blocked, and the open item stays the user's.
 
 ### What the reconciliation would have said (measured, 2026-11-06)
 
@@ -1317,7 +1468,8 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 | 6 | D9c-2a — (a) merge the stranded `南港566…等6筆` cache into the live `…等1筆` dir (offline; binds nodes 744 and 1063); (b) second id source for ids in no cache (`11412011`); (c) stop a stub from shadowing an aliased dir. One re-emit | **P2** | (a) cache merge; (b)+(c) openspec change + `urtpe/links.py` + test | **step 2** | **DONE** `a2f307b`, archived `2026-11-06-cache-alias-merge-and-second-id-source` (`0f238b8`), re-emit `1cb32f4` — **4** projects changed, all explainable (南港566 the merge, 玉成166 `11412011` added, 玉成253-1 `10203261`/`10203262` added, 青年130 node 78 binds `11510008`); the unplaced flag falls **16 nodes in 11 projects → 13 in 9**; the 168 list's paging is broken (each page advances by 1 row) — one request with `TotalCount` returns all 466; the scope is the section AND the parcel, adjacent; suite 1069 passed / 1 skipped; viewer smoke passed |
 | 7 | D9e — offline test: all 54 in-processing case_ids resolve (54/54 pass today) | **P2** | `tests/` | — | **DONE** `02b71fa` — `tests/test_in_processing_cases_resolve.py`: 54 of 54 resolve (52 at the node level, all 54 at the project level, 0 in neither); offline, no network; suite 1072 passed / 1 skipped |
 | 8 | D11 — record the A/B/C shared-dependency finding | — | docs | — | **DONE** (this board) |
-| 9 | D9f — 168 poller + hash change detection in the `urtpe-poll` task, then one ingest of the 2026-11-03 gazette and a cross-reference against the fresh snapshot | **P2** | poller script + task action + ingest + re-emit | steps 0b, 2 | **HARD STOP** — the poller and the task action are **DONE** (`scripts/poll_p168.py`, the task now runs both pollers; task run 2026-11-06 09:43, Last Result 0); the **ingest is REFUSED** by the tripwire (exit 4): the **2026-10-28** gazette prints **no 核定日期** for 編號 3. Nothing was written. See "D9f — the ingest is refused" below |
+| 9 | D9f — 168 poller + hash change detection in the `urtpe-poll` task, then one ingest of the 2026-11-03 gazette and a cross-reference against the fresh snapshot | **P2** | poller script + task action + ingest + re-emit | steps 0b, 2, **9a** | **HARD STOP** — the poller and the task action are **DONE** (`scripts/poll_p168.py`, the task now runs both pollers; task run 2026-11-06 09:43, Last Result 0); the **ingest is REFUSED** by the tripwire (exit 4): the **2026-10-28** gazette prints **no 核定日期** for 編號 3. Nothing was written. See "D9f — the ingest is refused" below |
+| 9a | **D9f-1** — widen the recovery pass to a truncated **date** cell (the rule is explored and measured; the adoption is the user's) | **P1** | openspec change (`truncated-row-recovery` + `pdf-tsv-extraction` + `gazette-reconciliation`) + code + test + one ingest | step 9 | **EXPLORED, NOT ADOPTED** — the rule recovers the date for **57 of 59** gazette rows with **0** ambiguous, and for 編號 3 it recovers **2026-10-15**, the date the corpus already holds; the 2 residuals are a real count disagreement and a missing candidate. The adoption needs four decisions (the tripwire's exemption, the reader's marker, the 編號, and the reconciliation's `recovered_records`). See "D9f-1 — the recovery pass, widened to a truncated DATE" below |
 | 10 | D9c-4 — monitor the 78 in-review cases after each new gazette | **P3** | re-run the cross-reference scripts | step 9 | new gazette published |
 | 11 | D13 — folded into step 2 (decided 2026-11-06) | — | — | — | see step 2 |
 | 12 | D15 — sort a node's `review_flags` by a stable key | **P3** | openspec change (emitter) + test | — | **DONE** `cce5625`, archived `2026-11-06-stable-review-flag-order` (`13baf68`) — the emitter sorts by (case id, text); 20 nodes' flag order changes on the live payload, 0 flag sets and 0 flag counts change; suite 1020 passed / 1 skipped |
@@ -1366,7 +1518,26 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 - **Step 8 is docs only.** It records the A/B/C shared-dependency finding that
   was answered in chat and never written down.
 - **Steps 9–10 last.** The 168 poller is acquisition, and the monitor depends on
-  it. Neither changes emitted data on the current gazette.
+  it. Neither changes emitted data on the current gazette. **Step 9a's
+  exception is below.**
+- **Step 9a (D9f-1) gates step 9's ingest.** The ingest is refused by the
+  tripwire because the 2026-10-28 gazette prints no 核定日期 for 編號 3. The
+  widened recovery pass is the **only** reading that both keeps the approval
+  and lets the ingest proceed — reading 1 (the city re-prints) needs no code
+  but no date; reading 3 (exclude the row) drops a real approval and still
+  needs the tripwire to learn the exclusion. So 9a sits **before** the
+  ingest, not after it: it is a **precondition** of step 9, not a follow-up.
+  It is P1 — it is the only thing standing between the corpus and a
+  gazette — but it is **not adopted**, and the adoption is the user's, because
+  the rule writes the platform's date and two of 59 rows show the platform and
+  the PDF disagreeing by 1 and 16 days. That is a decision about what the
+  dataset asserts, not a bug fix.
+- **Step 10 waits for step 9.** The monitor re-runs the cross-reference
+  against a gazette the corpus has ingested. Until the ingest lands, the
+  corpus is still the 2026-10-15 one and the cross-reference would answer
+  against a stale payload. It stays P3.
+- **Step 9's cross-reference also waits.** It reads `data/projects.json`, so
+  it belongs after the ingest, in the same step.
 
 **What D9c option 1 becomes.** Instead of a ledger entry, the 3 revoked cases
 are **recorded as a negative** — the platform's approval was revoked, so the
@@ -1867,6 +2038,54 @@ rewrote).
 node, not of the run, and the copies collapse again. 11 projects changed by
 this. Suite: `tests/test_flag_date_normalisation.py`.
 
+### D16 — the city writes 利 as a compatibility ideograph (found 2026-11-06)
+
+Found while measuring D9f-1's name-only rule. The city's live case name for
+`11507018` writes **利 as U+F9DD** (CJK COMPATIBILITY IDEOGRAPH-F9DD), not
+U+5229 (CJK UNIFIED IDEOGRAPH-5229). The character renders identically; the
+keyword `權利變換` does not match, so the case reads as 事業計畫 alone and the
+rule cannot pair it with the gazette row.
+
+**Measured** (`scripts/probe_compat_ideographs.py`):
+
+| side | names read | carrying a compatibility ideograph |
+|---|---|---|
+| the corpus's own 案名 (1,442 rows, from the PDF) | 1,442 | **6** — for 北 / 都 / 更 |
+| the city's live case names | 360 | **1** — for 利 |
+
+**The corpus is not affected.** Its 6 compatibility characters sit in the
+**district name** (`臺北市` with 北 as U+F963), and the district is read from
+the **行政區 column**, not from the 案名. **0** corpus rows carry a
+compatibility 利.
+
+**NFKC** folds every compatibility ideograph to its unified form, so
+`unicodedata.normalize("NFKC", name)` is the folding the reader needs. It is
+not in `R.normalize_name`, whose table is a fixed list of the drift measured
+on the 2026-10-26 gazette (計劃→計畫, ㄧ→一, full-width parens, spacing).
+
+**Status: not fixed.** It is folded in the D9f-1 probe only. A general fix
+would touch `R.normalize_name` (the recovery pass's own normalisation) and
+the places that compare a 案名 to a platform name — and the population is 1
+case in 360, so the fix's own blast radius is small but its scope is not.
+Recorded here so it is not lost with the D9f-1 decision.
+
+### D17 — `date_check` reports a false "exact" match on an empty date (found 2026-11-06)
+
+Found while measuring D9f-1. `R.date_check(d1, d2, want)` with an **empty**
+`want` returns `("exact", "uro_chk_date2")` — it compares the *empty* second
+header field against the empty `want` and reports that field as the one that
+closed.
+
+**It is latent today.** `_recover_one` returns early when the 核定日期 does not
+parse (`urtpe/recovery_pass.py:79-80`), so `date_check` never sees an empty
+`want` on the existing path. But D9f-1 hands it one on **every** call — the
+whole point of the widened rule is that the gazette's date is empty — so the
+guard has to move, or `date_check` has to refuse an empty `want`, **before**
+the widening lands. Otherwise every candidate reads as an exact match.
+
+**Status: not fixed.** It is a one-line guard, but it belongs with D9f-1's
+change, not ahead of it.
+
 ## Decisions made (2026-11-05)
 
 | Entry | Decision | Blocks |
@@ -1879,7 +2098,8 @@ this. Suite: `tests/test_flag_date_normalisation.py`.
 | D9c | Options 1+2+4 → **option 1 withdrawn** (D9d: the ledger cannot add a record the gazette does not hold); **2+4 stand** | D9c-2, D9c-4 |
 | D9f | Accept periodical 168 poller plan, coordinated with periodical PDF update | D9f-1 |
 | D10 | The permit whose 開工日期 matches the city's; otherwise `links.permit.ambiguous` (2026-11-05) | D10 openspec change |
-| Gazette 2026-11-03 | Ingest together with the first 168 poll (2026-11-05) | D9g step 9 |
+| Gazette 2026-11-03 | Ingest together with the first 168 poll (2026-11-05). **The document's own 統計至 is 2026-10-28** — 2026-11-03 is the publisher's 資料更新 stamp, and the two archive files are byte-identical | D9g step 9 |
+| **D9f-1** | **NOT DECIDED** (2026-11-06) — widen the recovery pass to a truncated **date** cell, so the 2026-10-28 gazette's 編號 3 can be ingested. The rule is explored and measured (57 of 59 rows recoverable, 0 ambiguous; 編號 3 → 2026-10-15). The adoption is the user's: the rule writes the **platform's** date, and 2 of 59 rows show the platform and the PDF disagreeing | D9g step 9a |
 | D9g step 5a | Run the header pass — done: 78 in review, 5 closed, 1 revoked | — |
 | D11 | Recorded — docs only, no decision needed | — |
 

@@ -6,23 +6,17 @@ Batch B + C plan). Fifteen findings, all measured (D4–D15 added 2026-11-05). T
 `docs/inspection-batchBC.md` structure: findings, then the integrated plan,
 then the decisions that gate execution.
 
-**Open items: one** (2026-11-06). Every decision is made and every step of
-D9g is done **except step 9's ingest**, which the tripwire **refused**
-(exit 4): the 2026-10-28 gazette prints **no 核定日期** for 編號 3. The
-publisher's defect, not the reader's — the date cell holds no ink.
+**Open items: none** (2026-11-06). The user **agreed** the rule (D9f-1)
+and added the 168 list's `MEMO` as a fourth source (D9f-2). The MEMO is
+**measured and cannot serve as a date source** — it is empty for all 33 cases
+where the PDF and the platform disagree, and it is a different date (the
+核定公告) where it is present — so it joins the rule as a **flag**. The
+implementation is step **9a**, which gates step 9's ingest.
 
-**Reading 2 is now explored and measured** (D9f-1, below). The widened
-recovery pass recovers the date for **57 of 59** gazette rows with **0**
-ambiguous, and for 編號 3 it recovers **2026-10-15** — the date the corpus
-already holds. The adoption is the **user's**, because the rule writes the
-**platform's** date, and 2 of the 59 show the platform and the PDF
-disagreeing (by 1 day and by 16 days). Four decisions ride on it: the
-tripwire's exemption, the reader's marker, the 編號, and the reconciliation's
-`recovered_records`.
-
-The 168 poller and the `urtpe-poll` task action are **done**; the gazette the
-poller archived (`核定案件-2026-10-28.pdf`, published 2026-11-03) is archived
-and awaiting ingestion.
+Everything else in D9g is done. The 168 poller and the `urtpe-poll` task
+action are **done**; the gazette the poller archived
+(`核定案件-2026-10-28.pdf`, published 2026-11-03) is archived and awaiting
+ingestion.
 
 The consolidated execution order is D9g.
 
@@ -855,7 +849,8 @@ table is the per-finding view of it. Where the two differ, D9g wins.
 | D14 | `--from-js` loader drops 3 node fields and coerces `district_land` `''` | **P1** | direct `fix:` + round-trip test | — | before the first re-emit |
 | D14(b) | `district_land` from the collected 12-district enum (7 rows) | **P2** | openspec change (`cleanse`) + 2 tests | — | before the next PDF ingest (D9f) |
 | D15 | review-flag order depends on cluster order (大龍265-7) | **P3** | openspec change (emitter) + test | — | rides a re-emit |
-| **D9f-1** | the 2026-10-28 gazette prints no 核定日期 for 編號 3 — the recovery pass, widened to a truncated **date** | **P1** | openspec change (`truncated-row-recovery` + `pdf-tsv-extraction` + `gazette-reconciliation`) + code + test + one ingest | D9f | **EXPLORED, NOT ADOPTED** — the rule recovers **57 of 59** rows with **0** ambiguous; 編號 3 → **2026-10-15**, the date the corpus already holds. The adoption is the user's (the rule writes the **platform's** date) |
+| **D9f-1** | the 2026-10-28 gazette prints no 核定日期 for 編號 3 — the recovery pass, widened to a truncated **date** | **P1** | openspec change (`truncated-row-recovery` + `pdf-tsv-extraction` + `gazette-reconciliation`) + code + test + one ingest | D9f | **AGREED** (user, 2026-11-06) — the rule recovers **57 of 59** rows with **0** ambiguous; 編號 3 → **2026-10-15**, the date the corpus already holds. **Not yet implemented** |
+| **D9f-2** | the 168 list's `MEMO` as a fourth source for the approval date | **P2** | part of D9f-1's change — a **flag**, not a date source | D9f-1 | **AGREED** (user, 2026-11-06) — **measured**: the MEMO is empty for all **33** PDF-vs-platform disagreement cases, and it is the 核定**公告** date where it is present, so it cannot settle them |
 | **D16** | the city writes 利 as U+F9DD, a compatibility ideograph — `權利變換` does not match | **P2** | `fix:` in the 案名 normalisation + test | — | found 2026-11-06; 1 case in 360 live names, **0** corpus rows; folded into D9f-1's NFKC |
 | **D17** | `date_check` reports a false "exact" match when the wanted date is empty | **P2** | `fix:` — refuse an empty `want` + test | — | latent today (the caller guards); **must** land with D9f-1, which hands it an empty date on every call |
 | D10 | the permit witness names the first permit of a tie — 43 projects show a 執照 date that is not the project's own 使照 | **P2** | openspec change (`official-link-discovery`) + re-emit | **D7** (the flag path reads the dict D7 corrupts) | **decided: 開工 match, else ambiguous** (D10e) |
@@ -1346,17 +1341,92 @@ The 2 disagreements are two distinct shapes:
   PDF and the platform genuinely disagree, and **the name-only rule cannot
   recover the PDF's date** — it would write the platform's date instead.
 
-**That is the rule's honest limit, and it is the decision the user faces.** The
-rule recovers **the platform's** approval date. Where the PDF and the platform
-agree — 55 of 57 — the recovered date is the date the row would have carried,
-and the PDF's empty cell is filled with the city's own statement. Where they
-disagree, the rule writes the platform's date, and the disagreement is
-**invisible** unless it is flagged.
+**That is the rule's honest limit.** The rule recovers **the platform's**
+approval date. Where the PDF and the platform agree — 55 of 57 — the recovered
+date is the date the row would have carried, and the PDF's empty cell is filled
+with the city's own statement. Where they disagree, the rule writes the
+platform's date, and the disagreement is **invisible** unless it is flagged.
+
+The 168 list's `MEMO` was added as a fourth source to settle exactly those
+cases. It cannot: **all 33** disagreement cases have an empty MEMO, and the
+MEMO is a different date (the 核定公告, not the 核定) where it is present. It
+joins the rule as a **flag**, not as a source — see D9f-2 below.
 
 For **編號 3 specifically** the two agree: the rule recovers **2026-10-15**
 from one candidate (`11501034`, `uro_chk_date`), and the corpus already holds
 that exact date as node recno 1 of `大安區-通化段四小段-336地號等26筆`. So for
 this row the widened rule and the current dataset would not disagree.
+
+#### D9f-2 — the 168 list's MEMO as a fourth source (user's addition, 2026-11-06)
+
+The user added: for the rows where the platform's date disagrees with the PDF's,
+check the **approval date in the 168 list** instead of the platform's. The
+list's `MEMO` field carries a `核定公告` date, which looked like a third
+source independent of both the PDF and the platform.
+
+**Measured (`scripts/probe_168_memo_role.py`,
+`scripts/probe_168_memo_coverage.py`) — the source does not exist for the rows
+it would have to serve.**
+
+| | Count |
+|---|---|
+| the list's rows | 466 |
+| of those, carrying a `MEMO` date | **146** (135 with 核定公告) |
+| of those, **no** date (`MEMO` = `-`) | 320 |
+
+**The list is dated exactly where the case has been announced.** The dated
+rows are the 核定階段 ones — 134 of the 137 dated rows sit in 核定階段. The
+rest of the list is a register of cases still in review, which is what the
+list is for.
+
+**And the coverage is exactly inverse to the need.** Of the **33** cases in
+the corpus where the PDF's date and the platform's date **disagree**:
+
+| | Count |
+|---|---|
+| the list holds the case, **but its MEMO is empty** | **33** |
+
+**Every single one.** The list's MEMO is empty for every case where the two
+sources disagree — including the two that matter here:
+
+| case | the PDF | the platform | the MEMO |
+|---|---|---|---|
+| `11502013` (recno 37) | 2026-07-01 | 2026-07-02 | `-` |
+| `11410007` (recno 47) | 2026-06-01 | 2026-06-17 | `-` |
+| `11501034` (編號 3) | 2026-10-15 | 2026-10-15 | `-` |
+
+**The MEMO is a different date, not a second copy of the 核定日期.** Where the
+MEMO and the case's own 核定日期 can both be read (109 joinable rows): they
+**agree in 99** and **differ in 10** — by weeks or months
+(`10401051`: the 核定日期 2023-06-08, the MEMO 2023-02-20). The MEMO is the
+date the city **announced** the approval; the 核定日期 is the date it was
+approved. A 核定公告 lags the approval by the time between the two events.
+
+So the MEMO is **not** a substitute for the platform's date — it is a third
+date, and a later one. It cannot decide which of the PDF's and the platform's
+dates is right.
+
+**What the MEMO IS good for, and it is worth having.** It is an independent
+statement of the city's own announcement, so it is a **check** on a recovered
+date: a MEMO that disagrees with the platform's 核定日期 is a signal that the
+two differ, and a MEMO that agrees is a second confirmation. But:
+
+- it is empty for **319 of 466** rows, so it is silent for most cases;
+- it is empty for **all 33** disagreement cases, so it says nothing exactly
+  where a tie-breaker is needed.
+
+**The recommendation: the MEMO joins the rule as a FLAG, not as a source.**
+When the list holds the case and its MEMO carries a date, the recovered date
+is compared against it, and a disagreement is recorded — a `核定公告`-date
+disagreement is a distinct signal from a PDF-vs-platform one, because it says
+the city announced the approval on a different day than it approved it. The
+recovered date itself still comes from the platform's own 核定日期.
+
+**One thing the MEMO does settle.** For 編號 3 the list holds `11501034` with
+`stage` = `-` and `MEMO` = `-`: the case is in the list but **not announced**
+on the list. The list is therefore no evidence about this approval at all, and
+the platform's `uro_chk_date` remains the only source — which is also the
+source that agrees with the corpus's own date.
 
 **What the widened rule must also do, beyond the date** (each is a separate
 decision):
@@ -1382,14 +1452,43 @@ row's 變更/權利變換 approval is not in the family's candidate set at all �
 pre-existing parcel-search recall limit, the D9c-2 shape). Both must refuse.
 
 **The cost.** One parcel search and one header per candidate, per row with a
-truncated date. The 2026-10-28 gazette has **1** such row. The reader's own
-23 excluded rows are the publisher-truncated 地號 rows, which the pass already
-handles.
+truncated date, plus **one** 168-list read per run (the list is a single
+request — D9f's poller already fetches it, and the snapshot under
+`urtpe-gazettes/p168_snapshots/` is the same content). The 2026-10-28 gazette
+has **1** such row. The reader's own 23 excluded rows are the publisher-
+truncated 地號 rows, which the pass already handles.
 
-**Not adopted.** This is an exploration and a rule, not an implementation. The
-changes above are four edits across three modules plus a spec delta, and the
-user has not seen this measurement. The board's D9g order does not change:
-step 9 stays blocked, and the open item stays the user's.
+**AGREED (user, 2026-11-06).** The rule is adopted: widen the recovery pass to
+a truncated **date** cell, with the 168 list's `MEMO` added as the **fourth
+source** — and, as measured in D9f-2, the MEMO joins as a **flag** rather than
+as a date source, because it is empty for all 33 cases where the PDF and the
+platform disagree, and it is a different date (the 核定公告) where it is
+present. The recovered date comes from the platform's own `核定日期`; a MEMO
+that disagrees with it is recorded as a flag.
+
+**The implementation is not written yet.** The change is five edits across
+four modules plus a spec delta:
+
+1. `urtpe/extract.py` — the reader marks a truncated **date** cell with its own
+   `source_fault` (today it only marks a truncated 地號 cell), and
+   `to_raw_records` carries it.
+2. `urtpe/recovery.py` — the name-only rule (F1's NFKC, F2's count
+   comparison, checks 3 and 4), plus **D17**: `date_check` must refuse an
+   empty `want`.
+3. `urtpe/recovery_pass.py` — the widened path: the date is recovered, the
+   MEMO is compared and flagged, and the provenance records which source
+   closed.
+4. `urtpe/tripwire.py` — a **recovered** row is exempt from the date rule (the
+   row is recovered before the tripwire's date check, or the tripwire must
+   learn the exemption).
+5. `urtpe/reconcile.py` — the recovered row is listed in `recovered_records`,
+   so the run does not report the city as having edited or withdrawn an
+   approval it never touched.
+
+**The board's D9g order changes.** Step **9a** is now the implementation of
+the agreed rule, and it **gates step 9's ingest** — it is a precondition, not
+a follow-up. The D9f-2 addition (the MEMO as a flag) is part of 9a's change,
+not a separate step.
 
 ### What the reconciliation would have said (measured, 2026-11-06)
 
@@ -1469,7 +1568,7 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 | 7 | D9e — offline test: all 54 in-processing case_ids resolve (54/54 pass today) | **P2** | `tests/` | — | **DONE** `02b71fa` — `tests/test_in_processing_cases_resolve.py`: 54 of 54 resolve (52 at the node level, all 54 at the project level, 0 in neither); offline, no network; suite 1072 passed / 1 skipped |
 | 8 | D11 — record the A/B/C shared-dependency finding | — | docs | — | **DONE** (this board) |
 | 9 | D9f — 168 poller + hash change detection in the `urtpe-poll` task, then one ingest of the 2026-11-03 gazette and a cross-reference against the fresh snapshot | **P2** | poller script + task action + ingest + re-emit | steps 0b, 2, **9a** | **HARD STOP** — the poller and the task action are **DONE** (`scripts/poll_p168.py`, the task now runs both pollers; task run 2026-11-06 09:43, Last Result 0); the **ingest is REFUSED** by the tripwire (exit 4): the **2026-10-28** gazette prints **no 核定日期** for 編號 3. Nothing was written. See "D9f — the ingest is refused" below |
-| 9a | **D9f-1** — widen the recovery pass to a truncated **date** cell (the rule is explored and measured; the adoption is the user's) | **P1** | openspec change (`truncated-row-recovery` + `pdf-tsv-extraction` + `gazette-reconciliation`) + code + test + one ingest | step 9 | **EXPLORED, NOT ADOPTED** — the rule recovers the date for **57 of 59** gazette rows with **0** ambiguous, and for 編號 3 it recovers **2026-10-15**, the date the corpus already holds; the 2 residuals are a real count disagreement and a missing candidate. The adoption needs four decisions (the tripwire's exemption, the reader's marker, the 編號, and the reconciliation's `recovered_records`). See "D9f-1 — the recovery pass, widened to a truncated DATE" below |
+| 9a | **D9f-1 + D9f-2** — widen the recovery pass to a truncated **date** cell; the 168 list's `MEMO` is the fourth source (as a **flag**) | **P1** | openspec change (`truncated-row-recovery` + `pdf-tsv-extraction` + `gazette-reconciliation`) + code + test + one ingest | step 9 | **AGREED** (user, 2026-11-06) — **not yet implemented**. The rule recovers the date for **57 of 59** gazette rows with **0** ambiguous, and for 編號 3 it recovers **2026-10-15**, the date the corpus already holds. The MEMO is **measured** and cannot be a date source: it is empty for all **33** PDF-vs-platform disagreement cases, and it is the 核定**公告** date where it is present — so it joins as a flag. Five edits: the reader's marker, the name-only rule + D17's guard, the widened path, the tripwire's exemption, the reconciliation's `recovered_records`. See "D9f-1" and "D9f-2" below |
 | 10 | D9c-4 — monitor the 78 in-review cases after each new gazette | **P3** | re-run the cross-reference scripts | step 9 | new gazette published |
 | 11 | D13 — folded into step 2 (decided 2026-11-06) | — | — | — | see step 2 |
 | 12 | D15 — sort a node's `review_flags` by a stable key | **P3** | openspec change (emitter) + test | — | **DONE** `cce5625`, archived `2026-11-06-stable-review-flag-order` (`13baf68`) — the emitter sorts by (case id, text); 20 nodes' flag order changes on the live payload, 0 flag sets and 0 flag counts change; suite 1020 passed / 1 skipped |
@@ -1520,18 +1619,18 @@ renames the whole cache), and D9c-2's fix layer waits on a live search.
 - **Steps 9–10 last.** The 168 poller is acquisition, and the monitor depends on
   it. Neither changes emitted data on the current gazette. **Step 9a's
   exception is below.**
-- **Step 9a (D9f-1) gates step 9's ingest.** The ingest is refused by the
-  tripwire because the 2026-10-28 gazette prints no 核定日期 for 編號 3. The
-  widened recovery pass is the **only** reading that both keeps the approval
-  and lets the ingest proceed — reading 1 (the city re-prints) needs no code
-  but no date; reading 3 (exclude the row) drops a real approval and still
-  needs the tripwire to learn the exclusion. So 9a sits **before** the
-  ingest, not after it: it is a **precondition** of step 9, not a follow-up.
-  It is P1 — it is the only thing standing between the corpus and a
-  gazette — but it is **not adopted**, and the adoption is the user's, because
-  the rule writes the platform's date and two of 59 rows show the platform and
-  the PDF disagreeing by 1 and 16 days. That is a decision about what the
-  dataset asserts, not a bug fix.
+- **Step 9a (D9f-1 + D9f-2) gates step 9's ingest.** The ingest is
+  refused by the tripwire because the 2026-10-28 gazette prints no 核定日期
+  for 編號 3. The widened recovery pass is the **only** reading that both
+  keeps the approval and lets the ingest proceed — reading 1 (the city
+  re-prints) needs no code but no date; reading 3 (exclude the row) drops a
+  real approval and still needs the tripwire to learn the exclusion. So 9a
+  sits **before** the ingest, not after it: it is a **precondition** of step 9,
+  not a follow-up. It is P1 — it is the only thing standing between the
+  corpus and a gazette. The rule is **agreed** (user, 2026-11-06): the
+  recovered date comes from the platform's own 核定日期, and the 168 list's
+  `MEMO` joins as a **flag** — it is empty for all 33 PDF-vs-platform
+  disagreement cases, so it cannot be the source that settles them.
 - **Step 10 waits for step 9.** The monitor re-runs the cross-reference
   against a gazette the corpus has ingested. Until the ingest lands, the
   corpus is still the 2026-10-15 one and the cross-reference would answer
@@ -2099,7 +2198,8 @@ change, not ahead of it.
 | D9f | Accept periodical 168 poller plan, coordinated with periodical PDF update | D9f-1 |
 | D10 | The permit whose 開工日期 matches the city's; otherwise `links.permit.ambiguous` (2026-11-05) | D10 openspec change |
 | Gazette 2026-11-03 | Ingest together with the first 168 poll (2026-11-05). **The document's own 統計至 is 2026-10-28** — 2026-11-03 is the publisher's 資料更新 stamp, and the two archive files are byte-identical | D9g step 9 |
-| **D9f-1** | **NOT DECIDED** (2026-11-06) — widen the recovery pass to a truncated **date** cell, so the 2026-10-28 gazette's 編號 3 can be ingested. The rule is explored and measured (57 of 59 rows recoverable, 0 ambiguous; 編號 3 → 2026-10-15). The adoption is the user's: the rule writes the **platform's** date, and 2 of 59 rows show the platform and the PDF disagreeing | D9g step 9a |
+| **D9f-1** | **AGREED** (user, 2026-11-06) — widen the recovery pass to a truncated **date** cell, so the 2026-10-28 gazette's 編號 3 can be ingested. The rule recovers the **platform's** `核定日期`; where the PDF and the platform disagree the disagreement is flagged | D9g step 9a |
+| **D9f-2** | **AGREED** (user, 2026-11-06) — the 168 list's `MEMO` is the **fourth source**. **Measured: it cannot be a date source** — it is empty for all 33 cases where the PDF and the platform disagree, and it is the 核定**公告** date (a different date) where it is present — so it joins as a **flag**: a MEMO that disagrees with the recovered date is recorded | D9g step 9a |
 | D9g step 5a | Run the header pass — done: 78 in review, 5 closed, 1 revoked | — |
 | D11 | Recorded — docs only, no decision needed | — |
 

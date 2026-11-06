@@ -2280,7 +2280,7 @@ belongs to neither and is recorded here as the board's own conclusion.
 
 | the correction | what was stated | what was true |
 |---|---|---|
-| a character read by eye | "3 compatibility forms" | 2 in the corpus, and the live one is U+F9DD |
+| a character read by eye | "3 compatibility forms" | **4** across the data — 3 in the corpus (U+F901, U+F963, U+FA26) and the live U+F9DD |
 | a match compared against `None` | "762 names would change" | 0 — a `Match` is never equal to `None` |
 | a field guessed from the neighbouring column | "the corpus's characters sit in the 地號 cell" | the 案名 — the 地號 column carries 0 |
 | a reader count taken from the reader in view | "1 reader is affected" | 2 — `parse_name_id` also breaks |

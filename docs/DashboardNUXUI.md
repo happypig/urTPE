@@ -905,6 +905,36 @@ field guessed from the neighbouring column, a reader count taken from the reader
 happened to be in view. **A scope is a claim about what was not measured.** Every one of
 the four was caught by measuring the population rather than the sample.
 
+**A fifth and sixth correction, 2026-11-07, from the peer.** The peer's sweep of the
+board found that its D16 status read "the population is 1 case in 360" — a **sample**
+stated as a population. The live case was found by querying the city for 60 units and
+reading the 360 names that came back; the population we actually hold is **2,024
+distinct city case names in the link cache, of which 1 carries a compatibility
+ideograph** — the same case. The finding does not change; its denominator does.
+
+The board's table also still read "1,442 rows" for the corpus, which the D9g ingest
+moved to **1,444**, and `scripts/probe_compat_ideographs.py` still prints that
+hard-coded string.
+
+**"Small" is a measurement, not a scope.** That is the peer's sentence for the sixth
+correction, and it is the shorter form of the same finding.
+
+**The pattern across all six is the same, and it is now the general form.** Three of the
+six are mine and three are the peer's, and the shape does not depend on who made it:
+
+| | Claim | What was not measured |
+| --- | --- | --- |
+| 1 | "a normal 利" | the codepoint |
+| 2 | "two readers break" | whether any name is a 擬訂 title |
+| 3 | "the 地號 cell" | which column carries the text |
+| 4 | "one reader breaks" | the other reader |
+| 5 | "the corpus is not affected" | the identity reader |
+| 6 | "1 case in 360" | the population the 360 was drawn from |
+
+**A scope is a claim about what was not measured.** Every one of the six was caught by
+measuring the population rather than the sample, and five of the six were caught by the
+other session.
+
 ### 14.1 2026-11-06, final revision — the settled corpus
 
 Payload blob `d6d62109` → `1ddffa1b`. **The corpus settled.** The 2026-10-28 gazette

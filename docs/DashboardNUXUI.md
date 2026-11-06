@@ -560,9 +560,10 @@ dashboard must render only visible rows.
 ## 11. Separate, small: the compatibility-ideograph defect
 
 CJK compatibility ideographs appear in the data in two places. They are **two separate
-problems**, and only one of them breaks a reader.
+problems**. Neither is harmless: the corpus's 6 records break the identity reader, and
+the one live case name breaks the track reader.
 
-### 11.1 The corpus: 6 records, 3 projects, harmless
+### 11.1 The corpus: 6 records, 3 projects — the identity reader breaks
 
 **6 of 1,444 records** carry U+F901 (更), U+F963 (北), and U+FA26 (都) — all three in
 each affected record's `name` and `name_raw`.
@@ -582,18 +583,39 @@ Measured over every text column of `clean.tsv`:
 | 北投區-桃源段四小段-424-8地號等15筆 | 8, 615 |
 | 南港區-南港段三小段-274地號等16筆 | 179, 613 |
 
-`parse_name_id()` in `urtpe/cleanse.py:31` returns `('', '', '', None)` on them, because
-the regex cannot match a compatibility 北 or 都. So the national portal index core falls
-through to the crude string-strip fallback at `urtpe/links.py:503`.
+`parse_name_id()` in `urtpe/cleanse.py:31` returns `('', '', '', None)` on all 6,
+because the regex cannot match a compatibility 北 or 都. The identity after folding:
 
-**This side is harmless to the track reader, and the reason is stronger than "the
-district comes from another column".** The real reason: **no track keyword carries a
+| 編號 | As-is | After folding |
+| --- | --- | --- |
+| 8, 615 | `('', '', '', None)` | `('北投區', '桃源段四小段', '424-8', 15)` |
+| 121, 611 | `('', '', '', None)` | `('信義區', '三興段一小段', '972', 9)` |
+| 179, 613 | `('', '', '', None)` | `('南港區', '南港段三小段', '274', 16)` |
+
+**Exactly those 6 rows change, out of 1,444.** So the corpus's own land core for these
+3 projects is empty today.
+
+**It costs nothing today, and the reason is not the one I wrote.** §11.3 said the index
+core "falls through to the crude string-strip fallback at `urtpe/links.py:503`". That is
+true, but the fallback builds the core from the **portal's** title, not from the corpus's
+案名. The portal's titles for these 3 units carry no compatibility form, and the crawled
+index holds **no core for these 3 units at all** — so the lookup misses either way.
+
+Their portal links came from the cached view pages instead: **view/793** (北投),
+**view/791** (信義), **view/253** (南港), each with `status: resolved`.
+
+**So the defect is latent rather than live.** The reader is broken, and only the data
+around it happens to route around it. That is the same population `land-identity-fallback`
+covers, and the same reason that fallback exists. A change at the cleansing boundary is
+still the right place to fix it.
+
+**These 6 do not touch the track reader, and the reason is stronger than "the district
+comes from another column".** The real reason: **no track keyword carries a
 compatibility ideograph.** The reader tests four literals — 事業概要, 事業計畫, 權利變換,
 都市更新計畫 — and none of the four contains one. The corpus's 北 / 都 / 更 are therefore
 never compared against anything.
 
-Measured: **0 of the 1,444 rows change track after folding.** But the index core is
-still wrong for these 6.
+Measured: **0 of the 1,444 rows change track after folding.**
 
 ### 11.2 The live case name: 1 occurrence, and it breaks the track reader
 
@@ -607,7 +629,7 @@ still wrong for these 6.
 | `unicodedata.name(ch)` | `CJK COMPATIBILITY IDEOGRAPH-F9DD` |
 | `unicodedata.decomposition(ch)` | `5229` — the compatibility decomposition |
 
-**This one breaks one reader.** `_tracks()` at `urtpe/cleanse.py:230` matches the keyword
+**This one breaks the track reader.** `_tracks()` at `urtpe/cleanse.py:230` matches the keyword
 權利變換 literally:
 
 | Title | `_tracks()` |
@@ -616,11 +638,10 @@ still wrong for these 6.
 | 事業計畫及權<U+F9DD>變換計畫案 | `['事業計畫']` — **the track is lost** |
 | The compat title, NFKC-normalised | `['事業計畫', '權利變換']` |
 
-Measured over the whole corpus and the whole link cache, this is the **only** reader
-that changes. **One case** is affected — case `11507018` — and it is the same case in
-every scope. The link cache stores it twice, in `candidate_names` and in
-`case_case_names` of the same cache entry, so the raw entry count is 2 while the
-distinct-case count is 1:
+Measured over the whole corpus and the whole link cache, the **track** reader changes
+for **one case** — case `11507018` — and it is the same case in every scope. The link
+cache stores it twice, in `candidate_names` and in `case_case_names` of the same cache
+entry, so the raw entry count is 2 while the distinct-case count is 1:
 
 | Scope | Entries with a compat ideograph | Distinct cases | Track changes after folding | Plan-case outcome changes |
 | --- | --- | --- | --- | --- |
@@ -640,6 +661,9 @@ The regex is genuinely compatibility-blind — a 擬訂 title carrying the compa
 fails as-is and matches after folding — but **no name in the payload or the cache is
 that counterfactual**. So the implementation-dates path is not involved.
 
+**But this is not the only reader that changes.** `parse_name_id()` is the second, and
+§11.1 covers it: the 6 corpus records yield no identity today.
+
 ### 11.3 The fix
 
 **An NFKC normalisation at the cleansing boundary, plus a test.** NFKC folds U+F9DD to
@@ -647,10 +671,14 @@ U+5229, U+F963 to U+5317, U+FA26 to U+90FD, and U+F901 to U+66F4. Verified: it m
 `parse_name_id()` succeed on the 6 corpus records, and it restores `_tracks()` on the
 compat title.
 
-**The change has one reader to fix.** The track reader, where a city's case name is
-compared to a gazette 案名. One live case. A corpus that does not move.
+**The change has TWO readers to fix:**
 
-**The test-first group must pin four things:**
+1. **The track reader**, where a city's case name is compared to a gazette 案名 — the
+   one live case, `11507018`.
+2. **`parse_name_id()`**, where the corpus's own 案名 yields no identity — the 6 records
+   in 3 projects.
+
+**The test-first group must pin six things:**
 
 1. The live case reads **both** tracks after folding.
 2. The 6 corpus records are unchanged in track.
@@ -659,6 +687,10 @@ compared to a gazette 案名. One live case. A corpus that does not move.
    count is what catches that.
 4. **The live case is checked by name, not by count.** A corpus-only test would pass
    while the live bug survived.
+5. **The 6 records parse to their identity after folding**, and the 3 projects' land
+   core becomes the folded one. A track-only test would not catch this.
+6. **The 3 projects' portal links do not move.** They are already right, and a change
+   at the cleansing boundary must not disturb them.
 
 **Why a corpus-only test is not enough.** The corpus's 6 characters are at index 3 (in
 臺北市) and index 24–29 (in 都市更新). The live case's character, U+F9DD, is at index
@@ -683,7 +715,7 @@ that a compatibility 利 could cost a case its plan-case implementation dates. *
 wrong.** The peer measured it and I verified it: `_PLAN_CASE_RE` requires the name to
 start with 擬訂, the live name starts with 變更, and **0 names in the payload or the
 link cache would change their plan-case outcome after folding**. The implementation-dates
-path is not involved. **One reader is affected, not two.**
+path is not involved.
 
 I made the same kind of error twice while checking this. First I read a compatibility
 利 by eye instead of by codepoint. Then I compared two regex `Match` objects with `!=`,
@@ -705,6 +737,25 @@ the four contains one. So the corpus's 北 / 都 / 更 are never compared agains
 The peer's framing is the better one: **the difference is where the character sits, not
 which character it is.** The corpus's six sit in text no keyword touches. The live case's
 sits inside 權利變換, which is a keyword.
+
+**A fourth correction, 2026-11-07, to the scope.** That same revision concluded "**one
+reader** is affected". **That was wrong, in the other direction.** The peer found a
+second, and I verified it: `parse_name_id()` returns `('', '', '', None)` for all 6
+corpus records, and the folded identity is exact for each of the 3 projects. The corpus's
+own land core for those 3 projects is **empty today**.
+
+**So the scope is: the track reader breaks for 1 live case, and `parse_name_id` breaks
+for 6 records in 3 projects.** The second is latent, not live — the index lookup misses
+these 3 units either way, because the fallback builds the core from the portal's title
+and the crawled index holds no core for them at all. Their links came from the cached
+view pages (view/793, view/791, view/253). A broken reader, with the data around it
+routing around it.
+
+**The pattern across all four corrections is the same.** Each one took a partial
+measurement and stated it as a scope: a character read by eye, a `Match` compared against
+`None`, a field guessed from the neighbouring column, a count of readers taken from the
+reader I happened to be looking at. **A scope is a claim about what was not measured.**
+Every one of these four was caught by measuring the population rather than the sample.
 
 ---
 
@@ -767,11 +818,16 @@ which is the better shape.
 
 ## 14. Revision record
 
-### 14.0 2026-11-07 — the two-reader claim withdrawn
+### 14.0 2026-11-07 — four corrections to §11
 
-**The ideograph defect affects one reader, not two.** §11.2 and §11.3 previously said
-that a compatibility 利 could cost a case both its 權利變換 track and its plan-case
-implementation dates. The second half is **not supported** and is withdrawn.
+**§11 was wrong four times, in three different directions.** All four were found by
+measuring the population rather than the sample, and three of the four by the peer.
+
+### 14.0.1 The plan-case claim withdrawn
+
+**The ideograph defect does not cost a case its plan-case implementation dates.**
+§11.2 and §11.3 previously said it did, via `_PLAN_CASE_RE` at `urtpe/links.py:2536`.
+**That half is not supported** and is withdrawn.
 
 Measured, and verified independently:
 
@@ -804,6 +860,50 @@ six sit in text no keyword touches, at index 3 (臺北市) and index 24–29 (�
 live case's sits at index 32 of 38, inside 權利變換 — a keyword. A test that checks only
 the corpus passes while the live bug survives, and it passes for a reason the live case
 does not share. The test-first group therefore checks the live case **by name**.
+
+### 14.0.2 The scope corrected the other way — two readers, not one
+
+**Having withdrawn the plan-case reader, I then stated "one reader". That was wrong
+too.** The peer found the second, and I verified it: `parse_name_id()` returns
+`('', '', '', None)` for all 6 corpus records, and the folded identity is exact for each
+of the 3 projects.
+
+| 編號 | As-is | After folding |
+| --- | --- | --- |
+| 8, 615 | `('', '', '', None)` | `('北投區', '桃源段四小段', '424-8', 15)` |
+| 121, 611 | `('', '', '', None)` | `('信義區', '三興段一小段', '972', 9)` |
+| 179, 613 | `('', '', '', None)` | `('南港區', '南港段三小段', '274', 16)` |
+
+**Exactly those 6 rows change, out of 1,444.** The corpus's own land core for these 3
+projects is empty today.
+
+**It costs nothing today, and the reason is not the one I wrote.** The fallback at
+`urtpe/links.py:503` builds the core from the **portal's** title, not the corpus's 案名.
+The portal's titles carry no compatibility form, and the crawled index holds **no core
+for these 3 units at all**, so the lookup misses either way. Their links came from the
+cached view pages: **view/793**, **view/791**, **view/253**, each `status: resolved`.
+
+**So the defect is latent rather than live.** The reader is broken, and only the data
+around it happens to route around it — the same population `land-identity-fallback`
+covers, and the same reason that fallback exists. A change at the cleansing boundary is
+still the right place to fix it.
+
+### 14.0.3 The scope, settled
+
+**Two readers, and no more:**
+
+1. **The track reader** — 1 live case, `11507018`.
+2. **`parse_name_id()`** — 6 records in 3 projects, latent.
+
+**Six pins** for the test-first group: the live case by name, the 6 records' track
+unchanged, the corpus record count unmoved, the 6 records' identity folded, and the 3
+projects' portal links unmoved.
+
+**The pattern across all four corrections is the same.** Each took a partial measurement
+and stated it as a scope: a character read by eye, a `Match` compared against `None`, a
+field guessed from the neighbouring column, a reader count taken from the reader that
+happened to be in view. **A scope is a claim about what was not measured.** Every one of
+the four was caught by measuring the population rather than the sample.
 
 ### 14.1 2026-11-06, final revision — the settled corpus
 

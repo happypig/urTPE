@@ -819,6 +819,10 @@ TAIPEI_TOP_API = "https://gis.uro.taipei/ashx/get_project168_top.ashx"
 TAIPEI_STAGE_API = "https://gis.uro.taipei/ashx/Get_project168_second.ashx"
 TAIPEI_THIRD_API = "https://gis.uro.taipei/ashx/Get_project168_third.ashx"
 TAIPEI_FOURTH_API = "https://gis.uro.taipei/ashx/Get_project168_fourth.ashx"
+# D9c-2a: the 168 fast-track programme's own case list. It names case ids the
+# parcel search does not index (10708311, 11412011 — live probe 2026-11-05),
+# so it is the pipeline's second id source.
+TAIPEI_168_LIST_API = "https://gis.uro.taipei/ashx/Get_project168.ashx"
 
 # Twin-bridge ghost gate: an orphan with no name and no attribution still
 # anchors when its per-case milestone record shares at least this many exact
@@ -1487,6 +1491,69 @@ def fetch_taipei_rewards_api(case_id: str) -> dict[str, str]:
     return fetch_taipei_payload_api(TAIPEI_FOURTH_API, case_id)
 
 
+def fetch_taipei_168_list_api(page_size: int = 0) -> list[dict]:
+    """The 168 fast-track programme's case list (D9c-2a's second id source).
+
+    The list is the city's own register of the programme's cases, and it names
+    ids the parcel search does not index (10708311, 11412011 — live probe
+    2026-11-05). Each row carries the case id and the city's own case name
+    (``T_name``), so a caller can SCOPE the list to a project's unit before
+    spending a header request on it.
+
+    **One request.** The endpoint's paging is broken: with ``pageSize=50`` each
+    page advances by exactly ONE row (measured 2026-11-06 — page 0 starts at
+    `09503232`, page 1 at `09503233`, page 2 at `09504081`), so a paged walk
+    gathers 90 of the 466 rows in 40 requests. Asking for the whole list in one
+    request (``pageSize=466``, the row count the endpoint itself reports in
+    ``TotalCount``) returns all 466. The list grew since — ``TotalCount`` is
+    read from the first row, and the request uses it.
+
+    A failed request yields an empty list: the caller treats every id as a
+    candidate, so an empty list costs recall, never correctness.
+    """
+    rows_out: list[dict] = []
+    seen: set[str] = set()
+    page = 0
+    size = page_size
+    while True:
+        try:
+            body = _post_taipei_api(TAIPEI_168_LIST_API, {
+                "type": "project168",
+                "pageIndex": str(page),
+                "pageSize": str(size or 50),
+            })
+            rows = json.loads(body)
+        except Exception:
+            break
+        if not isinstance(rows, list) or not rows:
+            break
+        before = len(rows_out)
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            cid = str(row.get("case_id") or "").strip()
+            if cid and cid not in seen:
+                seen.add(cid)
+                rows_out.append(row)
+        if not size:
+            # ask for the whole list in one request, using the count the
+            # endpoint reports
+            total = rows[0].get("TotalCount")
+            if isinstance(total, int) and total > len(rows):
+                size = total
+                rows_out = []
+                seen = set()
+                continue
+        if len(rows) < (size or 50):
+            break
+        if len(rows_out) == before:
+            break          # the pages stopped advancing
+        page += 1
+        if page > 40:
+            break
+    return rows_out
+
+
 def _project_cache_dir(cache_dir: Path, project_id: str) -> Path:
     safe_id = re.sub(r"[^\w\-]", "_", project_id)
     return cache_dir / safe_id
@@ -1601,6 +1668,18 @@ def load_project_cache(cache_dir: Path, project_id: str) -> Optional[DiscoveryRe
         except (json.JSONDecodeError, TypeError):
             result = None
         if result is not None:
+            # D9c-2a: a stub and a richer ALIASED directory are MERGED, not
+            # shadowed. `resolve_cache_dir` returns the current directory
+            # whenever it exists, so a stub at the current id left the richer
+            # directory unreadable — and the loss was silent: two nodes kept
+            # the flag 節點未能對應平台案件 although the case and its
+            # milestones were in the cache all along (南港566's 10708311,
+            # 核定 2019-11-20, and 10006032, 核定 2016-02-25).
+            #
+            # The current directory's content wins a conflict (it is the newer
+            # reading, written under the current identity), and its identity
+            # fields are never overwritten.
+            _merge_aliased_cache(cache_dir, project_id, project_cache, result)
             # Gap-fill only. A recorded link is a human assertion about a project discovery
             # could not resolve; letting it displace a real discovery result would mean one
             # careless record silently rewrites what the portal actually returned.
@@ -1611,6 +1690,66 @@ def load_project_cache(cache_dir: Path, project_id: str) -> Optional[DiscoveryRe
                     result.twur_url = entry.get("twur_url", "")
             return result
     return None
+
+
+def _merge_aliased_cache(cache_dir: Path, project_id: str, project_cache: Path,
+                         result: "DiscoveryResult") -> list[str]:
+    """Union the aliased directory's case ids and milestones into the current
+    one. Returns what was added (empty when nothing was).
+
+    The aliased directory is the project's FORMER identity (the alias table
+    pairs the two on member content), so the ids it holds are this project's
+    cases. The current directory's own content wins a conflict: it was
+    written under the current identity and is the newer reading. The
+    identity fields (`project_id`, `land_core`) are never overwritten — the
+    current id is the one the dataset holds.
+    """
+    former = load_alias_table(cache_dir).get(project_id)
+    if not former:
+        return []
+    aliased = _project_cache_dir(cache_dir, former)
+    if not aliased.exists() or aliased == project_cache:
+        return []
+    result_file = aliased / "result.json"
+    if not result_file.is_file():
+        return []
+    try:
+        data = json.loads(result_file.read_text(encoding="utf-8"))
+        other = DiscoveryResult(**data)
+    except (json.JSONDecodeError, TypeError, OSError):
+        return []
+
+    added: list[str] = []
+    known = set(result.city_case_ids)
+    for cid in other.city_case_ids:
+        if cid not in known:
+            result.city_case_ids.append(cid)
+            known.add(cid)
+            added.append(cid)
+    for cid, ms in (other.case_milestones or {}).items():
+        if cid not in result.case_milestones:
+            result.case_milestones[cid] = dict(ms or {})
+            if cid not in added:
+                added.append(cid)
+    # the schedules and headers the merged ids need, so the resolver can
+    # read them offline
+    for cid in added:
+        if cid in (other.case_schedules or {}) and cid not in result.case_schedules:
+            result.case_schedules[cid] = other.case_schedules[cid]
+        if cid in (other.case_headers or {}) and cid not in result.case_headers:
+            result.case_headers[cid] = other.case_headers[cid]
+        if cid in (other.case_case_names or {}) and cid not in result.case_case_names:
+            result.case_case_names[cid] = other.case_case_names[cid]
+        if cid in (other.candidate_names or {}) and cid not in result.candidate_names:
+            result.candidate_names[cid] = other.candidate_names[cid]
+    if added:
+        print(f"[INFO] cache merge: {project_id} gained {len(added)} id(s) from "
+              f"the aliased directory {former}: {', '.join(added)}")
+        try:
+            save_project_cache(Path(cache_dir), project_id, result)
+        except OSError:
+            pass
+    return added
 
 
 def save_project_cache(cache_dir: Path, project_id: str, result: DiscoveryResult, view_html: str = "") -> None:
@@ -1786,7 +1925,8 @@ def fetch_taipei_case_header_api(case_id: str) -> dict:
 
 def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                     fetch_status=None, search=None, search_key=None,
-                    fetch_implementation=None, fetch_rewards=None) -> dict:
+                    fetch_implementation=None, fetch_rewards=None,
+                    fetch_list=None) -> dict:
     """Re-fetch the milestones and status of a cache's cases, in place.
 
     Thin driver over the platform adapters: ``fetch(case_id) -> {label: date}``
@@ -1824,6 +1964,11 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
 
     D13: a case whose header row AND milestones are both empty is labelled 無.
     The id and the cached data stay; no removal is claimed.
+
+    D9c-2a: ``fetch_list`` is the SECOND id source — the city's 168
+    fast-track list, which names case ids the parcel search does not index.
+    Each id it returns is confirmed by that case's own header before it
+    enters the project's case list.
     """
     if fetch is None:
         fetch = fetch_taipei_milestones_api
@@ -1835,6 +1980,8 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             fetch_implementation = fetch_taipei_implementation_api
         if fetch_rewards is None:
             fetch_rewards = fetch_taipei_rewards_api
+        if fetch_list is None:
+            fetch_list = fetch_taipei_168_list_api
     cached = load_project_cache(Path(cache_dir), project_id)
     report: dict = {"project_id": project_id, "updated": [], "still_awaiting": [],
                     "closed": [], "status_changes": [], "removed": [],
@@ -1843,6 +1990,7 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                     "view_rejected_ids": [], "view_label_errors": [],
                     "view_not_confirmed": [], "labelled_wu": [],
                     "implementation_refetched": [], "payload_sizes": [],
+                    "unconfirmed": [],
                     "error": ""}
     if cached is None:
         report["error"] = "no cache"
@@ -1878,6 +2026,62 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             changed = True
     elif search:
         report["not_searched"] = True
+
+    # ── the SECOND id source: the 168 list, scoped and confirmed ───────────
+    # D9c-2a: the city's parcel search does not index every approved case
+    # (10708311, 11412011 — live probe 2026-11-05), so a project whose case
+    # the search cannot reach keeps the flag 節點未能對應平台案件 forever.
+    # The 168 list names those ids. It is a register of cases, not of one
+    # project's cases, so an id from it is a CANDIDATE: it enters the case
+    # list only when the case's own header confirms it (a row with a 案名).
+    # An empty header is not a confirmation — one empty response is no
+    # evidence, the same rule the 無 label follows.
+    #
+    # The list is SCOPED by the project's own section first, so a refresh
+    # spends a header request only on the ids that name its section. The
+    # section comes from the search key the refresh already has.
+    if fetch_list is not None and search_key and all(search_key[:2]):
+        section = str(search_key[0] or "")
+        try:
+            list_rows = list(fetch_list() or [])
+        except Exception as exc:  # a failed list is a failure, not "nothing"
+            report["error"] = f"168 list: {type(exc).__name__}: {exc}"
+            return report
+        known = set(cached.city_case_ids) | set(cached.case_milestones)
+        for row in list_rows:
+            cid = str((row or {}).get("case_id") or "").strip()
+            if not cid or cid in known:
+                continue
+            case_name = str((row or {}).get("T_name") or "").strip()
+            # the scope is the section AND the parcel, ADJACENT — the city
+            # writes 玉成段二小段166地號. A section alone names 504 projects
+            # (中山段一小段 appears in many), and the parcel alone names 246
+            # (the same number in many sections).
+            parcel = str(search_key[1] or "")
+            if not (section and parcel):
+                continue
+            if not re.search(re.escape(section) + r"\s*" + re.escape(parcel)
+                             + r"(?:地號|$)", case_name):
+                continue          # the list names another unit's case
+            try:
+                header = fetch_status(cid) if fetch_status else None
+            except Exception as exc:
+                report["error"] = f"{cid}: header {type(exc).__name__}: {exc}"
+                return report
+            if not header or not str(header.get("CASE_NAME", "") or "").strip():
+                report["unconfirmed"].append(cid)
+                continue
+            known.add(cid)
+            cached.city_case_ids.append(cid)
+            cached.case_milestones[cid] = {}
+            cached.case_case_names[cid] = str(header.get("CASE_NAME", "")).strip()
+            name = str(header.get("NAME", "")).strip()
+            if name:
+                cached.case_headers[cid] = dict(header)
+            changed = True
+            report["added"].append({"case_id": cid, "schedule": "",
+                                    "name": name,
+                                    "source": "168 list (header-confirmed)"})
 
     # ── the per-case pass ──────────────────────────────────────────────────
     header_names: dict[str, str] = {}
@@ -3365,6 +3569,18 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
                         date=_flag_date(getattr(member, "date", "") or ""))
                     if flag not in member.review_flags:
                         member.review_flags = list(member.review_flags) + [flag]
+            # D9c-2a: a node that NOW binds a case must not keep the flag
+            # that says it binds none. The flag is a property of the node's
+            # binding, not of the run: the second id source and the alias
+            # merge give a node the case the parcel search could not reach
+            # (南港566's nodes 744 and 1063), and the flag carried forward by
+            # the --from-js loader then read as a live finding.
+            if node_links["taipei"]:
+                stale = [f for f in member.review_flags
+                         if f.startswith(_UNPLACED_FLAG.split("{")[0])]
+                if stale:
+                    member.review_flags = [f for f in member.review_flags
+                                           if f not in stale]
 
             # §12 #2 chimera emit fix: the node carries ITS OWN approval's
             # per-case timeline, not the project-level last-write-wins merged

@@ -167,3 +167,49 @@ def test_the_two_kinds_of_link_are_labelled_differently():
     if len(labels) > 1:
         # More than one kind of link is present; they must not share a label.
         assert len(labels) == len(set(labels))
+
+
+# --- the publication step ---------------------------------------------------
+
+def test_the_step_stages_only_the_paths_it_owns():
+    """The working tree routinely carries another session's changes. A
+    scheduled step that swept them into a commit would publish work nobody
+    had finished."""
+    from scripts.publish_release_diff import OWNED_PATHS
+
+    assert OWNED_PATHS == ["docs/release-diff.html"], (
+        "the step owns one path; anything else in OWNED_PATHS would be swept "
+        "into an unattended commit")
+    for path in OWNED_PATHS:
+        assert not path.startswith("viewer/"), (
+            "the step must not stage anything under viewer/; the emitted "
+            "dataset is only written by an explicit ingestion")
+        assert not path.startswith("data/"), (
+            "the step must not stage anything under data/")
+
+
+def test_the_step_sees_a_dirty_generator_as_a_reason_to_stop():
+    """A working-tree change to the generator would change what "regenerate"
+    means, and the published report would be one no commit explains."""
+    from scripts.publish_release_diff import GENERATOR_PATHS, PublishError, check_tree
+
+    assert "scripts/release_diff_report.py" in GENERATOR_PATHS
+    assert "scripts/release_diff.py" in GENERATOR_PATHS
+    # The tree right now must be publishable: the generator is committed.
+    try:
+        check_tree()
+    except PublishError as exc:
+        pytest.fail("the tree is not publishable: %s" % exc)
+
+
+def test_the_step_writes_nothing_under_the_emitted_tree():
+    """The emitted dataset is only ever written by an explicit ingestion. The
+    step's source must not name data/ or viewer/ as something it writes."""
+    from scripts import publish_release_diff
+
+    source = (Path(publish_release_diff.__file__)).read_text(encoding="utf-8")
+    assert "projects.data.js" not in source
+    assert "projects.json" not in source
+    assert "raw.tsv" not in source
+    assert "clean.tsv" not in source
+    assert "merged.tsv" not in source

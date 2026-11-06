@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -88,15 +89,44 @@ def check_tree() -> None:
 
 
 def regenerate() -> bool:
-    """Rebuild the report. Returns whether the file changed."""
-    before = REPORT.read_bytes() if REPORT.exists() else b""
+    """Rebuild the report. Returns whether the file changed.
+
+    The comparison ignores the generation timestamp, which the report carries
+    in its header and which changes on every run. Without that, the step would
+    commit a new blob every week even when no release changed, and the
+    repository's history would fill with reports that differ only in a date
+    — churning the published page for nothing.
+
+    The timestamp is restored afterwards, so the committed report keeps the
+    moment it was actually built.
+    """
+    before = REPORT.read_text(encoding="utf-8") if REPORT.exists() else ""
+    before_stamp = _generation_stamp(before)
     proc = run(sys.executable, str(ROOT / "scripts" / "release_diff_report.py"))
     if proc.returncode != 0:
         raise PublishError(
             "the report generator failed (exit %d):\n%s"
             % (proc.returncode, proc.stderr.strip()[-2000:]))
-    after = REPORT.read_bytes() if REPORT.exists() else b""
-    return after != before
+    after = REPORT.read_text(encoding="utf-8") if REPORT.exists() else ""
+    if _strip_stamp(before) == _strip_stamp(after):
+        # Nothing but the timestamp moved. Put the committed timestamp back so
+        # the file on disk stays byte-identical to the committed one.
+        if before and after != before:
+            REPORT.write_text(before, encoding="utf-8")
+        return False
+    return True
+
+
+_STAMP_RE = re.compile(r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+08:00)")
+
+
+def _generation_stamp(text: str) -> str:
+    m = _STAMP_RE.search(text)
+    return m.group(1) if m else ""
+
+
+def _strip_stamp(text: str) -> str:
+    return _STAMP_RE.sub("<stamp>", text)
 
 
 def commit(message: str) -> bool:

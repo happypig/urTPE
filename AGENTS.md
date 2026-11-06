@@ -129,6 +129,15 @@ Violating any of these corrupts output silently rather than raising.
 - **Acquisition is separate from ingestion.** `urtpe/poller.py` never ingests and never
   touches the emitted dataset; the single-writer lock serialises writers without deciding
   which writer is correct. Don't wire polling into ingestion.
+- **The publisher serves one PDF link at a time and repoints it on every publication**, so
+  the live link names "whatever is newest", not any particular gazette. A *version-specific*
+  URL (`…/relfile/18558/10496/<uuid>.pdf`) names one document and stays a durable address
+  for it — measured 2026-11-06: the URL that served the 2026-10-15 gazette still serves the
+  2026-10-15 document, a different digest from the current one, while a fabricated path
+  answers 404. The archive index therefore records `publisher_url` per entry, and a URL is
+  accepted only when the document it serves hashes to a digest the archive already holds.
+  A release with no recorded URL says so; it never borrows the live link, which serves a
+  different gazette.
 
 ## Gates — understand before bypassing
 
@@ -162,6 +171,20 @@ Violating any of these corrupts output silently rather than raising.
   `python scripts\check_deploy.py` fetches each artifact and compares it byte-for-byte
   against the `HEAD` blob, reporting **fresh / stale / missing** separately. It reaches the
   network, so it is a command and not a pytest case.
+- `docs/release-diff.html` — why the project count differs between PDF releases. Generated
+  by `scripts/release_diff_report.py` (pure logic in `scripts/release_diff.py`), published
+  from `main` like the viewer, and linked from the viewer's header and back again from the
+  report. Both links are relative, so the pair works from `file://` too. The report
+  re-reads every archived PDF under the *current* reader, so its numbers describe what the
+  gazettes yield today, not what each yielded when it was published. Its family identity is
+  the **案名's land core**, not the 地號 cell: the cell differs by one character between
+  some releases, and keying on it counted three units as both dead and born.
+- `scripts/publish_release_diff.py` — the third action of the `urtpe-poll` task, after the two
+  pollers. It regenerates the report, commits it with a **path-scoped stage** (never
+  `git add -A`; the tree routinely carries another session's changes), and pushes to `main`,
+  which is the branch Pages publishes from. It never ingests and writes nothing under
+  `data/` or `viewer/`. A failed push is reported, and the committed report is then ahead
+  of the served one — which `check_deploy.py` reports as stale.
 - `scripts/` — 45 files. Undated ones (`poll_gazette.py`, `fetch_remaining_national_portal.py`,
   `build_project_aliases.py`, `stranded_report.py`) are durable tools; dated ones
   (`*_2026MMDD`) and `probe_*.py` are one-shot archaeology.
@@ -169,7 +192,8 @@ Violating any of these corrupts output silently rather than raising.
 - `openspec/` — 23 specs, spec-driven workflow. **`openspec/config.yaml` holds the
   authoritative project context** (calendars, identity rules, the 編號 warning) plus
   per-artifact rules and the test-first gate. Read it before proposing a change.
-  `openspec/changes/` holds only `archive/` right now — no change is in flight.
+  `openspec/changes/` holds `archive/` plus the in-flight changes. Run `openspec list`
+  before proposing one — another session may already have opened it.
   `gazette-cadence` is the newest spec (2026-10-06).
 
 ## Docs — which one answers your question

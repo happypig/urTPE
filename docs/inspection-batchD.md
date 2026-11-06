@@ -1209,9 +1209,16 @@ bypass — and it is not a reader change, because the reader is right.
 **What the ingest would have produced** (measured offline, not written): 1,422
 records read, 23 excluded as publisher-truncated (編號 69, 81, 190, 572, 674,
 697, 704, 721, 728, 798, 829, 853, 865, 904, 914, 921, 932, 946, 999, 1007,
-1133, 1208), 1,422 cleansed, **677 projects** (today: 681 on the 2026-10-15
+1133, 1208), 1,422 cleansed, **676 projects** (today: 681 on the 2026-10-15
 gazette). The reconciliation against the 2026-10-15 predecessor was not
 reached — the tripwire runs before it.
+
+**Correction (2026-11-06).** The count was first written as 677. That figure
+came from a probe that **skipped the correction ledger**; the real ingest
+applies it (`urtpe/cli.py:434-440`). Measured with the ledger applied:
+**676** projects — the ledger's two 吉林676 entries merge one pair, so the
+family count falls by one more than the no-ledger figure shows. The ledger
+report is clean: 2 corrections applied, **0 unmatched**.
 
 **What would unblock it.** Three readings, in the order they cost:
 

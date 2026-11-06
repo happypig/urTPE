@@ -2248,6 +2248,59 @@ the places that compare a 案名 to a platform name — and the population is 1
 case in 360, so the fix's own blast radius is small but its scope is not.
 Recorded here so it is not lost with the D9f-1 decision.
 
+### D16a — what NFKC would change, measured over the whole corpus (2026-11-06)
+
+The peer session asked for this before any NFKC change is opened: run the
+normalisation over the payload and show what it moves, so the change's
+test-first group can pin it.
+
+**Probes:** `scripts/probe_nfkc_effect.py`, `scripts/probe_nfkc_plan_cases.py`,
+`scripts/probe_nfkc_live_case.py` (all read-only, offline).
+
+**1. The corpus's own 案名 — 6 records, and the track does not move.**
+
+| | Count |
+|---|---|
+| corpus rows carrying a compatibility ideograph | **6** (recnos 8, 121, 179, 611, 613, 615) |
+| of those, the **track** changes after NFKC | **0** |
+| corpus rows whose 案名 NFKC differs at all | 19 — 13 full-width parens (already normalised), 6 compatibility ideographs |
+| corpus rows whose **track** changes after NFKC | **0 of 1,444** |
+
+The 6 records carry 北 / 都 / 更 in the `臺北市` of the **地號 cell**, and the
+district is read from the **行政區 column** — so folding them changes the
+cell's characters and nothing else.
+
+**2. The one live case name — the track DOES move.**
+
+`11507018` (大安區-復興段三小段-3地號等2筆), read from the payload rather than
+typed, because a hand-typed string carries the unified form:
+
+| | Before NFKC | After NFKC |
+|---|---|---|
+| the track `_tracks()` reads | `['事業計畫']` | `['事業計畫', '權利變換']` |
+| the plan-case matcher `_PLAN_CASE_RE` | False | **False** |
+
+**The plan-case matcher is NOT affected**, and the reason is in the regex:
+`^擬訂.*都市更新(事業計畫|事業計畫及權利變換計畫)案` requires the name to
+**start** with 擬訂, and this case's name starts with 變更. Measured over the
+**whole link cache** (2,099 case names): **1** name carries a compatibility
+ideograph, and **0** names would newly match the plan-case matcher after
+folding.
+
+The corpus records for the same unit are unaffected because the PDF's own
+names use the unified form — recno 28 (變更) and recno 686 (擬訂) both read
+`事業計畫、權利變換` today.
+
+**So the fix has exactly one reader to change:** the track reader, at the
+point where a city's case name is compared to a gazette 案名. The
+implementation-dates path is not involved. A claim that NFKC would restore
+the implementation dates for this case is **not supported** by the data.
+
+**Status: measured, not fixed.** The fix waits for the user to open the
+change. The test-first group should pin: the one live case reads both tracks
+after folding; the 6 corpus records are unchanged in track; and the corpus
+record count does not move.
+
 ### D17 — `date_check` reports a false "exact" match on an empty date (found 2026-11-06)
 
 Found while measuring D9f-1. `R.date_check(d1, d2, want)` with an **empty**

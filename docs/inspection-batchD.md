@@ -1240,6 +1240,49 @@ report is clean: 2 corrections applied, **0 unmatched**.
 is about a publisher's defect in a document the user has not seen. Per the
 plan, the step stops here and the reason is recorded.
 
+### What the reconciliation would have said (measured, 2026-11-06)
+
+The tripwire runs before the reconciliation, so the reconciliation never ran
+inside the CLI. Measured offline against the current `clean.tsv` as the
+predecessor:
+
+```
+reconcile: 2026-10-15 -> 2026-10-28
+  new approvals: 2   net change: -20 (1442 -> 1422)
+  historical rows changed: re-dated 5, edited 1, vanished 19 (accepted: 0)
+  ~ withdrawn recent approval: 大安區 …通化段四小段336… @ 2026-10-15
+  BLOCKING: the list shrank: 1442 -> 1422 records
+  BLOCKING: 1 approval(s) from the previous newest cohort (2026-10-15) are
+            absent from the new one: 大安區 …通化段四小段336… @ 2026-10-15
+```
+
+**Only 2 approvals are genuinely new**: 玉泉段二小段452-2 (大同區) and
+通化段一小段812 (大安區). The rest of the document re-publishes what the
+dataset already holds.
+
+**編號 3 IS the 2026-10-15 approval, re-published with an empty date.** The
+reconciler names it as a *withdrawn recent approval* — because the row's date
+is empty, its identity key no longer matches. The approval is not withdrawn:
+the current dataset holds it as node recno 1 of
+`大安區-通化段四小段-336地號等26筆`, dated 2026-10-15, bound to the city's
+case `11501034`. And the city agrees: that case's header reads
+`uro_chk_date 2026-10-15` and its data2 reads `核定日期 2026/10/15`.
+
+**The net change is -20, and most of it is the reader's own exclusion.** The
+gazette holds 1,442 編號; 23 rows are excluded as publisher-truncated (the
+地號 cell) and 1,422 are read. The reconciliation compares the **read** rows
+against the predecessor's 1,442, so the exclusions appear as 19 vanished +
+1 edited + 5 re-dated. That is why the report says "the list shrank". The
+excluded rows are named in the ingest output; they are not lost.
+
+**The 168 list names the case but not its date.** The list holds three rows
+for the unit `通化段四小段336`: `10011271` (擬訂, `MEMO` = 2022/08/02核定公告),
+`10011273` (變更, `MEMO` = 2023/03/21核定公告) and `11501034` — **the exact
+case of 編號 3** — with `MEMO` = `-` and `stage` = `-`. So the list's `MEMO`
+field carries the approval date for the *approved* rows, and carries nothing
+for this one. The date is recoverable, but from the **city's own case
+record**, not from the list.
+
 **What was NOT done in step 9.** The cross-reference against the fresh 168
 snapshot (`scripts/probe_crossref_p168_gazette.py`) was not re-run: it reads
 `data/projects.json`, and the dataset is still the 2026-10-15 one. The

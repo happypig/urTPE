@@ -2233,9 +2233,13 @@ rule cannot pair it with the gazette row.
 | the city's live case names | 360 | **1** — for 利 |
 
 **The corpus is not affected.** Its 6 compatibility characters sit in the
-**district name** (`臺北市` with 北 as U+F963), and the district is read from
-the **行政區 column**, not from the 案名. **0** corpus rows carry a
-compatibility 利.
+**案名** — in the `臺北市` of the district prefix (北 as U+F963) and in
+`都市更新` (都 as U+FA26, 更 as U+F901). They are harmless because **no
+track keyword contains them**: the reader tests 事業計畫 / 權利變換 /
+事業概要 / 都市更新計畫, and none of the four carries a compatibility
+ideograph. **0** corpus rows carry a compatibility 利, and **0** corpus rows
+change track under NFKC (see D16a, which measures the field and the
+mechanism).
 
 **NFKC** folds every compatibility ideograph to its unified form, so
 `unicodedata.normalize("NFKC", name)` is the folding the reader needs. It is
@@ -2255,7 +2259,8 @@ normalisation over the payload and show what it moves, so the change's
 test-first group can pin it.
 
 **Probes:** `scripts/probe_nfkc_effect.py`, `scripts/probe_nfkc_plan_cases.py`,
-`scripts/probe_nfkc_live_case.py` (all read-only, offline).
+`scripts/probe_nfkc_live_case.py`, `scripts/probe_compat_field.py` (all
+read-only, offline).
 
 **1. The corpus's own 案名 — 6 records, and the track does not move.**
 
@@ -2266,9 +2271,27 @@ test-first group can pin it.
 | corpus rows whose 案名 NFKC differs at all | 19 — 13 full-width parens (already normalised), 6 compatibility ideographs |
 | corpus rows whose **track** changes after NFKC | **0 of 1,444** |
 
-The 6 records carry 北 / 都 / 更 in the `臺北市` of the **地號 cell**, and the
-district is read from the **行政區 column** — so folding them changes the
-cell's characters and nothing else.
+**The 6 characters are in the 案名, not the 地號 cell.** Measured over every
+text column of `clean.tsv`: `name` and `name_raw` carry them (6 rows each);
+the `land` column carries **0**. Their positions inside the 案名 are index 3
+(北, U+F963, in `臺北市`), and the two characters of 都市更新 (都 U+FA26 at
+index 24–27, 更 U+F901 at index 26–29).
+
+**They are harmless because no track keyword contains them.** The track
+reader tests the substrings 事業計畫 / 權利變換 / 事業概要 / 都市更新計畫, and
+**none** of those four keywords contains a compatibility ideograph. So the
+corpus's 北 / 都 / 更 are simply never compared against anything.
+
+**The live case is the opposite case in the same class.** Its character
+(U+F9DD, 利) sits at index 32 of 38 — **inside** `權利變換`, which *is* a
+keyword. That is why it breaks the track and the corpus's six do not: the
+corpus's characters sit in text no keyword touches; the live case's sits in
+text a keyword does.
+
+**So the two populations differ by WHERE the character is, not by which
+character it is.** A test that only checks the corpus's track would pass
+while the live bug survived, because the corpus's six are harmless for a
+reason the live case does not share.
 
 **2. The one live case name — the track DOES move.**
 
@@ -2291,15 +2314,29 @@ The corpus records for the same unit are unaffected because the PDF's own
 names use the unified form — recno 28 (變更) and recno 686 (擬訂) both read
 `事業計畫、權利變換` today.
 
+**The matcher IS compatibility-blind — but no name is the shape that proves
+it.** A counterfactual `擬訂` title carrying the compatibility form does
+flip: as-is no match, after folding a match. The regex's keyword
+`都市更新(事業計畫|…)` contains no compatibility ideograph, so it cannot see
+one. The counterfactual is a property of the **regex**, not of any name in
+the corpus or the cache.
+
 **So the fix has exactly one reader to change:** the track reader, at the
 point where a city's case name is compared to a gazette 案名. The
 implementation-dates path is not involved. A claim that NFKC would restore
 the implementation dates for this case is **not supported** by the data.
 
 **Status: measured, not fixed.** The fix waits for the user to open the
-change. The test-first group should pin: the one live case reads both tracks
-after folding; the 6 corpus records are unchanged in track; and the corpus
-record count does not move.
+change. The test-first group should pin:
+
+1. the one live case reads both tracks after folding;
+2. the 6 corpus records are unchanged in track;
+3. **the corpus record count does not move** — a normalisation at the
+   cleansing boundary runs before merge, so a change there moves the project
+   counts. Pinning the count is what catches that;
+4. **the live case is checked by name, not by count** — the corpus's six are
+   harmless for a reason the live case does not share, so a test that only
+   checks the corpus would pass while the live bug survived.
 
 ### D17 — `date_check` reports a false "exact" match on an empty date (found 2026-11-06)
 

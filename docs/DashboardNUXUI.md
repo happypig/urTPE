@@ -267,6 +267,12 @@ source.
 No pipeline change is needed for the dashboard to show these 6. But this is a proxy,
 not the definition. It will drift when a project gains a twur link.
 
+**A note on dates, from the peer.** Any predicate that compares against the gazette
+must read `published_date` from the payload, never a hard-coded date. **A hard-coded
+date is exactly the constant that broke the waiting figures** in §3 between revisions —
+the gazette moved 2026-10-15 → 2026-10-28 and every "waiting since" number shifted by
+13 days. The build script must take the gazette date as an input from the payload.
+
 ---
 
 ## 5. Open decision 1 — the source of the unverified column
@@ -553,9 +559,14 @@ dashboard must render only visible rows.
 
 ## 11. Separate, small: the compatibility-ideograph defect
 
-**6 of 1,444 records** carry CJK compatibility ideographs. Three forms appear, each
-36 times in total inside the records: U+F901 (更), U+F963 (北), U+FA26 (都). The 6
-The 6 records sit in 3 projects:
+CJK compatibility ideographs appear in the data in two places. They are **two separate
+problems**, and only one of them breaks a reader.
+
+### 11.1 The corpus: 6 records, 3 projects, harmless
+
+**6 of 1,444 records** carry U+F901 (更), U+F963 (北), and U+FA26 (都) — all three in
+each affected record's `case_name` and `name_raw`. They sit in the district name
+臺北市, not in a track keyword.
 
 | Project | 編號 |
 | --- | --- |
@@ -563,20 +574,65 @@ The 6 records sit in 3 projects:
 | 北投區-桃源段四小段-424-8地號等15筆 | 8, 615 |
 | 南港區-南港段三小段-274地號等16筆 | 179, 613 |
 
-Each affected record carries all three forms in its `case_name` and `name_raw`.
+The recnos are **8, 121, 179, 611, 613, 615**.
 
-`parse_name_id()` in `urtpe/cleanse.py:31` returns `('', '', '', None)` on them, so the
-national portal index core falls through to the crude string-strip fallback at
-`urtpe/links.py:503`.
+`parse_name_id()` in `urtpe/cleanse.py:31` returns `('', '', '', None)` on them, because
+the regex cannot match a compatibility 北 or 都. So the national portal index core falls
+through to the crude string-strip fallback at `urtpe/links.py:503`.
 
-**A correction on the character list.** An earlier draft named U+F9DD (利) as a fourth
-form. It is not one. The single U+F9DD in the payload is a normal 利 in
-權利變換計畫案, inside `links.candidate_names` for 大安區-復興段三小段-3地號等2筆 — an
-ordinary character, not a compatibility form. Only three forms appear.
+**This side is harmless to the track reader.** The district comes from the 行政區 column,
+not from the 案名. But the index core is still wrong for these 6.
 
-The fix is an NFKC normalisation at the cleansing boundary, plus a test. **This is a
-pipeline defect, independent of both the dashboard and the UI work.** It belongs in its
-own change.
+### 11.2 The live case name: 1 occurrence, and it breaks the track reader
+
+**U+F9DD (利) appears once**, in `links.candidate_names["11507018"]` for
+大安區-復興段三小段-3地號等2筆. It is the **compatibility form**, not the unified
+利. Three checks agree:
+
+| Check | Result |
+| --- | --- |
+| Bytes in `data/projects.json` | `ef a7 9d` at offset 9,439,569 — U+F9DD. The unified 利 is `e5 88 a9` |
+| `unicodedata.name(ch)` | `CJK COMPATIBILITY IDEOGRAPH-F9DD` |
+| `unicodedata.decomposition(ch)` | `5229` — the compatibility decomposition |
+
+**This one breaks a reader.** `_tracks()` at `urtpe/cleanse.py:230` matches the keyword
+權利變換 literally:
+
+| Title | `_tracks()` |
+| --- | --- |
+| 事業計畫及權**利**變換計畫案 (unified) | `['事業計畫', '權利變換']` |
+| 事業計畫及權<U+F9DD>變換計畫案 | `['事業計畫']` — **the track is lost** |
+| The compat title, NFKC-normalised | `['事業計畫', '權利變換']` |
+
+The same break hits `_PLAN_CASE_RE` at `urtpe/links.py:2536`:
+
+| 擬訂 title | `_PLAN_CASE_RE.match()` |
+| --- | --- |
+| 擬訂…事業計畫及權利變換計畫案 (unified) | matches |
+| 擬訂…事業計畫及權<U+F9DD>變換計畫案 | **no match** — the case is not a plan case |
+
+So a compatibility 利 can cost a case its 權利變換 track and its plan-case
+implementation dates. **The case name that carries it today starts with 變更, so it
+does not match the plan-case pattern either way** — the live damage is bounded. The
+reader is still wrong, and a future 擬訂 name with the same character would lose its
+dates.
+
+### 11.3 The fix
+
+**An NFKC normalisation at the cleansing boundary, plus a test.** NFKC folds U+F9DD to
+U+5229, U+F963 to U+5317, U+FA26 to U+90FD, and U+F901 to U+66F4. Verified: it makes
+`parse_name_id()` succeed on the 6 corpus records, and it restores both `_tracks()` and
+`_PLAN_CASE_RE` on the compat title.
+
+**This is a pipeline defect, independent of both the dashboard and the UI work.** It
+belongs in its own change.
+
+### 11.4 A correction to an earlier draft of these notes
+
+An earlier draft said the single U+F9DD was "a normal 利 in 權利變換計畫案", and listed
+three forms instead of four. **That was wrong.** The character is the compatibility form,
+and the peer's byte-level check caught it. The distinction matters: a normal 利 is
+harmless, and a compatibility 利 silently loses a track.
 
 ---
 
@@ -780,12 +836,31 @@ third. **The dashboard must compute its figures at build time, not embed them.**
 is the strongest argument for a build script that reads the payload, and against
 hand-written numbers in the page.
 
-### 14.4 2026-11-05 — first version
+### 14.4 2026-11-06 — the compatibility-ideograph correction
+
+The peer checked my §11 claim and rejected it. **The peer was right.** I had written
+that the single U+F9DD was "a normal 利 in 權利變換計畫案". It is the compatibility form:
+`ef a7 9d` at offset 9,439,569 in `data/projects.json`, `unicodedata.name` returns
+`CJK COMPATIBILITY IDEOGRAPH-F9DD`, and `unicodedata.decomposition` returns `5229`.
+
+The distinction is not cosmetic. Verified in the repo:
+
+| Reader | Unified | Compatibility |
+| --- | --- | --- |
+| `_tracks()` at `cleanse.py:230` | `['事業計畫', '權利變換']` | `['事業計畫']` — track lost |
+| `_PLAN_CASE_RE` at `links.py:2536`, on a 擬訂 title | matches | **no match** — dates dropped |
+| `parse_name_id()` on the 6 corpus records | — | `('', '', '', None)` |
+
+NFKC fixes all three. §11 now separates the two problems: the 6 corpus records (北/都/更
+in the district name, harmless to the track reader) and the 1 live case name (利, which
+does break the reader).
+
+### 14.5 2026-11-05 — first version
 
 First draft, pinned to payload blob `0b3a22b9`. It recorded the 報核 → 成果報備
 correction, the ledger correction, and the ROC 291 defect.
 
-### 14.5 The pattern across all four revisions
+### 14.6 The pattern across all four revisions
 
 | | First | Second | Third |
 | --- | --- | --- | --- |

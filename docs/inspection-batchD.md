@@ -858,7 +858,7 @@ table is the per-finding view of it. Where the two differ, D9g wins.
 | D15 | review-flag order depends on cluster order (大龍265-7) | **P3** | openspec change (emitter) + test | — | rides a re-emit |
 | **D9f-1** | the 2026-10-28 gazette prints no 核定日期 for 編號 3 — the recovery pass, widened to a truncated **date** | **P1** | openspec change (`truncated-row-recovery` + `pdf-tsv-extraction` + `gazette-reconciliation`) + code + test + one ingest | D9f | **AGREED** (user, 2026-11-06) — the rule recovers **57 of 59** rows with **0** ambiguous; 編號 3 → **2026-10-15**, the date the corpus already holds. **Not yet implemented** |
 | **D9f-2** | the 168 list's `MEMO` as a fourth source for the approval date | **P2** | part of D9f-1's change — a **flag**, not a date source | D9f-1 | **AGREED** (user, 2026-11-06) — **measured**: the MEMO is empty for all **33** PDF-vs-platform disagreement cases, and it is the 核定**公告** date where it is present, so it cannot settle them |
-| **D16** | the city writes 利 as U+F9DD, a compatibility ideograph — `權利變換` does not match | **P2** | `fix:` in the 案名 normalisation + test | — | found 2026-11-06. **Measured (D16a–D16c): 2 readers affected** — the track reader (1 live case) and `parse_name_id` (6 corpus rows / 3 projects, latent). The corpus's 6 carry 北/都/更 and are inert for the track; **0** corpus rows carry a compatibility 利. Fix waits for the user to open it |
+| **D16** | the city writes 利 as U+F9DD, a compatibility ideograph — `權利變換` does not match | **P2** | `fix:` in the 案名 normalisation + test | — | found 2026-11-06. **Measured (D16a–D16d): 2 readers affected** — the track reader (1 live case) and `parse_name_id` (6 corpus rows / 3 projects, latent). The corpus's 6 carry 北/都/更 and are inert for the track; **0** corpus rows carry a compatibility 利. Fix waits for the user to open it |
 | **D17** | `date_check` reports a false "exact" match when the wanted date is empty | **P2** | `fix:` — refuse an empty `want` + test | — | latent today (the caller guards); **must** land with D9f-1, which hands it an empty date on every call |
 | D10 | the permit witness names the first permit of a tie — 43 projects show a 執照 date that is not the project's own 使照 | **P2** | openspec change (`official-link-discovery`) + re-emit | **D7** (the flag path reads the dict D7 corrupts) | **decided: 開工 match, else ambiguous** (D10e) |
 | D6 | twur override key is the pre-`c2cfbb9` slug — the record never applies; 國 badge and 7 national milestones absent | **P2** | direct `fix:` (re-key + dataset-key test) + restore + re-emit | — | **decided: re-key + per-project `discover_project_links(fresh=True)`** (D6) |
@@ -2264,7 +2264,7 @@ on the 2026-10-26 gazette (計劃→計畫, ㄧ→一, full-width parens, spacin
 
 **Status: not fixed.** It is folded in the D9f-1 probe only. A general fix
 would touch `R.normalize_name` (the recovery pass's own normalisation) and
-the places that compare a 案名 to a platform name. **Measured (D16a–D16c): the
+the places that compare a 案名 to a platform name. **Measured (D16a–D16d): the
 scope is 2 readers**, not 1 — the track reader (1 live case) and
 `parse_name_id` (6 corpus rows in 3 projects, latent). The blast radius is
 small, but "small" is a measurement, not a scope. Recorded here so it is not

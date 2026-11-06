@@ -751,11 +751,12 @@ and the crawled index holds no core for them at all. Their links came from the c
 view pages (view/793, view/791, view/253). A broken reader, with the data around it
 routing around it.
 
-**The pattern across all four corrections is the same.** Each one took a partial
+**The pattern across all six corrections is the same.** Each one took a partial
 measurement and stated it as a scope: a character read by eye, a `Match` compared against
 `None`, a field guessed from the neighbouring column, a count of readers taken from the
-reader I happened to be looking at. **A scope is a claim about what was not measured.**
-Every one of these four was caught by measuring the population rather than the sample.
+reader I happened to be looking at, a scope read off one reader, and a denominator taken
+from a sample. **A scope is a claim about what was not measured.** Five of the six were
+caught by the other session. §14.0.3 carries all six.
 
 ---
 
@@ -818,10 +819,12 @@ which is the better shape.
 
 ## 14. Revision record
 
-### 14.0 2026-11-07 — four corrections to §11
+### 14.0 2026-11-07 — six corrections to §11
 
-**§11 was wrong four times, in three different directions.** All four were found by
-measuring the population rather than the sample, and three of the four by the peer.
+**§11 was wrong six times, in four different directions.** All six were found by
+measuring the population rather than the sample, and five of the six by the peer. Three
+were mine and three the peer's, and the shape is the same in both directions — a scope
+overstated and a scope understated.
 
 ### 14.0.1 The plan-case claim withdrawn
 
@@ -895,15 +898,14 @@ still the right place to fix it.
 1. **The track reader** — 1 live case, `11507018`.
 2. **`parse_name_id()`** — 6 records in 3 projects, latent.
 
-**Six pins** for the test-first group: the live case by name, the 6 records' track
-unchanged, the corpus record count unmoved, the 6 records' identity folded, and the 3
-projects' portal links unmoved.
+**Six pins** for the test-first group, listed in §11.3: the live case reads both tracks
+after folding; the 6 corpus records are unchanged in track; the corpus record count does
+not move; the live case is checked **by name, not by count**; the 6 records parse to
+their identity after folding; and the 3 projects' portal links do not move.
 
-**The pattern across all four corrections is the same.** Each took a partial measurement
-and stated it as a scope: a character read by eye, a `Match` compared against `None`, a
-field guessed from the neighbouring column, a reader count taken from the reader that
-happened to be in view. **A scope is a claim about what was not measured.** Every one of
-the four was caught by measuring the population rather than the sample.
+**The pattern across all six corrections is the same.** Each took a partial measurement
+and stated it as a scope. **A scope is a claim about what was not measured.** Five of the
+six were caught by the other session. §14.0.3 carries all six in one table.
 
 **A fifth and sixth correction, 2026-11-07, from the peer.** The peer's sweep of the
 board found that its D16 status read "the population is 1 case in 360" — a **sample**
@@ -922,18 +924,23 @@ correction, and it is the shorter form of the same finding.
 **The pattern across all six is the same, and it is now the general form.** Three of the
 six are mine and three are the peer's, and the shape does not depend on who made it:
 
-| | Claim | What was not measured |
-| --- | --- | --- |
-| 1 | "a normal 利" | the codepoint |
-| 2 | "two readers break" | whether any name is a 擬訂 title |
-| 3 | "the 地號 cell" | which column carries the text |
-| 4 | "one reader breaks" | the other reader |
-| 5 | "the corpus is not affected" | the identity reader |
-| 6 | "1 case in 360" | the population the 360 was drawn from |
+| | Correction | What was stated | What was true |
+| --- | --- | --- | --- |
+| 1 | a character read by eye | "3 compatibility forms" | **4** across the data — 3 in the corpus (U+F901, U+F963, U+FA26) and the live U+F9DD |
+| 2 | a match compared against `None` | "762 names would change" | **0** — a `Match` is never equal to `None` |
+| 3 | a field guessed from the neighbouring column | "the corpus's characters sit in the 地號 cell" | the **案名** — the 地號 column carries 0 |
+| 4 | a reader count taken from the reader in view | "1 reader is affected" | **2** — `parse_name_id` also breaks |
+| 5 | a denominator taken from a sample | "1 in 360" | **1 in the 2,024** city case names we hold |
+| 6 | a blast radius read as a scope | "the population is 1 case in 360" | **1 live case and 6 corpus rows** |
 
 **A scope is a claim about what was not measured.** Every one of the six was caught by
 measuring the population rather than the sample, and five of the six were caught by the
 other session.
+
+**The board carries the same six in the same form**, in
+`docs/inspection-batchD.md` under "the general form: a scope is a claim about what was
+not measured". It is the board's own conclusion, with no attribution to either session,
+because the shape does not depend on who made the correction.
 
 ### 14.1 2026-11-06, final revision — the settled corpus
 

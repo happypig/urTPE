@@ -63,6 +63,56 @@ def plain(cell: str) -> str:
     return re.sub(r"\*\*", "", cell).strip()
 
 
+def _assertion(pin: str) -> str:
+    """What a pin asserts: its claim, without its explanation.
+
+    A pin reads as a claim, then an explanation. The board's pins carry
+    more explanation than the dashboard's — a note about the record count, a
+    code citation — and the two documents need not carry the same note. So
+    the comparison is on the claim: the words up to the first full stop or
+    em-dash, lower-cased.
+    """
+    text = re.sub(r"^\s*\d+\.\s*", "", plain(pin)).strip()
+    # a full stop inside a code path or a number is not a sentence end
+    text = re.sub(r"`[^`]*`", "`x`", text)
+    # the claim ends at the first sentence end or dash; a semicolon inside
+    # the claim ("unchanged in track;") is not
+    text = re.split(r"\.\s| — |; ", text)[0]
+    text = text.rstrip(".; —").lower()
+    # the leading article is a choice of wording, not of claim
+    text = re.sub(r"^(the\s+)?(one|a|an)\s+", "", text)
+    text = re.sub(r"^the\s+", "", text)
+    return text[:110]
+
+
+def pins_of(text: str) -> list[str]:
+    """The numbered pins of the test-first group.
+
+    The board's list and the dashboard's list name the same six things, in
+    the same order. The list is found by the heading that introduces it —
+    the board says "The test-first group should pin", the dashboard says
+    "The test-first group must pin six things" — and the list ends at the
+    next heading.
+    """
+    lines = text.splitlines()
+    start = None
+    for i, line in enumerate(lines):
+        if re.search(r"[Tt]he test-first group (should|must) pin", line):
+            start = i
+            break
+    if start is None:
+        return []
+    out: list[str] = []
+    for line in lines[start + 1:]:
+        if line.startswith("#"):
+            break
+        if re.match(r"^\s*\d+\.\s", line):
+            out.append(line.strip())
+        elif out and line.strip():
+            out[-1] += " " + line.strip()
+    return out
+
+
 def main() -> int:
     board = BOARD.read_text(encoding="utf-8")
     doc = DOC.read_text(encoding="utf-8")
@@ -118,8 +168,34 @@ def main() -> int:
     for name, text in (("board", board), ("dashboard", doc)):
         for m in re.finditer(r"[^.]*\*\*(\w+ )?pins\*\*[^.]*\.", text):
             print("  %-10s %s" % (name, m.group(0).strip()[:110]))
-        for m in re.finditer(r"^\s*(\d)\. .*live case[^.]*$", text, re.M):
-            print("  %-10s pin %s" % (name, m.group(1)))
+
+    # the pin lists themselves — the two documents list the same six, and a
+    # reader who opens both would compare them
+    print()
+    print("=== the pin lists ===")
+    bp = pins_of(board)
+    dp = pins_of(doc)
+    print("  the board lists %d pins, the dashboard lists %d"
+          % (len(bp), len(dp)))
+    pin_mismatches = 0
+    for i in range(max(len(bp), len(dp))):
+        b = plain(bp[i]) if i < len(bp) else "(absent)"
+        d = plain(dp[i]) if i < len(dp) else "(absent)"
+        # the pin's ASSERTMENT is what matters: the words up to the first
+        # full stop, lower-cased, so a capitalised heading and a sentence
+        # that says the same thing compare equal
+        b_key = _assertion(b)
+        d_key = _assertion(d)
+        same = b_key == d_key
+        if not same:
+            pin_mismatches += 1
+        print("  pin %d %s" % (i + 1, "same" if same else "DIFFERS"))
+        if not same:
+            print("     board      %s" % b_key)
+            print("     dashboard  %s" % d_key)
+
+    if pin_mismatches:
+        mismatches += pin_mismatches
 
     print()
     if mismatches:

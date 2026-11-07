@@ -2426,9 +2426,11 @@ change. The test-first group should pin:
 
 1. the one live case reads both tracks after folding;
 2. the 6 corpus records are unchanged in track;
-3. **the corpus record count does not move** — a normalisation at the
-   cleansing boundary runs before merge, so a change there moves the project
-   counts. Pinning the count is what catches that;
+3. **the project count does not move** — a normalisation at the cleansing
+   boundary changes what the merge's similarity scoring compares, so it can
+   join or split a family. Pinning the count catches that. (The record count
+   is a separate concern, and the census gate already holds it total and
+   disjoint.)
 4. **the live case is checked by name, not by count** — the corpus's six are
    harmless for a reason the live case does not share, so a test that only
    checks the corpus would pass while the live bug survived;
@@ -2438,16 +2440,12 @@ change. The test-first group should pin:
 6. **the 3 projects' portal links do not move** — they are already right, and
    a change at the cleansing boundary must not disturb them.
 
-**The test-first group, when the user opens the change:**
-
-1. the one live case reads both tracks after folding;
-2. the 6 corpus records are unchanged in track;
-3. **the corpus record count does not move** — a normalisation at the
-   cleansing boundary runs before merge, so a change there moves the project
-   counts. Pinning the count is what catches that;
-4. **the live case is checked by name, not by count** — the corpus's six are
-   harmless for a reason the live case does not share, so a test that only
-   checks the corpus would pass while the live bug survived.
+**There is one count, not two.** A family and a project are the same object,
+so **682** is the family count and the project count at once (see pin 3). An
+earlier draft of this board asked whether the family count moved first and
+the project count followed. It does not: there is no second count. The
+question was worth asking only because the answer was checked against the
+code rather than assumed — and the assumption was wrong.
 
 ### D16d — the general form: a scope is a claim about what was not measured
 

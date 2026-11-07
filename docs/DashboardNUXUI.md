@@ -682,15 +682,22 @@ compat title.
 
 1. The live case reads **both** tracks after folding.
 2. The 6 corpus records are unchanged in track.
-3. **The corpus record count does not move.** A normalisation at the cleansing
-   boundary runs before merge, so a change there moves project counts. Pinning the
-   count is what catches that.
+3. **The project count does not move** — a normalisation at the cleansing boundary
+   changes what the merge's similarity scoring compares, so it can join or split a
+   family. Pinning the count catches that. (The record count is a separate concern,
+   and the census gate already holds it total and disjoint.)
 4. **The live case is checked by name, not by count.** A corpus-only test would pass
    while the live bug survived.
 5. **The 6 records parse to their identity after folding**, and the 3 projects' land
    core becomes the folded one. A track-only test would not catch this.
 6. **The 3 projects' portal links do not move.** They are already right, and a change
    at the cleansing boundary must not disturb them.
+
+**There is one count, not two.** A family and a project are the same object here:
+`urtpe/models.py:73` defines `Project` as *"A merged project family"*, `merge()` builds
+one `Project` per cluster, and the emitted count is `len(graphs)` at `urtpe/graph.py:188`.
+So **682** is the family count and the project count at once. There is no second count
+that could move first.
 
 **Why a corpus-only test is not enough.** The corpus's 6 characters are at index 3 (in
 臺北市) and index 24–29 (in 都市更新). The live case's character, U+F9DD, is at index
@@ -899,7 +906,7 @@ still the right place to fix it.
 2. **`parse_name_id()`** — 6 records in 3 projects, latent.
 
 **Six pins** for the test-first group, listed in §11.3: the live case reads both tracks
-after folding; the 6 corpus records are unchanged in track; the corpus record count does
+after folding; the 6 corpus records are unchanged in track; the **project** count does
 not move; the live case is checked **by name, not by count**; the 6 records parse to
 their identity after folding; and the 3 projects' portal links do not move.
 

@@ -22,14 +22,30 @@ The current state, in the terms the implementation needs:
 - `urtpe/links.py:resolve_node_cases` step 4 walks the node's `parcels`, so
   the all-parcel search is already there; the *section* is not varied.
 
-Measured, over the 5,160 node × candidate pairs the pipeline compares today:
+Measured, over the 5,185 node × candidate pairs the pipeline compares today:
 
 | | count |
 |---|---|
-| the current rule matches | 1,579 |
+| the current rule matches | 1,584 |
 | the widened rule matches | 1,587 |
-| newly matched | 8 |
+| newly matched | 3 |
 | no longer matched | 0 |
+
+The 3 additions are read by hand, and each is a genuine recovery:
+
+| project | node | case | the reason |
+|---|---|---|---|
+| 文山區-木柵段三小段-389地號等5筆 | recno 983 | 09908302 | the 案名 says 385; the 地號 cell names 389, the city's parcel |
+| 松山區-敦化段一小段-510地號等1筆 | recno 72 | 10906301 | the 案名 writes 松**化**區 (a typo); the 地號 cell writes 松山區 |
+| 松山區-敦化段一小段-510地號等1筆 | recno 72 | 11501039 | the same node, the case's other approval |
+
+**The baseline is the pipeline's own call.** The resolver builds the node's
+core as `extract_landcore_from_case_name(node_name) or
+_record_landcore(member)` — the 案名's core, or the record's own when the 案名
+does not parse. An earlier measurement of this change called the tier-3 rule
+without that fallback, so it counted 1,579 baseline hits and reported 5 of the
+additions as new. The pipeline already binds those 5 through the fallback.
+The 3 above are the only real additions.
 
 ## Goals / Non-Goals
 
@@ -61,10 +77,16 @@ The land-core comparison reads each core **two ways** — the section cut at its
 first 段 and at its last — and each side's readings are paired. A pair matches
 if any pairing matches.
 
-The alternative — changing the cut to the last 段 and keeping one reading —
-was measured: it moves 31 existing bindings from match to no-match, because
-the first-段 cut is what those 31 rely on. Both readings keeps every one of
-them.
+Measured, over the 5,185 pairs: the first-段 cut alone binds 1,586, the
+last-段 cut alone binds 1,587, and both cuts bind 1,587. The last-段 cut
+loses nothing against the pipeline — the 31 bindings the earlier measurement
+reported it lost came from that measurement's own baseline, not from the cut.
+The 1 pair the last-段 cut adds is recno 983 (木柵389), whose 案名 names 385
+and whose 地號 cell names 389.
+
+Both readings are kept anyway. The first-段 cut is what the pipeline's own
+`_parse_landcore` does, so keeping it preserves the pipeline's reading of
+every core; the last-段 cut is what reads 河堤段五小段 as one section name.
 
 ### D2 — Keep the four-part weighted score; widen the section and the parcel
 
@@ -78,9 +100,14 @@ at >= 0.85. The change keeps that score and widens two of the parts:
 
 The count part keeps its weight, so a count mismatch costs .10 exactly as
 before. The alternative — hard tests on district, section, count and parcel —
-was measured and it loses 31 existing bindings, because the pipeline's score
-tolerates a count mismatch (中山段二小段202's node declares 1 筆 and the city
-declares 12 筆, and that pair binds today at 0.90).
+was measured against the pipeline's own rule: it loses **31** existing
+bindings, because the pipeline's score tolerates a count mismatch (中山段二小段
+202's node declares 1 筆 and the city declares 12 筆, and that pair binds
+today at 0.85).
+
+Measured against the pipeline's rule, the segment cut is **not** the cause of
+those 31 losses — the count test is. Both cuts with the weighted score lose
+0.
 
 ### D3 — Offer the 地號 cell's core as an ALTERNATIVE, not as the record's section
 
@@ -137,10 +164,11 @@ both steps.
 
 - **The widened section rule binds a case of another unit.** → The 小段 suffix
   and the 段 name must both agree; the district and the count keep their
-  weight. Measured over 5,160 pairs: 8 additions, 0 removals. Every one of
-  the 8 was read by hand — each is a case the gazette's own 地號 cell names
+  weight. Measured over 5,185 pairs: 3 additions, 0 removals. Every one of
+  the 3 was read by hand — each is a case the gazette's own 地號 cell names
   correctly and its 案名 does not (北投大業401's 案名 writes 401號 without
-  地號, so it has no parsable core at all).
+  地號, so it has no parsable core at all; the pipeline binds it through the
+  record-core fallback already).
 
 - **The parcel-set rule binds a case of a sibling unit.** → The parcel must be
   one of the node's OWN parcels, and the district, section and count must all

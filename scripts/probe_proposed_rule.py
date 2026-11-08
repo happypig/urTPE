@@ -1,9 +1,9 @@
 """The proposed tier-3 rule, measured. Read-only, offline.
 
 The 7 unplaced projects of docs/coverage-report.html hold 11 nodes. The live
-search finds a case id for every one. The pipeline's own resolver binds only
-3, because the tier-3 name rule cannot read a unit whose gazette text and
-the city's index name it differently.
+search finds a case id for every one. The pipeline's own resolver binds 3 of
+the 11 today, and the name rule refuses 5 more: it cannot read a unit whose
+gazette text and the city's index name it differently.
 
 Three separate name defects keep the rule from matching. Each is measured
 here, and each is a separate widening:
@@ -31,6 +31,13 @@ in. This measures the risk by replaying the rule over every node x
 candidate pair the pipeline actually compares, so the change in the binding
 set is counted, not assumed.
 
+The baseline is the resolver's OWN call, including the record-core fallback
+it passes (`node_landcore = extract_landcore_from_case_name(node_name) or
+_record_landcore(member)`). A baseline that omits the fallback undercounts
+the pipeline's own bindings by 5 and reports 5 false additions. Measured
+against the pipeline's own rule, the widened rule adds 3 bindings over the
+5,185 pairs and loses none.
+
 Read-only, offline.
 """
 from __future__ import annotations
@@ -46,6 +53,8 @@ from collections import defaultdict
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+
+from urtpe.links import extract_landcore_from_case_name  # noqa: E402
 
 CLEAN = ROOT / "data" / "clean.tsv"
 PROJECTS = ROOT / "data" / "projects.json"
@@ -90,6 +99,33 @@ def sections_match(a: str, b: str) -> bool:
 
 def core_of(district: str, section: str, parcel: str, count: str) -> str:
     return "%s%s%s地號等%s筆" % (district, section, parcel, count)
+
+
+def record_core(row: dict) -> str:
+    """The record's own land core — the pipeline's fallback when the 案名
+    does not parse (`urtpe.links._record_landcore`). The count falls back to
+    orig_count, as `build_land_core_key` does."""
+    if not row["first_parcel"]:
+        return ""
+    parts = []
+    if row["district_land"]:
+        parts.append(row["district_land"])
+    if row["section"]:
+        parts.append(row["section"])
+    core = "".join(parts) + row["first_parcel"]
+    count = row["land_count"] or row["orig_count"]
+    if count:
+        core += "地號等%s筆" % count
+    return core
+
+
+def node_core(row: dict) -> str:
+    """The node's land core as the resolver builds it: the 案名's core, or
+    the record's own when the 案名 does not parse (resolve_node_cases:
+    `node_landcore = extract_landcore_from_case_name(node_name) or
+    _record_landcore(member)`). A baseline that omits this fallback
+    undercounts the pipeline's own bindings by 5."""
+    return extract_landcore_from_case_name(row["name"]) or record_core(row)
 
 
 def parse_core(lc: str) -> tuple[str, str, str, str]:
@@ -200,7 +236,6 @@ def main() -> int:
     from urtpe.links import (
         _kind_matches,
         _tier3_names_match,
-        extract_landcore_from_case_name,
         node_stage_kind,
     )
 
@@ -257,7 +292,9 @@ def main() -> int:
             return False
         parcels = tuple(row["parcels"].split("|")) if row["parcels"] else ()
         cores = []
-        name_core = extract_landcore_from_case_name(row["name"])
+        # the node's core as the resolver builds it: the 案名's, or the
+        # record's own when the 案名 does not parse
+        name_core = node_core(row)
         if name_core:
             cores.append(name_core)
         # the record's own core, built from the 地號 cell's section
@@ -267,17 +304,18 @@ def main() -> int:
                                  row["first_parcel"], row["land_count"]))
         return any(core_match(c, city_core, parcels) for c in cores)
 
+    def pipeline_rule(row: dict, city_name: str) -> bool:
+        """The resolver's own tier-3 call, with the record-core fallback the
+        resolver passes (`resolve_node_cases`: `node_landcore =
+        extract_landcore_from_case_name(node_name) or _record_landcore(member)`).
+        A baseline that omits the fallback undercounts the pipeline's own
+        bindings by 5 and reports 5 false additions."""
+        return _tier3_names_match(row["name"], city_name, node_core(row))
+
     ok = 0
     for recno, (cid, dist, sec, parcel, count, city_sec) in sorted(FOUND.items()):
         row = rows[recno]
-        cd, csx, cp, cn = CITY[cid]
-        city_name = ""
-        # rebuild the city's own name from the recorded core
-        city_name = core_of(cd, csx, cp, cn).replace("地號等", "地號等")
-        hit = widened(recno, row, city_name)
-        # use the REAL city name for the comparison
-        real = CITY_NAMES[cid]
-        hit = widened(recno, row, real)
+        hit = widened(recno, row, CITY_NAMES[cid])
         ok += hit
         print("  recno %-5s %-10s %-9s  案名 core %-14s cell core %-14s"
               % (recno, cid, "MATCH" if hit else "NO MATCH",
@@ -309,7 +347,7 @@ def main() -> int:
         for cid, cname in names.items():
             for r in members:
                 pairs += 1
-                old = _tier3_names_match(r["name"], cname)
+                old = pipeline_rule(r, cname)
                 new = widened(0, r, cname)
                 old_hits += old
                 new_hits += new

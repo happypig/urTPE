@@ -40,7 +40,11 @@ later can be marked complete.
       recorded when the title search finds the unit.
 - [ ] 1.12 A test for the resolver's end-to-end acceptance on the 11 nodes:
       each of the 7 unplaced projects' nodes binds the case id the live
-      search found, with the case's approval date matching the node's date.
+      search found. 10 of the 11 bind on an exact date match. The 11th
+      (復興 recno 1081) binds on the header step's existing 10-day drift
+      rule: its node's date is 2015-11-04 and the case's approval is
+      2015-11-03. Step 4's date gate stays exact (design D6), so this node
+      binds through the header step, not through the parcel search.
 
 ## 2. The land-core comparison
 
@@ -83,8 +87,8 @@ later can be marked complete.
 
 - [ ] 6.1 The full suite passes: `python -m pytest`.
 - [ ] 6.2 The probes re-run and their counts hold: the widened rule matches
-      11 of the 11 unplaced nodes, and over the 5,160 node × candidate pairs
-      it adds 8 bindings and loses none.
+      11 of the 11 unplaced nodes, and over the 5,185 node × candidate pairs
+      it adds 3 bindings and loses none.
 - [ ] 6.3 The 7 projects' caches are refreshed, one writer at a time, with
       no `data/.pipeline.lock` present and the peers notified.
 - [ ] 6.4 A re-emit runs: `python -m urtpe.cli --from-js

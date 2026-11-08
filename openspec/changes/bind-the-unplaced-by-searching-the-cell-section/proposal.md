@@ -41,8 +41,8 @@ leaves the node unbound and the unit invisible to a reader.
   own header before the id enters the project's case list.
 
 The comparison stays a **superset** of the pipeline's own: measured over the
-5,160 node × candidate pairs the pipeline compares today, it adds 8 bindings
-and loses none. The 8 additions are cases the gazette's own 地號 cell names
+5,185 node × candidate pairs the pipeline compares today, it adds 3 bindings
+and loses none. The 3 additions are cases the gazette's own 地號 cell names
 correctly and its 案名 does not.
 
 ## Capabilities

@@ -245,7 +245,7 @@ both steps.
 1. The test-first group lands (the comparison, the search forms, the portal
    source) and fails against the current code.
 2. The implementation lands. The comparison is offline and touches no cache.
-3. A full suite run: 1,138 tests.
+3. A full suite run: 1,175 tests.
 4. A refresh of the 7 projects' caches writes their case ids. The refresh
    reaches the network, so it obeys the single-writer rule: no
    `data/.pipeline.lock` present, peers notified, >= 1 s between requests.
@@ -254,6 +254,11 @@ both steps.
    the tripwire report; the payload's record count and project count must not
    move.
 6. `node scripts\viewer_smoke.js` after the re-emit.
+
+The refresh writes candidate names into the 7 caches, so the corpus the
+comparison is measured over grows: 5,185 pairs before the refresh, 5,228
+after. Every count in this document is measured over the CURRENT corpus, and
+the probe that reads it is `scripts/probe_proposed_rule.py`.
 
 Rollback: the change is a code change, so reverting the commit and re-emitting
 restores the payload. The caches keep the newly found ids, which is harmless —

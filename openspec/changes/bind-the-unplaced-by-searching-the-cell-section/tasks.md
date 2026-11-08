@@ -85,7 +85,7 @@ later can be marked complete.
 
 ## 6. Verification
 
-- [x] 6.1 The full suite passes: `python -m pytest` — 1172 passed, 1 skipped.
+- [x] 6.1 The full suite passes: `python -m pytest` — 1175 passed, 1 skipped.
 - [x] 6.2 The probes re-run and their counts hold: the widened rule matches
       11 of the 11 unplaced nodes, and over the 5,228 node × candidate pairs
       it adds 9 bindings and loses none. The pair set grew from 5,185 when

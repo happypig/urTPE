@@ -955,7 +955,8 @@ def _post_taipei_api(url: str, params: dict, max_retries: int = 3) -> str:
 
 def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dict] = None,
                             anchor_name: str = "",
-                            extra_sections: Optional[list] = None) -> list[dict]:
+                            extra_sections: Optional[list] = None,
+                            own_parcels: Optional[list] = None) -> list[dict]:
     """Search Taipei platform cases by land section + parcel.
 
     Args:
@@ -970,13 +971,16 @@ def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dic
             returns nothing — the 地號 cell's section, which is the form the
             city indexes when the gazette's 案名 and 地號 columns disagree
             (河堤五小段 vs 河堤段五小段, design D4).
+        own_parcels: the unit's own parcel list — a case naming any of them
+            is the same unit's case, so the guard keeps it (design D4).
 
     Returns list of {case_id, case_name, schedule} dicts whose case_name
     carries the searched parcel (§6.7 guard shape) or is a corroborated named-area case.
     """
     return _search_taipei_raw(section, parcel, guard=True, dropped_out=dropped_out,
                               anchor_name=anchor_name,
-                              extra_sections=extra_sections)
+                              extra_sections=extra_sections,
+                              own_parcels=own_parcels)
 
 
 def search_taipei_cases_for_node(section: str, parcel: str,
@@ -993,10 +997,40 @@ def search_taipei_cases_for_node(section: str, parcel: str,
                               extra_sections=extra_sections)
 
 
+def _section_form_alternatives(section: str) -> list[str]:
+    """The section's other spelling: the 小段 under a 段 name that CARRIES
+    its trailing 段.
+
+    The gazette prints 吳興一小段 where the city indexes 吳興段一小段, and
+    the gazette prints 河堤五小段 where the city indexes 河堤段五小段. The
+    comparison reads both forms (design D2); the search must ask for the
+    other one too, or the case is never reached (design D4).
+
+    Only the direction the city actually takes is offered: a gazette name
+    that already carries a 段 (臨沂段三小段) keeps it, so no alternative is
+    needed and no request is spent. A gazette name without one (吳興一小段)
+    may need it, so the name with the 段 is tried after the name without.
+    """
+    section = str(section or "").strip()
+    if not section:
+        return []
+    m = _SECTION_SUFFIX_RE.match(section)
+    if not m:
+        return []
+    name, suffix = m.group(1), m.group(2)
+    if not name or name.endswith("段"):
+        return []
+    # the name must read as a 段 name on its own (吳興 does)
+    if not re.fullmatch(r"[一-鿿]{1,3}", name):
+        return []
+    return [name + "段" + suffix]
+
+
 def _search_taipei_raw(section: str, parcel: str, guard: bool = True,
                        dropped_out: Optional[dict] = None,
                        anchor_name: str = "",
-                       extra_sections: Optional[list] = None) -> list[dict]:
+                       extra_sections: Optional[list] = None,
+                       own_parcels: Optional[list] = None) -> list[dict]:
     def _query(sec: str, p: str) -> list:
         if "-" in p:
             mono, _, suno = p.partition("-")
@@ -1024,45 +1058,64 @@ def _search_taipei_raw(section: str, parcel: str, guard: bool = True,
     # city indexes the 地號 column's form. The extra forms are tried only after
     # the 案名's form returns nothing, so the request count does not grow for
     # the projects whose 案名 is already right.
+    #
+    # The section FORM also matters: the gazette prints 吳興一小段 where the
+    # city indexes 吳興段一小段 — the same 小段 under a 段 name with or
+    # without its trailing 段. Both sides of that pair are tried, so a unit
+    # whose section the city spells with the 段 is still reached.
     stem = parcel.partition("-")[0]
     sections = _section_variants(section, anchor_name)
     for extra in (extra_sections or ()):
         extra = str(extra or "").strip()
         if extra and extra not in sections:
             sections.append(extra)
+    for alt in _section_form_alternatives(section):
+        if alt not in sections:
+            sections.append(alt)
+    for extra in list(extra_sections or ()):
+        for alt in _section_form_alternatives(str(extra or "").strip()):
+            if alt and alt not in sections:
+                sections.append(alt)
     parcels = [parcel] if stem == parcel else [parcel, stem]
 
-    entries: list = []
+    # The forms are tried in order, and the walk CONTINUES while a form
+    # yields nothing that survives the guard: a body of another unit's cases
+    # is not an answer, and stopping there would hide the unit's own case
+    # behind the 案名's form (萬華段一小段 returns five cases of other units;
+    # the wanted one lives under the 地號 cell's form, 萬大段一小段).
+    # The walk still stops at the first form that yields a kept case, so a
+    # project whose 案名 is right spends no extra request.
+    results = []
+    dropped: dict[str, str] = {}
+    seen: set[str] = set()
     for sec in sections:
+        entries: list = []
         for p in parcels:
             entries = _query(sec, p)
             if entries:
                 break
-        if entries:
+        for e in entries:
+            details = e.get("details", "")
+            m = re.search(r"case_id=(\d+)", details)
+            if not m or "r_progress_detail.aspx" not in details:
+                continue
+            cid = m.group(1)
+            if cid in seen:
+                continue
+            seen.add(cid)
+            case_name = e.get("case_name", "")
+            if guard and not (_case_name_carries_parcel(case_name, parcel,
+                                                        own_parcels)
+                              or _corroborated_area(anchor_name, case_name)):
+                dropped[cid] = case_name
+                continue
+            results.append({
+                "case_id": cid,
+                "case_name": case_name,
+                "schedule": e.get("schedule", ""),
+            })
+        if results:
             break
-
-    results = []
-    dropped: dict[str, str] = {}
-    seen: set[str] = set()
-    for e in entries:
-        details = e.get("details", "")
-        m = re.search(r"case_id=(\d+)", details)
-        if not m or "r_progress_detail.aspx" not in details:
-            continue
-        cid = m.group(1)
-        if cid in seen:
-            continue
-        seen.add(cid)
-        case_name = e.get("case_name", "")
-        if guard and not (_case_name_carries_parcel(case_name, parcel)
-                          or _corroborated_area(anchor_name, case_name)):
-            dropped[cid] = case_name
-            continue
-        results.append({
-            "case_id": cid,
-            "case_name": case_name,
-            "schedule": e.get("schedule", ""),
-        })
     if dropped_out is not None:
         dropped_out.update(dropped)
     return results
@@ -1490,7 +1543,8 @@ def offer_rejected_ids(cache_dir: Path, rejected: dict[str, dict[str, str]]) -> 
     return moves
 
 
-def _case_name_carries_parcel(case_name: str, parcel: str) -> bool:
+def _case_name_carries_parcel(case_name: str, parcel: str,
+                               own_parcels: tuple | list | None = None) -> bool:
     """True when the case's own name declares the searched parcel.
 
     The name is the platform's per-case unit declaration (§6.7 evidence), so a
@@ -1500,6 +1554,14 @@ def _case_name_carries_parcel(case_name: str, parcel: str) -> bool:
       115等18筆 / 115、… lists; rejects 115-3, 2115, 1151);
     - legacy mono form: when searching <mono>-<suno>, an older approval naming
       the pre-subdivision stem (<mono>地號/<mono>等…) still counts.
+
+    bind-the-unplaced-by-searching-the-cell-section: a case that declares
+    ANY of the unit's OWN parcels is kept too. The city indexes a case under
+    whichever parcel it lists first, and the search finds it under that
+    parcel while its name declares another of the unit's parcels (臨沂段
+    三小段412's case 10305021 is indexed under 414 and names 412). The rule
+    still drops a case of a DIFFERENT unit — the parcels it accepts are the
+    unit's own.
     """
     name = normalize_parcel_token(case_name)
     parcel_n = normalize_parcel_token(str(parcel or ""))
@@ -1514,7 +1576,18 @@ def _case_name_carries_parcel(case_name: str, parcel: str) -> bool:
     if _token_hit(parcel_n, declared_only=False):
         return True
     mono = parcel_n.partition("-")[0]
-    return mono != parcel_n and bool(mono) and _token_hit(mono, declared_only=True)
+    if mono != parcel_n and mono and _token_hit(mono, declared_only=True):
+        return True
+    for own in (own_parcels or ()):
+        own_n = normalize_parcel_token(str(own or ""))
+        if not own_n:
+            continue
+        if _token_hit(own_n, declared_only=False):
+            return True
+        own_mono = own_n.partition("-")[0]
+        if own_mono != own_n and own_mono and _token_hit(own_mono, declared_only=True):
+            return True
+    return False
 
 
 # A 地號 / 等N筆 declaration anywhere in a case name. Its absence is what makes a
@@ -2226,12 +2299,37 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
     search_status: dict[str, str] = {}
     if search and search_key and all(search_key[:2]):
         section, parcel, anchor_name = (list(search_key) + [""])[:3]
-        try:
-            entries = search(section, parcel, dropped_out={},
-                             anchor_name=anchor_name or "") or []
-        except Exception as exc:  # a failed search is a failure, not "nothing new"
-            report["error"] = f"search: {type(exc).__name__}: {exc}"
-            return report
+        # bind-the-unplaced-by-searching-the-cell-section: the search asks for
+        # EVERY parcel of the unit, not only the first the gazette prints.
+        # The city indexes a case under whichever parcel it lists first, and
+        # that is not always the unit's first: 臨沂段三小段412's case is
+        # indexed under 414, and 復興段一小段3's under 7.
+        parcels_to_try = [parcel]
+        for extra in (search_key[3] if len(search_key) > 3 else ()) or ():
+            extra = str(extra or "").strip()
+            if extra and extra not in parcels_to_try:
+                parcels_to_try.append(extra)
+        # the 地號 cell's section, when it differs from the 案名's
+        extra_sections = []
+        cell_section = str(search_key[4] if len(search_key) > 4 else "" or "")
+        if cell_section and cell_section != section:
+            extra_sections.append(cell_section)
+        entries: list[dict] = []
+        for p in parcels_to_try:
+            try:
+                try:
+                    found = search(section, p, dropped_out={},
+                                   anchor_name=anchor_name or "",
+                                   extra_sections=extra_sections,
+                                   own_parcels=parcels_to_try) or []
+                except TypeError:
+                    # an adapter that does not take the extra forms
+                    found = search(section, p, dropped_out={},
+                                   anchor_name=anchor_name or "") or []
+            except Exception as exc:  # a failed search is a failure, not "nothing new"
+                report["error"] = f"search: {type(exc).__name__}: {exc}"
+                return report
+            entries.extend(found)
         known = set(cached.city_case_ids) | set(cached.case_milestones)
         for e in entries:
             cid = str(e.get("case_id") or "")
@@ -2605,6 +2703,7 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
     if (fetch_portal is not None and search_key and all(search_key[:2])
             and not cached.city_case_ids):
         section = str(search_key[0] or "")
+        parcel = str(search_key[1] or "")
         try:
             portal_rows = list(fetch_portal(section) or [])
         except Exception as exc:  # a failed search is a failure, not "nothing"
@@ -2615,6 +2714,16 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             portal_ids: list[str] = []
             for row in portal_rows:
                 view_id = str((row or {}).get("view_id") or "").strip()
+                title = str((row or {}).get("title") or "")
+                # The portal's title search returns EVERY unit in the 段小段,
+                # not the one asked for: 臨沂段三小段's page names four units
+                # (412, 318, 370, …). A row of another unit is not this
+                # project's case, so the row is SCOPED by the unit's own
+                # parcel — the same scope the 168 list uses, for the same
+                # reason (a list is a register of cases, not of one
+                # project's cases).
+                if parcel and not re.search(re.escape(parcel) + r"(?:地號|$)", title):
+                    continue
                 if view_id:
                     cached.twur_view_id = view_id
                     cached.twur_url = f"{VIEW_URL_BASE}{view_id}"

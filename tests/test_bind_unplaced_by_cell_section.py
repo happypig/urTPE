@@ -445,6 +445,95 @@ class TestSearchSectionForms(unittest.TestCase):
         # the same form is asked once — a duplicate is not a second request
         self.assertEqual(asked, [("臨沂段三小段", "412")])
 
+    def test_the_search_asks_for_the_section_form_the_city_uses(self):
+        # the gazette prints 吳興一小段; the city indexes 吳興段一小段, so the
+        # search must ask for the 段 form too
+        asked = []
+
+        import urtpe.links as links
+        original = links._post_taipei_api
+
+        def fake_post(url, params, max_retries=3):
+            asked.append(params.get("sectstr", ""))
+            if params.get("sectstr") == "吳興一小段":
+                return "[]"
+            return '[{"details": "r_progress_detail.aspx?case_id=10611051", ' \
+                   '"case_name": "擬訂臺北市信義區吳興段一小段330地號等43筆土地都市更新事業計畫及權利變換計畫案"}]'
+
+        links._post_taipei_api = fake_post
+        try:
+            hits = search_taipei_cases_api("吳興一小段", "330")
+        finally:
+            links._post_taipei_api = original
+
+        self.assertEqual(asked, ["吳興一小段", "吳興段一小段"])
+        self.assertEqual([h["case_id"] for h in hits], ["10611051"])
+
+    def test_a_section_that_already_carries_its_段_is_asked_once(self):
+        # the city keeps the 段 the gazette prints (臨沂段三小段), so no
+        # alternative form is needed and no request is spent
+        asked = []
+
+        import urtpe.links as links
+        original = links._post_taipei_api
+
+        def fake_post(url, params, max_retries=3):
+            asked.append(params.get("sectstr", ""))
+            return "[]"
+
+        links._post_taipei_api = fake_post
+        try:
+            search_taipei_cases_api("臨沂段三小段", "412")
+        finally:
+            links._post_taipei_api = original
+
+        self.assertEqual(asked, ["臨沂段三小段"])
+
+    def test_a_case_naming_any_of_the_unit_s_own_parcels_is_kept(self):
+        # the city indexes 臨沂段三小段412's case under parcel 414 while its
+        # name declares 412 — the guard must keep it, because 412 is one of
+        # the unit's own parcels
+        from urtpe.links import _case_name_carries_parcel
+        name = "擬訂臺北市中正區臨沂段三小段412地號等12筆(原11筆)土地都市更新事業計畫案"
+        self.assertFalse(_case_name_carries_parcel(name, "414"))
+        self.assertTrue(_case_name_carries_parcel(
+            name, "414", own_parcels=["412", "413", "414"]))
+
+    def test_a_case_of_another_unit_is_still_dropped(self):
+        # the parcel-set rule accepts the unit's OWN parcels only
+        from urtpe.links import _case_name_carries_parcel
+        name = "擬訂臺北市信義區吳興段二小段58地號等22筆土地都市更新事業計畫案"
+        self.assertFalse(_case_name_carries_parcel(
+            name, "330", own_parcels=["330", "331", "332"]))
+
+    def test_the_walk_continues_when_the_guard_drops_every_entry(self):
+        # 萬華段一小段 returns five cases of other units; the wanted one lives
+        # under the 地號 cell's form, so the walk must not stop at the first
+        # non-empty body
+        asked = []
+
+        import urtpe.links as links
+        original = links._post_taipei_api
+
+        def fake_post(url, params, max_retries=3):
+            sec = params.get("sectstr", "")
+            asked.append(sec)
+            if sec == "萬華段一小段":
+                return '[{"details": "r_progress_detail.aspx?case_id=11107082", ' \
+                       '"case_name": "擬訂臺北市萬華區萬華段一小段482-2地號等20筆土地都市更新事業計畫案"}]'
+            return '[{"details": "r_progress_detail.aspx?case_id=10903061", ' \
+                   '"case_name": "變更臺北市萬華區萬大段一小段519-2地號等35筆土地都市更新事業計畫及權利變換計畫案"}]'
+
+        links._post_taipei_api = fake_post
+        try:
+            hits = search_taipei_cases_api("萬華段一小段", "519-2",
+                                           extra_sections=["萬大段一小段"])
+        finally:
+            links._post_taipei_api = original
+
+        self.assertEqual(asked, ["萬華段一小段", "萬大段一小段"])
+        self.assertEqual([h["case_id"] for h in hits], ["10903061"])
+
 
 class TestAllParcelSearchOffer(unittest.TestCase):
     """Task 1.8 — a case found under another parcel of the unit is offered.

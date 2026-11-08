@@ -94,12 +94,39 @@ def member_of(row: dict):
 
 
 def present_rule(row: dict, city_name: str) -> bool:
-    """The rule as it stood: the tier-3 test with no alternative core and no
-    parcel set."""
+    """The rule as it stood, before the change.
+
+    It is the tier-3 test over the pipeline's OWN core parse: the section cut
+    at its first 段, the sections compared for EXACT equality, the parcel
+    compared for exact equality, and the count term costing .10 on a
+    mismatch. The change widened the comparison, so the baseline cannot be
+    measured with the widened function — it must replay the old one.
+    """
+    from urtpe.links import (_kind_matches, node_stage_kind, _parse_landcore)
+    cs, ck = node_stage_kind(city_name)
+    ns, nk = node_stage_kind(row["name"])
+    if not (cs and cs == ns and _kind_matches(nk, ck)):
+        return False
     node_core = (extract_landcore_from_case_name(row["name"])
                  or _record_landcore(member_of(row)))
-    return _tier3_names_match(row["name"], city_name, node_core,
-                              node_parcels=(), alt_landcores=())
+    city_core = extract_landcore_from_case_name(city_name)
+    if not node_core or not city_core:
+        return False
+    a_district, a_section, a_parcel, a_count = _parse_landcore(node_core)
+    b_district, b_section, b_parcel, b_count = _parse_landcore(city_core)
+    if a_district != b_district or a_section != b_section:
+        return False
+    fp = 0.0
+    if a_parcel and b_parcel:
+        if a_parcel == b_parcel:
+            fp = 1.0
+        elif (b_parcel in a_parcel) or (a_parcel in b_parcel):
+            fp = 0.95
+        elif a_parcel in b_parcel or b_parcel in a_parcel:
+            fp = 0.7
+    cnt = 1.0 if (a_count and b_count and a_count == b_count) else 0.0
+    jac = 1.0 if a_parcel == b_parcel else 0.0
+    return (0.35 + 0.2 * fp + 0.3 * jac + 0.1 * cnt) >= 0.85
 
 
 def widened_rule(row: dict, city_name: str) -> bool:

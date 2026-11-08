@@ -15,6 +15,10 @@ gazette's 案名 column and its 地號 column sometimes disagree about which
 resolver joins a node to a case by comparing the two names, so a disagreement
 leaves the node unbound and the unit invisible to a reader.
 
+The outcome, measured on the emitted dataset: all 11 nodes bind, the 7
+projects lose the flag, and the record count (1,444) and the project count
+(682) do not move.
+
 ## What Changes
 
 - The land-core comparison used by the tier-3 name rule gains a **section
@@ -41,9 +45,10 @@ leaves the node unbound and the unit invisible to a reader.
   own header before the id enters the project's case list.
 
 The comparison stays a **superset** of the pipeline's own: measured over the
-5,185 node × candidate pairs the pipeline compares today, it adds 3 bindings
-and loses none. The 3 additions are cases the gazette's own 地號 cell names
-correctly and its 案名 does not.
+5,228 node × candidate pairs the pipeline compares today, it adds 9 bindings
+and loses none. The 9 additions are cases of the unit the node belongs to,
+named by the gazette's own 地號 cell (or by the city's own spelling of the
+段小段) and not by its 案名.
 
 ## Capabilities
 
@@ -60,10 +65,15 @@ correctly and its 案名 does not.
 ## Impact
 
 - `urtpe/links.py` — `_parse_landcore`, `compute_landcore_similarity`,
-  `_tier3_names_match`, `_search_taipei_raw`, `resolve_node_cases`.
+  `_tier3_names_match`, `_search_taipei_raw`, `_case_name_carries_parcel`,
+  `resolve_node_cases`, `refresh_project`, and the portal's title-search
+  adapter.
 - `urtpe/cleanse.py` — the record must carry the 地號 cell's section, which
   it already parses but discards in favour of the 案名's.
+- `urtpe/models.py`, `urtpe/cli.py`, `urtpe/graph.py` — the field rides on
+  the record. It is derived from the 地號 cell the payload already carries,
+  so the emitted bytes do not change.
 - `data/.link_cache/` — a refresh writes the newly found ids. The 7 projects'
   caches gain their case ids; the other 682 are unchanged.
 - The emitted payload: 7 projects gain a 北 badge on 11 nodes. The record
-  count and the project count do not move.
+  count (1,444) and the project count (682) do not move.

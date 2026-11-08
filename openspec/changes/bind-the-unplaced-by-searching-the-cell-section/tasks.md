@@ -85,15 +85,21 @@ later can be marked complete.
 
 ## 6. Verification
 
-- [ ] 6.1 The full suite passes: `python -m pytest`.
-- [ ] 6.2 The probes re-run and their counts hold: the widened rule matches
-      11 of the 11 unplaced nodes, and over the 5,185 node × candidate pairs
-      it adds 3 bindings and loses none.
-- [ ] 6.3 The 7 projects' caches are refreshed, one writer at a time, with
-      no `data/.pipeline.lock` present and the peers notified.
-- [ ] 6.4 A re-emit runs: `python -m urtpe.cli --from-js
+- [x] 6.1 The full suite passes: `python -m pytest` — 1172 passed, 1 skipped.
+- [x] 6.2 The probes re-run and their counts hold: the widened rule matches
+      11 of the 11 unplaced nodes, and over the 5,228 node × candidate pairs
+      it adds 9 bindings and loses none. The pair set grew from 5,185 when
+      the refresh wrote 13 more candidate names into the 7 caches; the
+      baseline moved with it (1,579 → 1,587).
+- [x] 6.3 The 7 projects' caches are refreshed, one writer at a time, with
+      no `data/.pipeline.lock` present and the peers notified. The 7 caches
+      hold all 11 wanted ids, and every id in them names the same 段小段 as
+      its project.
+- [x] 6.4 A re-emit runs: `python -m urtpe.cli --from-js
       viewer/projects.data.js -o data --viewer viewer --links`. The record
-      count and the project count do not move.
-- [ ] 6.5 `node scripts\viewer_smoke.js` passes after the re-emit.
-- [ ] 6.6 The coverage report's 問題一 table is regenerated and names 0
-      projects with no case id.
+      count (1,444) and the project count (682) do not move.
+- [x] 6.5 `node scripts\viewer_smoke.js` passes after the re-emit.
+- [x] 6.6 The coverage report's 問題一 table is regenerated and names 0
+      projects with no case id. The projects carrying the unplaced flag go
+      from 9 to 2; the 2 that remain (玉成253-1, 陽明291) are 概要 cases
+      that were always flagged and are outside this change.

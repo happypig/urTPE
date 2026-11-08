@@ -19,6 +19,23 @@ the gazette's 案名 and 地號 columns disagree. The 案名 says 河堤五小�
 that returns nothing under the 案名's form SHALL retry the 地號 cell's form
 before the unit is declared unresolved.
 
+The search SHALL ask for **the section form the city uses** when the gazette
+omits the 段 from the 段 name. The gazette prints 吳興一小段 where the city
+indexes 吳興段一小段. A section that already carries its 段 SHALL NOT gain
+another form — the city keeps the 段 the gazette prints (臨沂段三小段), so no
+request is spent on an alternative.
+
+The search SHALL continue to the next form while a form yields **no case that
+survives the name guard**. A body of another unit's cases is not an answer:
+the search for 萬華段一小段 returns five cases of other units, and the unit's
+own case lives under the 地號 cell's form.
+
+The name guard SHALL keep a case whose own name declares **any of the unit's
+own parcels**, not only the searched one. The city indexes a case under
+whichever parcel it lists first, and that is not always the unit's first:
+臨沂段三小段412's case 10305021 is indexed under 414 while its name declares
+412. A case declaring a parcel of a DIFFERENT unit SHALL still be dropped.
+
 A case found under a parcel or a section form other than the node's own SHALL
 still be accepted only on the resolver's own name-and-date acceptance test.
 
@@ -42,6 +59,26 @@ still be accepted only on the resolver's own name-and-date acceptance test.
 #### Scenario: A case indexed under the 地號 cell's section is found
 - **WHEN** the 案名 says 河堤五小段 and the 地號 cell says 河堤段五小段, and the search for 河堤五小段 returns nothing while the search for 河堤段五小段 returns case 11005053
 - **THEN** the search over the unit's section forms finds case 11005053
+
+#### Scenario: A case indexed under the section form the city uses is found
+- **WHEN** the 案名 says 吳興一小段 and the city indexes 吳興段一小段, and the search for 吳興一小段 returns nothing while the search for 吳興段一小段 returns case 10611051
+- **THEN** the search finds case 10611051
+
+#### Scenario: A section that already carries its 段 is asked once
+- **WHEN** the section is 臨沂段三小段
+- **THEN** the search asks for 臨沂段三小段 only
+
+#### Scenario: The walk continues past a body the guard empties
+- **WHEN** the search for 萬華段一小段 parcel 519-2 returns five cases whose names declare other parcels, and the search for the 地號 cell's form 萬大段一小段 returns case 10903061
+- **THEN** the search finds case 10903061
+
+#### Scenario: A case naming another of the unit's own parcels is kept
+- **WHEN** the search for 臨沂段三小段 parcel 414 returns case 10305021, whose name declares parcel 412, and 412 is one of the unit's own parcels
+- **THEN** the case is kept
+
+#### Scenario: A case of another unit is still dropped
+- **WHEN** the search for 吳興一小段 parcel 330 returns a case whose name declares 58, and 58 is not one of the unit's parcels
+- **THEN** the case is dropped and named in the rejected evidence
 
 ### Requirement: A second id source, confirmed by the case header
 
@@ -100,6 +137,12 @@ The 懷生段一小段928 case is not indexed by the parcel search under any
 section form the gazette prints. The portal's title search finds it, and the
 page's 相關連結 names case 10002141.
 
+The portal's title search returns **every unit in the 段小段**, not the one
+asked for: 臨沂段三小段's page names four units (412, 318, 370, …) and
+懷生段一小段's names four (928, 121-4, 32, 931). A row of another unit is
+not this project's case, so a row SHALL be scoped by the unit's own parcel —
+the same scope the 168 list uses, and for the same reason.
+
 An id read from a portal page SHALL enter the project's case ids only when
 the case's own header (`ashx/get_project168_top.ashx`) confirms it: the header
 SHALL return a row that names the case and carries its 案名. A header that
@@ -115,6 +158,12 @@ The id SHALL be **appended** to the project's case list, never inserted.
 - **THEN** the id is read from the page
 - **AND** the header for 10002141 returns a row naming the case, so the id is
   appended to the project's case list
+
+#### Scenario: A row of another unit is not read
+
+- **WHEN** the national portal's title search for 懷生段一小段 returns a page
+  for parcel 931, and the unit's own parcel is 928
+- **THEN** that page's ids are not read, and its view id is not recorded
 
 #### Scenario: A portal id without a header confirmation is not added
 

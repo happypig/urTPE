@@ -174,6 +174,12 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
                 name_raw=node.get("name_raw", ""),
                 land=node.get("land", ""),
                 section=node.get("section", ""),
+                # bind-the-unplaced-by-searching-the-cell-section: the 地號
+                # cell's own section, DERIVED from the land cell the payload
+                # already carries. It is not a separate emitted key: the
+                # cell's section is a parse of the cell, so the cell is the
+                # source and nothing new needs to be written.
+                section_land=cleanse_mod.cell_section(node.get("land", "")),
                 first_parcel=node.get("first_parcel", ""),
                 parcels=node.get("parcels", []),
                 aliases=node.get("aliases", {}),

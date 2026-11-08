@@ -57,6 +57,13 @@ class CleanRecord:
     links: dict = field(default_factory=dict)
     stage_事業計畫: Optional[str] = None
     stage_權利變換: Optional[str] = None
+    # The 地號 cell's own section, when it names one. The gazette's 案名 and
+    # 地號 columns can disagree about which 段小段 a unit is in (河堤五小段 vs
+    # 河堤段五小段), and the city indexes the 地號 column's form. The
+    # `section` field stays the 案名's — it is the merge's grouping key — so
+    # this field carries the cell's form for the link comparison
+    # (bind-the-unplaced-by-searching-the-cell-section, design D3).
+    section_land: str = ""
     # Provenance for a recovered publisher-truncated row (recovery pass); rides
     # into the emitted node. Never serialized into the TSVs (positional writers).
     recovery: dict = field(default_factory=dict)

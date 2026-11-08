@@ -147,6 +147,21 @@ def collect_districts(records) -> tuple[str, ...]:
     return tuple(sorted(seen))
 
 
+def cell_section(land: str) -> str:
+    """The 地號 cell's own section, as the cleanser parses it.
+
+    bind-the-unplaced-by-searching-the-cell-section: the gazette's 案名 and
+    地號 columns can disagree about which 段小段 a unit is in (河堤五小段 vs
+    河堤段五小段), and the city indexes the 地號 column's form. The
+    cleanser keeps this beside the 案名's section; the comparison offers it
+    as an ALTERNATIVE core.
+
+    The parse is `_parse_land`'s own, so the two reads cannot differ — the
+    compatibility-ideograph rows (南海段ㄧ小段) normalize to 一 here and to
+    nothing in a raw regex read."""
+    return _parse_land(land or "")["section"]
+
+
 def _section(land_clean: str) -> tuple[str, str]:
     """Return (section, remainder after section)."""
     m = DISTRICT_RE.search(land_clean)
@@ -318,6 +333,12 @@ def cleanse(rec: RawRecord, districts: tuple[str, ...] | None = None) -> CleanRe
     # the land cell.
     nd, ns, np, nc = parse_name_id(name)
     section = ns or pl["section"]
+    # bind-the-unplaced-by-searching-the-cell-section D3: the 地號 cell's own
+    # section is kept beside the 案名's. The `section` field above stays the
+    # 案名's — the merge groups by (district, section) exactly, so changing it
+    # would move the family clustering. This field carries the cell's form for
+    # the link comparison, which offers it as an ALTERNATIVE core.
+    section_land = pl["section"] if pl["section"] else cell_section(rec.land)
     # Name fallback: when the 地號 cell cannot supply a parcel list (missing 地號
     # separator, 及-split list, …), seed the set from the 案名 land fragment.
     # count == 1 names the exact parcel; count > 1 names only the first parcel,
@@ -387,6 +408,7 @@ def cleanse(rec: RawRecord, districts: tuple[str, ...] | None = None) -> CleanRe
         name_raw=name_raw,
         land=recovered_land or rec.land,
         section=section,
+        section_land=section_land,
         first_parcel=first_parcel,
         parcels=parcels,
         aliases=pl["aliases"],

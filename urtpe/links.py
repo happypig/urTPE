@@ -638,13 +638,29 @@ def discover_project_links(
     if anchor.section and anchor.first_parcel:
         try:
             time.sleep(delay)
-            city_entries = search_taipei_cases_api(
-                anchor.section, anchor.first_parcel, dropped_out=dropped_by_guard,
-                # The anchor's own 案名 is what corroborates a parcel-less case name; without
-                # it a named-area unit like 崇仁新村 can never be corroborated and both of
-                # its Taipei cases stay rejected.
-                anchor_name=anchor.name,
-            )
+            # bind-the-unplaced-by-searching-the-cell-section: the 地號 cell's
+            # section is a further form to ask for — the gazette's 案名 and 地號
+            # columns can disagree about which 段小段 a unit is in, and the
+            # city indexes the 地號 column's form (河堤五小段 vs 河堤段五小段).
+            extra_sections = []
+            cell_section = getattr(anchor, "section_land", "") or ""
+            if cell_section and cell_section != anchor.section:
+                extra_sections.append(cell_section)
+            try:
+                city_entries = search_taipei_cases_api(
+                    anchor.section, anchor.first_parcel, dropped_out=dropped_by_guard,
+                    # The anchor's own 案名 is what corroborates a parcel-less case name; without
+                    # it a named-area unit like 崇仁新村 can never be corroborated and both of
+                    # its Taipei cases stay rejected.
+                    anchor_name=anchor.name,
+                    extra_sections=extra_sections,
+                )
+            except TypeError:
+                # an adapter that does not take the extra forms (a test double)
+                city_entries = search_taipei_cases_api(
+                    anchor.section, anchor.first_parcel, dropped_out=dropped_by_guard,
+                    anchor_name=anchor.name,
+                )
         except Exception as e:
             result.error = f"Taipei search failed: {e}"
     result.search_rejected = dropped_by_guard
@@ -805,6 +821,50 @@ def fetch_view_page(view_id: str, cache_dir: Optional[Path] = None, fresh: bool 
     return fetch_url(url, cache_dir, fresh)
 
 
+def fetch_portal_title_search(title: str, city_id: str = "2",
+                              cache_dir: Optional[Path] = None,
+                              fresh: bool = False) -> list[dict]:
+    """The national portal's own title search — the THIRD id source.
+
+    The city's parcel search does not index every approved case. The 懷生段
+    一小段928 case (10002141) is indexed by no parcel search under any
+    section form the gazette prints, yet the portal's
+    `?title=<段小段>&city_id=2` search finds it.
+
+    Each result carries the unit's view id and the case ids the page's
+    相關連結 block names. An empty result is not a failure — the portal's
+    WAF resets connections, and the caller treats every id it returns as a
+    CANDIDATE that the case's own header must confirm.
+
+    The title is the 段小段, URL-encoded: a Chinese section in a raw URL
+    raises UnicodeEncodeError under ASCII.
+    """
+    import urllib.parse
+    params = {"title": title, "city_id": str(city_id)}
+    url = f"{SEARCH_URL}?{urllib.parse.urlencode(params)}"
+    try:
+        html = fetch_url(url, cache_dir, fresh)
+    except Exception:
+        return []
+    parser = ListPageParser()
+    parser.feed(html)
+    out: list[dict] = []
+    for entry in parser.entries:
+        view_id = entry.get("view_id")
+        if not view_id:
+            continue
+        title_text = entry.get("title", "")
+        try:
+            view_html = fetch_view_page(view_id, cache_dir, fresh)
+        except Exception:
+            view_html = ""
+        case_ids = extract_case_ids_from_view(view_html) if view_html else []
+        milestones = extract_tuidui_history_from_view(view_html) if view_html else {}
+        out.append({"view_id": view_id, "title": title_text,
+                    "case_ids": case_ids, "milestones": milestones})
+    return out
+
+
 def fetch_taipei_case(case_id: str, cache_dir: Optional[Path] = None, fresh: bool = False) -> str:
     url = f"{TAIPEI_CASE_URL_BASE}{case_id}"
     return fetch_url(url, cache_dir, fresh)
@@ -894,7 +954,8 @@ def _post_taipei_api(url: str, params: dict, max_retries: int = 3) -> str:
 
 
 def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dict] = None,
-                            anchor_name: str = "") -> list[dict]:
+                            anchor_name: str = "",
+                            extra_sections: Optional[list] = None) -> list[dict]:
     """Search Taipei platform cases by land section + parcel.
 
     Args:
@@ -905,15 +966,21 @@ def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dic
             result but retained as fragment-detection evidence (§6.8).
         anchor_name: the gazette record's own 案名, used only to corroborate a
             case whose name declares no 地號 at all (see `_corroborated_area`).
+        extra_sections: further section forms to try after the first form
+            returns nothing — the 地號 cell's section, which is the form the
+            city indexes when the gazette's 案名 and 地號 columns disagree
+            (河堤五小段 vs 河堤段五小段, design D4).
 
     Returns list of {case_id, case_name, schedule} dicts whose case_name
     carries the searched parcel (§6.7 guard shape) or is a corroborated named-area case.
     """
     return _search_taipei_raw(section, parcel, guard=True, dropped_out=dropped_out,
-                              anchor_name=anchor_name)
+                              anchor_name=anchor_name,
+                              extra_sections=extra_sections)
 
 
-def search_taipei_cases_for_node(section: str, parcel: str) -> list[dict]:
+def search_taipei_cases_for_node(section: str, parcel: str,
+                                 extra_sections: Optional[list] = None) -> list[dict]:
     """The all-parcel search's raw form (resolve-recno-case step 4, design D5).
 
     The §6.7 name guard keys on the SEARCHED parcel, but a case found under a
@@ -922,12 +989,14 @@ def search_taipei_cases_for_node(section: str, parcel: str) -> list[dict]:
     guard would drop exactly the cases this step exists to find. The node's
     own 案名 comparison in `resolve_node_cases` is the acceptance test instead.
     """
-    return _search_taipei_raw(section, parcel, guard=False)
+    return _search_taipei_raw(section, parcel, guard=False,
+                              extra_sections=extra_sections)
 
 
 def _search_taipei_raw(section: str, parcel: str, guard: bool = True,
                        dropped_out: Optional[dict] = None,
-                       anchor_name: str = "") -> list[dict]:
+                       anchor_name: str = "",
+                       extra_sections: Optional[list] = None) -> list[dict]:
     def _query(sec: str, p: str) -> list:
         if "-" in p:
             mono, _, suno = p.partition("-")
@@ -949,8 +1018,18 @@ def _search_taipei_raw(section: str, parcel: str, guard: bool = True,
     # pre-subdivision stem, printed section vs the same section without its place name.
     # Bounded to three retries and only on an empty body -- an unmatchable project must not
     # fan out into a sweep against a WAF-fronted endpoint.
+    #
+    # The 地號 cell's section is a further form (design D4): the gazette's 案名
+    # and 地號 columns can disagree about which 段小段 the unit is in, and the
+    # city indexes the 地號 column's form. The extra forms are tried only after
+    # the 案名's form returns nothing, so the request count does not grow for
+    # the projects whose 案名 is already right.
     stem = parcel.partition("-")[0]
     sections = _section_variants(section, anchor_name)
+    for extra in (extra_sections or ()):
+        extra = str(extra or "").strip()
+        if extra and extra not in sections:
+            sections.append(extra)
     parcels = [parcel] if stem == parcel else [parcel, stem]
 
     entries: list = []
@@ -1107,45 +1186,142 @@ def _parse_landcore(lc: str) -> tuple[str, str, str, str]:
     return district, section, first_parcel, land_count
 
 
-def compute_landcore_similarity(a: str, b: str) -> float:
+def _parse_landcore_at_last_segment(lc: str) -> tuple[str, str, str, str]:
+    """The same core, read with the section cut at its LAST 段.
+
+    河堤段五小段399地號等3筆 reads as the section 河堤段五小段 with parcel 399
+    under this rule, and as the section 河堤段 with parcel 五小段399 under
+    `_parse_landcore`'s. The two sides of a comparison may print the same 段
+    小段 differently (the gazette says 河堤五小段, the city says 河堤段五小段),
+    so the comparison reads both and pairs every reading of one side with
+    every reading of the other (design D1)."""
+    district = section = first_parcel = land_count = ""
+
+    m = re.match(r"(.+?區)", lc)
+    if m:
+        district = m.group(1)
+        rest = lc[len(district):]
+    else:
+        rest = lc
+
+    m = re.match(r"(.+?)地號", rest)
+    if m:
+        head = m.group(1)
+        i = head.rfind("段")
+        if i >= 0:
+            section = head[:i + 1]
+            first_parcel = head[i + 1:]
+        else:
+            first_parcel = head
+
+    m = re.search(r"等(\d+)筆", lc)
+    if m:
+        land_count = m.group(1)
+
+    return district, section, first_parcel, land_count
+
+
+def parse_landcore_variants(lc: str) -> list[tuple[str, str, str, str]]:
+    """A core's readings: the section cut at its first 段 and at its last.
+
+    The first reading is the pipeline's own (`_parse_landcore`). The second
+    reads a 段小段 as one section name. A pair matches if any pairing of the
+    two sides' readings matches, so the comparison stays a superset of the
+    present one (design D1)."""
+    readings = [_parse_landcore(lc)]
+    last = _parse_landcore_at_last_segment(lc)
+    if last != readings[0]:
+        readings.append(last)
+    return readings
+
+
+# a section's 小段 suffix: 一小段, 二小段, ... 六小段, 小段
+_SECTION_SUFFIX_RE = re.compile(r"^(.*?)([一二三四五六七八九十]?小段)$")
+
+
+def landcore_sections_match(a: str, b: str) -> bool:
+    """Two sections name the same unit.
+
+    They match when they carry the same 小段 suffix and the same 段 name,
+    with a trailing 段 optional on either side. The gazette prints 吳興一小段
+    where the city prints 吳興段一小段, and 河堤五小段 where the city prints
+    河堤段五小段 (design D2)."""
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    ma = _SECTION_SUFFIX_RE.match(a)
+    mb = _SECTION_SUFFIX_RE.match(b)
+    if not ma or not mb:
+        return False
+    if ma.group(2) != mb.group(2):
+        return False
+    name_a, name_b = ma.group(1), mb.group(1)
+    if name_a == name_b:
+        return True
+    return name_a == name_b + "段" or name_b == name_a + "段"
+
+
+def compute_landcore_similarity(a: str, b: str,
+                                 node_parcels: tuple | list | None = None) -> float:
     """Compute similarity between two landcore strings.
 
     Uses the same weighted logic as merge.py's score function:
-    - section match: 0.35 (already verified by district/section equality)
+    - section match: 0.35
     - first parcel match: 0.20
     - parcel Jaccard: 0.30
     - land count match: 0.10
 
-    Returns similarity in [0.0, 1.0]. Returns 0.0 if district/section differ.
+    The score and its four weights are unchanged. Two of the parts are wider
+    than before, and each widening is measured to add bindings and lose none
+    (design D2):
+
+    - the **section** part scores 1.0 when the two sections name the same
+      小段 and the same 段, with a trailing 段 optional on either side;
+    - the **parcel** part scores 1.0 when the city's parcel equals the node's
+      first parcel **or is one of the node's own parcels** (the 吳興街二期
+      unit's first parcel is 163-2; the city declares 247).
+
+    Each core is read twice — the section cut at its first 段 and at its last
+    — and every pairing of the two sides' readings is scored. The best
+    pairing wins, so the comparison stays a superset of the present one.
+
+    Returns similarity in [0.0, 1.0]. Returns 0.0 if the districts differ.
     """
-    a_district, a_section, a_parcel, a_count = _parse_landcore(a)
-    b_district, b_section, b_parcel, b_count = _parse_landcore(b)
+    node_parcels = tuple(node_parcels or ())
+    best = 0.0
+    for a_district, a_section, a_parcel, a_count in parse_landcore_variants(a):
+        for b_district, b_section, b_parcel, b_count in parse_landcore_variants(b):
+            if not (a_district and b_district and a_district == b_district):
+                continue
+            if not landcore_sections_match(a_section, b_section):
+                continue
 
-    if a_district != b_district or a_section != b_section:
-        return 0.0
+            # First parcel score (weight 0.20)
+            fp = 0.0
+            if a_parcel and b_parcel:
+                if a_parcel == b_parcel:
+                    fp = 1.0
+                elif node_parcels and b_parcel in node_parcels:
+                    # the city's parcel is one of the node's OWN parcels
+                    fp = 1.0
+                elif (b_parcel in a_parcel) or (a_parcel in b_parcel):
+                    fp = 0.95  # renumbering alias
+                elif a_parcel in b_parcel or b_parcel in a_parcel:
+                    fp = 0.7
 
-    # Section already matches (weight 0.35)
-    sec_score = 1.0
+            # Land count score (weight 0.10)
+            cnt = 0.0
+            if a_count and b_count and a_count == b_count:
+                cnt = 1.0
 
-    # First parcel score (weight 0.20)
-    fp = 0.0
-    if a_parcel and b_parcel:
-        if a_parcel == b_parcel:
-            fp = 1.0
-        elif (b_parcel in a_parcel) or (a_parcel in b_parcel):
-            fp = 0.95  # renumbering alias
-        elif a_parcel in b_parcel or b_parcel in a_parcel:
-            fp = 0.7
+            # Parcel Jaccard (weight 0.30) - simplified since we only have first parcel
+            jac = 1.0 if fp == 1.0 else 0.0
 
-    # Land count score (weight 0.10)
-    cnt = 0.0
-    if a_count and b_count and a_count == b_count:
-        cnt = 1.0
-
-    # Parcel Jaccard (weight 0.30) - simplified since we only have first parcel
-    jac = 1.0 if a_parcel == b_parcel else 0.0
-
-    return 0.35 * sec_score + 0.2 * fp + 0.3 * jac + 0.1 * cnt
+            score = 0.35 + 0.2 * fp + 0.3 * jac + 0.1 * cnt
+            if score > best:
+                best = score
+    return best
 
 
 # ── §8 viewer-UX (reject-foreign-view-cases): view-verified ownership gate ───
@@ -1964,7 +2140,7 @@ def fetch_taipei_case_header_api(case_id: str) -> dict:
 def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                     fetch_status=None, search=None, search_key=None,
                     fetch_implementation=None, fetch_rewards=None,
-                    fetch_list=None) -> dict:
+                    fetch_list=None, fetch_portal=None) -> dict:
     """Re-fetch the milestones and status of a cache's cases, in place.
 
     Thin driver over the platform adapters: ``fetch(case_id) -> {label: date}``
@@ -2007,6 +2183,16 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
     fast-track list, which names case ids the parcel search does not index.
     Each id it returns is confirmed by that case's own header before it
     enters the project's case list.
+
+    bind-the-unplaced-by-searching-the-cell-section: ``fetch_portal`` is the
+    THIRD id source — the national portal's own title search, which finds a
+    unit the parcel search does not index at all (懷生段一小段928's case
+    10002141). It is asked only when the parcel search and the 168 list both
+    return nothing, so it runs for the projects that need it and not for all
+    of them. Each id it names is confirmed by that case's own header before it
+    enters the project's case list, and the id is APPENDED — never inserted —
+    so the existing ids keep their positions (the positional fallback binds
+    by index).
     """
     if fetch is None:
         fetch = fetch_taipei_milestones_api
@@ -2394,6 +2580,95 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             report["view_label_errors"] = list(decision.label_errors)
         if decision.not_confirmed:
             report["view_not_confirmed"] = list(decision.not_confirmed)
+
+    # ── the THIRD id source: the portal's title search, confirmed ──────────
+    # bind-the-unplaced-by-searching-the-cell-section: a unit the city's
+    # parcel search does not index AT ALL keeps the flag
+    # 節點未能對應平台案件 forever. The 懷生段一小段928 case (10002141) is
+    # indexed by no parcel search under any section form the gazette prints;
+    # the national portal's own `?title=` search finds it, and the page's
+    # 相關連結 names the id.
+    #
+    # The portal's page is a register of cases, not of one project's cases,
+    # so an id from it is a CANDIDATE: it enters the case list only when the
+    # case's own header confirms it (a row with a 案名). The same rule the
+    # 168 list follows, for the same reason.
+    #
+    # It runs AFTER the view absorb and its §8 gate, because the absorb adds
+    # the page's ids to the case list on the page's own word — no header
+    # confirmation. The header confirmation is the last word here: an id the
+    # absorb added without one is removed and named as unconfirmed.
+    #
+    # It is asked only when the parcel search and the 168 list both returned
+    # nothing, so it runs for the projects that need it and not for all of
+    # them.
+    if (fetch_portal is not None and search_key and all(search_key[:2])
+            and not cached.city_case_ids):
+        section = str(search_key[0] or "")
+        try:
+            portal_rows = list(fetch_portal(section) or [])
+        except Exception as exc:  # a failed search is a failure, not "nothing"
+            report["error"] = f"portal title search: {type(exc).__name__}: {exc}"
+            return report
+        if portal_rows:
+            known = set(cached.city_case_ids) | set(cached.case_milestones)
+            portal_ids: list[str] = []
+            for row in portal_rows:
+                view_id = str((row or {}).get("view_id") or "").strip()
+                if view_id:
+                    cached.twur_view_id = view_id
+                    cached.twur_url = f"{VIEW_URL_BASE}{view_id}"
+                    milestones = (row or {}).get("milestones") or {}
+                    if milestones:
+                        for label, value in milestones.items():
+                            cached.national_milestones.setdefault(label, value)
+                for cid in ((row or {}).get("case_ids") or ()):
+                    cid = str(cid or "").strip()
+                    if cid and cid not in portal_ids:
+                        portal_ids.append(cid)
+            for cid in portal_ids:
+                if cid in known and cid in cached.city_case_ids:
+                    # the absorb already added it — it still needs the header's
+                    # confirmation, or it is named as unconfirmed and removed
+                    try:
+                        header = fetch_status(cid) if fetch_status else None
+                    except Exception as exc:
+                        report["error"] = f"{cid}: header {type(exc).__name__}: {exc}"
+                        return report
+                    if header and str(header.get("CASE_NAME", "") or "").strip():
+                        cached.case_case_names[cid] = str(header["CASE_NAME"]).strip()
+                        name = str(header.get("NAME", "")).strip()
+                        if name:
+                            cached.case_headers[cid] = dict(header)
+                        changed = True
+                        continue
+                    cached.city_case_ids.remove(cid)
+                    cached.case_milestones.pop(cid, None)
+                    report["unconfirmed"].append(cid)
+                    changed = True
+                    continue
+                if cid in known:
+                    continue
+                try:
+                    header = fetch_status(cid) if fetch_status else None
+                except Exception as exc:
+                    report["error"] = f"{cid}: header {type(exc).__name__}: {exc}"
+                    return report
+                if not header or not str(header.get("CASE_NAME", "") or "").strip():
+                    report["unconfirmed"].append(cid)
+                    continue
+                # APPENDED, never inserted: the existing ids keep their
+                # positions (the positional fallback binds by index).
+                cached.city_case_ids.append(cid)
+                cached.case_milestones[cid] = {}
+                cached.case_case_names[cid] = str(header.get("CASE_NAME", "")).strip()
+                name = str(header.get("NAME", "")).strip()
+                if name:
+                    cached.case_headers[cid] = dict(header)
+                changed = True
+                report["added"].append({"case_id": cid, "schedule": "",
+                                        "name": name,
+                                        "source": "portal title search (header-confirmed)"})
 
     # ── D7: re-derive the merged milestone projection ───────────────────────
     # The projection is written ONLY by the discovery path, so the refresh's
@@ -2809,7 +3084,9 @@ def _kind_matches(node_kind: str, case_kind: str) -> bool:
     return all(k in case_kind for k in (node_kind or ""))
 
 
-def _tier3_names_match(node_name: str, case_name: str, node_landcore: str = "") -> bool:
+def _tier3_names_match(node_name: str, case_name: str, node_landcore: str = "",
+                       node_parcels: tuple | list | None = None,
+                       alt_landcores: tuple | list | None = None) -> bool:
     """Tier 3: equal stage-with-ordinal + the kind subset + the same unit —
     the stage+kind pair alone is NOT a match (變更+權 describes half the
     corpus). The land core decides: the node's core comes from its 案名 or
@@ -2817,16 +3094,34 @@ def _tier3_names_match(node_name: str, case_name: str, node_landcore: str = "") 
     record's own fields; the case's from its city name. Both parse →
     similarity ≥ 0.85; either is parcel-less (崇仁新村) or unparseable → no
     tier-3 match from the name alone (the case stays an orphan;
-    view-verified or twin-bridge evidence binds it instead)."""
+    view-verified or twin-bridge evidence binds it instead).
+
+    bind-the-unplaced-by-searching-the-cell-section: the comparison is
+    offered ALTERNATIVE cores — the record's own core built with the 地號
+    cell's section (the form the city indexes when the 案名 and the cell
+    disagree) — and the node's own parcel set, so a case the city declares
+    under another parcel of the same unit still matches. A pair matches if
+    any alternative matches; the widened rule is a superset of the present
+    one (design D1, D2)."""
     cs, ck = node_stage_kind(case_name)
     ns, nk = node_stage_kind(node_name)
     if not (cs and cs == ns and _kind_matches(nk, ck)):
         return False
-    lc_node = extract_landcore_from_case_name(node_name) or node_landcore
     lc_case = extract_landcore_from_case_name(case_name)
-    if not lc_node or not lc_case:
+    if not lc_case:
         return False
-    return compute_landcore_similarity(lc_node, lc_case) >= 0.85
+    cores = []
+    lc_node = extract_landcore_from_case_name(node_name) or node_landcore
+    if lc_node:
+        cores.append(lc_node)
+    for alt in (alt_landcores or ()):
+        if alt:
+            cores.append(alt)
+    for core in cores:
+        if compute_landcore_similarity(core, lc_case,
+                                       node_parcels=node_parcels) >= 0.85:
+            return True
+    return False
 
 
 def _node_area_suffix(name: str) -> str:
@@ -2857,12 +3152,52 @@ def _record_landcore(member) -> str:
     return core if parcel else ""
 
 
-def _probe_name_ok(case_name: str, node_name: str, node_landcore: str = "") -> bool:
+def _probe_name_ok(case_name: str, node_name: str, node_landcore: str = "",
+                   node_parcels: tuple | list | None = None,
+                   alt_landcores: tuple | list | None = None) -> bool:
     """The probe's name test beyond the loose equality: the tier-3 rule —
     equal stage-with-ordinal, the kind subset and the land core (the board's
     S12 correction: case ids are a city-wide daily serial, so a same-day
     sibling may belong to another project — 10203252 = 中山111)."""
-    return _tier3_names_match(node_name, case_name, node_landcore)
+    return _tier3_names_match(node_name, case_name, node_landcore,
+                              node_parcels=node_parcels,
+                              alt_landcores=alt_landcores)
+
+
+def _cell_landcore(member) -> str:
+    """The record's land core built with the 地號 cell's OWN section.
+
+    The gazette's 案名 and 地號 columns can disagree about which 段小段 a unit
+    is in (河堤五小段 vs 河堤段五小段, 萬華段一小段 vs 萬大段一小段), and the
+    city indexes the 地號 column's form. This core is offered to the
+    comparison as an ALTERNATIVE to the 案名's — the record's `section` field
+    itself stays the 案名's, because it is the merge's grouping key (design
+    D3).
+
+    A member that carries no `section_land` field (a test double, or a
+    payload from before the field existed) gets the cell's section read from
+    its own 地號 cell, by the cleanser's own parse."""
+    district = getattr(member, "district_land", "") or getattr(member, "district", "") or ""
+    section = getattr(member, "section_land", "") or ""
+    if not section:
+        from urtpe.cleanse import cell_section
+        section = cell_section(getattr(member, "land", "") or "")
+    parcel = getattr(member, "first_parcel", "") or ""
+    if not (district and section and parcel):
+        return ""
+    count = getattr(member, "land_count", None)
+    core = f"{district}{section}{parcel}"
+    if count:
+        core += f"地號等{count}筆"
+    return core
+
+
+def _node_parcels(member) -> tuple:
+    """The node's own parcel set, so the city's declared parcel may be one of
+    them and not only the first (the 吳興街二期 unit's first parcel is
+    163-2; the city declares 247)."""
+    parcels = getattr(member, "parcels", None) or ()
+    return tuple(str(p) for p in parcels if p)
 
 
 def case_header_entry(headers: dict, cid: str) -> dict:
@@ -2916,7 +3251,9 @@ def filter_live_cases(cids: list[str], disc, names: tuple[str, ...] = ()) -> lis
 
 
 def _name_tier_hits(names: dict, node_name: str,
-                    node_landcore: str = "") -> list[tuple[str, list[str]]]:
+                    node_landcore: str = "",
+                    node_parcels: tuple | list | None = None,
+                    alt_landcores: tuple | list | None = None) -> list[tuple[str, list[str]]]:
     """[(tier, case_ids)] — the cached cases matching the node's 案名, tier by
     tier. Every tier runs over all cached candidate names. Tier 3 matches on
     (stage-with-ordinal, plan type) with the kind-subset rule and the
@@ -2934,7 +3271,9 @@ def _name_tier_hits(names: dict, node_name: str,
     for label, fn in tiers:
         if fn is None:
             hits = [cid for cid, n in names.items() if n
-                    and _tier3_names_match(node_name, n, node_landcore)]
+                    and _tier3_names_match(node_name, n, node_landcore,
+                                           node_parcels=node_parcels,
+                                           alt_landcores=alt_landcores)]
         else:
             want = fn(node_name)
             hits = [cid for cid, n in names.items() if n and fn(n) == want]
@@ -2979,12 +3318,14 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
     if fetch_milestones is None:
         fetch_milestones = fetch_taipei_milestones_api
     if search is None:
-        def search(section, parcel, dropped_out=None, anchor_name=""):
+        def search(section, parcel, dropped_out=None, anchor_name="",
+                   extra_sections=None):
             # the all-parcel step's own acceptance is the node's 案名 + date;
             # the §6.7 searched-parcel guard would drop exactly the cases this
             # step exists to find (南港566's plan case hides under parcel 567
             # while its name declares 566), so step 4 uses the raw form
-            return search_taipei_cases_for_node(section, parcel)
+            return search_taipei_cases_for_node(section, parcel,
+                                                extra_sections=extra_sections)
     if sleep is None:
         sleep = time.sleep
     memo = probe_headers or {}
@@ -3017,6 +3358,13 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
     # without the 區, does not parse): district(_land) + section + first
     # parcel + count, the build_land_core_key form
     node_landcore = extract_landcore_from_case_name(node_name) or _record_landcore(member)
+    # bind-the-unplaced-by-searching-the-cell-section: the comparison is also
+    # offered the record's own core built with the 地號 cell's section (the
+    # form the city indexes when the 案名 and the cell disagree), and the
+    # node's own parcel set (so a case the city declares under another
+    # parcel of the same unit still matches).
+    node_parcels = _node_parcels(member)
+    alt_landcores = tuple(c for c in (_cell_landcore(member),) if c)
 
     # ── step 2 pre-pass: the memo's uncached ids probe BEFORE the name step ─
     # The name step binds a single cached hit and returns — a split sibling
@@ -3043,7 +3391,9 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
     # hit only the 無 case 11302181) — pre-compute the widest (tier-3) hit
     # set so the yield check sees it before binding a lone 無 case.
     if not probe_bases:
-        tiers = _name_tier_hits(names, node_name, node_landcore)
+        tiers = _name_tier_hits(names, node_name, node_landcore,
+                                node_parcels=node_parcels,
+                                alt_landcores=alt_landcores)
         widest = sorted(set(tiers[-1][1])) if tiers else []
         for _tier, hits in tiers:
             live = filter_live_cases(hits, disc)
@@ -3106,7 +3456,10 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
             # the name separates a same-day tie: the tier-3 rule (stage + kind
             # subset + land core) over the candidates
             named = [c for c in exact_hits
-                     if names.get(c) and _tier3_names_match(node_name, names[c], node_landcore)]
+                     if names.get(c) and _tier3_names_match(
+                         node_name, names[c], node_landcore,
+                         node_parcels=node_parcels,
+                         alt_landcores=alt_landcores)]
             if len(named) == 1:
                 return [named[0]]
             # an area split: distinct area suffixes on every named candidate
@@ -3190,7 +3543,9 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
             date_ok = any(_iso_date(v) == target
                           for v in probe_dates.get(cid, {}).values())
             name_ok = (node_name_loose(cname) == node_name_loose(node_name)
-                       or _probe_name_ok(cname, node_name, node_landcore))
+                       or _probe_name_ok(cname, node_name, node_landcore,
+                                         node_parcels=node_parcels,
+                                         alt_landcores=alt_landcores))
             if not date_ok and name_ok:
                 # a 概要 case carries its approval (概要核准日期) in the
                 # milestones, not the header — 陽明291's 10903311 (NAME 事業
@@ -3259,10 +3614,28 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
     if not live_probe:
         return []
     section = getattr(member, "section", "") or ""
+    # bind-the-unplaced-by-searching-the-cell-section: the 地號 cell's section
+    # is a further form to ask for — the gazette's 案名 and 地號 columns can
+    # disagree, and the city indexes the 地號 column's form (河堤五小段 vs
+    # 河堤段五小段). The step-4 search adapter takes the extra forms.
+    extra_sections = []
+    cell_section = getattr(member, "section_land", "") or ""
+    if not cell_section:
+        from urtpe.cleanse import cell_section as _parse_cell_section
+        cell_section = _parse_cell_section(getattr(member, "land", "") or "")
+    if cell_section and cell_section != section:
+        extra_sections.append(cell_section)
     parcels = list(getattr(member, "parcels", None) or [])
     for parcel in parcels:
         try:
-            entries = search(section, parcel) or []
+            entries = search(section, parcel, extra_sections=extra_sections) or []
+        except TypeError:
+            # an adapter that does not take the extra forms (a test double, or
+            # the sweep driver's own signature) — the 案名's form alone
+            try:
+                entries = search(section, parcel) or []
+            except Exception:
+                entries = []
         except Exception:
             entries = []
         for e in entries:
@@ -3271,7 +3644,9 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
                 continue
             cname = str(e.get("case_name", "") or "")
             if not (node_name_loose(cname) == node_name_loose(node_name)
-                    or _probe_name_ok(cname, node_name, node_landcore)):
+                    or _probe_name_ok(cname, node_name, node_landcore,
+                                      node_parcels=node_parcels,
+                                      alt_landcores=alt_landcores)):
                 continue
             # acceptance needs the approval date: read the header first
             top = _header(cid)

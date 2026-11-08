@@ -4,7 +4,9 @@
 The 168 list's in-processing cases (`專案審查階段`, `審議階段`, `報核-公展階段`,
 `聽證階段`) are the cases awaiting a decision. Measured 2026-11-05: **54 of
 54** resolve — 52 in a node's `links.taipei`, all 54 in the project-level
-`links.taipei`, 0 in neither.
+`links.taipei`, 0 in neither. The node-level figure is 53 since the
+bind-the-unplaced-by-searching-the-cell-section re-emit (2026-11-09); the
+project-level and the "none" figures are unchanged.
 
 The measurement is locked in here, offline: no network, no cache. The list of
 54 comes from `data/p168_in_processing.json`, the cross-reference snapshot the
@@ -72,8 +74,14 @@ def test_every_in_processing_case_resolves_in_the_dataset():
 
 
 def test_most_in_processing_cases_bind_at_the_node_level():
-    """The node-level binding is what the viewer draws. 52 of the 54 bound
-    there; the other two are project-level only."""
+    """The node-level binding is what the viewer draws. 53 of the 54 bound
+    there; the other one is project-level only.
+
+    The count was 52 until the bind-the-unplaced-by-searching-the-cell-section
+    re-emit (2026-11-09): the 萬華 project's node 483 gained the case
+    10903061, which the 168 list names and which the city had filed under the
+    地號 cell's form 萬大段一小段. The project-level binding already carried it;
+    the node-level binding is what the viewer draws."""
     cases = _cases()
     doc = _dataset()
 
@@ -83,5 +91,5 @@ def test_most_in_processing_cases_bind_at_the_node_level():
             node_level.update((n.get("links") or {}).get("taipei") or [])
 
     bound = [c["case_id"] for c in cases if c["case_id"] in node_level]
-    assert len(bound) == 52, (
-        f"52 of the 54 bind at the node level, got {len(bound)}")
+    assert len(bound) == 53, (
+        f"53 of the 54 bind at the node level, got {len(bound)}")

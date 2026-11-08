@@ -10,14 +10,20 @@ as `viewer-UX §N`.
 
 | § | Title | Priority | Form | Status |
 | --- | --- | --- | --- | --- |
-| 1 | Callout gutter: no-overlap implementation callouts | P2 | openspec change A | design settled |
-| 2 | 國 badges and national edges bind to the recno node they name | P1 | openspec change C | design settled |
+| 1 | Callout gutter: no-overlap implementation callouts | P2 | openspec change A | done (wave 2) |
+| 2 | 國 badges and national edges bind to the recno node they name | P1 | openspec change C | done (wave 4) |
 | 3 | Execution events start ½ node row under the nearest node | P3 | openspec change D | done (wave 5) |
 | 4 | Orphan nodes join the timeline with a dotted edge | P3 | openspec change D | done (wave 5) |
-| 5 | Center the graph in the panel | P3 | direct `fix:` commit | ready |
-| 6 | Remove the 事業種類 legend item and track edges | P3 | openspec change A | ready |
-| 7 | Show [無] / [NA] for a case with no 目前辦理情形 | P1 | openspec change B | design settled |
-| 8 | A view-verified case must belong to the project | P1 | openspec change E | design settled (1 default to confirm) |
+| 5 | Center the graph in the panel | P3 | direct `fix:` commit | done (wave 1) |
+| 6 | Remove the 事業種類 legend item and track edges | P3 | openspec change A | done (wave 2) |
+| 7 | Show [無] / [NA] for a case with no 目前辦理情形 | P1 | openspec change B | done (wave 3) |
+| 8 | A view-verified case must belong to the project | P1 | openspec change E | done (wave 3b) |
+
+All 8 entries shipped. The status column was checked against the code, not
+against the wave list: each entry's own behaviour is present in `viewer/app.js`
+(§3 at line 1030, §4 at line 1051) or in the emitted dataset (§8's gate
+fields — `view_verified_case_ids` on 560 projects, `view_rejected` on 10,
+`adopted_from_view` on 4). New entries go in as §9 onward.
 
 **Priority.** P1: the graph tells the reader something false (a wrong case state, a
 national link the portal does not assert). P2: the graph hides data (a box covers a

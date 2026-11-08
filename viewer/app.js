@@ -7,8 +7,6 @@ const CALLOUT_GUTTER_CAP = 160;
 const CALLOUT_MIN_W = 140;
 const CALLOUT_PAD = 8;
 const CALLOUT_GAP = 2; // px between stacked callout boxes
-const KIND_COLOR = { revision: "#1d4ed8", track: "#0f766e", section: "#b45309" };
-const KIND_LABEL = { revision: "版本", track: "事業種類", section: "區段" };
 
 const TRACK_ORDER = ["事業計畫", "權利變換", "事業計畫、權利變換", "事業概要"];
 

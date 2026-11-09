@@ -202,6 +202,114 @@ def test_the_step_sees_a_dirty_generator_as_a_reason_to_stop():
         pytest.fail("the tree is not publishable: %s" % exc)
 
 
+def test_the_commit_takes_only_the_paths_it_owns(tmp_path, monkeypatch):
+    """Another session's staged work must not ride along in the step's commit.
+
+    The step's `git add` is path-scoped, but a `git commit` without a path
+    limit takes everything in the index — and another session's work is in
+    the index. Measured 2026-11-09: the step's commit carried
+    `other_session_work.py` along with the report.
+
+    The spec asks for the stronger of the two properties: an unrelated
+    modification is neither committed nor discarded. A path-limited commit
+    gives both; the other session's file stays staged for them.
+    """
+    import subprocess
+
+    from scripts import publish_release_diff
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args):
+        return subprocess.run(
+            ["git", *args], cwd=str(repo), capture_output=True, text=True,
+            encoding="utf-8", errors="replace")
+
+    git("init", "-q")
+    git("config", "user.email", "test@example.invalid")
+    git("config", "user.name", "test")
+    (repo / "docs").mkdir()
+    (repo / "docs" / "release-diff.html").write_text("the old report", encoding="utf-8")
+    (repo / "other_session_work.py").write_text("# another session\n", encoding="utf-8")
+    git("add", "docs/release-diff.html")
+    git("commit", "-qm", "base")
+
+    # Another session has staged its work and has not committed it.
+    git("add", "other_session_work.py")
+
+    monkeypatch.setattr(publish_release_diff, "ROOT", repo)
+    (repo / "docs" / "release-diff.html").write_text("the new report", encoding="utf-8")
+
+    assert publish_release_diff.commit("publish the report") is True
+
+    committed = git("show", "--name-only", "--format=", "HEAD").stdout.split()
+    assert "docs/release-diff.html" in committed, "the report was not committed"
+    assert "other_session_work.py" not in committed, (
+        "the step committed another session's staged work: %r" % (committed,))
+    still_staged = git("diff", "--cached", "--name-only").stdout.split()
+    assert "other_session_work.py" in still_staged, (
+        "the step discarded another session's staged work")
+
+
+def test_the_step_reports_a_push_that_did_not_land(tmp_path, monkeypatch):
+    """A push that exits 0 without moving the remote is not a push.
+
+    Measured 2026-11-09: on a detached HEAD the step's `git push origin main`
+    pushes the `main` ref, not the commit the step just made on HEAD. Git
+    answers "Everything up-to-date" and exits 0, the remote does not move,
+    and the step printed "published" and exited 0 — a silent success.
+
+    The step's promise is that the published page is never a version behind
+    the archive. So it must check that the remote actually holds the commit,
+    and fail when it does not.
+    """
+    import subprocess
+
+    from scripts import publish_release_diff
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    remote = tmp_path / "remote.git"
+
+    def git(*args, cwd=None):
+        return subprocess.run(
+            ["git", *args], cwd=str(cwd or repo), capture_output=True, text=True,
+            encoding="utf-8", errors="replace")
+
+    git("init", "-q")
+    git("config", "user.email", "test@example.invalid")
+    git("config", "user.name", "test")
+    (repo / "docs").mkdir()
+    (repo / "docs" / "release-diff.html").write_text("the old report", encoding="utf-8")
+    git("add", "docs/release-diff.html")
+    git("commit", "-qm", "base")
+    git("branch", "-M", "main")
+
+    git("init", "-q", "--bare", str(remote))
+    git("remote", "add", "origin", str(remote))
+    git("push", "-q", "origin", "main")
+
+    # A detached HEAD. The commit the step makes lands on HEAD, while
+    # `git push origin main` pushes the `main` ref, which has not moved —
+    # so git answers "Everything up-to-date" and exits 0.
+    git("checkout", "-q", "--detach", "HEAD")
+
+    monkeypatch.setattr(publish_release_diff, "ROOT", repo)
+    (repo / "docs" / "release-diff.html").write_text("the new report", encoding="utf-8")
+
+    assert publish_release_diff.commit("publish the report") is True
+    head = git("rev-parse", "HEAD").stdout.strip()
+
+    with pytest.raises(publish_release_diff.PublishError):
+        publish_release_diff.push()
+
+    # The remote must not hold the commit, or the test proves nothing.
+    remote_head = git("rev-parse", "refs/heads/main", cwd=remote).stdout.strip()
+    assert remote_head != head, (
+        "the remote holds the commit; this test no longer covers the case")
+
+
 def test_the_step_writes_nothing_under_the_emitted_tree():
     """The emitted dataset is only ever written by an explicit ingestion. The
     step's source must not name data/ or viewer/ as something it writes."""

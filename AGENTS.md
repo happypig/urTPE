@@ -180,11 +180,19 @@ Violating any of these corrupts output silently rather than raising.
   the **案名's land core**, not the 地號 cell: the cell differs by one character between
   some releases, and keying on it counted three units as both dead and born.
 - `scripts/publish_release_diff.py` — the third action of the `urtpe-poll` task, after the two
-  pollers. It regenerates the report, commits it with a **path-scoped stage** (never
-  `git add -A`; the tree routinely carries another session's changes), and pushes to `main`,
-  which is the branch Pages publishes from. It never ingests and writes nothing under
-  `data/` or `viewer/`. A failed push is reported, and the committed report is then ahead
-  of the served one — which `check_deploy.py` reports as stale.
+  pollers. It regenerates the report, commits it, and pushes to `main`, which is the branch
+  Pages publishes from. It never ingests and writes nothing under `data/` or `viewer/`.
+  Two hazards are closed, both measured 2026-11-09:
+  - **The commit is path-limited, not merely path-scoped in the `git add`.** A `git commit`
+    without a path limit takes the whole index, and the index holds whatever another
+    session has staged. The step names its owned paths on the commit command, so another
+    session's file is neither committed nor discarded, and stays staged for them.
+  - **The push is verified against the remote.** `git push origin main` pushes the `main`
+    ref; on a detached HEAD the commit the step made lives on `HEAD`, git answers
+    "Everything up-to-date" and exits 0, and the remote never moves. The step asks the
+    remote afterwards whether it holds the commit, and reports a failure when it does not.
+  A failed push is reported, and the committed report is then ahead of the served one —
+  which `check_deploy.py` reports as stale.
 - `scripts/` — 45 files. Undated ones (`poll_gazette.py`, `fetch_remaining_national_portal.py`,
   `build_project_aliases.py`, `stranded_report.py`) are durable tools; dated ones
   (`*_2026MMDD`) and `probe_*.py` are one-shot archaeology.

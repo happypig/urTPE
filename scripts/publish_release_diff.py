@@ -11,11 +11,13 @@ is a separate artefact derived from the archive, and the archive is read-only
 here. The `gazette-cadence` guarantee — an unattended run never rewrites the
 emitted dataset — is preserved.
 
-The commit is **path-scoped**. The working tree routinely carries changes from
+The commit is **path-limited**. The working tree routinely carries changes from
 other sessions (measured 2026-11-06: `urtpe/cli.py`, `urtpe/emission.py` and
 `urtpe/tripwire.py` modified by a concurrent session), and a scheduled step
 that swept them into a commit would publish work nobody had finished. This
-step stages only the paths it owns.
+step names the paths it owns on the commit command itself, not only on the
+`git add`: a `git commit` without a path limit takes the whole index, and the
+index holds whatever another session has staged (measured 2026-11-09).
 
 A failed push is reported as a failure, not swallowed. The committed report
 is then ahead of the served one, which `scripts/check_deploy.py` reports as
@@ -130,21 +132,43 @@ def _strip_stamp(text: str) -> str:
 
 
 def commit(message: str) -> bool:
-    """Commit the owned paths. Returns whether a commit was made."""
+    """Commit the owned paths. Returns whether a commit was made.
+
+    The commit is **path-limited**, not merely path-scoped in the `git add`.
+    A `git commit` without a path limit takes everything in the index, and the
+    index holds whatever another session has staged. Measured 2026-11-09: the
+    step's commit carried `other_session_work.py` along with the report.
+
+    Naming the paths on the commit command gives both properties the spec
+    asks for: another session's file is neither committed nor discarded, and
+    it stays staged for the session that staged it.
+    """
     proc = git("add", "--", *OWNED_PATHS)
     if proc.returncode != 0:
         raise PublishError("git add failed: %s" % proc.stderr.strip())
-    staged = git("diff", "--cached", "--name-only").stdout.split()
+    staged = git("diff", "--cached", "--name-only", "--", *OWNED_PATHS).stdout.split()
     if not staged:
         return False
-    proc = git("commit", "-m", message)
+    proc = git("commit", "-m", message, "--", *OWNED_PATHS)
     if proc.returncode != 0:
         raise PublishError("git commit failed: %s" % proc.stderr.strip())
     return True
 
 
 def push() -> None:
-    """Push to the branch Pages publishes from. Raises on failure."""
+    """Push to the branch Pages publishes from. Raises on failure.
+
+    The exit code alone does not say the push landed. `git push origin main`
+    pushes the `main` ref, so on a detached HEAD — where the commit the step
+    made lives on HEAD and `main` has not moved — git answers "Everything
+    up-to-date" and exits 0 while the remote keeps the old commit. Measured
+    2026-11-09: the step printed "published" and exited 0, and the remote
+    never moved.
+
+    So the remote is asked afterwards whether it holds the commit. A push
+    that did not land is a failure, whatever git said.
+    """
+    head = git("rev-parse", "HEAD").stdout.strip()
     proc = git("push", "origin", "main")
     if proc.returncode != 0:
         raise PublishError(
@@ -152,6 +176,14 @@ def push() -> None:
             "The committed report is ahead of the served one; "
             "scripts/check_deploy.py will report it stale until the push lands."
             % (proc.stderr or proc.stdout).strip()[-2000:])
+    remote = git("ls-remote", "origin", "refs/heads/main").stdout.split()
+    if not remote or remote[0] != head:
+        raise PublishError(
+            "git push reported success but the remote does not hold the "
+            "commit (%s).\n"
+            "The committed report is ahead of the served one; "
+            "scripts/check_deploy.py will report it stale until the push "
+            "lands." % (remote[0] if remote else "no refs/heads/main"))
 
 
 def main(argv: list[str] | None = None) -> int:

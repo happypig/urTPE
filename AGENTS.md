@@ -235,12 +235,17 @@ Violating any of these corrupts output silently rather than raising.
   change is `openspec: archive <name> and sync its four spec deltas`).
 - **A MODIFIED requirement must carry every scenario of the requirement it replaces**,
   and the archive **aborts** if one is missing: it exits 1, names the missing scenario
-  by name, and changes no file. The **body is not protected** — a delta with every
-  scenario but a replaced prose archives cleanly and the live paragraphs are lost
-  (measured 2026-11-09). So the delta must carry the live body too, verbatim or
-  extended. The archive rewrites the shared `openspec/specs/` tree, so copy `openspec/`
-  to a temp dir and run it there first: it reports what it applied (`+ 4, ~ 2, - 0`), and
-  the synced specs can be compared against that copy before the real run.
+  by name, and changes no file. But the guard is narrower than it looks. Verified in
+  the installed openspec (`dist/core/specs-apply.js:285` → `findMissingCurrentScenarios`,
+  2026-11-09): it compares scenario **names only**, is multiplicity-aware, and **masks
+  fenced code-block lines** before counting. So the **prose is unprotected**, and so is a
+  fenced `#### Scenario:` and any other `####` heading — a delta that drops those archives
+  cleanly and the archive reports nothing. The delta must carry the live body too,
+  verbatim or extended. The archive rewrites the shared `openspec/specs/` tree, so copy
+  `openspec/` to a temp dir and run it there first: it reports what it applied
+  (`+ 4, ~ 2, - 0`), and the synced specs can be compared against that copy before the
+  real run. `scripts/probe_spec_unprotected.py <commit> <spec-path>` finds the content
+  the guard does not protect.
 - Test-first is enforced by openspec: every test-writing task must be checked before any
   implementation task, or the change declares `> POC: <reason>` as the first non-heading
   line of `tasks.md`.

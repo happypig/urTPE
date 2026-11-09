@@ -35,7 +35,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 REQ_RE = re.compile(r"^### Requirement: (.+)$", re.M)
 SCEN_RE = re.compile(r"^####\s*Scenario:\s*(.+?)\s*$", re.M)
-FENCE_RE = re.compile(r"^\s*(```|~~~)")
+FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
+FENCE_CLOSE_RE = re.compile(r"^\s*(`{3,}|~{3,})\s*$")
 
 
 def read(rev: str, path: str) -> str:
@@ -52,21 +53,28 @@ def _mask_fences(lines: list[str]) -> list[bool]:
     """True for each line that sits inside a fenced code block.
 
     The archive masks the same lines before it counts scenarios, so a fenced
-    `#### Scenario:` sample is neither protected nor counted."""
+    `#### Scenario:` sample is neither protected nor counted.
+
+    Mirrors `buildCodeFenceMask` in the archive's
+    `dist/core/parsers/code-fence.js`: a fence opens with 3 or more backticks
+    OR 3 or more tildes, and closes on the same character at the same length
+    or longer. A `~~~` fence is a fence — a mask that only looks for ``` would
+    count a tilde-fenced sample that the archive ignores."""
     masked: list[bool] = []
-    in_fence = False
-    fence = ""
+    active: tuple[str, int] | None = None
     for line in lines:
-        m = FENCE_RE.match(line)
-        if m:
-            marker = m.group(1)
-            if not in_fence:
-                in_fence, fence = True, marker
-            elif marker == fence:
-                in_fence, fence = False, ""
-            masked.append(True)
+        if active is None:
+            m = FENCE_RE.match(line)
+            if m:
+                active = (m.group(1)[0], len(m.group(1)))
+                masked.append(True)
+                continue
+            masked.append(False)
             continue
-        masked.append(in_fence)
+        masked.append(True)
+        m = FENCE_CLOSE_RE.match(line)
+        if m and m.group(1)[0] == active[0] and len(m.group(1)) >= active[1]:
+            active = None
     return masked
 
 

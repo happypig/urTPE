@@ -32,6 +32,14 @@ import sys
 SCENARIO_RE = re.compile(r"^####\s*Scenario:\s*(.+?)\s*$")
 HEADING_RE = re.compile(r"^####\s+\S")
 
+# The archive's fence detection (dist/core/parsers/code-fence.js): a fence
+# opens with 3 or more backticks OR 3 or more tildes, and closes on the same
+# marker at the same length or longer. A `~~~` fence is a fence — the guard
+# masks it, so a `#### Scenario:` inside one is unprotected, and a probe that
+# only looks for ``` misses it.
+FENCE_MARKER_RE = re.compile(r"^\s*(`{3,}|~{3,})")
+FENCE_CLOSE_RE = re.compile(r"^\s*(`{3,}|~{3,})\s*$")
+
 
 def requirement_blocks(text: str) -> list[tuple[str, str]]:
     """-> [(title, body)] for each '### Requirement:' block."""
@@ -43,15 +51,26 @@ def requirement_blocks(text: str) -> list[tuple[str, str]]:
 
 
 def fence_mask(lines: list[str]) -> list[bool]:
-    """Which lines sit inside a fenced code block, the way the guard sees them."""
+    """Which lines sit inside a fenced code block, the way the guard sees them.
+
+    Mirrors `buildCodeFenceMask` in the archive's
+    `dist/core/parsers/code-fence.js`: the fence marker is a run of 3 or more
+    backticks or 3 or more tildes, and it closes on the same character at the
+    same length or longer. The opening and closing fence lines are part of the
+    block."""
     mask = [False] * len(lines)
-    inside = False
+    active: tuple[str, int] | None = None
     for i, line in enumerate(lines):
-        if line.lstrip().startswith("```"):
-            mask[i] = True
-            inside = not inside
+        if active is None:
+            m = FENCE_MARKER_RE.match(line)
+            if m:
+                active = (m.group(1)[0], len(m.group(1)))
+                mask[i] = True
             continue
-        mask[i] = inside
+        mask[i] = True
+        m = FENCE_CLOSE_RE.match(line)
+        if m and m.group(1)[0] == active[0] and len(m.group(1)) >= active[1]:
+            active = None
     return mask
 
 

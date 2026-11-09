@@ -238,7 +238,9 @@ Violating any of these corrupts output silently rather than raising.
   by name, and changes no file. But the guard is narrower than it looks. Verified in
   the installed openspec (`dist/core/specs-apply.js:285` → `findMissingCurrentScenarios`,
   2026-11-09): it compares scenario **names only**, is multiplicity-aware, and **masks
-  fenced code-block lines** before counting. So the **prose is unprotected**, and so is a
+  fenced code-block lines** before counting — a fence opens on 3+ backticks **or 3+
+  tildes**, closing on the same character at the same length or longer
+  (`dist/core/parsers/code-fence.js`). So the **prose is unprotected**, and so is a
   fenced `#### Scenario:` and any other `####` heading — a delta that drops those archives
   cleanly and the archive reports nothing. The delta must carry the live body too,
   verbatim or extended. The archive rewrites the shared `openspec/specs/` tree, so copy

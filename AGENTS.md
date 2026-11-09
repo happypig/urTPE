@@ -226,9 +226,11 @@ Violating any of these corrupts output silently rather than raising.
 - Commit prefixes in use: `feat:`, `fix:`, `docs:`, `chore:`, `openspec:` (archiving a
   change is `openspec: archive <name> and sync its four spec deltas`).
 - **A MODIFIED requirement must carry every scenario of the requirement it replaces**,
-  or `openspec archive` drops the ones the delta does not name. The delta's body must
-  carry the live body too — the archive replaces the requirement wholesale rather than
-  merging it. The archive rewrites the shared `openspec/specs/` tree, so copy `openspec/`
+  and the archive **aborts** if one is missing: it exits 1, names the missing scenario
+  by name, and changes no file. The **body is not protected** — a delta with every
+  scenario but a replaced prose archives cleanly and the live paragraphs are lost
+  (measured 2026-11-09). So the delta must carry the live body too, verbatim or
+  extended. The archive rewrites the shared `openspec/specs/` tree, so copy `openspec/`
   to a temp dir and run it there first: it reports what it applied (`+ 4, ~ 2, - 0`), and
   the synced specs can be compared against that copy before the real run.
 - Test-first is enforced by openspec: every test-writing task must be checked before any

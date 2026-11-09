@@ -6,7 +6,7 @@ merged, per-project history graph plus a static viewer. Python, pymupdf, no web 
 ## Commands (verified on this machine)
 
 ```powershell
-python -m pytest                      # 1176 tests, ~3min, fully offline
+python -m pytest                      # 1178 tests, ~3min, fully offline
 python -m pytest tests/test_merge.py  # one file
 python -m pytest tests/test_merge.py::test_name -q
 python -m urtpe.cli source.pdf -o data --links
@@ -16,8 +16,8 @@ python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --
 - Use the **system** interpreter (`C:\Python314\python.exe`, pytest 9.0.1, pymupdf 1.28.2).
   `.venv/` exists but contains only pip — activating it leaves you unable to run tests.
 - The count in that first line goes stale whenever tests change. Refresh it with
-  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1176 collected**
-  while a full run reports **1175 passed, 1 skipped** — the skip is deliberate, at
+  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1178 collected**
+  while a full run reports **1177 passed, 1 skipped** — the skip is deliberate, at
   `tests/test_idempotent_flags.py:117`, because the node payload builder is not exposed and
   the graph test below it covers the behaviour. With no CI, an unnamed skip reads as a
   silently disabled guard.
@@ -193,9 +193,9 @@ Violating any of these corrupts output silently rather than raising.
     remote afterwards whether it holds the commit, and reports a failure when it does not.
   A failed push is reported, and the committed report is then ahead of the served one —
   which `check_deploy.py` reports as stale.
-- `scripts/` — 45 files. Undated ones (`poll_gazette.py`, `fetch_remaining_national_portal.py`,
-  `build_project_aliases.py`, `stranded_report.py`) are durable tools; dated ones
-  (`*_2026MMDD`) and `probe_*.py` are one-shot archaeology.
+- `scripts/` — 169 files, of which 115 are `probe_*.py`. Undated ones (`poll_gazette.py`,
+  `fetch_remaining_national_portal.py`, `build_project_aliases.py`, `stranded_report.py`)
+  are durable tools; dated ones (`*_2026MMDD`) and `probe_*.py` are one-shot archaeology.
 - `data/`, `data_test/` — generated output; gitignored except the six tracked files above.
 - `openspec/` — 25 specs, spec-driven workflow. **`openspec/config.yaml` holds the
   authoritative project context** (calendars, identity rules, the 編號 warning) plus

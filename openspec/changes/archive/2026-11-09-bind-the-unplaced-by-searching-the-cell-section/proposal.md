@@ -7,17 +7,18 @@ endpoints finds a case id for every one of the 11 nodes. The pipeline binds
 only 3 of them, because the resolver's tier-3 name rule cannot read a unit
 whose gazette text and the city's index name it differently.
 
-Three actors are involved. The city publishes the 核定案件一覽表 as a PDF, and
-its two indexes — the 審議服務平台 (gis.uro.taipei) and the 國土署入口網
+The city's two indexes — the 審議服務平台 (gis.uro.taipei) and the 國土署入口網
 (twur.nlma.gov.tw) — carry the same units under their own spellings. The
 gazette's 案名 column and its 地號 column sometimes disagree about which
 段小段 the unit is in, and the city indexes the 地號 column's spelling. The
 resolver joins a node to a case by comparing the two names, so a disagreement
-leaves the node unbound and the unit invisible to a reader.
+leaves the node unbound.
 
 The outcome, measured on the emitted dataset: all 11 nodes bind, the 7
 projects lose the flag, and the record count (1,444) and the project count
 (682) do not move.
+
+
 
 ## What Changes
 

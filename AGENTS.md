@@ -247,7 +247,9 @@ Violating any of these corrupts output silently rather than raising.
   `openspec/` to a temp dir and run it there first: it reports what it applied
   (`+ 4, ~ 2, - 0`), and the synced specs can be compared against that copy before the
   real run. `scripts/probe_spec_unprotected.py <commit> <spec-path>` finds the content
-  the guard does not protect.
+  the guard does not protect. `node scripts/probe_fence_mask_diff.js` diffs the Python
+  probes' fence mask against the installed `buildCodeFenceMask` itself — run it after
+  touching either probe, rather than re-deriving the rule from the JS.
 - Test-first is enforced by openspec: every test-writing task must be checked before any
   implementation task, or the change declares `> POC: <reason>` as the first non-heading
   line of `tasks.md`.

@@ -650,7 +650,9 @@ The dashboard must render only visible rows.
   **Either way, the numbers come from the payload, never from a human typing them.**
 - **The unverified column needs no pipeline change.** Under Option B it is
   `links.twur` empty AND `links.taipei` empty, both already in the payload. **The whole
-  dashboard is viewer-side.**
+  dashboard is viewer-side.** The column has since emptied (§4.2), so the recommendation
+  is Option D — but the pipeline independence holds either way, and it is why the
+  dashboard can be a viewer-side change.
 
 ## 10. Decided: dashboard content
 

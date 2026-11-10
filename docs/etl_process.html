@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ETL Process · PDF to Viewer</title>
+<!--
+  Companion rendering of docs/etl_process.md. The Markdown file stays the prose
+  source of truth; this page adds the pipeline diagram, the gate table, the
+  merge-score anatomy and the viewer layout as visuals.
+
+  Self-contained: no external requests, no CDN, opens offline from file:// like
+  the viewer and docs/domain-model.html. Measured figures were taken from the
+  2026-10-28 gazette emission on 2026-11-10.
+-->
+<style>
+  :root{
+    --ink:#0f172a; --muted:#64748b; --line:#cbd5e1; --bg:#ffffff; --panel:#f8fafc;
+    --acq:#1d4ed8;  --acq-bg:#eff6ff;
+    --ext:#7c3aed;  --ext-bg:#f5f3ff;
+    --cln:#0f766e;  --cln-bg:#f0fdfa;
+    --mrg:#b45309;  --mrg-bg:#fffbeb;
+    --lnk:#9333ea;  --lnk-bg:#faf5ff;
+    --grf:#0369a1;  --grf-bg:#f0f9ff;
+    --vw:#15803d;   --vw-bg:#f0fdf4;
+    --gate:#b91c1c; --gate-bg:#fef2f2;
+    --ok:#0f766e;   --ok-bg:#f0fdfa;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#e2e8f0; --muted:#94a3b8; --line:#334155; --bg:#0b1220; --panel:#111827;
+      --acq:#93c5fd; --acq-bg:#0c1e3d;
+      --ext:#c4b5fd; --ext-bg:#1b1233;
+      --cln:#5eead4; --cln-bg:#0b2b28;
+      --mrg:#fbbf24; --mrg-bg:#2a1f06;
+      --lnk:#d8b4fe; --lnk-bg:#231232;
+      --grf:#7dd3fc; --grf-bg:#082f49;
+      --vw:#86efac;  --vw-bg:#052e16;
+      --gate:#fca5a5;--gate-bg:#2d1010;
+      --ok:#5eead4;  --ok-bg:#0b2b28;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:0 0 64px;background:var(--bg);color:var(--ink);
+       font:15px/1.65 system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif}
+
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:26px 32px}
+  .hwrap{max-width:1180px;margin:0 auto}
+  h1{margin:0 0 6px;font-size:21px}
+  .sub{color:var(--muted);font-size:13px;margin:0;max-width:92ch}
+  .sub a{color:var(--acq)}
+
+  main{max-width:1180px;margin:0 auto;padding:0 32px}
+  section{margin-top:42px}
+  h2{font-size:17px;margin:0 0 4px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h2 .n{color:var(--muted);font-weight:400;margin-right:10px}
+  h3{font-size:14.5px;margin:22px 0 8px}
+  p{margin:10px 0}
+  .lead{color:var(--muted);font-size:13.5px;margin:10px 0 18px;max-width:96ch}
+
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+       background:var(--panel);padding:1px 5px;border-radius:4px}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+      padding:12px 14px;overflow-x:auto;font-size:12.5px;line-height:1.5}
+  pre code{background:none;padding:0}
+  .cmd{font-size:13px}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12.5px}
+  td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .nowrap{white-space:nowrap}
+
+  /* ---- §1 pipeline diagram ---- */
+  .pipe{display:grid;grid-template-columns:1fr;gap:0;margin-top:16px}
+  .stage{display:grid;grid-template-columns:34px 210px 1fr;gap:0 14px;align-items:start}
+  .stage .rail{display:flex;flex-direction:column;align-items:center}
+  .stage .dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
+              justify-content:center;font-size:12px;font-weight:700;color:var(--bg);
+              flex:none}
+  .stage .bar{width:2px;flex:1;min-height:14px;background:var(--line)}
+  .stage:last-child .bar{display:none}
+  .stage .who{font-weight:650;font-size:13.5px;padding-top:4px}
+  .stage .who .mod{display:block;font-weight:400;color:var(--muted);font-size:12px}
+  .stage .what{padding-top:4px;font-size:13px;color:var(--ink);border-left:0;
+               padding-bottom:16px}
+  .stage .what .out{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+  .stage .what .out code{font-size:11.5px}
+  .s-acq .dot{background:var(--acq)} .s-ext .dot{background:var(--ext)}
+  .s-cln .dot{background:var(--cln)} .s-ldg .dot{background:var(--cln)}
+  .s-mrg .dot{background:var(--mrg)} .s-lnk .dot{background:var(--lnk)}
+  .s-grf .dot{background:var(--grf)} .s-vw  .dot{background:var(--vw)}
+  .loopback{border:1px dashed var(--line);border-radius:8px;padding:8px 12px;
+            margin:-6px 0 0 48px;font-size:12.5px;color:var(--muted)}
+  .loopback code{font-size:11.5px}
+  @media(max-width:760px){
+    .stage{grid-template-columns:34px 1fr}
+    .stage .what{grid-column:2}
+  }
+
+  /* ---- regime cards ---- */
+  .regimes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  @media(max-width:760px){.regimes{grid-template-columns:1fr}}
+  .regime{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:12px 14px}
+  .regime .h{font-weight:650;font-size:13px;margin-bottom:6px}
+  .regime .cmd{margin:6px 0}
+  .regime .stages{color:var(--muted);font-size:12px}
+
+  /* ---- §3 fault split ---- */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  @media(max-width:760px){.split{grid-template-columns:1fr}}
+  .fault{border-radius:10px;padding:12px 14px;font-size:13px}
+  .fault .h{font-weight:650;margin-bottom:5px}
+  .fault.reader{border:1px solid var(--ok);background:var(--ok-bg)}
+  .fault.publisher{border:1px solid var(--gate);background:var(--gate-bg)}
+  .fault .verdict{margin-top:8px;font-weight:600;font-size:12.5px}
+  .fault.publisher .verdict{color:var(--gate)}
+  .fault.reader .verdict{color:var(--ok)}
+
+  /* ---- §6 merge score ---- */
+  .scorebar{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--line);
+            margin:14px 0 6px;font-size:12px}
+  .scorebar div{padding:8px 6px;text-align:center;color:var(--bg);font-weight:600}
+  .sb-sec{flex:35;background:var(--cln)}
+  .sb-fp {flex:20;background:var(--ext)}
+  .sb-jac{flex:30;background:var(--acq)}
+  .sb-cnt{flex:10;background:var(--mrg)}
+  .scorekey{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;color:var(--muted)}
+  @media(max-width:760px){.scorekey{grid-template-columns:1fr 1fr}}
+  .band{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:12.5px}
+  .band .track{flex:1;height:14px;border-radius:7px;
+    background:linear-gradient(to right,var(--gate-bg) 0 50%,var(--ok-bg) 50% 78%,var(--mrg-bg) 78% 100%);
+    border:1px solid var(--line);position:relative}
+  .band .tick{position:absolute;top:-7px;bottom:-7px;width:2px;background:var(--ink);opacity:.55}
+  .band .tick.b1{left:50%} .band .tick.b2{left:78%}
+  .band .lbl{white-space:nowrap;color:var(--muted)}
+
+  /* ---- §8 gates ---- */
+  table.gates td.gorder{color:var(--muted);white-space:nowrap;font-size:12px}
+  table.gates td.gex{white-space:nowrap;font-weight:700}
+  table.gates tr.warnrow td.gex{color:var(--mrg)}
+  table.gates tr.block td.gex{color:var(--gate)}
+  .exitcodes td:first-child{font-weight:700;font-variant-numeric:tabular-nums}
+
+  /* ---- §9 artifacts ---- */
+  .art{border:1px solid var(--line);border-radius:10px;background:var(--panel);
+       padding:12px 14px;margin-top:12px}
+  .art .h{font-weight:650;font-size:13px;margin-bottom:8px}
+  .artgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  @media(max-width:820px){.artgrid{grid-template-columns:1fr}}
+  .file{display:flex;justify-content:space-between;gap:10px;background:var(--bg);
+        border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px}
+  .file .sz{color:var(--muted);white-space:nowrap}
+
+  /* ---- §10 viewer layout ---- */
+  .viewer{border:2px solid var(--line);border-radius:10px;overflow:hidden;margin-top:14px;
+          background:var(--bg);font-size:12px}
+  .viewer .vhead{background:var(--panel);border-bottom:1px solid var(--line);
+                 padding:10px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .viewer .vtitle{font-weight:700;font-size:13px}
+  .viewer .vmeta{color:var(--muted)}
+  .viewer .vsearch{margin-left:auto;border:1px solid var(--line);border-radius:999px;
+                   padding:4px 12px;color:var(--muted);min-width:180px}
+  .viewer .vfilters{background:var(--panel);border-bottom:1px solid var(--line);
+                    padding:8px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .vchip{border:1px solid var(--line);border-radius:999px;padding:3px 12px;color:var(--muted);
+         background:var(--bg)}
+  .viewer .vbody{display:grid;grid-template-columns:300px 1fr;min-height:430px}
+  @media(max-width:820px){.viewer .vbody{grid-template-columns:1fr}}
+  .vlist{border-right:1px solid var(--line);background:var(--panel);padding:10px}
+  @media(max-width:820px){.vlist{border-right:0;border-bottom:1px solid var(--line)}}
+  .vitem{background:var(--bg);border:1px solid var(--line);border-radius:8px;
+         padding:8px 10px;margin-bottom:8px}
+  .vitem.sel{border-color:var(--grf);box-shadow:0 0 0 1px var(--grf)}
+  .vitem .pid{font-weight:650;font-size:12px;display:flex;gap:6px;align-items:center;
+              flex-wrap:wrap}
+  .vitem .cnt{color:var(--muted);font-size:11.5px;margin-top:3px}
+  .dot{width:9px;height:9px;border-radius:2px;display:inline-block;flex:none}
+  .chip{border-radius:999px;padding:0 7px;font-size:10px;font-weight:700;color:var(--bg)}
+  .chip.b{background:var(--grf)} .chip.c{background:var(--acq)} .chip.k{background:var(--mrg)}
+  .vdetail{padding:12px 14px}
+  .vbadges{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .badge{border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;color:var(--bg)}
+  .badge.taipei{background:var(--acq)}
+  .badge.national{background:var(--mrg)}
+  .badge.cur{background:var(--vw)}
+  .badge.orphan{background:var(--muted)}
+  .vtimeline{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--panel)}
+  .vrow{display:grid;grid-template-columns:34px 16px 1fr;gap:8px;align-items:center}
+  .vrow .yr{color:var(--muted);font-size:10.5px;text-align:right;white-space:nowrap}
+  .vrow .nd{position:relative;height:22px}
+  .vrow .nd::before{content:"";position:absolute;left:50%;top:-8px;bottom:-8px;width:2px;
+                    background:var(--line);transform:translateX(-50%)}
+  .vrow:first-child .nd::before{top:4px}
+  .vrow:last-child .nd::before{bottom:4px}
+  .vrow .nd::after{content:"";position:absolute;left:50%;top:50%;width:11px;height:11px;
+                   border-radius:50%;background:var(--grf);transform:translate(-50%,-50%)}
+  .vrow.event .nd::after{width:7px;height:7px;background:var(--muted)}
+  .vrow.virtual .nd::after{background:var(--muted)}
+  .vrow .tx{font-size:12px}
+  .vrow .tx .st{color:var(--muted);font-size:11px}
+  .vrow.event .tx{color:var(--muted);font-size:11.5px}
+  .vcards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  @media(max-width:700px){.vcards{grid-template-columns:1fr}}
+  .vcard{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:8px 10px}
+  .vcard .h{font-weight:650;font-size:11.5px;display:flex;gap:6px;align-items:center;margin-bottom:5px}
+  .vcard .r{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;
+            padding:2px 0;border-bottom:1px dashed var(--line)}
+  .vcard .r:last-child{border-bottom:0}
+  .vlegend{color:var(--muted);font-size:12px;margin-top:10px}
+  .vlegend .k{display:inline-flex;align-items:center;gap:6px;margin-right:14px}
+  .vlegend .sw{display:inline-block;width:10px;height:10px;border-radius:50%}
+
+  /* ---- callouts ---- */
+  .callout{border-radius:10px;padding:14px 16px;margin-top:14px;font-size:13px}
+  .callout.note{border:1px solid var(--line);background:var(--panel)}
+  .callout.gate{border:1px solid var(--gate);background:var(--gate-bg)}
+  .callout.ok{border:1px solid var(--ok);background:var(--ok-bg)}
+  .callout .h{font-weight:650;margin-bottom:5px}
+
+  footer{max-width:1180px;margin:52px auto 0;padding:18px 32px 0;
+         border-top:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.7}
+  footer code{font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hwrap">
+    <h1>ETL Process — PDF to Viewer</h1>
+    <p class="sub">How the Taipei urban-renewal gazette (核定案件一覽表) becomes
+      <code>viewer/projects.data.js</code> and the static HTML viewer.
+      Prose source of truth: <a href="etl_process.md"><code>docs/etl_process.md</code></a> ·
+      Companion pages: <a href="domain-model.html">domain model</a> ·
+      <a href="release-diff.html">release-diff report</a>.
+      Measured on the 2026-10-28 gazette: <strong>1,444 records → 681 projects</strong>,
+      2002-03-21 → 2026-10-28.</p>
+  </div>
+</header>
+
+<main>
+
+<!-- ============================================================= -->
+<section>
+  <h2><span class="n">1</span>Pipeline overview</h2>
+  <p class="lead">One command runs the whole flow:
+    <code class="cmd">python -m urtpe.cli source.pdf -o data --viewer viewer --links</code>.
+    Stages 2–7 run inside the single-writer lock; every gate (§6) evaluates
+    before the first artifact is written.</p>
+
+  <div class="pipe">
+    <div class="stage s-acq">
+      <div class="rail"><div class="dot">1</div><div class="bar"></div></div>
+      <div class="who">Acquire<span class="mod">scripts/poll_gazette.py</span></div>
+      <div class="what">Hash-gated check of the publisher page. Downloads the ~2 MB PDF
+        only when the page's bytes change; archives it outside the repo.
+        <span class="out">→ <code>urtpe-gazettes/核定案件-YYYY-MM-DD.pdf</code> + <code>index.jsonl</code></span></div>
+    </div>
+    <div class="stage s-ext">
+      <div class="rail"><div class="dot">2</div><div class="bar"></div></div>
+      <div class="who">Extract<span class="mod">urtpe/extract.py</span></div>
+      <div class="what">Ruled-table read via pymupdf <code>find_tables("lines")</code>.
+        Verbatim cells, dual calendar → ISO, publisher truncation excluded and named.
+        <span class="out">→ <code>data/raw.tsv</code> (RawRecord)</span></div>
+    </div>
+    <div class="stage s-cln">
+      <div class="rail"><div class="dot">3</div><div class="bar"></div></div>
+      <div class="who">Cleanse<span class="mod">urtpe/cleanse.py</span></div>
+      <div class="what">Known-error normalization, derived fields (section, parcels,
+        aliases, stage, track), ambiguity → review flags.
+        <span class="out">→ <code>data/clean.tsv</code> (CleanRecord)</span></div>
+    </div>
+    <div class="stage s-ldg">
+      <div class="rail"><div class="dot">4</div><div class="bar"></div></div>
+      <div class="who">Ledger<span class="mod">urtpe/ledger.py</span></div>
+      <div class="what">Append-only manual corrections, keyed on land core + approval date,
+        applied on every ingest.
+        <span class="out">→ corrected CleanRecords (3 entries live)</span></div>
+    </div>
+    <div class="stage s-mrg">
+      <div class="rail"><div class="dot">5</div><div class="bar"></div></div>
+      <div class="who">Merge<span class="mod">urtpe/merge.py</span></div>
+      <div class="what">Weighted similarity (§4) clusters repeat approvals of the same
+        更新單元 into families; anchor + <code>project_id</code> per family.
+        <span class="out">→ <code>data/merged.tsv</code> (Project)</span></div>
+    </div>
+    <div class="stage s-lnk">
+      <div class="rail"><div class="dot">6</div><div class="bar"></div></div>
+      <div class="who">Links<span class="mod">urtpe/links.py</span></div>
+      <div class="what">Cache-first portal discovery (Taipei ashx + national portal),
+        <code>--links</code>, onto the merged families.
+        <span class="out">→ <code>data/.link_cache/</code>, <code>crawl_log.tsv</code></span></div>
+    </div>
+    <div class="stage s-grf">
+      <div class="rail"><div class="dot">7</div><div class="bar"></div></div>
+      <div class="who">Graph<span class="mod">urtpe/graph.py</span></div>
+      <div class="what">Per-project history: nodes = records, edges = revision / track /
+        section chains converging on the anchor. Schema v2.
+        <span class="out">→ <code>data/projects.json</code></span></div>
+    </div>
+    <div class="stage s-vw">
+      <div class="rail"><div class="dot">8</div><div class="bar"></div></div>
+      <div class="who">Viewer<span class="mod">urtpe/viewer.py</span></div>
+      <div class="what">The payload <code>window.PROJECTS = {…}</code> for the static
+        <code>file://</code> page, plus the <code>?v=</code> cache-bust on both script tags.
+        <span class="out">→ <code>viewer/projects.data.js</code></span></div>
+    </div>
+  </div>
+
+  <div class="loopback">↺ &nbsp;<strong>Loopback:</strong>
+    <code>viewer/projects.data.js</code> is both input and output —
+    <code>--from-js</code> reloads it and re-emits it, so the payload is state, not scratch.</div>
+
+  <div class="regimes">
+    <div class="regime">
+      <div class="h">Full ingest</div>
+      <div class="cmd"><code>python -m urtpe.cli <pdf> -o data --viewer viewer --links</code></div>
+      <div class="stages">Stages 1–8, from the PDF. ~45 s; the only way a reader change
+        reaches historical records uniformly.</div>
+    </div>
+    <div class="regime">
+      <div class="h">Rebuild</div>
+      <div class="cmd"><code>python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --links</code></div>
+      <div class="stages">Skips stages 2–5: nodes load back as CleanRecords verbatim;
+        links → graph → viewer only.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================= -->
+<section>
+  <h2><span class="n">2</span>Acquire — hash decides, timestamp never does</h2>
+  <p class="lead"><code>scripts/poll_gazette.py</code> answers one question: has the city
+    published a gazette we do not hold? It archives; it never ingests. Ingesting is a
+    separate explicit act.</p>
+  <table>
+    <thead><tr><th>Property</th><th>Rule</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Change detection</td><td>SHA-256 content hash</td>
+        <td>The publisher re-uploads unchanged documents under a later 資料更新 stamp
+          (measured 2026-10-05); a timestamp poller would re-ingest weekly.</td></tr>
+      <tr><td>Steady-state cost</td><td>one ~86 KB page GET</td>
+        <td>The ~2 MB PDF downloads only when the page's bytes change.</td></tr>
+      <tr><td>Every check leaves a record</td><td><code>poll_log.jsonl</code>:
+        <code>new_gazette</code> / <code>reuploaded</code> / <code>unchanged</code> / <code>failed</code></td>
+        <td>A check that found nothing must not look like a check that never ran.</td></tr>
+      <tr><td>Archive location</td><td><code>D:\project\urtpe-gazettes\</code> (outside git;
+        <code>URTPE_ARCHIVE_ROOT</code> override)</td>
+        <td>Corpus completion, reconciliation and the release-diff report all re-read
+          archived PDFs; members are never deleted.</td></tr>
+      <tr><td>PDF links</td><td>live link repoints; version-specific URL durable</td>
+        <td>The archive index records each publication's <code>publisher_url</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================= -->
+<section>
+  <h2><span class="n">3</span>Extract — refuse rather than approximate</h2>
+  <p class="lead">pymupdf reads each page with <code>find_tables(strategy="lines")</code>;
+    cell boundaries come from the document's own ruling lines, never stored coordinates.
+    Seven columns verbatim: 編號, 核定日期, 行政區, 案名, 地號, 實施者, 更新規劃單位 —
+    plus <code>gazette_id</code>. A structure the reader cannot read exactly raises
+    <code>TableStructureError</code> (exit 3); nothing is written.</p>
+
+  <h3>3.1 The two-fault distinction on a 地號 cell</h3>
+  <div class="split">
+    <div class="fault reader">
+      <div class="h">Reader fault — page furniture</div>
+      The city prints the page number inside the last row's 地號 cell.
+      <div class="verdict">✓ Stripped — only when the trailing digits equal that page
+        (<code>strip_page_footer</code>).</div>
+    </div>
+    <div class="fault publisher">
+      <div class="h">Publisher fault — truncation</div>
+      The city cuts the cell at the printed row height and never draws the remainder;
+      the text is absent from the PDF.
+      <div class="verdict">✗ Excluded and named — never repaired by inference.</div>
+    </div>
+  </div>
+  <p>A cell is publisher-truncated when it ends in a tail pattern
+    (<code>、，,</code> / digit / sub-parcel hyphen) or lost its closing phrase while
+    showing fewer parcels than its 案名 declares. A completed closing phrase
+    (<code>地號等N筆土地</code>) is never count-checked — 48 rows per Gregorian gazette
+    disagree with their 案名 and are complete as published.</p>
+
+  <h3>3.2 Two bounded repairs, both audited</h3>
+  <table>
+    <thead><tr><th>Repair</th><th>Trigger</th><th>Conditions (all must hold)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Corpus completion</strong><br>
+            <code>complete_truncated_cell</code></td>
+        <td>default, on every ingest</td>
+        <td>same 段/小段 · truncated text is a literal prefix of the candidate's ·
+          candidate's parcel count equals the count the 案名 declares</td></tr>
+      <tr><td><strong>API recovery</strong><br>
+            <code>--recover-truncated</code></td>
+        <td>opt-in flag only; without it output is byte-identical</td>
+        <td>same unit · surviving 案名 contained · declared count present ·
+          date closes (±1 day flagged). Residuals rejoin the exclusion path.</td></tr>
+    </tbody>
+  </table>
+  <p>Calendars: ROC through the 2026-08-27 gazette, Gregorian from 2026-09-24 onward;
+    accepted per cell, normalized to ISO-8601. <code>published_date</code> comes from the
+    document's own 統計至 line.</p>
+</section>
+
+<!-- ============================================================= -->
+<section>
+  <h2><span class="n">4</span>Cleanse & merge — one meaning, one word</h2>
+  <p class="lead">Cleansing normalizes known errors into <code>auto_fixes</code>, derives
+    the identity fields, and routes ambiguity into <code>review_flags</code> — 321 flagged
+    nodes on the current corpus. The ledger applies manual corrections keyed on
+    land core + approval date, never 編號.</p>
+
+  <div class="regimes">
+    <div class="regime">
+      <div class="h">Auto-fixes (applied, named)</div>
+      <table style="margin-top:4px">
+        <tbody>
+          <tr><td>松化區 → 松山區</td></tr>
+          <tr><td>計劃 → 計畫 · ㄧ → 一</td></tr>
+          <tr><td>事業換計畫 → 事業計畫</td></tr>
+          <tr><td>土地都市更新計畫案 → 土地都市更新事業計畫案</td></tr>
+          <tr><td>地號 glued into 案名 → recovered from the tail</td></tr>
+          <tr><td>single-parcel cell vs count-1 案名 → trust the 案名</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="regime">
+      <div class="h">Review flags (surfaced, never resolved silently)</div>
+      <table style="margin-top:4px">
+        <tbody>
+          <tr><td>日期無法解析</td></tr>
+          <tr><td>地號無法解析(缺少段小段 / 缺少地號清單)</td></tr>
+          <tr><td>行政區與地號行政區不一致(地號為X)</td></tr>
+          <tr><td>案名與地號段小段不一致(地號為X)</td></tr>
+          <tr><td>family carries no land count → <code>project_id</code> keeps ?</td></tr>
+          <tr><td>+ link-discovery flags after merge (孤兒案件, 狀態不一致, …)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>4.1 The similarity score — one weighted sum decides a family</h3>
+  <p class="lead">~70% of records are repeat stage approvals of the same 更新單元.
+    <code>score(r1, r2)</code> in [0,1], <code>urtpe/merge.py:40</code>:</p>
+  <div class="scorebar">
+    <div class="sb-sec">section .35</div>
+    <div class="sb-fp">first parcel .20</div>
+    <div class="sb-jac">parcel Jaccard .30</div>
+    <div class="sb-cnt">count .10</div>
+  </div>
+  <div class="scorekey">
+    <div><strong>section .35</strong> — exact (district, section) match required for any nonzero score</div>
+    <div><strong>first parcel .20</strong> — equal 1.0 · alias bridge 0.95 · in parcel set 0.7</div>
+    <div><strong>Jaccard .30</strong> — parcel-set overlap; dropped and renormalized under the site-shrink rule (S13)</div>
+    <div><strong>count .10</strong> — equal 1.0 · bridged by 原N筆 0.8 · named anchors score 1.0 outright</div>
+  </div>
+  <div class="band">
+    <span class="lbl">0.0</span>
+    <div class="track">
+      <div class="tick b1"></div><div class="tick b2"></div>
+    </div>
+    <span class="lbl">1.0</span>
+  </div>
+  <p style="font-size:12.5px;color:var(--muted);display:flex;gap:18px;flex-wrap:wrap">
+    <span><strong>< 0.5</strong> separate units</span>
+    <span><strong>0.5–0.7</strong> borderline — flagged for review</span>
+    <span><strong>≥ 0.7</strong> same family (<code>LINK_THRESHOLD</code>)</span>
+    <span><strong>ledger confirm_merge</strong> unions before scoring, whatever the score</span>
+  </p>
+  <p>Anchor: newest 核定日期, tie-break to lowest recno — the family's 現況 record.
+    <code>project_id</code> is the anchor's land-core slug
+    (<code>{district}-{section}-{first_parcel}地號等{count}筆</code>); it churns
+    (~11% of multi-record families have moved) and is not a stable identity. The census
+    gate then proves the partition total and disjoint.</p>
+</section>
+
+<!-- ============================================================= -->
+<section>
+  <h2><span class="n">5</span>Links — the durable cache, not the network, is the state</h2>
+  <p class="lead"><code>urtpe/links.py</code> (4,400 lines, both portal adapters) runs
+    cache-first: a <code>result.json</code> hit means zero HTTP calls for that project.
+    <code>--links</code> is recommended and advisory by design (D5).</p>
+  <table>
+    <thead><tr><th>Step</th><th>Source</th><th>Yields</th></tr></thead>
+    <tbody>
+      <tr><td class="nowrap">1 · Cache check</td>
+        <td><code>data/.link_cache/<project_id>/result.json</code> (~727 project dirs)</td>
+        <td>previous DiscoveryResult — no network</td></tr>
+      <tr><td class="nowrap">2 · Taipei platform</td>
+        <td><code>Get_updcase_list.ashx</code> by section + first parcel, then
+          <code>Get_project168_second.ashx</code> per case_id</td>
+        <td>case ids, the 34-field milestone map, implementation, rewards</td></tr>
+      <tr><td class="nowrap">3 · National portal</td>
+        <td><code>portal_index.json</code> (newest ~110, WAF-capped) → <code>view/N</code> page</td>
+        <td>推動歷程 milestones, <code>twur_url</code>; strict matcher on
+          section+parcel+count</td></tr>
+      <tr><td class="nowrap">4 · Status</td>
+        <td>per project</td>
+        <td><code>resolved</code> / <code>resolved_no_city</code> / <code>unresolved</code> /
+          <code>error</code> → <code>crawl_log.tsv</code></td></tr>
+    </tbody>
+  </table>
+  <div class="callout note">
+    <div class="h">Cache safety</div>
+    The cache is durable state: <code>project_aliases.json</code> migrates dirs across
+    <code>project_id</code> churn; the coverage guard aborts before emission when a
+    coverage flag drops or every identity re-keys — the 2026-08-24 shape, where four
+    concurrent runs wiped 47 caches. The single-writer lock (§6) exists because of it.
+  </div>
+</section>
+
+<!-- ============================================================= -->
+<section>
+  <h2><span class="n">6</span>Gates — ordered, before any artifact is written</h2>
+  <p class="lead">A check that runs after the damage is not a check. Every gate evaluates
+    before the first write, so a refused ingestion leaves every artifact exactly as it was.</p>
+  <table class="gates">
+    <thead><tr><th>Order</th><th>Gate</th><th>Module</th><th>Outcome</th></tr></thead>
+    <tbody>
+      <tr class="block"><td class="gorder">pre-read</td>
+        <td>single-writer lock — one run per output tree; stale after 6 h or a dead PID</td>
+        <td><code>urtpe/lock.py</code></td><td class="gex">exit 5</td></tr>
+      <tr class="block"><td class="gorder">after read</td>
+        <td>structural faults — merged cell, ragged grid, page with no table</td>
+        <td><code>urtpe/extract.py</code></td><td class="gex">exit 3</td></tr>
+      <tr class="block"><td class="gorder">after read</td>
+        <td>completeness tripwire — 編號 contiguity (minus explained exclusions), unparsed
+          dates, pages yielding no table</td>
+        <td><code>urtpe/tripwire.py:38</code></td><td class="gex">exit 4</td></tr>
+      <tr class="block"><td class="gorder">after merge</td>
+        <td>census partition — total, disjoint, members sum to the record count</td>
+        <td><code>urtpe/tripwire.py:202</code></td><td class="gex">exit 4</td></tr>
+      <tr class="block"><td class="gorder">after merge</td>
+        <td>reconciliation vs. the archived predecessor — three authoritative signals only;
+          blocking on shrink, withdrawn newest cohort, total re-key</td>
+        <td><code>urtpe/reconcile.py</code></td><td class="gex">exit 2</td></tr>
+      <tr class="warnrow"><td class="gorder">on emission</td>
+        <td>emission-fault check — link/implementation data wholly absent; badge/flag
+          disagreement</td>
+        <td><code>urtpe/emission.py</code></td><td class="gex">warning only</td></tr>
+    </tbody>
+  </table>
+
+  <h3>6.1 Exit codes are a contract</h3>
+  <table class="exitcodes">
+    <thead><tr><th>Code</th><th>Meaning</th><th>State on disk</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td>success</td><td>written</td></tr>
+      <tr><td>2</td><td>unexplained reconcile changes (<code>--allow-reconcile-block</code> not given)</td>
+        <td>archive/index written, emission not written</td></tr>
+      <tr><td>3</td><td><code>TableStructureError</code> — reader refused the document</td>
+        <td>nothing written</td></tr>
+      <tr><td>4</td><td><code>TripwireFailure</code> (incl. the census gate)</td><td>nothing written</td></tr>
+      <tr><td>5</td><td><code>LockHeld</code> — another run owns this output tree</td><td>nothing written</td></tr>
+      <tr><td>1</td><td>anything else</td><td>not a contract — diagnose before retrying</td></tr>
+    </tbody>
+  </table>
+  <div class="callout gate">
+    <div class="h">A non-zero exit is a refusal, not a flake</div>
+    Do not retry past it and do not pass a flag to get around it.
+    <code>--allow-reconcile-block</code> is marked 危險 and <code>--no-archive</code> 不建議
+    in the help text for a reason.
+  </div>
+</section>
+
+<!-- ============================================================= -->
+<section>
+  <h2><span class="n">7</span>Emit — schema v2 and the artifacts</h2>
+  <p class="lead"><code>build_graph_document</code> attaches the discovered links and emits
+    schema v2: nodes carry every cleansed field, edges are deduplicated
+    <code>{from, to, kind}</code> chains converging on the anchor. Flags are
+    deduplicated and stably ordered at emission — the 2026-10-06 dataset once carried
+    1,162 copies of one flag.</p>
+  <pre><code>{
+  "schema_version": 2,
+  "generated_at": "…", "source": "…", "published_date": "2026-10-28",
+  "counts": { "projects": 681, "records": 1444 },
+  "projects": [
+    { "project_id": "中山區-中山段一小段-246地號等2筆",
+      "anchor_recno": 785,
+      "nodes":  [ { "recno": 785, "date": "2019-07-24", "stage": "擬訂",
+                    "track": "事業計畫", "is_current": true, … } ],
+      "edges":  [ { "from": 1, "to": 2, "kind": "revision" }, … ],
+      "links":  { "twur": "…", "taipei": ["10701311"],
+                  "milestones_national": {…}, "milestones_taipei": {…} } } ] }</code></pre>
+
+  <div class="art">
+    <div class="h">Artifacts written across a full run (tracked; a run produces a ~23 MB diff)</div>
+    <div class="artgrid">
+      <div class="file"><span><code>data/raw.tsv</code> — every row verbatim + parse_error</span><span class="sz">563 KB</span></div>
+      <div class="file"><span><code>data/clean.tsv</code> — 24 columns, all derived fields</span><span class="sz">983 KB</span></div>
+      <div class="file"><span><code>data/merged.tsv</code> — clean + project_id + is_current</span><span class="sz">1.0 MB</span></div>
+      <div class="file"><span><code>data/projects.json</code> — the full graph document</span><span class="sz">13 MB</span></div>
+      <div class="file"><span><code>data/review_report.txt</code> — tripwire, reconcile, ledger, flags</span><span class="sz">small</span></div>
+      <div class="file"><span><code>data/crawl_log.tsv</code> — per-project discovery status</span><span class="sz">734 KB</span></div>
+      <div class="file"><span><code>viewer/projects.data.js</code> — <code>window.PROJECTS</code></span><span class="sz">9.8 MB</span></div>
+      <div class="file"><span><code>viewer/index.html</code> — <code>?v=</code> rewritten from the dataset</span><span class="sz">small</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================= -->
+<section>
+  <h2><span class="n">8</span>The viewer — one static page over one payload</h2>
+  <p class="lead">A <code>file://</code> site: no server, no fetch — four files, and the
+    data arrives as a script tag. Layout sketch (not a screenshot): the left list, the
+    right detail with the SVG timeline, and the milestone cards.</p>
+
+  <div class="viewer">
+    <div class="vhead">
+      <span class="vtitle">臺北市都市更新核定案件 · 專案歷史圖</span>
+      <a href="release-diff.html" style="color:var(--acq);font-size:11.5px">歷次公報差異</a>
+      <span class="vmeta">681 個專案 / 1444 筆記錄 · 統計至 2026-10-28</span>
+      <span class="vsearch">搜尋專案（地號、行政區、實施者…）</span>
+    </div>
+    <div class="vfilters">
+      <span style="color:var(--muted)">篩選:</span>
+      <span class="vchip">地區 ▾</span><span class="vchip">年度 ▾</span>
+      <span class="vchip">事業種類 ▾</span><span class="vchip">計畫與執行 ▾</span>
+      <span class="vchip" style="border-style:dashed">建照 · 開工 · 使照 · 已失效 · 撤回 · 駁回</span>
+    </div>
+    <div class="vbody">
+      <div class="vlist">
+        <div class="vitem">
+          <div class="pid"><span class="dot" style="background:#0d9488"></span>
+            內湖區-潭美段四小段-579-2地號等21筆 <span class="chip c">使</span></div>
+          <div class="cnt">7 筆 · 福一建設股份有限公司 · 基地面積 1553.0</div>
+        </div>
+        <div class="vitem sel">
+          <div class="pid"><span class="dot" style="background:#2563eb"></span>
+            中山區-中山段一小段-246地號等2筆 <span class="chip b">使</span></div>
+          <div class="cnt">1 筆 · 忠泰建設股份有限公司 · 基地面積 895.0</div>
+        </div>
+        <div class="vitem">
+          <div class="pid"><span class="dot" style="background:#b45309"></span>
+            中山區-中山段一小段-254地號等13筆 <span class="chip b">使</span></div>
+          <div class="cnt">3 筆(+1) · 聖得福建設開發股份有限公司 · 基地面積 1604.0</div>
+        </div>
+      </div>
+      <div class="vdetail">
+        <div class="vbadges">
+          <span style="font-weight:650;font-size:12.5px">中山區-中山段一小段-246地號等2筆</span>
+          <span class="badge cur">現況</span>
+          <span class="badge taipei">北</span>
+          <span class="badge national">國</span>
+        </div>
+        <div class="vtimeline">
+          <div class="vrow"><span class="yr">2018-01-31</span><span class="nd"></span>
+            <span class="tx">計畫公聽會 <span class="st">北 · milestone</span></span></div>
+          <div class="vrow"><span class="yr">2019-07-24</span><span class="nd"></span>
+            <span class="tx"><strong>擬訂</strong> 事業計畫核定（recno 785） <span class="badge cur" style="padding:1px 7px">現況</span></span></div>
+          <div class="vrow event"><span class="yr">2020-01-10</span><span class="nd"></span>
+            <span class="tx">建照核發 <span class="st">execution-event row · 32 px</span></span></div>
+          <div class="vrow event"><span class="yr">2023-12-20</span><span class="nd"></span>
+            <span class="tx">使用核發 <span class="st">使照 date has three witnesses; the permit record decides</span></span></div>
+          <div class="vrow virtual"><span class="yr">(未核定)</span><span class="nd"></span>
+            <span class="tx">virtual orphan <span class="st">platform case no gazette record cites — e.g. 中山254 (+1)</span></span></div>
+        </div>
+        <div class="vcards">
+          <div class="vcard">
+            <div class="h">推動歷程 (國土署) <span class="badge national">國</span></div>
+            <div class="r"><span>事業計畫申請日期</span><span>107.02.08</span></div>
+            <div class="r"><span>事業計畫核定日期</span><span>108.07.25</span></div>
+            <div class="r"><span>使用核發日期</span><span>112.12.20</span></div>
+          </div>
+          <div class="vcard">
+            <div class="h">階段辦理過程 (台北市) <span class="badge taipei">北</span></div>
+            <div class="r"><span>計畫公聽會日期</span><span>2018/01/31</span></div>
+            <div class="r"><span>公告公展日期</span><span>2018/04/25</span></div>
+            <div class="r"><span>核定日期</span><span>2019/07/24</span></div>
+          </div>
+          <div class="vcard">
+            <div class="h">執行階段 <span class="badge taipei">北</span></div>
+            <div class="r"><span>Base_Area</span><span>895.0</span></div>
+            <div class="r"><span>Eng_Start_Date</span><span>2020/10/06</span></div>
+            <div class="r"><span>Ulic_Date</span><span>2023/12/20</span></div>
+          </div>
+          <div class="vcard">
+            <div class="h">Detail table</div>
+            <div class="r"><span>review_flags · auto_fixes · recovery</span><span>essential cols</span></div>
+            <div class="r"><span>parcels · aliases · counts · anchor</span><span>full cols</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="vlegend">
+    <span class="k"><span class="badge cur">現況</span> anchor — newest approval, tie-break lowest recno</span>
+    <span class="k"><span class="badge taipei">北</span> node's anchored Taipei case → <code>r_progress_detail.aspx</code></span>
+    <span class="k"><span class="badge national">國</span> national portal, bound per-label by stage+track+date</span>
+  </div>
+  <div class="vlegend">
+    <span class="k"><span class="sw" style="background:var(--grf)"></span> approval node · 64 px row</span>
+    <span class="k"><span class="sw" style="background:var(--muted)"></span> execution event (建照→開工→使照) · 32 px row</span>
+    <span class="k"><span class="sw" style="background:var(--muted)"></span> virtual orphan — platform case no gazette record cites; undated ones tag (未核定)</span>
+    <span class="k">left list: district chip · stage chip (建/開/使) · dead-end chip (已失效/撤回/駁回)</span>
+  </div>
+
+  <div class="callout note">
+    <div class="h">Cache-bust and publishing</div>
+    <code>write_projects_js</code> rewrites the <code>?v=</code> on both script tags from
+    the dataset (publication date + 4-hex digest of date-and-counts); identical data
+    yields an identical version. The site publishes to
+    <code>https://happypig.github.io/urTPE</code> from <code>main</code> — a commit touching
+    <code>viewer/</code> leaves the live site stale until pushed
+    (<code>python scripts/check_deploy.py</code> reports fresh / stale / missing).
+    Render-path regression check: <code>node scripts/viewer_smoke.js</code> (manual, not pytest).
+  </div>
+</section>
+
+<!-- ============================================================= -->
+<section>
+  <h2><span class="n">9</span>Operating the pipeline</h2>
+  <p class="lead">Full ingest of a new gazette:</p>
+  <table>
+    <tbody>
+      <tr><td class="num">1.</td><td>Run <code>python scripts/poll_gazette.py</code> — it archives on <code>new_gazette</code>.</td></tr>
+      <tr><td class="num">2.</td><td>Ingest: <code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links</code></td></tr>
+      <tr><td class="num">3.</td><td>Read the run output — tripwire PASS, reconcile, ledger, exclusion count.
+        Any <code>[CENSUS]</code>/<code>[EMISSION]</code> line names a real defect.</td></tr>
+      <tr><td class="num">4.</td><td>Exit 0 commits the dataset (mind the ~23 MB diff). Exit 2/3/4/5 is a refusal —
+        diagnose, never bypass with a flag.</td></tr>
+      <tr><td class="num">5.</td><td>Push <code>main</code> so Pages serves the new payload; verify with
+        <code>python scripts/check_deploy.py</code>.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout note">
+    <div class="h">Rules that outlast any single run</div>
+    One run per output tree (the lock is stale after 6 h or a dead PID — check the PID
+    before deleting it) · never key anything durable on 編號 · manual corrections go in
+    the ledger, not a dated script · <code>data/.link_cache/</code> is durable state —
+    five backup dirs from past incidents exist because it was once lost ·
+    tests: <code>python -m pytest</code> (1,178 collected; one deliberate skip at
+    <code>tests/test_idempotent_flags.py:117</code>).
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Sources: <code>urtpe/cli.py</code>, <code>urtpe/extract.py</code>, <code>urtpe/cleanse.py</code>,
+  <code>urtpe/ledger.py</code>, <code>urtpe/merge.py</code>, <code>urtpe/links.py</code>,
+  <code>urtpe/graph.py</code>, <code>urtpe/viewer.py</code>, <code>urtpe/tripwire.py</code>,
+  <code>urtpe/reconcile.py</code>, <code>urtpe/emission.py</code>, <code>urtpe/coverage.py</code>,
+  <code>scripts/poll_gazette.py</code>, <code>viewer/app.js</code>, <code>viewer/index.html</code>.
+  Companion to <code>docs/etl_process.md</code>, which remains the prose source of truth;
+  companion pages <a href="domain-model.html">domain-model.html</a> and
+  <a href="release-diff.html">release-diff.html</a>.
+  Self-contained — no external requests. Measured figures from the 2026-10-28 gazette
+  emission, 2026-11-10.
+</footer>
+
+</body>
+</html>

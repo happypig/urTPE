@@ -357,7 +357,12 @@ table.recs tr.current td { background: #fef2f2; }
   color: #1f2937;
 }
 .impl-callout-row { display: flex; gap: 6px; line-height: 14px; }
-.impl-callout-row span { color: #57534e; }
+/* fix-callout-wrap-height D2: the label cell must not shrink. The height
+   model sizes each row from the label's NATURAL width; a shrinking label
+   squeezes the value cell below that width and re-wraps values the model
+   did not count (玉成545: 27-char 使用分區 needed 4 lines, the box reserved
+   2). flex-shrink 0 keeps the rendered wrap identical to the model's. */
+.impl-callout-row span { color: #57534e; flex-shrink: 0; }
 .impl-callout-row b { font-weight: 600; margin-inline-start: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 /* 案名 suffix in the 相關連結 section */

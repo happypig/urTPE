@@ -1008,15 +1008,23 @@ function init() {
         if (ka !== kb) return ka < kb ? -1 : 1;
         return String(a.recno).localeCompare(String(b.recno));
       });
-    const clusterOfRecno = {};
-    clusters.forEach(c => c.members.forEach(m => { clusterOfRecno[m.recno] = c; }));
     const sortedEvents = events
       .map(e => ({ kind: "event", date: String(e.date).replace(/\//g, "-"), e }))
       .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
     const timeline = [];
     let ei = 0;
     for (const m of allMembers) {
-      const mDate = m.date || (clusterOfRecno[m.recno] || {}).effDate || "";
+      // fix-undated-orphan-order D1 (image 2026-11-10): the interleave
+      // key must be the SAME key the allMembers sort used — m.date, else the
+      // member's own event key. The old `|| cluster.effDate` leaked the
+      // cluster's sort sentinel into the interleave: an undated orphan in a
+      // dated cluster read as the cluster's date (北投區-桃源段四小段-424-8:
+      // orphan in the 變更 cluster read 2026-09-29, so 建照 2021/10/28 and
+      // 開工 2022/07/27 interleaved ABOVE recno 615's 2021-01-12 approval;
+      // an undated-only cluster read "9999-12-31" and every event landed
+      // above it — corpus 8 projects, 22 inverted pairs). The row order says
+      // one thing, the event positions another; one key for both.
+      const mDate = m.date || ownEventDate(m, p) || "";
       while (ei < sortedEvents.length && sortedEvents[ei].date < mDate) {
         timeline.push(sortedEvents[ei++]);
       }
@@ -1143,6 +1151,19 @@ function init() {
     });
 
     // ---------- callout box sizing (content-driven, then gutter clamp) ----------
+    // fix-callout-wrap-height D2 (image 2026-11-10): ONE width model for the
+    // box width AND the box height. The browser wraps a value by WIDTH (CJK ≈
+    // 10px, ASCII ≈ 5px at 10px font, measured against the rendered corpus:
+    // max error 3.3px over 975 distinct strings); the old height heuristic
+    // (value.length > 20) guessed by LENGTH, so 事業計畫及權利變換計畫 (11 chars)
+    // wrapped while a 21-char number stayed on one line — the box then cut the
+    // value's second line (玉泉452-2) and rode its border over the text
+    // (通化336 image 4). cjkUnits counts one CJK char = 1 unit, ASCII = ½.
+    const cjkUnits = (s) => {
+      const t = String(s || "");
+      const cjk = (t.match(/[^\x00-\x7F]/g) || []).length;
+      return cjk + (t.length - cjk) * 0.5;
+    };
     const cjkWidth = (s) => String(s).replace(/[一-鿿぀-ヿ〇-〿]/g, "  ").length;
     const labelRectOf = (n) => {
       const q = pos[n.recno];
@@ -1154,17 +1175,26 @@ function init() {
       const w = cjkWidth(head) + areaTxt.length * 11 + schedTxt.length * 6.5 + 14 + 12;
       return { x: q.x + 14, y: q.y - 30, w, h: 50 };
     };
-    const implLabelW = (label, value) => {
-      const s = String(label || "");
-      const v = String(value || "");
-      return 8 + cjkWidth(s) * 11 + 10 + cjkWidth(v) * 11;
-    };
+    // the box width: the widest row's label-at-natural-width + value, clamped.
+    // (fix-callout-wrap-height D2: cjkUnits, not the old cjkWidth×11 heuristic
+    // that over-counted ASCII and mis-sized mixed strings.)
     const implBoxW = (c) => {
-      const w = Math.max(...c.rows.map(r => implLabelW(r.label, r.value)));
+      const w = Math.max(...c.rows.map(r => 8 + cjkUnits(r.label) * 10 + 6 + cjkUnits(r.value) * 10));
       return Math.max(CALLOUT_MIN_W, Math.min(w + CALLOUT_PAD, CALLOUT_GUTTER_CAP));
     };
+    // the value cell's available width: the clamped box minus padding,
+    // minus the label at its NATURAL width (the label cell must not shrink —
+    // shrinking it re-wraps values the height model did not count), minus gap.
+    const implValueAvailW = (c) =>
+      implBoxW(c) - 12 - cjkUnits(String(c.rows[0]?.label || "")) * 10 - 6;
+    const implValueLines = (value, avail) => {
+      const w = cjkUnits(value) * 10;
+      if (w <= avail) return 1;
+      return Math.min(2, Math.ceil(w / avail));
+    };
     const implBoxH = (c) => {
-      const lines = c.rows.reduce((acc, r) => acc + (String(r.value).length > 20 ? 2 : 1), 0);
+      const avail = implValueAvailW(c);
+      const lines = c.rows.reduce((acc, r) => acc + implValueLines(r.value, avail), 0);
       return lines * 14 + 6;
     };
 
@@ -1242,16 +1272,6 @@ function init() {
       const a = pos[d.from], b = pos[d.to];
       if (!a || !b) return null;
       return { id: `orphan-edge:${d.from}->${d.to}`, x1: a.x, y1: a.y, x2: b.x, y2: b.y };
-    };
-    window.__LAYOUT_RECTS = {
-      gutterX: xOffset + PAD,
-      gutterW,
-      callouts: callouts.map(calloutRect),
-      nodes: nodes.map(nodeLabelRect),
-      events: events.map(eventRect),
-      orphans: virtualNodes.filter(v => pos[v.recno]).map(orphanRect).filter(Boolean),
-      leaders: callouts.map(leaderSeg),
-      orphanEdges: orphanDots.map(orphanEdge).filter(Boolean),
     };
 
     // §2.5: stage bands and count chips removed from rendering (clash with
@@ -1395,7 +1415,11 @@ function init() {
           const lr = labelRectOf(nn);
           if (!lr) continue;
           const lo = lr.y, hi = lr.y + lr.h;
-          if (cy > lo && cy < hi && leadX1 < lr.x + lr.w && leadX2 > lr.x) {
+          // closed interval: the smoke guard's segRectHit treats a leader ON a
+          // band's edge as a crossing, so the dodge must too (懷生931: a
+          // dodged leader landed exactly on node 1093's band top and the
+          // guard failed the render)
+          if (cy >= lo && cy <= hi && leadX1 < lr.x + lr.w && leadX2 > lr.x) {
             return true;
           }
         }
@@ -1416,6 +1440,23 @@ function init() {
       s += `<line class="callout-leader" x1="${leadX1}" y1="${leadY}" x2="${leadX2}" y2="${leadY}"></line>`;
       s += `<foreignObject x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}"><div xmlns="http://www.w3.org/1999/xhtml" class="impl-callout">${rowsHtml}</div></foreignObject>`;
     });
+    // layoutRects: every placed rectangle for the viewer smoke overlap guard.
+    // Exported AFTER the callout loop so leaderSeg reads the final c.leadY —
+    // fix-callout-wrap-height D2: built before the loop, the exported leader
+    // carried the box center (the pre-dodge fallback) while the drawn leader
+    // sat at its dodged y, so the guard policed a line nobody renders
+    // (崇仰68: the drawn leader cleared every band; the exported one crossed
+    // node 1092's and failed the degrade fixture).
+    window.__LAYOUT_RECTS = {
+      gutterX: xOffset + PAD,
+      gutterW,
+      callouts: callouts.map(calloutRect),
+      nodes: nodes.map(nodeLabelRect),
+      events: events.map(eventRect),
+      orphans: virtualNodes.filter(v => pos[v.recno]).map(orphanRect).filter(Boolean),
+      leaders: callouts.map(leaderSeg),
+      orphanEdges: orphanDots.map(orphanEdge).filter(Boolean),
+    };
     s += "</svg></div></div>";
 
     const border = p.borderline || [];

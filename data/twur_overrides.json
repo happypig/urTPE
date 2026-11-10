@@ -10,6 +10,14 @@
       "verified_on": "2026-10-06",
       "reason": "Two independent causes, either fatal alone. (1) Search key: we search 崇仁新村青年段一小段 and the portal indexes the unit as 崇仁新村 — searching that returns ['18'], searching ours returns nothing. (2) Matcher: the portal writes a two-section title with a (原崇仁新村) anchor and no 等N筆 clause, so parse_name_id extracts district='', section='', parcel='' from it and view_page_matches correctly returns False. Our parcel is 711-3 where the portal says 711 — a renumbering, the 689地號(原726地號) case. DO NOT 'fix' this by loosening the parcel matcher: that would have to adjudicate 23 sub-parcel projects, and a false positive silently attaches another project's 推動歷程 to this one. Population across all 75 twur-less projects: exactly one had a project_id of the form 等?筆, meaning the current node's land string carried no 等N筆 clause and the count never parsed. n=1 — revisit this decision if a second case appears. D6 (2026-11-06): the key was re-keyed from 等?筆 to 等2筆, because the slug-count fallback (c2cfbb9) moved the id and the record stopped applying. The record's own reason text still names the old population shape, because it describes the state at the time of the review.",
       "verified_by": "human review of the portal page, confirmed the 二小段18 overlap with this project's land (青年段一小段711-3、青年段二小段18地號)"
+    },
+    "文山區-實踐段二小段-641地號等1筆": {
+      "twur_view_id": "9",
+      "twur_url": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/9",
+      "portal_title": "擬訂臺北市文山區木新路3段95巷南側地區(原國泰攬翠天廈基地)都市更新事業計畫案",
+      "verified_on": "2026-11-10",
+      "reason": "Unit named by place, no 地號 clause in the portal title, so the land-core join cannot match in either direction (the 崇仁新村 view/18 shape). Verified by the §8 rule, not by the portal's word alone: view/9's 相關連結 lists exactly one city case, 09009032, and the city's own CASE_NAME for that id (get_project168_top) reads 擬訂臺北市文山區木新路三段95巷南側地區(原國泰攬翠天廈基地)都市更新事業計畫案 — the project's gazette 案名 for recno 1435, 核定 2004-03-10, with 三段 vs 3段 as the only drift. Also unreachable by the portal index: the crawl is WAF-capped at ~110 newest entries and this case predates it by two decades. Corpus scan 2026-11-10: of 69 unjoined projects with live cases, this is the only one of the shape.",
+      "verified_by": "human review of the portal page view/9 (title + 相關連結), cross-checked against the city's CASE_NAME harvested in the project cache"
     }
   }
 }

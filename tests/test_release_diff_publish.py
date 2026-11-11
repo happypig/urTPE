@@ -123,7 +123,7 @@ def test_the_report_is_listed_as_a_deploy_artifact():
                 "viewer/app.js", "viewer/app.css",
                 "viewer/projects.data.js", "viewer/dashboard.html",
                 "viewer/dashboard.js", "viewer/dashboard.css",
-                "docs/release-diff.html"]
+                "docs/release-diff.html", "docs/coverage-report.html"]
     for path in expected:
         assert path in data["artifacts"], (
             "%r is published but the deploy record does not name it; its "

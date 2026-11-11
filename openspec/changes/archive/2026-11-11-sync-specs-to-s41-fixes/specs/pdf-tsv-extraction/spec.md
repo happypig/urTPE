@@ -43,3 +43,9 @@ When the viewer data is written, every cacheable asset reference in `index.html`
 - **AND** a stylesheet left without the version is reported as a fault, because the measured
   failure paired a re-fetched `app.js` with a stale cached `app.css` and shipped a CSS fix
   only to viewers with an empty cache
+
+#### Scenario: Viewer and dataset disagree
+
+- **WHEN** the viewer's `projects.data.js` and the dataset's `projects.json` disagree on `published_date` or on the project or record count
+- **THEN** the inconsistency is reported as a fault naming both files and both values
+- **AND** a browser holding a superseded cache-bust is not the only way the drift becomes visible

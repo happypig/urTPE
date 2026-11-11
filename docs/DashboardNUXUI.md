@@ -5,17 +5,17 @@ improvements. This document records what was measured, what was decided, and wha
 remains open. It is a review document, not a change proposal.
 
 - **Author:** Claude Code, 2026-11-05
-- **Dataset:** `viewer/projects.data.js`, **682 projects / 1,444 records**, 統計至
-  **2026-10-28**, payload blob `1ddffa1b` (commit `4b67a8f`). §3's figures were measured
+- **Dataset:** `viewer/projects.data.js`, **681 projects / 1,444 records**, 統計至
+  **2026-10-28**, payload blob `352c9add7` (commit `aa71501`). §3's figures were measured
   on that blob; §4.1, §4.2, §5 and §6 were re-measured on 2026-11-09 at commit
-  `3e0c570`, after the `bind-the-unplaced-by-searching-the-cell-section` change. See
+  `3e0c570`, after the `bind-the-unplaced-by-searching-the-cell-section` change, and
+  once more on 2026-11-10 at `aa71501`, after the 萬隆519 merge. See
   §14.0.1 for what moved.
 - **Status:** nothing implemented. No openspec change is open for the dashboard or the
-  viewer UI work. `openspec/changes/` holds `archive/` and one change opened by another
-  session, `bind-the-unplaced-by-searching-the-cell-section`.
+  viewer UI work. `openspec/changes/` holds `archive/` only.
 - **Payload revision:** the figures were re-derived four times on 2026-11-06 as the
-  D9g plan landed, and once more on 2026-11-09. The first version was pinned to blob
-  `0b3a22b9`; see §14.
+  D9g plan landed, again on 2026-11-09, and again on 2026-11-10. The first version was
+  pinned to blob `0b3a22b9`; see §14.
 
 ---
 
@@ -66,10 +66,10 @@ so the two tests are made per bucket and not on a merged dictionary.
 
 | Stage | Ever reached | Stands here | Median days waiting | n waiting |
 | --- | --- | --- | --- | --- |
-| 核定 | 681 | 147 | 874 | 147 |
-| 建照 | 534 | 27 | 337 | 27 |
-| 開工 | 510 | 177 | 1,120 | 177 |
-| 使照 | 334 | 283 | **2,014** | 283 |
+| 核定 | 680 | 147 | 874 | 147 |
+| 建照 | 533 | 27 | 337 | 27 |
+| 開工 | 509 | 177 | **1,134** | 177 |
+| 使照 | 333 | 282 | **2,022** | 282 |
 | 成果報備 | 51 | 51 | **5,224** | 51 |
 
 Waiting days are measured from the stage date to 2026-10-28, the gazette date.
@@ -77,12 +77,12 @@ Waiting days are measured from the stage date to 2026-10-28, the gazette date.
 **The 核定 row uses the LATEST of its approval dates; every other row uses the earliest.**
 Appendix A says "the earliest date over the stage's fields", and that is what the other
 four rows use. The 核定 row is the exception, and it is not a small one: the earliest
-reading gives a median of 1,546 days and the latest gives 874. The document's 874 is
+reading gives a median of 1,547 days and the latest gives 874. The document's 874 is
 the latest reading. `scripts/probe_wait_date_rule.py` tests every row under both rules
 and marks which one reproduces the figure.
 
-**The dominant wait is 開工 → 使照.** 283 projects reached 使照 and stopped there. The
-median wait since is 2,014 days, about 5.5 years. **The current viewer shows none of
+**The dominant wait is 開工 → 使照.** 282 projects reached 使照 and stopped there. The
+median wait since is 2,022 days, about 5.5 years. **The current viewer shows none of
 this.** It renders the per-project graph, but no aggregate duration anywhere.
 
 ### 3.2 Stage-to-stage durations
@@ -91,11 +91,11 @@ Each row uses the earliest "from" date and the earliest "to" date per project.
 
 | Transition | n | Median (d) | p75 (d) | Max (d) |
 | --- | --- | --- | --- | --- |
-| 申請 → 核定 | 681 | 379 | 896 | 7,690 |
-| 核定 → 建照 | 534 | 330 | 1,566 | 6,715 |
-| 建照 → 開工 | 507 | 169 | 262 | 2,246 |
-| 開工 → 使照 | 333 | **1,169** | 1,442 | 3,704 |
-| 核定 → 使照 | 334 | 1,657 | 2,716 | 7,846 |
+| 申請 → 核定 | 680 | 379 | 894 | 7,690 |
+| 核定 → 建照 | 533 | 329 | 1,571 | 6,715 |
+| 建照 → 開工 | 506 | 169 | 262 | 2,246 |
+| 開工 → 使照 | 332 | **1,166** | 1,442 | 3,704 |
+| 核定 → 使照 | 333 | 1,655 | 2,723 | 7,846 |
 | 使照 → 成果報備 | 51 | 339 | 466 | 1,197 |
 | 申請 → 成果報備 | 51 | **2,163** | 2,680 | 3,352 |
 
@@ -113,7 +113,7 @@ Track comes from the project's current node.
 
 | Track | n | Median (d) | p75 (d) | Max (d) |
 | --- | --- | --- | --- | --- |
-| 事業計畫 | 263 | 385 | 890 | 7,544 |
+| 事業計畫 | 262 | 382 | 873 | 5,333 |
 | 權利變換 | 218 | 360 | 783 | 7,544 |
 | 事業計畫、權利變換 | 187 | **414** | 994 | 7,690 |
 | 事業概要 | 13 | 347 | 439 | 573 |
@@ -132,12 +132,12 @@ not a stable figure.
 | 南港區 | 57 | 57 | 386 | 999 | 18 | 9 | 0 |
 | 松山區 | 54 | 54 | **574** | 910 | 20 | 10 | 0 |
 | 中正區 | 53 | 53 | 356 | 768 | 25 | 13 | 0 |
-| 文山區 | 50 | 50 | 285 | 717 | 22 | 12 | 0 |
+| 文山區 | 49 | 49 | 282 | 714 | 21 | 12 | 0 |
 | 信義區 | 51 | 51 | 470 | 1,180 | 15 | 16 | 0 |
 | 大同區 | 48 | 47 | 277 | 519 | 20 | 12 | 1 |
 | 內湖區 | 40 | 40 | 347 | 658 | 18 | 9 | 0 |
 | 萬華區 | 39 | 39 | 390 | **1,206** | 18 | 12 | 0 |
-| **Total** | **682** | **681** | | | **283** | **148** | **1** |
+| **Total** | **681** | **680** | | | **282** | **148** | **1** |
 
 District medians span 277 to 574 days. 萬華區's p75 is 1,206 days, the widest spread of
 any district. **Never show one number per district.**
@@ -161,8 +161,8 @@ current payload and at the revisions this document cites.
 **No project has a 成果報備 date after 2015-12-17.** The city stopped publishing the
 field. The dataset carries no evidence of when the city stopped.
 
-**This changes the dashboard design.** A funnel ending at 成果報備 would show 283
-projects waiting for a date the city no longer publishes. That reads as 283 stalled
+**This changes the dashboard design.** A funnel ending at 成果報備 would show 282
+projects waiting for a date the city no longer publishes. That reads as 282 stalled
 projects. It is false.
 
 The dashboard must show 成果報備 as a **historical cohort** — a labelled chart of the 51
@@ -186,7 +186,7 @@ the city's `使照核發日期`:
 | Both present, same date | 268 |
 | Both present, different date | 21 |
 | 使用核發日期 only | 3 |
-| 使照核發日期 only | 45 |
+| 使照核發日期 only | 44 |
 
 **The two fields agree on 268 of 289 projects where both exist.** They are the same
 event seen by two portals, and the city is authoritative. A dashboard that shows both
@@ -209,10 +209,10 @@ for that project to 70,461 days, which is what made the 70,461-day outlier appea
 earlier draft.
 
 **The current node is not a status.** The `is_current` node carries only the
-*administrative* milestones of its own approval (核定日期 on 453 projects, 申請計畫日期
-on 452, 審議通過日期 on 416, 建照核發日期 on 132). It carries no 開工日期, no 使照核發日期,
+*administrative* milestones of its own approval (核定日期 on 452 projects, 申請計畫日期
+on 451, 審議通過日期 on 415, 建照核發日期 on 131). It carries no 開工日期, no 使照核發日期,
 and no 成果報備日期 at all. So a "current node" funnel reports 0 projects at 開工 and 0
-at 使照, while 510 and 334 projects have reached those stages. **Read construction
+at 使照, while 509 and 333 projects have reached those stages. **Read construction
 stages from the project level, never from the current node.**
 
 ---
@@ -227,7 +227,7 @@ application date and no approval date, and is neither terminal (自行撤回 / �
 
 | | Count |
 | --- | --- |
-| Projects awaiting an approval | **99** of 682 (15%) |
+| Projects awaiting an approval | **99** of 681 (15%) |
 
 By district: 大安區 14, 南港區 12, 信義區 11, 中山區 10, 中正區 9, 北投區 8, 文山區 8,
 松山區 7, 大同區 6, 內湖區 5, 士林區 5, 萬華區 4.
@@ -252,7 +252,7 @@ population was measured again — not because the rule changed.
 
 `scripts/probe_awaiting_over_history.py` walks the payload history and reports the
 figure at each revision: 85 up to `a46f643`, 97 from `c084833` to `eafb9dd`, 99 from
-`3e0c570`.
+`3e0c570` onward, including after the 萬隆519 merge.
 
 ### 4.2 Unverified projects — 0
 
@@ -276,7 +276,7 @@ The 6, now bound:
 projects. The option is not wrong — it is empty, because the defect it was measuring
 has been fixed. A column that is always empty is not a column.
 
-**The 60 that carry a city case id but no national link** are a different population,
+**The 59 that carry a city case id but no national link** are a different population,
 and they are not unverified. Every one of them has a case the city confirms. What they
 lack is a page on the national portal — and the portal's index holds only the ~110
 newest entries, because the crawl is WAF-capped. `scripts/probe_dashboard_link_shapes.py`
@@ -286,10 +286,10 @@ counts every shape:
 | --- | --- |
 | National link **and** city case id | 622 |
 | National link only | 0 |
-| City case id only | **60** |
+| City case id only | **59** |
 | Neither | **0** |
 
-**Call the 60 something else.** They are 資料無國土署頁面 — the national portal has no
+**Call the 59 something else.** They are 資料無國土署頁面 — the national portal has no
 page for them — not 資料未驗證. The city confirmed them; the portal simply does not
 cover them.
 
@@ -321,7 +321,7 @@ source.
 
 | Predicate on project `links` | Matches then (682 projects) | Matches now |
 | --- | --- | --- |
-| `twur` empty | 60 | 60 |
+| `twur` empty | 60 | 59 |
 | `taipei` empty | 7 | **0** |
 | `case_milestones` empty | 7 | **0** |
 | **`twur` empty AND `taipei` empty`** | **6** | **0** |
@@ -358,11 +358,11 @@ re-read against the current payload.
 | --- | --- | --- | --- |
 | **A** — copy `no_match_ledger.json` into `viewer/` | **No.** Marks 50, truth is 0 | Low | Wrong column |
 | **B** — payload predicate `twur` empty AND `taipei` empty | Yes, and it selects **0** | **None** | An always-empty column |
-| **C** — emit the cache mtime into the payload | **No** — the mtime is the write time, and the cache pass rewrites 622 of 682 | Medium | Would read as fresh for all 682 |
+| **C** — emit the cache mtime into the payload | **No** — the mtime is the write time, and the cache pass rewrites 622 of 681 | Medium | Would read as fresh for all 681 |
 | **D** — omit the column | n/a | None | Loses nothing — the set is empty |
 
 **Option D is now the only one with something to deliver.** B is correct and free, but a
-column that is empty for all 682 projects is a column with no information. The
+column that is empty for all 681 projects is a column with no information. The
 recommendation has moved from B to D, and the reason is a measurement, not a preference.
 
 **The 60 need a different question.** They carry a city case id and no national link.
@@ -485,7 +485,7 @@ Measured in Chrome against the live site, `https://happypig.github.io/urTPE/view
 dispatching real `input` events against the `#filter` element and forcing layout with
 `list.offsetHeight` so paint cost is included.
 
-**Re-measured 2026-11-09 on the 682-project payload**, so the figures below are the
+**Re-measured 2026-11-10 on the 681-project payload**, so the figures below are the
 current ones. The method changed in one way that matters: the queries are now measured
 **interleaved** — each round measures every query in turn — so a drift in the machine's
 load hits all of them alike. Measuring one query to completion and then the next lets
@@ -495,16 +495,16 @@ load drift masquerade as a difference between queries.
 
 | Query | Rows built | Median (ms) | p75 (ms) | Max (ms) |
 | --- | --- | --- | --- | --- |
-| `zzzzz` | 1 (the empty-state row) | 5.8 | 8.4 | 75.8 |
-| `大安區通化段四` | 2 | 1.7 | 2.4 | 16.2 |
-| `大安區` | 86 | 13.0 | 16.9 | 70.7 |
-| (empty) | 682 | **107.3** | 146.5 | 763.4 |
+| `zzzzz` | 1 (the empty-state row) | 5.9 | 7.4 | 11.6 |
+| `大安區通化段四` | 2 | 1.7 | 2.2 | 5.2 |
+| `大安區` | 86 | 13.0 | 14.4 | 19.2 |
+| (empty) | 681 | **110.0** | 117.8 | 134.0 |
 
 Medians of 25 interleaved rounds after 5 warm-up rounds.
 
 **The absolute numbers move with the machine's load.** A separate non-interleaved run
 on the same payload and the same browser measured the full render at 294 ms, and
-another at 344 ms — the same code, the same 682 rows, three different figures. The
+another at 344 ms — the same code, the same rows, three different figures. The
 **ratio** is the finding, and it is stable: a full render costs about 8× what the
 86-row render costs, and about 60× what the 2-row render costs. **Quote the shape,
 not the milliseconds, unless the number was measured on the machine that will show
@@ -514,11 +514,11 @@ it.**
 
 | Step | Time |
 | --- | --- |
-| Build and insert 682 DOM rows | 96 ms |
-| **Force layout and paint** | **765 ms** |
+| Build and insert 681 DOM rows | 17 ms |
+| **Force layout and paint** | **63 ms** |
 
-`list.scrollHeight` is **34,294 px** against a `list.clientHeight` of 920 px. The
-browser does not virtualize, so it paints all 682 rows and discards most of them
+`list.scrollHeight` is **34,243 px** against a `list.clientHeight` of 920 px. The
+browser does not virtualize, so it paints all 681 rows and discards most of them
 off-screen. **Paint is the cost, not JavaScript.**
 
 The split varies between runs — one instrumented run measured 66 ms of build-and-insert
@@ -529,9 +529,9 @@ lay out.
 
 ### 6.3 Typing costs less than one full render
 
-Typing `大安區通化段` one character at a time costs 263.5 ms for 6 keystrokes, against
-a full 682-row render. **Typing costs less than one full render**, because each
-keystroke narrows the list and so renders fewer rows.
+Typing `大安區通化段` one character at a time costs 22.6 ms for 6 keystrokes, against
+a full 681-row render at 110 ms. **Typing costs less than one full render**, because
+each keystroke narrows the list and so renders fewer rows.
 
 **This is why a debounce is a weaker win than it first appears.** The cost tracks the
 row count. As the reader types, the list narrows, so most keystrokes render *fewer*
@@ -892,10 +892,9 @@ caught by the other session. §14.0.2 carries all six.
   archived openspec change. The status table in that file still reads "design settled"
   and "ready" for several of them, which is stale. New UI work goes in as **§9 onward**;
   the file is append-only and entries must not be inserted above §8.
-- **Deploy state as of 2026-11-06: all 4 artifacts FRESH.** The live site carries the
-  settled 682-project payload. The §6 performance figures were measured on the
-  681-project payload; the corpus has since gained one project, and the viewer's
-  render path grew by 7 lines for a badge. Re-measure before quoting a number.
+- **Deploy state as of 2026-11-10: all 5 artifacts FRESH.** The live site carries the
+  settled 681-project payload. The §6 performance figures were re-measured on that
+  payload on 2026-11-10, so they are current. Re-measure before quoting a number.
 - **The `--from-js` path now carries a partition gate.** A payload missing one node
   used to load as 1,443 members and be written back as a complete dataset. It is
   refused with exit 4 now. This matters for the dashboard: a build script that reads
@@ -910,10 +909,10 @@ caught by the other session. §14.0.2 carries all six.
 Two answers:
 
 1. **The unverified column** — **Option D** (omit it) is the recommendation as of
-   §5.4. Option B is still correct and still free, but it selects 0 of 682 projects, so
+   §5.4. Option B is still correct and still free, but it selects 0 of 681 projects, so
    the column would always read the same. Option C is out: the measurement in §5.2 shows
    the cache mtime is the write time, and the cache pass rewrites 642 of 727 caches
-   without fetching anything. The 60 that carry a city case id but no national link are
+   without fetching anything. The 59 that carry a city case id but no national link are
    a different population and need a different name.
 2. **Part 1 scope** — the six steps in §8.3, or a smaller slice.
 
@@ -942,6 +941,51 @@ which is the better shape.
 
 ## 14. Revision record
 
+### 14.0.0 2026-11-10 — the corpus shrank for the first time, and §3 moved with it
+
+**The project count fell from 682 to 681.** The 萬隆519 merge joined two projects into
+one, on a `confirm_merge` entry the user authorized and another session appended to the
+corrections ledger. The payload was re-emitted from the 2026-10-28 gazette at
+`generated_at 2026-11-10T03:33:36+08:00`, blob `352c9add7`.
+
+Every figure in §3 and §4 that read the merged project moved. The rule did not change
+in any of them — the population did.
+
+| Figure | Was (682) | Now (681) | Why |
+| --- | --- | --- | --- |
+| 核定 ever reached (§3.1) | 681 | **680** | The merged pair counts once |
+| 建照 ever reached (§3.1) | 534 | **533** | One of the pair had no 建照 |
+| 開工 ever reached (§3.1) | 510 | **509** | One of the pair had no 開工 |
+| 使照 ever reached (§3.1) | 334 | **333** | One of the pair had no 使照 |
+| 核定 stands here (§3.1) | 147 | **147** | Unchanged |
+| 使照 stands here (§3.1) | 283 | **282** | The merged project's 使照 date moved to its partner's |
+| 開工 median wait (§3.1) | 1,120 | **1,134** | The pair's two 開工 dates are now one project's two dates |
+| 使照 median wait (§3.1) | 2,014 | **2,022** | Same reason |
+| 核定→建照 median (§3.2) | 330 | **329** | The pair's 核定 date moved to its partner's |
+| 開工→使照 median (§3.2) | 1,169 | **1,166** | Same reason |
+| 事業計畫 track (§3.3) | 263 | **262** | One of the pair sat on this track |
+| 文山區 projects (§3.4) | 50 | **49** | The merge is a 文山區 project |
+| Awaiting approval (§4.1) | 99 | **99** | Unchanged |
+| 資料無國土署頁面 (§4.2) | 60 | **59** | The merged project held a national link; its partner did not |
+| Awaiting share (§4.1) | 15% | **15%** | Unchanged at 99 of 681 |
+
+**Two figures were stale before this change, and this change exposed them.** §3.1's
+開工 and 使照 rows carried the medians from the **older** payload while the rest of the
+table carried the newer ones. `scripts/probe_wait_date_rule.py` prints the row's n and
+both readings beside the document's figure, and it marked both rows as neither
+earliest nor latest — a mismatch, not a match. The table was a mixture of two
+revisions. It is now one revision, and every row reproduces.
+
+**§6 was re-measured, not relabelled.** The performance figures were taken on the live
+site on 2026-11-10, against the 681-row payload the site now serves. The medians held:
+the full render moved from 107.3 ms to 110.0 ms, and the 86-row render held at 13.0 ms.
+The build-versus-layout split was measured again with the same method: 17 ms of
+build-and-insert against 63 ms of forced layout.
+
+**One figure held and one did not.** `list.scrollHeight` moved 34,294 px → 34,243 px,
+a 51 px change from one fewer row. The awaiting count held at 99, and the payload and
+the cache layer still agree exactly.
+
 ### 14.0.1 2026-11-09 — the unverified set emptied, and §4 moved with it
 
 **The 6 unverified projects are now 0, and the awaiting count is now 99.** The
@@ -969,6 +1013,11 @@ re-measurement is in §3's tables, and `scripts/probe_dashboard_durations.py` an
 `scripts/probe_dashboard_by_district.py` print each table at the current payload and at
 the revisions this document cites, so a moved figure can be told from a rule that was
 always this.
+
+**`scripts/probe_doc_figures.py` checks this document against itself.** It parses §3.1,
+§3.2, §3.4, §4.1 and §4.2 out of this file and compares every cell with the value the
+probes measure at HEAD. It exits 1 when a figure does not reproduce. Run it after any
+re-measurement, and before quoting a figure from here.
 
 **One rule in §3 was never stated, and it is not what Appendix A says.** The 核定 row's
 "median days waiting" uses the **latest** of 核定日期 / 權變核定日期 / 概要核准日期. The

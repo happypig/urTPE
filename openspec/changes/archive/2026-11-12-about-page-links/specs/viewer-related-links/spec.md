@@ -41,11 +41,12 @@ link, with the page's other site links to its left.
 - **THEN** it carries a link labelled 歷次公報差異 to the release-diff report
 - **AND** the link's target is a relative path to the report
 
-#### Scenario: The report links back to the about page
+#### Scenario: The report links back to the viewer
 
 - **WHEN** the release-diff report is opened
 - **THEN** it carries a 關於 link at its header's right edge
 - **AND** the link's target is a relative path to the about page
+- **AND** the about page links the viewer's index, so the viewer stays one hop away
 - **AND** the report carries no direct 回專案歷史圖 link
 
 #### Scenario: The documentation pages carry the link

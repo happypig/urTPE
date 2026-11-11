@@ -25,15 +25,13 @@
   (`An undated approval row in a dated cluster interleaves by its own event key`;
   `Every cacheable reference carries the version`).
 
-## 3. Validation and archive
-
 - [x] 3.1 Run `openspec validate sync-specs-to-s41-fixes` — require zero errors.
-- [ ] 3.2 Archive on the real tree and commit:
+- [x] 3.2 Archive on the real tree and commit:
   `openspec: archive sync-specs-to-s41-fixes and sync its four spec deltas`.
-- [ ] 3.3 Run the full suite (`python -m pytest`) and `node scripts/viewer_smoke.js`;
+- [x] 3.3 Run the full suite (`python -m pytest`) and `node scripts/viewer_smoke.js`;
   both green before push. No viewer file changes, so no re-emit or cache write —
   no lock check needed, but confirm `data/.pipeline.lock` is absent anyway before
-  committing.
+  committing. *(1180 passed / 1 skipped; smoke all green; lock absent)*
 
 ## 4. Deploy check
 

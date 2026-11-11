@@ -13,9 +13,11 @@ that protects it. The domain rules behind the stages live in
 `openspec/config.yaml`; the companion docs are `docs/cli_flow_v2.md` (CLI flow
 and link discovery) and `docs/domain_model.md` (entity model).
 
-Measured on the 2026-10-28 gazette: **1,444 records → 681 projects**, dates
+Measured on the 2026-10-28 gazette: **1,444 records → 680 projects**, dates
 2002-03-21 to 2026-10-28, calendar mixed (Gregorian), 321 nodes flagged for
-review, 13 auto-fixes applied.
+review, 13 auto-fixes applied. (Re-measured 2026-11-12; the ledger merges —
+萬隆519, 河堤399 — moved the project count from 682 to 680. The rule did not
+change; the population did.)
 
 ---
 
@@ -257,8 +259,8 @@ Entry kinds:
 Entries are only ever appended. Fixing a wrong correction means appending
 one that supersedes it (`supersedes`), which keeps the history. Applied,
 unmatched and superseded entries are all named in the run report. Measured
-2026-11-10: 3 effective entries (吉林676 land_count + two confirmed merges,
-including 萬隆519).
+2026-11-12: 4 effective entries (吉林676 land_count + three confirmed merges:
+吉林676, 萬隆519, 河堤399).
 
 The ledger runs **before** the tripwire report and the census gate, because
 both must speak about the partition that is actually emitted (`urtpe/cli.py:388`).
@@ -308,7 +310,7 @@ A violation exits 4 and nothing is written.
 
 ## 7. Link discovery (stage 6, `--links`) — `urtpe/links.py`
 
-The largest module (4,400 lines, both portal adapters). `--links` is
+The largest module (4,450 lines, both portal adapters). `--links` is
 recommended and advisory by design (D5); the default path runs without it and
 the emission-fault check then names the absence. Discovery runs against the
 merged families, before the graph document is built.
@@ -336,7 +338,7 @@ Per project, keyed on the anchor's land core:
 4. **Status** — `resolved` (city case ids + milestones) / `resolved_no_city`
    / `unresolved` / `error`. Results land in `crawl_log.tsv`.
 
-Attachment (`attach_links_to_projects`, `urtpe/links.py:3908`) writes
+Attachment (`attach_links_to_projects`, `urtpe/links.py:3919`) writes
 project-level `links` onto each Project: `twur`, `taipei` (sorted case ids),
 `milestones_national`, `milestones_taipei`, plus per-case dicts
 (`case_milestones`, `milestones_source`, `case_schedules`, `superseded_by`,
@@ -407,7 +409,7 @@ and emits schema v2:
 {
   "schema_version": 2,
   "generated_at": "...", "source": "...", "published_date": "2026-10-28",
-  "counts": {"projects": 681, "records": 1444},
+  "counts": {"projects": 680, "records": 1444},
   "projects": [ <project graph>, ... ]
 }
 ```
@@ -445,8 +447,8 @@ Artifacts written across a full run:
 | `viewer/projects.data.js` | `viewer.write_projects_js` | `window.PROJECTS = {…};` — the viewer's only data input |
 
 A run against the repo's own tree refreshes `viewer/` even without `--viewer`
-(`urtpe/cli.py:706`). Note the ~23 MB diff: `projects.json` (13 MB),
-`projects.data.js` (9.8 MB) and the three TSVs are tracked; stage deliberately.
+(`urtpe/cli.py:706`). Note the ~24 MB diff: `projects.json` (12.4 MB),
+`projects.data.js` (9.3 MB) and the three TSVs are tracked; stage deliberately.
 
 ---
 
@@ -463,8 +465,8 @@ verifies the file on disk carries this run's `published_date` and `counts`.
 
 ### Page structure
 
-- `<header>` — title, link to the release-diff report, meta line
-  (`681 個專案 / 1444 筆記錄 · 統計至 2026-10-28`), search box (`#filter`).
+- `<header>` — title, links to the dashboard and the 關於 page, meta line
+  (`680 個專案 / 1444 筆記錄 · 統計至 2026-10-28`), search box (`#filter`).
 - `#filters` — four dropdown dimensions: 地區 (district), 年度 (year),
   事業種類 (track), 計畫與執行 (construction stage: 建照/開工/使照/已失效/
   自行撤回/已駁回 + tracks).
@@ -497,7 +499,7 @@ Badges per node:
 
 ### Milestone cards
 
-`renderMilestones` (`viewer/app.js:681`) renders two `<details>` cards:
+`renderMilestones` (`viewer/app.js:684`) renders two `<details>` cards:
 推動歷程 (國土署) from `links.milestones_national`, and 階段辦理過程 (台北市)
 from `links.milestones_taipei` — or a placeholder with a portal link when the
 city data is absent but `twur` exists. 執行階段 (implementation) and 獎勵資料
@@ -509,7 +511,7 @@ Essential columns first (recno, date, stage, track, is_current, case_name,
 land, section, implementer, planner, **review_flags**, **auto_fixes**,
 **recovery**), full columns on expand (parcels, aliases, counts, anchor,
 area_section). Recovered rows render provenance badges: 復原, 部分清單,
-修正…, A/B併案, 日期±1, and the memo disagreement badge (`viewer/app.js:1436`).
+修正…, A/B併案, 日期±1, and the memo disagreement badge (`viewer/app.js:1495`).
 
 ### Publishing
 
@@ -546,5 +548,5 @@ Rules that outlast any single run:
 - The ledger, not a dated script, is where manual corrections go.
 - `data/.link_cache/` is durable state — five backup dirs from past incidents
   exist because it was once lost. Do not delete it casually.
-- Tests: `python -m pytest` (1,178 collected; one deliberate skip at
+- Tests: `python -m pytest` (1,231 collected; one deliberate skip at
   `tests/test_idempotent_flags.py:117`).

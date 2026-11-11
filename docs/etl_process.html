@@ -11,7 +11,8 @@
 
   Self-contained: no external requests, no CDN, opens offline from file:// like
   the viewer and docs/domain-model.html. Measured figures were taken from the
-  2026-10-28 gazette emission on 2026-11-10.
+  2026-10-28 gazette emission on 2026-11-12 (680 projects, after the 萬隆519
+  and 河堤399 ledger merges).
 -->
 <style>
   :root{
@@ -233,7 +234,7 @@
       Prose source of truth: <a href="etl_process.md"><code>docs/etl_process.md</code></a> ·
       Companion pages: <a href="domain-model.html">domain model</a> ·
       <a href="release-diff.html">release-diff report</a>.
-      Measured on the 2026-10-28 gazette: <strong>1,444 records → 681 projects</strong>,
+      Measured on the 2026-10-28 gazette: <strong>1,444 records → 680 projects</strong>,
       2002-03-21 → 2026-10-28.
       <a href="../viewer/about.html" style="float:right;color:var(--acq);font-size:13px;text-decoration:none;border-bottom:1px solid currentColor">關於</a></p>
   </div>
@@ -276,7 +277,7 @@
       <div class="who">Ledger<span class="mod">urtpe/ledger.py</span></div>
       <div class="what">Append-only manual corrections, keyed on land core + approval date,
         applied on every ingest.
-        <span class="out">→ corrected CleanRecords (3 entries live)</span></div>
+        <span class="out">→ corrected CleanRecords (4 entries live)</span></div>
     </div>
     <div class="stage s-mrg">
       <div class="rail"><div class="dot">5</div><div class="bar"></div></div>
@@ -481,7 +482,7 @@
 <!-- ============================================================= -->
 <section>
   <h2><span class="n">5</span>Links — the durable cache, not the network, is the state</h2>
-  <p class="lead"><code>urtpe/links.py</code> (4,400 lines, both portal adapters) runs
+  <p class="lead"><code>urtpe/links.py</code> (4,450 lines, both portal adapters) runs
     cache-first: a <code>result.json</code> hit means zero HTTP calls for that project.
     <code>--links</code> is recommended and advisory by design (D5).</p>
   <table>
@@ -578,7 +579,7 @@
   <pre><code>{
   "schema_version": 2,
   "generated_at": "…", "source": "…", "published_date": "2026-10-28",
-  "counts": { "projects": 681, "records": 1444 },
+  "counts": { "projects": 680, "records": 1444 },
   "projects": [
     { "project_id": "中山區-中山段一小段-246地號等2筆",
       "anchor_recno": 785,
@@ -589,15 +590,15 @@
                   "milestones_national": {…}, "milestones_taipei": {…} } } ] }</code></pre>
 
   <div class="art">
-    <div class="h">Artifacts written across a full run (tracked; a run produces a ~23 MB diff)</div>
+    <div class="h">Artifacts written across a full run (tracked; a run produces a ~24 MB diff)</div>
     <div class="artgrid">
-      <div class="file"><span><code>data/raw.tsv</code> — every row verbatim + parse_error</span><span class="sz">563 KB</span></div>
-      <div class="file"><span><code>data/clean.tsv</code> — 24 columns, all derived fields</span><span class="sz">983 KB</span></div>
+      <div class="file"><span><code>data/raw.tsv</code> — every row verbatim + parse_error</span><span class="sz">550 KB</span></div>
+      <div class="file"><span><code>data/clean.tsv</code> — 24 columns, all derived fields</span><span class="sz">959 KB</span></div>
       <div class="file"><span><code>data/merged.tsv</code> — clean + project_id + is_current</span><span class="sz">1.0 MB</span></div>
       <div class="file"><span><code>data/projects.json</code> — the full graph document</span><span class="sz">13 MB</span></div>
       <div class="file"><span><code>data/review_report.txt</code> — tripwire, reconcile, ledger, flags</span><span class="sz">small</span></div>
-      <div class="file"><span><code>data/crawl_log.tsv</code> — per-project discovery status</span><span class="sz">734 KB</span></div>
-      <div class="file"><span><code>viewer/projects.data.js</code> — <code>window.PROJECTS</code></span><span class="sz">9.8 MB</span></div>
+      <div class="file"><span><code>data/crawl_log.tsv</code> — per-project discovery status</span><span class="sz">714 KB</span></div>
+      <div class="file"><span><code>viewer/projects.data.js</code> — <code>window.PROJECTS</code></span><span class="sz">9.3 MB</span></div>
       <div class="file"><span><code>viewer/index.html</code> — <code>?v=</code> rewritten from the dataset</span><span class="sz">small</span></div>
     </div>
   </div>
@@ -613,8 +614,9 @@
   <div class="viewer">
     <div class="vhead">
       <span class="vtitle">臺北市都市更新核定案件 · 專案歷史圖</span>
-      <a href="release-diff.html" style="color:var(--acq);font-size:11.5px">歷次公報差異</a>
-      <span class="vmeta">681 個專案 / 1444 筆記錄 · 統計至 2026-10-28</span>
+      <a href="dashboard.html" style="color:var(--acq);font-size:11.5px">政策儀表板</a>
+      <a href="about.html" style="color:var(--acq);font-size:11.5px">關於</a>
+      <span class="vmeta">680 個專案 / 1444 筆記錄 · 統計至 2026-10-28</span>
       <span class="vsearch">搜尋專案（地號、行政區、實施者…）</span>
     </div>
     <div class="vfilters">
@@ -723,7 +725,7 @@
       <tr><td class="num">2.</td><td>Ingest: <code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links</code></td></tr>
       <tr><td class="num">3.</td><td>Read the run output — tripwire PASS, reconcile, ledger, exclusion count.
         Any <code>[CENSUS]</code>/<code>[EMISSION]</code> line names a real defect.</td></tr>
-      <tr><td class="num">4.</td><td>Exit 0 commits the dataset (mind the ~23 MB diff). Exit 2/3/4/5 is a refusal —
+      <tr><td class="num">4.</td><td>Exit 0 commits the dataset (mind the ~24 MB diff). Exit 2/3/4/5 is a refusal —
         diagnose, never bypass with a flag.</td></tr>
       <tr><td class="num">5.</td><td>Push <code>main</code> so Pages serves the new payload; verify with
         <code>python scripts/check_deploy.py</code>.</td></tr>
@@ -735,7 +737,7 @@
     before deleting it) · never key anything durable on 編號 · manual corrections go in
     the ledger, not a dated script · <code>data/.link_cache/</code> is durable state —
     five backup dirs from past incidents exist because it was once lost ·
-    tests: <code>python -m pytest</code> (1,178 collected; one deliberate skip at
+    tests: <code>python -m pytest</code> (1,231 collected; one deliberate skip at
     <code>tests/test_idempotent_flags.py:117</code>).
   </div>
 </section>
@@ -752,7 +754,7 @@
   companion pages <a href="domain-model.html">domain-model.html</a> and
   <a href="release-diff.html">release-diff.html</a>.
   Self-contained — no external requests. Measured figures from the 2026-10-28 gazette
-  emission, 2026-11-10.
+  emission, 2026-11-12.
 </footer>
 
 </body>

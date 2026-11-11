@@ -35,6 +35,6 @@
 
 ## 4. Deploy check
 
-- [ ] 4.1 Push `main` and run `python scripts/check_deploy.py` — all 5 artifacts
+- [x] 4.1 Push `main` and run `python scripts/check_deploy.py` — all 5 artifacts
   FRESH (the spec files are not deployed artifacts; the check guards that the
-  push itself landed).
+  push itself landed). *(remote holds 0e6a3a6; all 5 FRESH)*

@@ -15,6 +15,7 @@
     "viewer/dashboard.html",
     "viewer/dashboard.js",
     "viewer/dashboard.css",
+    "viewer/about.html",
     "docs/release-diff.html"
   ],
   "notes": [

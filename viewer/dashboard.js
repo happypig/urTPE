@@ -21,7 +21,7 @@
   const L = {
     title: ["Taipei urban renewal approved cases · Policy dashboard", "臺北市都市更新核定案件 · 政策儀表板"],
     navViewer: ["Project history", "專案歷史圖"],
-    navDiff: ["Gazette differences", "歷次公報差異"],
+    navAbout: ["About", "關於"],
     loadFail: ["Could not load projects.data.js.", "無法載入 projects.data.js。"],
     city: ["Taipei City", "臺北市"],
     allDistricts: ["All districts", "全部行政區"],
@@ -504,6 +504,8 @@
     document.title = t("title");
     document.getElementById("title").textContent = t("title");
     document.getElementById("nav-viewer").textContent = t("navViewer");
+    const navAbout = document.getElementById("nav-about");
+    if (navAbout) navAbout.textContent = t("navAbout");
     document.querySelectorAll(".lang").forEach((btn) =>
       btn.setAttribute("aria-pressed", String(btn.dataset.lang === state.lang)));
 

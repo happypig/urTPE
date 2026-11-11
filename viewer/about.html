@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>臺北市都市更新核定案件 · 關於本站</title>
+<!-- Self-contained by contract (tests/test_about_page.py): no script, no
+     stylesheet file, no image — the palette is inline, so the page renders
+     from file:// with the network off, like the viewer's other pages.
+     Inline styles, not a shared .css, so there is no cache-bust entry and
+     nothing for urtpe/viewer.py to rewrite. -->
+<style>
+  :root {
+    --bg: #fff8f4;
+    --panel: #ffffff;
+    --ink: #211d1d;
+    --muted: #686362;
+    --line: #f3d9bf;
+    --accent: #ad4d2a;
+    --tint: #fff1e8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Instrument Sans", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.7;
+  }
+  header {
+    padding: 14px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 12px 16px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 20px; font-weight: 800; margin: 0; }
+  .navlink {
+    color: var(--accent);
+    font-size: 13px;
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 12px;
+    white-space: nowrap;
+  }
+  .navlink:hover { border-color: var(--accent); }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 28px 16px 56px;
+  }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 0 0 20px;
+  }
+  h2 {
+    font-size: 17px;
+    font-weight: 800;
+    margin: 0 0 10px;
+    padding: 0 6px;
+    display: inline-block;
+    background: linear-gradient(transparent 58%, #fde272 58%);
+  }
+  p { margin: 0 0 10px; font-size: 14.5px; }
+  p:last-child { margin-bottom: 0; }
+  .muted { color: var(--muted); font-size: 13px; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    background: var(--tint);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  a { color: var(--accent); }
+  a.ext::after { content: " ↗"; font-size: 11px; }
+  ul { margin: 0 0 10px; padding-left: 1.3em; }
+  li { margin: 4px 0; font-size: 14.5px; }
+  .license {
+    border-left: 4px solid var(--accent);
+    background: var(--tint);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  @media (max-width: 600px) {
+    main { padding: 18px 12px 40px; }
+    section { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>臺北市都市更新核定案件 · 關於本站</h1>
+  <a class="navlink" href="index.html">專案歷史圖</a>
+  <a class="navlink" href="dashboard.html">政策儀表板</a>
+</header>
+<main>
+
+<section id="license">
+  <h2>授權</h2>
+  <p class="license">本站（各頁面與其產出資料集）採用 <a class="ext" rel="noopener" target="_blank" href="https://creativecommons.org/licenses/by/4.0/deed.zh_TW">CC BY 4.0</a> 授權，使用時請註明來源。</p>
+  <p class="muted">政府上游資料（公報 PDF 與兩個入口網站的內容）依各機關自己的授權規定辦理，不在本站授權範圍內；引用時請一併確認原機關的條款。</p>
+</section>
+
+<section id="sources">
+  <h2>資料來源與處理</h2>
+  <ul>
+    <li><b>公報 PDF</b>：臺北市政府地政更新處發布的「臺北市都市更新核定案件一覽表」，約每週至每月發布一次，本站逐期封存。</li>
+    <li><b>臺北市平台</b>（<code>gis.uro.taipei</code>）：個案審議過程、建造執照與實施情形。</li>
+    <li><b>內政部國土管理署入口網</b>（<code>twur.nlma.gov.tw</code>）：推動歷程與專案彙整頁。</li>
+  </ul>
+  <p>處理流程：從公報 PDF 的表格逐格讀出原始欄位，清洗已知錯字與日期格式；同一更新單元多次核定的紀錄，以文字相似度合併為一個專案；再向兩個入口網站補齊審議里程碑。讀不出來或出版端截斷的紀錄一律<b>排除並具名列出</b>，不以推測補值，因此短少的公報不會被誤讀為完整的一期。</p>
+  <p>產出是每個專案一張歷史圖（核定、變更、開工、使用執照等節點依時間排列），專案歷史圖與政策儀表板兩個頁面都由這份資料即時運算。完整流程見 <a href="../docs/etl_process.html">ETL 流程說明</a>。</p>
+</section>
+
+<section id="trust">
+  <h2>資料可信度</h2>
+  <p><a href="../docs/release-diff.html">歷次公報差異</a>說明各期公報之間專案總數為什麼不同（新增、排除與合併），每一期都由封存的 PDF 重新讀取比對，不是抄錄前次結果。</p>
+  <p><a href="../docs/coverage-report.html">資料覆蓋度報告</a>驗證三件事：沒有專案完全不在兩份官方名單上、每筆紀錄恰好屬於一個專案（分割完整且不重複）、每個案件編號都對應到歷史圖上的節點。沒有對應的少數節點全部具名並附旗標說明。</p>
+  <p>本站的政策儀表板（停滯案件、審議時間、安置需求、公有地分布）為 <a class="ext" rel="noopener" target="_blank" href="https://puma.taipei/policies/%E9%83%BD%E6%9B%B4%E6%94%BF%E7%AD%96">PUMA 都更政策</a>與 <a class="ext" rel="noopener" target="_blank" href="https://puma.taipei/policies/%E4%BD%8F%E5%AE%85%E6%94%BF%E7%AD%96?pillar=h">住宅政策</a>提供資料基礎；頁面上的數字定義與限制（例如「停滯」的認定門檻）都寫在儀表板本身的「定義與限制」一節。</p>
+</section>
+
+<section id="contact">
+  <h2>聯絡</h2>
+  <p>問題、勘誤或建議，請透過 <a class="ext" rel="noopener" target="_blank" href="https://www.threads.com/@twhappypig">Threads ＠twhappypig</a> 聯絡。</p>
+</section>
+
+<p class="muted" style="text-align:center; margin-top:8px">資料統計至各期公報的「統計至」日期；本頁由維護者手寫，各報告頁由程式定期重新產生。</p>
+
+</main>
+</body>
+</html>

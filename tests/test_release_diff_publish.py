@@ -53,30 +53,34 @@ def test_the_report_links_back_to_the_viewer():
     assert (REPORT.parent / href).resolve() == VIEWER_INDEX.resolve()
 
 
-def test_the_viewer_header_links_to_the_report():
+def test_the_viewer_header_links_to_the_about_page():
     """In the markup, not added by script: a reader who lands on a payload
-    that fails to load can still reach the report.
-
-    The header carries more than one navlink now — the policy dashboard
-    joined it — so the report is found by its target, not by being first.
-    """
+    that fails to load can still reach the about page, and through it the
+    report. The header's direct report link moved to the about page when the
+    關於 page replaced it (openspec: about-page)."""
     html = VIEWER_INDEX.read_text(encoding="utf-8")
     links = re.findall(r'<a class="navlink" href="([^"]+)">([^<]*)</a>', html)
-    assert links, "the viewer's header carries no links"
+    about_links = [(h, t) for h, t in links if h == "about.html"]
+    assert about_links, (
+        "the viewer's header carries no 關於 link; it carries %r" % (links,))
+    href = about_links[0][0]
+    assert (VIEWER_INDEX.parent / href).resolve() == (ROOT / "viewer" / "about.html").resolve()
+
+
+def test_the_about_page_links_to_the_report():
+    """The report is still reachable from the site, one hop through the about
+    page: a relative path, labelled the way a reader would look for it."""
+    about = ROOT / "viewer" / "about.html"
+    if not about.exists():
+        pytest.fail("viewer/about.html does not exist")
+    html = about.read_text(encoding="utf-8")
+    links = re.findall(r'<a[^>]+href="([^"]+)"[^>]*>([^<]*)</a>', html)
     report_links = [(h, t) for h, t in links if h == "../docs/release-diff.html"]
     assert report_links, (
-        "the viewer's header carries no link to the release-diff report; "
-        "it carries %r" % (links,))
-    href = report_links[0][0]
-    assert (VIEWER_INDEX.parent / href).resolve() == REPORT.resolve()
-
-
-def test_the_viewer_link_label_is_the_one_a_reader_would_look_for():
-    html = VIEWER_INDEX.read_text(encoding="utf-8")
-    links = re.findall(r'<a class="navlink" href="([^"]+)">([^<]*)</a>', html)
-    labels = [t for h, t in links if h == "../docs/release-diff.html"]
-    assert labels, "the report link carries no label; the header has %r" % (links,)
-    assert labels[0] == "歷次公報差異"
+        "the about page carries no link to the release-diff report; "
+        "it links %r" % (links,))
+    assert report_links[0][1] == "歷次公報差異"
+    assert (about.parent / report_links[0][0]).resolve() == REPORT.resolve()
 
 
 # --- the report is self-contained --------------------------------------------
@@ -109,9 +113,15 @@ def test_the_report_is_listed_as_a_deploy_artifact():
     """Otherwise its served bytes are never compared against the committed
     build, and it can serve superseded content while every check passes."""
     data = json.loads(DEPLOY.read_text(encoding="utf-8"))
-    assert "docs/release-diff.html" in data["artifacts"], (
-        "the release-diff report is not listed among the deploy artifacts; "
-        "the deployment check does not cover it")
+    expected = ["viewer/index.html", "viewer/about.html",
+                "viewer/app.js", "viewer/app.css",
+                "viewer/projects.data.js", "viewer/dashboard.html",
+                "viewer/dashboard.js", "viewer/dashboard.css",
+                "docs/release-diff.html"]
+    for path in expected:
+        assert path in data["artifacts"], (
+            "%r is published but the deploy record does not name it; its "
+            "served bytes are never checked" % path)
 
 
 def test_every_deploy_artifact_is_tracked():

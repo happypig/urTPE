@@ -102,6 +102,78 @@ def test_the_etl_abstract_states_the_flow(about):
         "the abstract does not say how repeat approvals become one project")
 
 
+# --- the corpus's scope (about-page-scope) -----------------------------------
+
+def _scope_sentence(html: str) -> str:
+    """The 資料範圍 paragraph, tags stripped. The sentence pairs the
+    approved-only corpus with the in-review applications, so a naive
+    核定.*報核 regex would also hit the flow paragraph; anchor on the
+    paragraph's own label instead."""
+    m = re.search(r"資料範圍[^<]*(?:<[^>]+>[^<]*)*?(。)", html)
+    if not m:
+        return ""
+    start = html.find("資料範圍")
+    end = html.find("</p>", start)
+    return re.sub(r"<[^>]+>", "", html[start:end])
+
+
+def test_the_scope_statement_says_approved_only():
+    """A reader who opens the national statistics table sees 433 報核中 and
+    asks why this site shows fewer. The answer — the graph holds approved
+    cases only, the in-review pool is absent by design — must sit in the
+    section that names the corpus, not in a footnote."""
+    html = ABOUT.read_text(encoding="utf-8")
+    sentence = _scope_sentence(html)
+    assert sentence, "the page carries no 資料範圍 paragraph"
+    assert re.search(r"只(收|納)|僅(收|納|限)|只.*已核定", sentence), (
+        "the scope paragraph does not say the corpus is approved-only: %r"
+        % sentence)
+    assert re.search(r"報核中|審查中|審議中", sentence), (
+        "the scope paragraph does not name the in-review pool: %r" % sentence)
+    assert re.search(r"(本來就)?不在(其|當)?中|不是缺漏|並未缺席|依.{0,4}定義", sentence), (
+        "the scope paragraph does not say the in-review pool is absent by "
+        "design: %r" % sentence)
+
+
+def test_the_scope_statement_links_both_official_statistics_pages():
+    """The two figures a reader could compare against, each linked to the
+    page it is read from. A number without its source is a rumour."""
+    html = ABOUT.read_text(encoding="utf-8")
+    links = re.findall(r'href="(https://uro\.gov\.taipei/[^"]+)"', html)
+    assert links, "the city's 推動成果 statistics page is not linked"
+    assert any("B649EEAA7A7E35DB" in l for l in links), (
+        "the city's statistics page (News_Content.aspx) is not linked")
+    national = re.findall(r'href="(https://twur\.nlma\.gov\.tw/[^"]+)"', html)
+    assert any("statistics/view/7" in l for l in national), (
+        "the national statistics table (view/7) is not linked")
+
+
+def test_the_scope_statement_dates_each_official_figure():
+    """The official pages move. The city's 報核/核定 totals and the national
+    報核中 count must each carry the snapshot they name, or a reader reads a
+    moving target as a contradiction."""
+    html = ABOUT.read_text(encoding="utf-8")
+    text = re.sub(r"<[^>]+>", "", html)
+    assert re.search(r"1,?480", text), "the city's 1,480 報核 figure is absent"
+    assert re.search(r"630", text), "the city's 630 核定實施 figure is absent"
+    assert re.search(r"433", text), "the national 報核中 figure is absent"
+    assert re.search(r"統計至\s*2026/09/30", text), (
+        "the national figure carries no snapshot date")
+
+
+def test_the_scope_statement_does_not_hand_copy_the_sites_own_count():
+    """The site's count moves with every gazette. The scope paragraph names
+    the corpus's rule and the official pools' snapshots; the site's own
+    moving figures stay where the pages compute them (the meta line, the
+    dashboard), so this paragraph cannot go stale against the payload."""
+    html = ABOUT.read_text(encoding="utf-8")
+    sentence = _scope_sentence(html)
+    assert sentence, "the scope paragraph is missing"
+    assert not re.search(r"680|1,?444", sentence), (
+        "the scope paragraph hand-copies the site's own count, which moves "
+        "with the next gazette: %r" % sentence)
+
+
 def test_the_truncated_record_rule_is_stated(about):
     """The rule that keeps a short gazette from reading as a complete one:
     excluded and named, never repaired by inference."""

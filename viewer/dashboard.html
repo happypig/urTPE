@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>臺北市都市更新核定案件 · 政策儀表板</title>
+<!-- Latin text and figures only; Chinese falls back to the system font.
+     The page still works offline without it. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<header>
+  <h1 id="title">臺北市都市更新核定案件 · 政策儀表板</h1>
+  <a class="navlink" id="nav-viewer" href="index.html">專案歷史圖</a>
+  <div class="meta" id="meta"></div>
+</header>
+<main id="app">
+  <p class="empty">載入中…</p>
+</main>
+<!-- dashboard.js loads projects.data.js itself, with the same ?v= that
+     index.html names, so this page never pairs with a stale cached dataset
+     and the pipeline's cache-bust rewrite needs no change. -->
+<script src="dashboard.js"></script>
+</body>
+</html>

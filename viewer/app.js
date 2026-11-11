@@ -1620,6 +1620,26 @@ function init() {
   filter.addEventListener("input", renderList);
   renderList();
 
+  // Deep link: index.html#project=<project_id> opens that project's graph.
+  // The policy dashboard (dashboard.html) links its table rows here. Read-only:
+  // clicking an item in the list does not rewrite the hash.
+  function openFromHash() {
+    let pid = "";
+    try { pid = new URLSearchParams(location.hash.replace(/^#/, "")).get("project") || ""; }
+    catch (e) { pid = ""; }
+    if (!pid) return;
+    const p = projects.find(x => x.project_id === pid);
+    if (!p) return;
+    activePid = p.project_id;
+    renderList();
+    renderDetail(p);
+    const active = list.querySelector(".item.active");
+    if (active && active.scrollIntoView) active.scrollIntoView({ block: "center" });
+  }
+  // Guarded: the node test harness stubs window without an event API.
+  if (typeof window.addEventListener === "function") window.addEventListener("hashchange", openFromHash);
+  openFromHash();
+
   // Exposed for the viewer smoke harness so it can recompute layout rects
   // per project without re-clicking every item.
   if (typeof window !== "undefined") window.renderDetail = renderDetail;

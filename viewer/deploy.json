@@ -12,6 +12,9 @@
     "viewer/app.js",
     "viewer/app.css",
     "viewer/projects.data.js",
+    "viewer/dashboard.html",
+    "viewer/dashboard.js",
+    "viewer/dashboard.css",
     "docs/release-diff.html"
   ],
   "notes": [

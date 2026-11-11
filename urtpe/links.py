@@ -3014,6 +3014,15 @@ def schedule_from_top(top_row: dict) -> str:
         return "自行撤回"
     if "失效" in name:
         return "已失效"
+    # revoke-dead-schedule (2026-11-10): the platform marks a withdrawn-by-
+    # government approval with 業經本府撤銷核准. The word is 核准, not 核定,
+    # and holds neither 撤回 nor 駁回 nor 失效, so it fell through every branch
+    # and derived "" — the case rendered stateless and the refresh re-selected
+    # it forever. 7 corpus cases (中山57 09801092/09801094, 正義315 10410211,
+    # 臨沂396 10601181, 溫泉559 09504082, 辛亥277 10010091, 美仁800 09707196);
+    # a revoked approval is never gazetted (inspection-batchD §D9a).
+    if "撤銷" in name:
+        return "已撤銷"
     # refresh-case-status-and-drop-withdrawn-fields D1: a case WAITING for
     # approval (…申請報府核定中) contains 核定 too, so this must precede the
     # approved test — otherwise an in-review case reads 已核准, whose badge the
@@ -3031,7 +3040,9 @@ def schedule_from_top(top_row: dict) -> str:
 
 # Case statuses that close a case without approval: it never gains an approval
 # date, so the awaiting-approval refresh must not keep re-selecting it.
-TERMINAL_SCHEDULES = ("自行撤回", "已駁回", "已失效")
+# 已撤銷 (revoke-dead-schedule, 2026-11-10): approved, then withdrawn by the
+# government — 業經本府撤銷核准; 7 corpus cases.
+TERMINAL_SCHEDULES = ("自行撤回", "已駁回", "已失效", "已撤銷")
 # The city's search list writes an approved case as 已核准 or 已核定 (cache,
 # 2026-11-02: 739 / 14); stages after approval are more specific than either.
 _APPROVED_FAMILY = ("已核准", "已核定")
@@ -3136,7 +3147,7 @@ def _match_case_by_date(member_date: str, disc) -> str:
 # user's rule: every recno has a corresponding city case — find it, never
 # guess by position.
 
-_DEAD_SCHEDULES = ("自行撤回", "已駁回", "已失效")
+_DEAD_SCHEDULES = ("自行撤回", "已駁回", "已失效", "已撤銷")
 # Area suffix on a city case name: -A區 / 北區 / (A區段) / (FridA區段)-like
 # parenthesised 區段 tags. Distinct suffixes across live same-name matches =
 # an area split (吉林508 -A區/-B區, 榮星53 北區/南區 — user rule 2026-11-03).

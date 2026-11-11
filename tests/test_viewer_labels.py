@@ -941,3 +941,26 @@ console.log("ok");
 """
     r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
     assert r.returncode == 0, r.stderr
+
+
+def test_is_dead_end_gains_the_revoked_state():
+    """revoke-dead-schedule (2026-11-10): the platform's revoked state
+    (header 業經本府撤銷核准, 7 corpus cases) is a dead end — the chain-edge
+    refusal, the dead-end badge and the 計畫與執行 dead-end state all read
+    isDeadEnd, so one word here covers them."""
+    import subprocess, json
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    jsn = _js().replace("\r\n", "\n")
+    m = re.search(r"const isDeadEnd = [\s\S]*?;\n", jsn)
+    assert m, "isDeadEnd helper not found"
+    prog = (m.group(0) + """
+for (const [sched, expect] of [["已撤銷", true], ["已失效", true],
+                                ["自行撤回", true], ["已駁回", true],
+                                ["施工中", false], ["已核准", false], ["", false]])
+  if (isDeadEnd(sched) !== expect) throw new Error("isDeadEnd wrong for " + sched);
+console.log("ok");
+""")
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr

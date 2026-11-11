@@ -554,7 +554,10 @@ function fmtDate(text) {
 // D12-BEGIN (add-virtual-node-ordering-and-chain — pure helpers, node-tested)
 // D4b (2026-11-05): isDeadEnd lives inside the block — virtualChainPairs
 // refuses any chain edge that starts at a dead-end schedule.
-const isDeadEnd = s => s === "已失效" || s === "自行撤回" || s === "已駁回";
+// 已撤銷 (revoke-dead-schedule, 2026-11-10): the platform's revoked state
+// (header 業經本府撤銷核准, 7 corpus cases) — approved, then withdrawn by the
+// government. Same dead set as the pipeline's _DEAD_SCHEDULES.
+const isDeadEnd = s => s === "已失效" || s === "自行撤回" || s === "已駁回" || s === "已撤銷";
 // Effective comparison key: real nodes use their ANCHORED case_id
 // (links.taipei[0]); virtual nodes their own case_id; case-less real nodes
 // yield "" (sorts first — "" < any case_id keeps the order strictly ascending).

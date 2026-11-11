@@ -15,35 +15,28 @@
   and 河堤399 ledger merges).
 -->
 <style>
+  /* The site's one design system: the cream palette the dashboard and the
+     viewer share (viewer/app.css, viewer/dashboard.css). Light-only by
+     construction — no dark-mode block (openspec: docs-cream-restyle).
+     The stage dots and the score bar keep their hue roles; the tints below
+     are the cream system's. */
   :root{
-    --ink:#0f172a; --muted:#64748b; --line:#cbd5e1; --bg:#ffffff; --panel:#f8fafc;
-    --acq:#1d4ed8;  --acq-bg:#eff6ff;
-    --ext:#7c3aed;  --ext-bg:#f5f3ff;
-    --cln:#0f766e;  --cln-bg:#f0fdfa;
-    --mrg:#b45309;  --mrg-bg:#fffbeb;
+    --bg:#fff8f4; --panel:#ffffff; --ink:#211d1d; --muted:#686362;
+    --line:#f3d9bf; --accent:#ad4d2a; --tint:#fff1e8; --sun:#fde272;
+    --acq:#ad4d2a;  --acq-bg:#fff1e8;
+    --ext:#9333ea;  --ext-bg:#faf5ff;
+    --cln:#3fae74;  --cln-bg:#f0fdf4;
+    --mrg:#8a5a00;  --mrg-bg:#fdf3dc;
     --lnk:#9333ea;  --lnk-bg:#faf5ff;
     --grf:#0369a1;  --grf-bg:#f0f9ff;
-    --vw:#15803d;   --vw-bg:#f0fdf4;
-    --gate:#b91c1c; --gate-bg:#fef2f2;
-    --ok:#0f766e;   --ok-bg:#f0fdfa;
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --ink:#e2e8f0; --muted:#94a3b8; --line:#334155; --bg:#0b1220; --panel:#111827;
-      --acq:#93c5fd; --acq-bg:#0c1e3d;
-      --ext:#c4b5fd; --ext-bg:#1b1233;
-      --cln:#5eead4; --cln-bg:#0b2b28;
-      --mrg:#fbbf24; --mrg-bg:#2a1f06;
-      --lnk:#d8b4fe; --lnk-bg:#231232;
-      --grf:#7dd3fc; --grf-bg:#082f49;
-      --vw:#86efac;  --vw-bg:#052e16;
-      --gate:#fca5a5;--gate-bg:#2d1010;
-      --ok:#5eead4;  --ok-bg:#0b2b28;
-    }
+    --vw:#3fae74;   --vw-bg:#f0fdf4;
+    --gate:#8e2626; --gate-bg:#fdf0ef;
+    --ok:#3fae74;   --ok-bg:#f0fdf4;
+    --muted-bg:#fdf0e7;
   }
   *{box-sizing:border-box}
   body{margin:0;padding:0 0 64px;background:var(--bg);color:var(--ink);
-       font:15px/1.65 system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif}
+       font:15px/1.65 "Instrument Sans","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
 
   header{background:var(--panel);border-bottom:1px solid var(--line);padding:26px 32px}
   .hwrap{max-width:1180px;margin:0 auto}
@@ -53,14 +46,15 @@
 
   main{max-width:1180px;margin:0 auto;padding:0 32px}
   section{margin-top:42px}
-  h2{font-size:17px;margin:0 0 4px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h2{font-size:17px;margin:0 0 4px;display:inline-block;padding:0 6px;
+     background:linear-gradient(transparent 58%,var(--sun) 58%)}
   h2 .n{color:var(--muted);font-weight:400;margin-right:10px}
   h3{font-size:14.5px;margin:22px 0 8px}
   p{margin:10px 0}
   .lead{color:var(--muted);font-size:13.5px;margin:10px 0 18px;max-width:96ch}
 
   code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
-       background:var(--panel);padding:1px 5px;border-radius:4px}
+       background:var(--tint);padding:1px 5px;border-radius:4px}
   pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;
       padding:12px 14px;overflow-x:auto;font-size:12.5px;line-height:1.5}
   pre code{background:none;padding:0}

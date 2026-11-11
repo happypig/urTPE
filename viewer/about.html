@@ -10,26 +10,17 @@
      Inline styles, not a shared .css, so there is no cache-bust entry and
      nothing for urtpe/viewer.py to rewrite. -->
 <style>
-  /* The docs design system (release-diff.html, coverage-report.html,
-     etl_process.html share it): slate/white ground, hairline borders,
-     --info blue links, tinted rounded cards, a prefers-color-scheme: dark
-     block. Pinned by tests/test_about_page.py so the page cannot drift
-     back to the viewer's cream palette. */
+  /* The site's one design system: the cream palette the dashboard and the
+     viewer share (viewer/app.css, viewer/dashboard.css) — and, since
+     openspec: docs-cream-restyle, the three docs pages too. Light-only by
+     construction; pinned by tests/test_about_page.py. */
   :root {
-    --ink: #0f172a; --muted: #64748b; --line: #cbd5e1;
-    --bg: #ffffff; --panel: #f8fafc;
-    --info: #1d4ed8; --info-bg: #eff6ff;
-    --warn: #b45309; --warn-bg: #fffbeb;
-    --muted-bg: #f1f5f9;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --ink: #e2e8f0; --muted: #94a3b8; --line: #334155;
-      --bg: #0b1220; --panel: #111827;
-      --info: #93c5fd; --info-bg: #0c1e3d;
-      --warn: #fbbf24; --warn-bg: #2a1f06;
-      --muted-bg: #1e293b;
-    }
+    --bg: #fff8f4; --panel: #ffffff;
+    --ink: #211d1d; --muted: #686362;
+    --line: #f3d9bf; --accent: #ad4d2a;
+    --tint: #fff1e8; --sun: #fde272;
+    --warn: #8a5a00; --warn-bg: #fdf3dc;
+    --muted-bg: #fdf0e7;
   }
   * { box-sizing: border-box; }
   body {
@@ -37,7 +28,7 @@
     padding: 0 0 64px;
     background: var(--bg);
     color: var(--ink);
-    font: 15px/1.65 system-ui, -apple-system, "Segoe UI", "Noto Sans TC", sans-serif;
+    font: 15px/1.65 "Instrument Sans", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
   }
   header {
     background: var(--panel);
@@ -50,7 +41,7 @@
   }
   header h1 { font-size: 22px; letter-spacing: .01em; margin: 0 0 6px; }
   .navlink {
-    color: var(--info);
+    color: var(--accent);
     font-size: 13px;
     text-decoration: none;
     border: 1px solid var(--line);
@@ -58,7 +49,7 @@
     padding: 6px 12px;
     white-space: nowrap;
   }
-  .navlink:hover { color: var(--ink); border-color: var(--ink); }
+  .navlink:hover { color: var(--ink); border-color: var(--accent); }
   main {
     max-width: 860px;
     margin: 0 auto;
@@ -67,15 +58,18 @@
   section {
     background: var(--panel);
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-top: 4px solid var(--accent);
+    box-shadow: 6px 6px 0 var(--line);
+    border-radius: 0;
     padding: 14px 16px;
     margin: 28px 0 0;
   }
   h2 {
     font-size: 17px;
     margin: 0 0 4px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid var(--line);
+    display: inline-block;
+    padding: 0 6px;
+    background: linear-gradient(transparent 58%, var(--sun) 58%);
   }
   h2 .n { color: var(--muted); font-weight: 400; margin-right: 10px; }
   p { margin: 10px 0 0; font-size: 14.5px; max-width: 92ch; }
@@ -83,19 +77,19 @@
   code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 12.5px;
-    background: var(--muted-bg);
+    background: var(--tint);
     padding: 1px 5px;
     border-radius: 4px;
   }
-  a { color: var(--info); text-decoration: none; border-bottom: 1px solid currentColor; }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid currentColor; }
   a:hover { color: var(--ink); }
   a.navlink, a.pdf-link { border-bottom: 0; }
   a.ext::after { content: " ↗"; font-size: 11px; }
   ul { margin: 10px 0 0; padding-left: 1.3em; }
   li { margin: 4px 0; font-size: 14.5px; }
   .license {
-    border-left: 4px solid var(--info);
-    background: var(--info-bg);
+    border-left: 4px solid var(--accent);
+    background: var(--tint);
     border-radius: 0 8px 8px 0;
     padding: 10px 14px;
     margin: 12px 0 0;

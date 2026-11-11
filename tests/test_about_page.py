@@ -281,22 +281,32 @@ def test_the_page_makes_no_request_to_render(about):
     assert not re.search(r'@import\s+url\(', about)
 
 
-def test_the_page_uses_the_docs_design_system(about):
-    """One design system across the docs pages and the about page: the slate
-    tokens, the dark-mode block, the docs link colour. The viewer's cream
-    palette (—bg: #fff8f4, terracotta accent) would make the page read as a
-    different site."""
-    assert "#0f172a" in about, "the docs ink token is absent"
-    assert "#cbd5e1" in about, "the docs hairline token is absent"
-    assert "#1d4ed8" in about, "the docs info/link token is absent"
-    assert "prefers-color-scheme: dark" in about, (
-        "the page carries no dark-mode block")
-    dark = re.search(r"prefers-color-scheme:\s*dark\s*\)\s*\{\s*:root\s*\{(.*?)\}", about, re.S)
-    assert dark, "the dark block does not declare"
-    assert "#e2e8f0" in dark.group(1), "the dark ink token is absent"
-    assert "#0b1220" in dark.group(1), "the dark background token is absent"
-    assert "#fff8f4" not in about and "#ad4d2a" not in about, (
-        "the page still carries the viewer's cream/terracotta palette")
+def test_the_page_uses_the_cream_design_system(about):
+    """One design system across every published page: the cream palette the
+    dashboard and the viewer share. The docs pages' slate palette (—ink:
+    #0f172a, hairline #cbd5e1) would make the reports read as a different
+    site, and a dark-mode block would make them the only dark pages on it."""
+    assert "#fff8f4" in about, "the cream ground token is absent"
+    assert "#211d1d" in about, "the cream ink token is absent"
+    assert "#f3d9bf" in about, "the cream hairline token is absent"
+    assert "#ad4d2a" in about, "the cream accent token is absent"
+    assert "#0f172a" not in about and "#cbd5e1" not in about, (
+        "the page still carries the docs pages' slate palette")
+    assert "prefers-color-scheme" not in about, (
+        "the page carries a dark-mode block; the cream system is light-only")
+
+
+def test_the_three_doc_pages_use_the_cream_design_system():
+    """The generators emit the palette, so the pin reads the emitted files:
+    cream tokens in, slate and the dark block out."""
+    for path in ("docs/etl_process.html", "docs/release-diff.html",
+                 "docs/coverage-report.html"):
+        html = (ROOT / path).read_text(encoding="utf-8")
+        assert "#fff8f4" in html, "%s lacks the cream ground token" % path
+        assert "#0f172a" not in html, (
+            "%s still carries the slate ink token" % path)
+        assert "prefers-color-scheme" not in html, (
+            "%s still carries a dark-mode block" % path)
 
 
 # --- the doc pages' back links (about-page-links) -----------------------------

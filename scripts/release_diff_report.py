@@ -385,29 +385,27 @@ def render_html(releases: list[Release], diffs: list, generated_at: str,
   reader at generation time. Nothing is copied from a previous run.
 -->""")
     w("""<style>
+  /* The site's one design system: the cream palette the dashboard and the
+     viewer share (viewer/app.css, viewer/dashboard.css). Light-only by
+     construction — no dark-mode block, or these pages would be the only dark
+     ones on the site (openspec: docs-cream-restyle). */
   :root{
-    --ink:#0f172a; --muted:#64748b; --line:#cbd5e1; --bg:#ffffff; --panel:#f8fafc;
-    --add:#0f766e; --add-bg:#f0fdfa; --drop:#b91c1c; --drop-bg:#fef2f2;
-    --warn:#b45309; --warn-bg:#fffbeb; --info:#1d4ed8; --info-bg:#eff6ff;
-    --muted-bg:#f1f5f9;
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --ink:#e2e8f0; --muted:#94a3b8; --line:#334155; --bg:#0b1220; --panel:#111827;
-      --add:#5eead4; --add-bg:#0b2b28; --drop:#fca5a5; --drop-bg:#2d1010;
-      --warn:#fbbf24; --warn-bg:#2a1f06; --info:#93c5fd; --info-bg:#0c1e3d;
-      --muted-bg:#1e293b;
-    }
+    --bg:#fff8f4; --panel:#ffffff; --ink:#211d1d; --muted:#686362;
+    --line:#f3d9bf; --accent:#ad4d2a; --tint:#fff1e8; --sun:#fde272;
+    --add:#3fae74; --add-bg:#f0fdf4; --drop:#8e2626; --drop-bg:#fdf0ef;
+    --warn:#8a5a00; --warn-bg:#fdf3dc; --info:#ad4d2a; --info-bg:#fff1e8;
+    --muted-bg:#fdf0e7;
   }
   *{box-sizing:border-box}
   body{margin:0;padding:0 0 64px;background:var(--bg);color:var(--ink);
-       font:15px/1.65 system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif}
+       font:15px/1.65 "Instrument Sans","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
   header{background:var(--panel);border-bottom:1px solid var(--line);padding:28px 32px}
   h1{margin:0 0 6px;font-size:22px;letter-spacing:.01em}
   .sub{color:var(--muted);font-size:13px;margin:0;max-width:92ch}
   main{max-width:1240px;margin:0 auto;padding:0 32px}
   section{margin-top:44px}
-  h2{font-size:17px;margin:0 0 4px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h2{font-size:17px;margin:0 0 4px;padding-bottom:8px;display:inline-block;
+     padding:0 6px;background:linear-gradient(transparent 58%,var(--sun) 58%)}
   h2 .n{color:var(--muted);font-weight:400;margin-right:10px}
   h3{font-size:14.5px;margin:22px 0 8px}
   .lead{color:var(--muted);font-size:13.5px;margin:10px 0 18px;max-width:92ch}
@@ -422,12 +420,14 @@ def render_html(releases: list[Release], diffs: list, generated_at: str,
   .drop{color:var(--drop);font-weight:650}
   .zero{color:var(--muted)}
 
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  .card{background:var(--panel);border:1px solid var(--line);
+        border-top:4px solid var(--accent);box-shadow:6px 6px 0 var(--line);
+        border-radius:0;
         padding:14px 16px;margin:12px 0}
-  .card.warn{border-color:var(--warn);background:var(--warn-bg)}
-  .card.stop{border-color:var(--drop);background:var(--drop-bg)}
-  .card.info{border-color:var(--info);background:var(--info-bg)}
-  .card.add{border-color:var(--add);background:var(--add-bg)}
+  .card.warn{border-color:var(--warn);border-top-color:var(--warn);background:var(--warn-bg)}
+  .card.stop{border-color:var(--drop);border-top-color:var(--drop);background:var(--drop-bg)}
+  .card.info{border-color:var(--info);border-top-color:var(--info);background:var(--info-bg)}
+  .card.add{border-color:var(--add);border-top-color:var(--add);background:var(--add-bg)}
   .ttl{font-weight:650;font-size:14px;margin-bottom:6px}
   .ttl small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;
              margin-top:3px}
@@ -438,7 +438,7 @@ def render_html(releases: list[Release], diffs: list, generated_at: str,
   .kv dt{color:var(--muted)}
   .kv dd{margin:0;font-variant-numeric:tabular-nums}
   code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
-       background:var(--panel);padding:1px 5px;border-radius:4px}
+       background:var(--tint);padding:1px 5px;border-radius:4px}
   .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;
         border:1px solid currentColor}
   .p-add{color:var(--add)} .p-drop{color:var(--drop)} .p-warn{color:var(--warn)}

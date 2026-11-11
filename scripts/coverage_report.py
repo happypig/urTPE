@@ -191,33 +191,29 @@ def render(f: dict) -> str:
   time. Nothing is copied from a previous run.
 -->""")
     w("""<style>
+  /* The site's one design system: the cream palette the dashboard and the
+     viewer share (viewer/app.css, viewer/dashboard.css). Light-only by
+     construction — no dark-mode block, or these pages would be the only dark
+     ones on the site (openspec: docs-cream-restyle). */
   :root{
-    --ink:#0f172a; --muted:#64748b; --line:#cbd5e1; --bg:#ffffff; --panel:#f8fafc;
-    --ok:#0f766e; --ok-bg:#f0fdfa;
-    --warn:#b45309; --warn-bg:#fffbeb;
-    --bad:#b91c1c; --bad-bg:#fef2f2;
-    --info:#1d4ed8; --info-bg:#eff6ff;
-    --muted-bg:#f1f5f9;
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --ink:#e2e8f0; --muted:#94a3b8; --line:#334155; --bg:#0b1220; --panel:#111827;
-      --ok:#5eead4; --ok-bg:#0b2b28;
-      --warn:#fbbf24; --warn-bg:#2a1f06;
-      --bad:#fca5a5; --bad-bg:#2d1010;
-      --info:#93c5fd; --info-bg:#0c1e3d;
-      --muted-bg:#1e293b;
-    }
+    --bg:#fff8f4; --panel:#ffffff; --ink:#211d1d; --muted:#686362;
+    --line:#f3d9bf; --accent:#ad4d2a; --tint:#fff1e8; --sun:#fde272;
+    --ok:#3fae74; --ok-bg:#f0fdf4;
+    --warn:#8a5a00; --warn-bg:#fdf3dc;
+    --bad:#8e2626; --bad-bg:#fdf0ef;
+    --info:#ad4d2a; --info-bg:#fff1e8;
+    --muted-bg:#fdf0e7;
   }
   *{box-sizing:border-box}
   body{margin:0;padding:0 0 64px;background:var(--bg);color:var(--ink);
-       font:15px/1.65 system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif}
+       font:15px/1.65 "Instrument Sans","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
   header{background:var(--panel);border-bottom:1px solid var(--line);padding:28px 32px}
   h1{margin:0 0 6px;font-size:22px;letter-spacing:.01em}
   .sub{color:var(--muted);font-size:13px;margin:0;max-width:92ch}
   main{max-width:1240px;margin:0 auto;padding:0 32px}
   section{margin-top:44px}
-  h2{font-size:17px;margin:0 0 4px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h2{font-size:17px;margin:0 0 4px;padding-bottom:8px;display:inline-block;
+     padding:0 6px;background:linear-gradient(transparent 58%,var(--sun) 58%)}
   h2 .n{color:var(--muted);font-weight:400;margin-right:10px}
   h3{font-size:14.5px;margin:22px 0 8px}
   .lead{color:var(--muted);font-size:13.5px;margin:10px 0 18px;max-width:92ch}
@@ -234,12 +230,14 @@ def render(f: dict) -> str:
   .bad{color:var(--bad);font-weight:650}
   .zero{color:var(--muted)}
 
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  .card{background:var(--panel);border:1px solid var(--line);
+        border-top:4px solid var(--accent);box-shadow:6px 6px 0 var(--line);
+        border-radius:0;
         padding:14px 16px;margin:12px 0}
-  .card.ok{border-color:var(--ok);background:var(--ok-bg)}
-  .card.warn{border-color:var(--warn);background:var(--warn-bg)}
-  .card.bad{border-color:var(--bad);background:var(--bad-bg)}
-  .card.info{border-color:var(--info);background:var(--info-bg)}
+  .card.ok{border-color:var(--ok);border-top-color:var(--ok);background:var(--ok-bg)}
+  .card.warn{border-color:var(--warn);border-top-color:var(--warn);background:var(--warn-bg)}
+  .card.bad{border-color:var(--bad);border-top-color:var(--bad);background:var(--bad-bg)}
+  .card.info{border-color:var(--info);border-top-color:var(--info);background:var(--info-bg)}
   .ttl{font-weight:650;font-size:14px;margin-bottom:6px}
   .ttl small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;
              margin-top:3px}
@@ -247,8 +245,9 @@ def render(f: dict) -> str:
 
   .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
          gap:12px;margin:16px 0 4px}
-  .tile{border:1px solid var(--line);border-radius:10px;padding:13px 15px;
-        background:var(--panel)}
+  .tile{border:1px solid var(--line);border-radius:0;padding:13px 15px;
+        background:var(--panel);border-top:4px solid var(--accent);
+        box-shadow:6px 6px 0 var(--line)}
   .tile .k{color:var(--muted);font-size:12px;margin-bottom:3px}
   .tile .v{font-size:25px;font-weight:650;font-variant-numeric:tabular-nums;
            line-height:1.15}
@@ -262,7 +261,7 @@ def render(f: dict) -> str:
   .kv dt{color:var(--muted)}
   .kv dd{margin:0;font-variant-numeric:tabular-nums}
   code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
-       background:var(--panel);padding:1px 5px;border-radius:4px}
+       background:var(--tint);padding:1px 5px;border-radius:4px}
   .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;
         border:1px solid currentColor}
   .p-ok{color:var(--ok)} .p-warn{color:var(--warn)} .p-bad{color:var(--bad)}

@@ -149,3 +149,18 @@ def test_cache_bust_in_index_html_names_the_publication_the_data_carries():
     assert published, "dataset carries no published_date"
     assert versions.pop().startswith(published.replace("-", "")), (
         "index.html cache-bust does not name %s" % published)
+
+
+def test_index_html_keeps_the_versioned_stylesheet_reference():
+    """The stylesheet link must exist and carry the derived version.
+
+    The cache-bust tests above regex every ?v= in index.html, but both would
+    also pass if the <link> were deleted outright — zero versioned references
+    is a consistent set. That is exactly the §41 shape (sync-specs-to-s41-fixes):
+    app.css loaded unversioned, browsers paired the fixed app.js with a stale
+    cached app.css, and the CSS fix shipped only to viewers with an empty cache.
+    """
+    index = (ROOT / "viewer" / "index.html").read_text(encoding="utf-8")
+    assert re.search(r'<link rel="stylesheet" href="app\.css\?v=', index), (
+        "index.html no longer loads app.css with the derived cache-bust — a CSS "
+        "change would ship only to viewers whose cache is empty (§41)")

@@ -18,9 +18,18 @@ import hashlib
 import json
 import os
 import re
+import sys
 
 # ?v=... on a <script src>. Only the version is rewritten; the paths are left alone.
 _ASSET_VERSION_RE = re.compile(r"(\?v=)([0-9a-zA-Z]+)")
+# A reference to one of the page's own cacheable assets that carries NO version.
+# Stylesheets are the §41 hole (sync-specs-to-s41-fixes): app.css loaded with no
+# ?v=, the rewrite below had nothing to match, and browsers paired a re-fetched
+# app.js with a stale cached app.css — the CSS fix shipped only to viewers whose
+# cache happened to be empty. The version-rewriting regex cannot see this shape,
+# so it is matched separately and reported.
+_UNVERSIONED_ASSET_RE = re.compile(
+    r'(?:src|href)="(app\.css|app\.js|projects\.data\.js)"')
 
 
 def _asset_version(doc: dict) -> str:
@@ -55,6 +64,15 @@ def write_projects_js(dirpath: str, doc: dict) -> str:
         version = _asset_version(doc)
         with open(index, encoding="utf-8") as fh:
             html = fh.read()
+        unversioned = _UNVERSIONED_ASSET_RE.findall(html)
+        if unversioned:
+            # Report, do not fix: the page's HTML is hand-maintained, and
+            # inventing a version attribute the author never wrote would mask
+            # the drift the report exists to surface.
+            print("[WARN] index.html references without the derived cache-bust: "
+                  + ", ".join(sorted(set(unversioned)))
+                  + " — a changed asset would serve stale to cached browsers",
+                  file=sys.stderr)
         with open(index, "w", encoding="utf-8") as fh:
             fh.write(_ASSET_VERSION_RE.sub(r"\g<1>" + version, html))
     return path

@@ -155,6 +155,50 @@ def test_cache_bust_tracks_a_new_publication(tmp_path):
     assert "20260827" not in html
 
 
+def test_write_reports_a_cacheable_reference_left_unversioned(tmp_path, capsys):
+    """An unversioned reference must be reported, not silently un-busted.
+
+    The §41 shape (sync-specs-to-s41-fixes): app.css loaded with no ?v= at all,
+    so the version-rewriting regex had nothing to match and the run said nothing
+    while browsers paired a re-fetched app.js with a stale cached app.css. The
+    spec ("Every cacheable reference carries the version") demands the rewrite
+    REPORT such a reference. The file is still written and the versioned
+    references are still rewritten — the report rides on stderr with the other
+    viewer warnings.
+    """
+    vdir = tmp_path / "viewer"
+    vdir.mkdir()
+    index = vdir / "index.html"
+    index.write_text(
+        '<link rel="stylesheet" href="app.css">\n'
+        '<script src="projects.data.js?v=20260827a"></script>\n'
+        '<script src="app.js?v=20260827a"></script>\n', encoding="utf-8")
+
+    viewer_mod.write_projects_js(str(vdir), _doc(published="2026-09-24"))
+
+    err = capsys.readouterr().err
+    assert "app.css" in err and "cache-bust" in err
+    # the versioned references are still rewritten; the file is still written
+    html = index.read_text(encoding="utf-8")
+    assert "v=20260924" in html
+    assert "20260827" not in html
+
+
+def test_write_stays_silent_when_every_cacheable_reference_is_versioned(tmp_path, capsys):
+    """The report must not cry wolf on a conforming index.html (the live one
+    carries app.css?v=, projects.data.js?v= and app.js?v=)."""
+    vdir = tmp_path / "viewer"
+    vdir.mkdir()
+    (vdir / "index.html").write_text(
+        '<link rel="stylesheet" href="app.css?v=20260827a">\n'
+        '<script src="projects.data.js?v=20260827a"></script>\n'
+        '<script src="app.js?v=20260827a"></script>\n', encoding="utf-8")
+
+    viewer_mod.write_projects_js(str(vdir), _doc(published="2026-09-24"))
+
+    assert "cache-bust" not in capsys.readouterr().err
+
+
 def test_no_index_html_is_created_when_absent(tmp_path):
     """Writing the cache-bust must not invent an index.html."""
     vdir = tmp_path / "viewer"

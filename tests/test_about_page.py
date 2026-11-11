@@ -281,6 +281,71 @@ def test_the_page_makes_no_request_to_render(about):
     assert not re.search(r'@import\s+url\(', about)
 
 
+def test_the_page_uses_the_docs_design_system(about):
+    """One design system across the docs pages and the about page: the slate
+    tokens, the dark-mode block, the docs link colour. The viewer's cream
+    palette (—bg: #fff8f4, terracotta accent) would make the page read as a
+    different site."""
+    assert "#0f172a" in about, "the docs ink token is absent"
+    assert "#cbd5e1" in about, "the docs hairline token is absent"
+    assert "#1d4ed8" in about, "the docs info/link token is absent"
+    assert "prefers-color-scheme: dark" in about, (
+        "the page carries no dark-mode block")
+    dark = re.search(r"prefers-color-scheme:\s*dark\s*\)\s*\{\s*:root\s*\{(.*?)\}", about, re.S)
+    assert dark, "the dark block does not declare"
+    assert "#e2e8f0" in dark.group(1), "the dark ink token is absent"
+    assert "#0b1220" in dark.group(1), "the dark background token is absent"
+    assert "#fff8f4" not in about and "#ad4d2a" not in about, (
+        "the page still carries the viewer's cream/terracotta palette")
+
+
+# --- the doc pages' back links (about-page-links) -----------------------------
+
+def test_the_three_doc_pages_link_back_to_the_about_page():
+    """A reader who lands on a report from a search result has no route to
+    the license, the sources or the contact unless the page itself carries
+    the 關於 link. The link sits at the header's right edge."""
+    for path in ("docs/etl_process.html", "docs/release-diff.html",
+                 "docs/coverage-report.html"):
+        html = (ROOT / path).read_text(encoding="utf-8")
+        header = re.search(r"<header>(.*?)</header>", html, re.S)
+        assert header, "%s carries no header" % path
+        links = re.findall(r'<a[^>]+href="([^"]+)"[^>]*>([^<]*)</a>',
+                           header.group(1))
+        about_links = [(h, t) for h, t in links
+                       if h == "../viewer/about.html"]
+        assert about_links, (
+            "%s carries no 關於 back link; its header links %r"
+            % (path, links))
+        assert about_links[-1][1] == "關於", (
+            "%s's back link is not labelled 關於" % path)
+        # rightmost: the 關於 link is the last <a> in the header
+        anchors = re.findall(r"<a\b", header.group(1))
+        last = re.search(r'<a[^>]*href="\.\./viewer/about\.html"', header.group(1))
+        assert last, "%s's 關於 link is not in the header" % path
+        after = header.group(1)[last.end():]
+        assert "<a" not in after, (
+            "%s's 關於 link is not the header's rightmost link" % path)
+
+
+def test_header_order_puts_about_last():
+    """One rule across the site's headers: 關於 is the rightmost site link;
+    政策儀表板 and 專案歷史圖 sit to its left in their current positions."""
+    cases = {
+        "viewer/index.html": (["dashboard.html"], "about.html"),
+        "viewer/dashboard.html": (["index.html"], "about.html"),
+    }
+    for path, (before_targets, about_target) in cases.items():
+        html = (ROOT / path).read_text(encoding="utf-8")
+        links = re.findall(r'<a class="navlink"[^>]*href="([^"]+)"[^>]*>', html)
+        assert links, "%s carries no navlinks" % path
+        assert links[-1] == about_target, (
+            "%s's 關於 link is not the rightmost navlink: %r" % (path, links))
+        for target in before_targets:
+            assert target in links[:-1], (
+                "%s's %s link is not to the left of 關於" % (path, target))
+
+
 def test_every_local_link_resolves(about):
     """A relative link that does not resolve on disk is the 404 the viewer
     cannot see: the page renders and the link is dead."""

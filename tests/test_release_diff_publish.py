@@ -40,17 +40,23 @@ import pytest  # noqa: E402  (after the skip helper, so the import order reads p
 
 # --- the two links ----------------------------------------------------------
 
-def test_the_report_links_back_to_the_viewer():
+def test_the_report_links_back_to_the_about_page():
     """A relative link, so the pair works from a file:// page as well as from
-    the published site."""
+    the published site. The back link pointed at the viewer until the 關於
+    page replaced the header's report link (openspec: about-page-links) — the
+    chain is now report → 關於 → viewer."""
     html = _report()
     m = re.search(r'<a class="backlink" href="([^"]+)">([^<]*)</a>', html)
     assert m, "the report carries no back link"
     href = m.group(1)
-    assert href == "../viewer/index.html", (
-        "the back link must be relative and point at the viewer; got %r" % href)
-    # The target must resolve: the report lives in docs/, the viewer in viewer/.
-    assert (REPORT.parent / href).resolve() == VIEWER_INDEX.resolve()
+    assert href == "../viewer/about.html", (
+        "the back link must point at the about page; got %r" % href)
+    about = ROOT / "viewer" / "about.html"
+    assert (REPORT.parent / href).resolve() == about.resolve()
+    assert "回專案歷史圖" not in html, (
+        "the report still carries the old 回專案歷史圖 back link; the 關於 "
+        "page replaces it")
+    assert m.group(2) == "關於"
 
 
 def test_the_viewer_header_links_to_the_about_page():

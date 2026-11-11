@@ -268,6 +268,9 @@ def render(f: dict) -> str:
   .p-ok{color:var(--ok)} .p-warn{color:var(--warn)} .p-bad{color:var(--bad)}
   .p-info{color:var(--info)}
   .wrap{overflow-x:auto}
+  .backlink{float:right;font-size:13px;font-weight:400;color:var(--info);
+            text-decoration:none;border-bottom:1px solid currentColor}
+  .backlink:hover{color:var(--ink)}
   footer{max-width:1240px;margin:56px auto 0;padding:20px 32px 0;
          border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
   @media(max-width:700px){ main,header{padding-left:16px;padding-right:16px} }
@@ -278,6 +281,9 @@ def render(f: dict) -> str:
     # ---- header ----------------------------------------------------------
     counts = f["counts"]
     w("<header>")
+    # The back link (openspec: about-page-links): 關於 carries the license,
+    # the sources and the contact; the viewer is one hop further through it.
+    w('<a class="backlink" href="../viewer/about.html">關於</a>')
     w("<h1>資料覆蓋度報告 — 三個問題的證明</h1>")
     w('<p class="sub">三個問題：有哪些專案不在名單裡、有哪些編號不屬於任何專案、'
       '每個編號是否都掛著北向平台案件。每一個數字都在 %s 由 '

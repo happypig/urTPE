@@ -470,9 +470,11 @@ def render_html(releases: list[Release], diffs: list, generated_at: str,
 
     # ---- header ----------------------------------------------------------
     w("<header>")
-    # The back link. Relative, so the pair works from the published site, from
-    # a file:// page, and from a clone alike.
-    w('<a class="backlink" href="../viewer/index.html">← 回專案歷史圖</a>')
+    # The back link. Relative, so it works from the published site, from a
+    # file:// page, and from a clone alike. It points at the about page
+    # (openspec: about-page-links): 關於 links the viewer in turn, and the
+    # header's report link that 回專案歷史圖 used to answer is gone.
+    w('<a class="backlink" href="../viewer/about.html">關於</a>')
     w("<h1>公報發布間差異 — 專案總數變化說明</h1>")
     w('<p class="sub">每一版公報的核定案件重新讀取、比對，說明專案總數為何不同。'
       '所有數字於 %s 由 <code>scripts/release_diff_report.py</code> 重新產出，'

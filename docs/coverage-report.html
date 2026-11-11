@@ -89,6 +89,9 @@
   .p-ok{color:var(--ok)} .p-warn{color:var(--warn)} .p-bad{color:var(--bad)}
   .p-info{color:var(--info)}
   .wrap{overflow-x:auto}
+  .backlink{float:right;font-size:13px;font-weight:400;color:var(--info);
+            text-decoration:none;border-bottom:1px solid currentColor}
+  .backlink:hover{color:var(--ink)}
   footer{max-width:1240px;margin:56px auto 0;padding:20px 32px 0;
          border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
   @media(max-width:700px){ main,header{padding-left:16px;padding-right:16px} }
@@ -96,8 +99,9 @@
 </head>
 <body>
 <header>
+<a class="backlink" href="../viewer/about.html">關於</a>
 <h1>資料覆蓋度報告 — 三個問題的證明</h1>
-<p class="sub">三個問題：有哪些專案不在名單裡、有哪些編號不屬於任何專案、每個編號是否都掛著北向平台案件。每一個數字都在 2026-11-10T03:46:31+08:00 由 <code>scripts/coverage_report.py</code> 重新產出，資料集統計至 2026-10-28，1444 筆核定案件、681 個專案。</p>
+<p class="sub">三個問題：有哪些專案不在名單裡、有哪些編號不屬於任何專案、每個編號是否都掛著北向平台案件。每一個數字都在 2026-11-12T02:42:15+08:00 由 <code>scripts/coverage_report.py</code> 重新產出，資料集統計至 2026-10-28，1444 筆核定案件、680 個專案。</p>
 </header>
 <main>
 <section id="answers">
@@ -114,8 +118,8 @@
 <h2><span class="n">2</span>問題一：有哪些專案不在名單裡</h2>
 <p class="lead">一個專案算「在名單裡」，當它帶著的某個案件編號出現在那份名單上。兩份名單是台北市的 168 專案清單（<code>Get_project168.ashx</code>）與國土署入口網的專案清單（<code>twur.nlma.gov.tw</code>）。</p>
 <div class="wrap"><table><thead><tr><th>族群</th><th class="num">數量</th><th>說明</th></tr></thead><tbody>
-<tr><td>資料集裡的專案</td><td class='num'>681</td><td>—</td></tr>
-<tr><td>在 168 清單上</td><td class='num'>218</td><td>至少一個案件編號在名單上</td></tr>
+<tr><td>資料集裡的專案</td><td class='num'>680</td><td>—</td></tr>
+<tr><td>在 168 清單上</td><td class='num'>217</td><td>至少一個案件編號在名單上</td></tr>
 <tr><td>有案件編號，但都不在 168 清單上</td><td class='num'>463</td><td>168 清單是<b>子集</b>，不是全部案件的登記簿</td></tr>
 <tr class='total'><td>完全沒有案件編號</td><td class='num'>0</td><td>因此兩個名單都沒有</td></tr>
 </tbody></table></div>
@@ -125,7 +129,7 @@
 </div>
 <div class="card info">
 <div class="ttl">國土署的清單以土地核心比對，不是案件編號<small>而且它的爬取被 WAF 限制</small></div>
-<p style="margin:0;font-size:13.5px">快取索引只有 110 筆，而資料集命名了 620 個 view id，其中 108 個在索引內。爬取不完整不等於專案遺漏；要證明那份清單完整，需要重新實地爬取一次，而不是讀這個快取檔。</p>
+<p style="margin:0;font-size:13.5px">快取索引只有 110 筆，而資料集命名了 622 個 view id，其中 108 個在索引內。爬取不完整不等於專案遺漏；要證明那份清單完整，需要重新實地爬取一次，而不是讀這個快取檔。</p>
 </div>
 </section>
 <section id="q2">
@@ -138,11 +142,11 @@
 <tr><td>同時出現在兩個節點的編號</td><td class='num'>0</td><td class='ok'>沒有重複</td></tr>
 <tr><td>不屬於任何專案的洗淨紀錄</td><td class='num'>0</td><td class='ok'>沒有遺失</td></tr>
 <tr><td>洗淨階段沒有的節點紀錄</td><td class='num'>0</td><td class='ok'>沒有多餘</td></tr>
-<tr class='total'><td>merged.tsv 的列 / 不同 project_id</td><td class='num'>1444 / 681</td><td>與節點數一致</td></tr>
+<tr class='total'><td>merged.tsv 的列 / 不同 project_id</td><td class='num'>1444 / 680</td><td>與節點數一致</td></tr>
 </tbody></table></div>
 <div class="card ok">
 <div class="ttl">結論：分割完全且互斥<small>沒有任何編號游離在專案之外</small></div>
-<p style="margin:0;font-size:13.5px">1444 筆紀錄、681 個專案，每筆恰好一次，沒有任何一筆落在外面。</p>
+<p style="margin:0;font-size:13.5px">1444 筆紀錄、680 個專案，每筆恰好一次，沒有任何一筆落在外面。</p>
 </div>
 </section>
 <section id="q3">

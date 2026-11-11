@@ -28,4 +28,4 @@
 
 - [x] 3.1 The suite passes; the page renders from `file://` with the new
   links resolving.
-- [ ] 3.2 `check_deploy.py` reports about.html fresh after the push.
+- [x] 3.2 `check_deploy.py` reports about.html fresh after the push.

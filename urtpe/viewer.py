@@ -29,7 +29,12 @@ _ASSET_VERSION_RE = re.compile(r"(\?v=)([0-9a-zA-Z]+)")
 # cache happened to be empty. The version-rewriting regex cannot see this shape,
 # so it is matched separately and reported.
 _UNVERSIONED_ASSET_RE = re.compile(
-    r'(?:src|href)="(app\.css|app\.js|projects\.data\.js)"')
+    r'(?:src|href)="(app\.css|app\.js|projects\.data\.js|dashboard\.css|dashboard\.js)"')
+# The pages that carry their own asset references. The viewer has one; the
+# policy dashboard (dashboard.html) is a second, and it loads dashboard.css
+# and dashboard.js. Both are rewritten, so both get the same cache-bust and
+# neither can pair a fresh script with a stale stylesheet.
+_INDEX_PAGES = ("index.html", "dashboard.html")
 
 
 def _asset_version(doc: dict) -> str:
@@ -49,9 +54,9 @@ def _asset_version(doc: dict) -> str:
 def write_projects_js(dirpath: str, doc: dict) -> str:
     """Write viewer/projects.data.js and return the output path.
 
-    When the directory holds an index.html, its asset version is rewritten from
-    the dataset. Without that, a browser keeps serving the previous file however
-    many times the data is regenerated.
+    When the directory holds a page that references the site's own assets, its
+    asset version is rewritten from the dataset. Without that, a browser keeps
+    serving the previous file however many times the data is regenerated.
     """
     js = "window.PROJECTS = " + json.dumps(doc, ensure_ascii=False) + ";"
     os.makedirs(dirpath, exist_ok=True)
@@ -59,21 +64,23 @@ def write_projects_js(dirpath: str, doc: dict) -> str:
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(js)
 
-    index = f"{dirpath}/index.html"
-    if os.path.exists(index):
-        version = _asset_version(doc)
-        with open(index, encoding="utf-8") as fh:
+    version = _asset_version(doc)
+    for name in _INDEX_PAGES:
+        page = f"{dirpath}/{name}"
+        if not os.path.exists(page):
+            continue
+        with open(page, "r", encoding="utf-8") as fh:
             html = fh.read()
         unversioned = _UNVERSIONED_ASSET_RE.findall(html)
         if unversioned:
             # Report, do not fix: the page's HTML is hand-maintained, and
             # inventing a version attribute the author never wrote would mask
             # the drift the report exists to surface.
-            print("[WARN] index.html references without the derived cache-bust: "
+            print("[WARN] %s references without the derived cache-bust: " % name
                   + ", ".join(sorted(set(unversioned)))
                   + " — a changed asset would serve stale to cached browsers",
                   file=sys.stderr)
-        with open(index, "w", encoding="utf-8") as fh:
+        with open(page, "w", encoding="utf-8") as fh:
             fh.write(_ASSET_VERSION_RE.sub(r"\g<1>" + version, html))
     return path
 

@@ -55,21 +55,28 @@ def test_the_report_links_back_to_the_viewer():
 
 def test_the_viewer_header_links_to_the_report():
     """In the markup, not added by script: a reader who lands on a payload
-    that fails to load can still reach the report."""
+    that fails to load can still reach the report.
+
+    The header carries more than one navlink now — the policy dashboard
+    joined it — so the report is found by its target, not by being first.
+    """
     html = VIEWER_INDEX.read_text(encoding="utf-8")
-    m = re.search(r'<a class="navlink" href="([^"]+)">([^<]*)</a>', html)
-    assert m, "the viewer's header carries no link to the release-diff report"
-    href = m.group(1)
-    assert href == "../docs/release-diff.html", (
-        "the link must be relative and point at the report; got %r" % href)
+    links = re.findall(r'<a class="navlink" href="([^"]+)">([^<]*)</a>', html)
+    assert links, "the viewer's header carries no links"
+    report_links = [(h, t) for h, t in links if h == "../docs/release-diff.html"]
+    assert report_links, (
+        "the viewer's header carries no link to the release-diff report; "
+        "it carries %r" % (links,))
+    href = report_links[0][0]
     assert (VIEWER_INDEX.parent / href).resolve() == REPORT.resolve()
 
 
 def test_the_viewer_link_label_is_the_one_a_reader_would_look_for():
     html = VIEWER_INDEX.read_text(encoding="utf-8")
-    m = re.search(r'<a class="navlink" href="[^"]+">([^<]*)</a>', html)
-    assert m
-    assert m.group(1) == "歷次公報差異"
+    links = re.findall(r'<a class="navlink" href="([^"]+)">([^<]*)</a>', html)
+    labels = [t for h, t in links if h == "../docs/release-diff.html"]
+    assert labels, "the report link carries no label; the header has %r" % (links,)
+    assert labels[0] == "歷次公報差異"
 
 
 # --- the report is self-contained --------------------------------------------

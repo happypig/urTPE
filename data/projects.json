@@ -224290,11 +224290,15 @@
       ],
       "edges": [],
       "links": {
-        "twur": "",
+        "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/181",
         "taipei": [
           "10002141"
         ],
-        "milestones_national": {},
+        "milestones_national": {
+          "事業計畫申請日期": "99.08.20",
+          "事業計畫核定日期": "102.11.06",
+          "使用核發日期": "107.01.11"
+        },
         "milestones_taipei": {
           "計畫公聽會日期": "2010/04/03",
           "申請計畫日期": "2010/08/20",
@@ -224340,7 +224344,10 @@
         "case_schedules": {
           "10002141": "施工中"
         },
-        "view_verified_case_ids": [],
+        "twur_name": "擬訂臺北市大安區懷生段一小段928地號等1筆土地都市更新事業計畫案",
+        "view_verified_case_ids": [
+          "10002141"
+        ],
         "permit": {
           "permit_no": "107使字第0014號",
           "date": "2018-01-11",

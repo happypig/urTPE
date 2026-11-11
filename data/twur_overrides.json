@@ -18,6 +18,14 @@
       "verified_on": "2026-11-10",
       "reason": "Unit named by place, no 地號 clause in the portal title, so the land-core join cannot match in either direction (the 崇仁新村 view/18 shape). Verified by the §8 rule, not by the portal's word alone: view/9's 相關連結 lists exactly one city case, 09009032, and the city's own CASE_NAME for that id (get_project168_top) reads 擬訂臺北市文山區木新路三段95巷南側地區(原國泰攬翠天廈基地)都市更新事業計畫案 — the project's gazette 案名 for recno 1435, 核定 2004-03-10, with 三段 vs 3段 as the only drift. Also unreachable by the portal index: the crawl is WAF-capped at ~110 newest entries and this case predates it by two decades. Corpus scan 2026-11-10: of 69 unjoined projects with live cases, this is the only one of the shape.",
       "verified_by": "human review of the portal page view/9 (title + 相關連結), cross-checked against the city's CASE_NAME harvested in the project cache"
+    },
+    "大安區-懷生段一小段-928地號等1筆": {
+      "twur_view_id": "181",
+      "twur_url": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/181",
+      "portal_title": "擬訂臺北市大安區懷生段一小段928地號等1筆土地都市更新事業計畫案",
+      "verified_on": "2026-11-10",
+      "reason": "The unit's own page (title = the gazette 案名, 928地號等1筆), and its 相關連結 lists exactly one city case, 10002141 — the city CASE_NAME this project's cache already holds, char-identical (§8 rule satisfied). Discovery never attached it: the 2026-10-06 no-match sweep probed view/181 (ledger view_ids_checked) and recorded a plain no-match with no reason text; the sweep-era matcher's body check (fetch_remaining_national_portal.view_page_matches) requires the parcel string in the fetched HTML, and a WAF shell ('Request Rejected', 245 bytes) fails it exactly like a genuine mismatch — the ledger cannot tell them apart, which is why the ledger's outcome enum (match/miss/error) exists in the later code. The stale 懷生931 twur_name/national_milestones this cache held came from that same sweep and were removed 2026-11-10 (commit 55a28f9). n=1 for this shape.",
+      "verified_by": "human review of the live portal page view/181 (title + 相關連結 naming 10002141), cross-checked against the cache's case_case_names"
     }
   }
 }

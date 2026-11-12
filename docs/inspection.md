@@ -15,7 +15,10 @@ G1–G5 · 2026-11-03 Batch B, the §37/§38 residuals collected for batch treat
 2026-11-03 Batch C, the post-viewer-UX gaps collected after waves 1–5 landed ·
 2026-11-04 both batches, their integrated plan and appendices G–H moved to
 `docs/inspection-batchBC.md` (this board keeps the state rows and the pointer) ·
-2026-11-04 Batch D collected (D1–D2, the post-B+C session) → `docs/inspection-batchD.md`.
+2026-11-04 Batch D collected (D1–D2, the post-B+C session) → `docs/inspection-batchD.md` ·
+2026-11-12 Batch E collected (E1–E3, the dashboard notes' three open items:
+the compatibility-ideograph fix, Part 1 URL+keyboard, the windowed list) →
+`docs/inspection-batchE.md`.
 
 ## State of the board
 
@@ -32,6 +35,7 @@ G1–G5 · 2026-11-03 Batch B, the §37/§38 residuals collected for batch treat
 | Batch C | 10 findings (C1–C10); C3 done, 9 queued (post-viewer-UX gaps) — see `docs/inspection-batchBC.md` |
 | Batch B + C plan | re-reviewed 2026-11-04: S0–S16 + R in 4 waves; S7, S8, S12, S14, S16 merged into other steps; S3 done; no user decision open — see `docs/inspection-batchBC.md` |
 | Batch D | collected 2026-11-04: D1 (orphan `milestones_national` holds Taipei data), D2 (ghost-date echo + the date-first sort revisit), D3 (國 key bug: 223 later-變更 labels never bind), D4 (list badges, filters, 使照 edge bug: 287 events drawn national, edges out of dead ends) — see `docs/inspection-batchD.md` |
+| Batch E | collected 2026-11-12: E1 (the compatibility ideographs — one NFKC folding, two readers), E2 (Part 1: URL write-back + keyboard, steps 1–4), E3 (the windowed list, harness first) — three openspec changes, all awaiting the user's word; see `docs/inspection-batchE.md` |
 | openspec | 4 changes done but unarchived; 3 fail `openspec validate` (fixed by S0) |
 
 ## Execution order — the integrated plan
@@ -169,6 +173,18 @@ rows above stay current here.
 The post-Batch-B+C session's findings (D1 the orphan `milestones_national`
 key, D2 the ghost-date echo and the date-first sort revisit) live in
 `docs/inspection-batchD.md` (collected 2026-11-04).
+
+### Batch E — collected in `docs/inspection-batchE.md`
+
+The dashboard notes' (`docs/DashboardNUXUI.md`) three open items became a
+batch on 2026-11-12: **E1** the compatibility-ideograph fix (one NFKC folding
+at the cleansing boundary; two readers — the live track break on case
+`11507018` and the 6-row identity break; the six-pin test group is specified),
+**E2** Part 1 = URL write-back + keyboard access (steps 1–4 of the notes'
+§8.3; the read half already shipped as the dashboard's deep link), and **E3**
+the windowed list (the harness must gain geometry stubs first). All three are
+openspec changes awaiting the user's word — see
+`docs/inspection-batchE.md` for the findings, the order and the gates.
 
 ### Decisions waiting on the user
 

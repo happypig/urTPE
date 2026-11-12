@@ -369,6 +369,39 @@ encoding) SHALL NOT change.
   changes while the page is open
 - **THEN** that project's graph opens, as before
 
+The list SHALL also render only the rows near the viewport
+(windowed-list, user decision 2026-11-12): `renderList` renders the visible
+range plus a buffer, spacer elements hold the full list height so the
+scrollbar never jumps, and scrolling re-renders the window around the new
+offset. The window helper SHALL be written so the dashboard's drill-down
+list can call it. The deep link (`openFromHash`) SHALL render the window
+containing the target row BEFORE scrolling to it — a windowed list whose
+target row does not exist yet would silently select without showing.
+
+#### Scenario: The window renders fewer rows than the list holds
+
+- **WHEN** the payload holds 675 projects and the viewport is 920 px
+- **THEN** the DOM holds the visible rows plus the buffer, not all 675
+- **AND** spacer elements keep `scrollHeight` at the full list height
+
+#### Scenario: Scrolling re-renders the window
+
+- **WHEN** the reader scrolls down past a row height
+- **THEN** the window re-renders around the new offset
+- **AND** the total scroll height does not jump
+
+#### Scenario: The deep link renders before it scrolls
+
+- **WHEN** the page is opened with `#project=<id>` while the target row is
+  outside the current window
+- **THEN** the window containing the target row renders first
+- **AND** the target row is then scrolled into view, centered
+
+#### Scenario: The helper is callable from the dashboard
+
+- **WHEN** the dashboard's drill-down list needs the same windowing
+- **THEN** it calls the same helper rather than re-implementing it
+
 ### Requirement: Node order survives a rebuild from emitted state
 
 A rebuild that starts from an emitted graph rather than from the gazette SHALL restore

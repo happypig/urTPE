@@ -6,7 +6,7 @@ merged, per-project history graph plus a static viewer. Python, pymupdf, no web 
 ## Commands (verified on this machine)
 
 ```powershell
-python -m pytest                      # 1195 tests, ~3min, fully offline
+python -m pytest                      # 1239 tests, ~3min, fully offline
 python -m pytest tests/test_merge.py  # one file
 python -m pytest tests/test_merge.py::test_name -q
 python -m urtpe.cli source.pdf -o data --links
@@ -16,8 +16,8 @@ python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --
 - Use the **system** interpreter (`C:\Python314\python.exe`, pytest 9.0.1, pymupdf 1.28.2).
   `.venv/` exists but contains only pip — activating it leaves you unable to run tests.
 - The count in that first line goes stale whenever tests change. Refresh it with
-  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1195 collected**
-  while a full run reports **1194 passed, 1 skipped** — the skip is deliberate, at
+  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1239 collected**
+  while a full run reports **1238 passed, 1 skipped** — the skip is deliberate, at
   `tests/test_idempotent_flags.py:117`, because the node payload builder is not exposed and
   the graph test below it covers the behaviour. With no CI, an unnamed skip reads as a
   silently disabled guard.
@@ -173,8 +173,10 @@ Violating any of these corrupts output silently rather than raising.
   network, so it is a command and not a pytest case.
 - `docs/release-diff.html` — why the project count differs between PDF releases. Generated
   by `scripts/release_diff_report.py` (pure logic in `scripts/release_diff.py`), published
-  from `main` like the viewer, and linked from the viewer's header and back again from the
-  report. Both links are relative, so the pair works from `file://` too. The report
+  from `main`, and reached from the viewer through the 關於 page (`viewer/about.html`),
+  which links the report and the coverage report (`docs/coverage-report.html`); the
+  report links back to the about page. All links are relative, so the chain works from
+  `file://` too. The report
   re-reads every archived PDF under the *current* reader, so its numbers describe what the
   gazettes yield today, not what each yielded when it was published. Its family identity is
   the **案名's land core**, not the 地號 cell: the cell differs by one character between
@@ -193,16 +195,16 @@ Violating any of these corrupts output silently rather than raising.
     remote afterwards whether it holds the commit, and reports a failure when it does not.
   A failed push is reported, and the committed report is then ahead of the served one —
   which `check_deploy.py` reports as stale.
-- `scripts/` — 169 files, of which 115 are `probe_*.py`. Undated ones (`poll_gazette.py`,
+- `scripts/` — 172 files, of which 115 are `probe_*.py`. Undated ones (`poll_gazette.py`,
   `fetch_remaining_national_portal.py`, `build_project_aliases.py`, `stranded_report.py`)
   are durable tools; dated ones (`*_2026MMDD`) and `probe_*.py` are one-shot archaeology.
 - `data/`, `data_test/` — generated output; gitignored except the six tracked files above.
-- `openspec/` — 25 specs, spec-driven workflow. **`openspec/config.yaml` holds the
+- `openspec/` — 26 specs, spec-driven workflow. **`openspec/config.yaml` holds the
   authoritative project context** (calendars, identity rules, the 編號 warning) plus
   per-artifact rules and the test-first gate. Read it before proposing a change.
   `openspec/changes/` holds `archive/` plus the in-flight changes. Run `openspec list`
   before proposing one — another session may already have opened it.
-  `gazette-cadence` is the newest spec (2026-10-06).
+  `docs-pages` (2026-11-12) is the newest spec.
 
 ## Docs — which one answers your question
 

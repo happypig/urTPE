@@ -1,4 +1,4 @@
-# Project inspection — Batch E · collected 2026-11-12, extended 2026-11-12 (E4–E9)
+# Project inspection — Batch E · collected 2026-11-12, extended twice the same day (E1–E13)
 
 Nine work items. E1–E3 were carried over from the dashboard exploration notes
 (`docs/DashboardNUXUI.md`); E4–E9 were collected the same day from the user's
@@ -10,16 +10,20 @@ then the decisions that gate execution.
 items open (its §13: the unverified column — answered, Option D, the column is
 omitted; **Part 1 scope — E2**; the compatibility-ideograph fix — **E1**; the
 windowed list — **E3**). E4–E9 came from the user's 2026-11-12 review of the
-badges (items 1–3) and the area-split callout (items 4, 4a–4d, 5), measured
-the same day on the payload at `7a1102a`: **1,444 records / 680 projects**,
-統計至 2026-10-28. The notes' §14.-1 records what moved with the 河堤399
-merge.
+badges (items 1–3) and the area-split callout (items 4, 4a–4d, 5); E10–E13
+came from the same day's second round (item 6 the 懷生16 missing case, item 7
+the 施工中 badge, item 8 the dead-set edge rule, item 9 the national
+re-crawl). All measured on the payload at `7a1102a`: **1,444 records /
+680 projects**, 統計至 2026-10-28. The notes' §14.-1 records what moved with
+the 河堤399 merge.
 
 **The items are separate openspec changes or direct fixes, not one.** E1 is a
 pipeline defect independent of the UI work. E2 and E3 are viewer work that
 shares one harness upgrade. E4/E7 are openspec changes (spec scenarios and a
-payload field change); E5/E6/E8/E9 are direct fixes at named sites. The batch
-keeps them separate so one change's review never blocks the others.
+payload field change); E5/E6/E8/E9/E11/E12 are direct fixes at named sites.
+E10 opens only after its sweep probe measures the gap; E13 is the existing
+sweep, phase-gated. The batch keeps them separate so one change's review
+never blocks the others.
 
 ---
 
@@ -433,44 +437,201 @@ E7/E8 so the callout is reviewed once.
 
 ---
 
+## E10 — 懷生16: a live -A區 plan case the parcel search never returns (user, 2026-11-12)
+
+**The user's finding (item 6).** 大安區-懷生段二小段-16地號等6筆 shows a case in
+the platform's own 相關連結 that this dataset has never held: **`09503201`** —
+擬訂…事業計畫案-A區 (and, on the platform, re-titled 變更…事業計畫案-A區; one id,
+two titles over its life).
+
+**Measured 2026-11-12:**
+
+| Check | Result |
+| --- | --- |
+| `links.taipei` holds it | **no** — 8 ids, `09503200/03/04/05/06/08/10`, `11301151` |
+| `candidate_names`, `case_headers`, the cache's `result.json` | **no** — the string appears nowhere in the file |
+| the cached `view.html` (view/53) | **no** — names `09503200` only |
+| the city's parcel search (`search_taipei_cases_api('懷生段二小段','16')`, live) | **no** — returns exactly the 8 held ids |
+| the milestone API for `09503201` (live, one request) | **live** — 14 fields, 申請計畫 2006/11/01, 核定 2007/12/06 |
+
+**The shape.** The platform's parcel-search index omits a real case; the case
+is reachable only from a sibling case's page. This is the C8b shape
+(`docs/inspection-batchBC.md`: 新光101, 寶清599, 敦化585-11 were found by
+probing sibling case ids) — measured again here on a live case.
+
+**The user's rule: join it.** The fix layer is the one batch D step 6b built
+(`second-id-source`): confirm each candidate id by its header, then add it to
+`city_case_ids` in a refresh step. The candidate here comes from the sibling
+page's 相關連結 — a source the discovery does not read today.
+
+**The question the change must answer first: how wide is the gap?** One case
+is measured. The candidate source (sibling 相關連結) is not harvested at all —
+the `view.html` parse takes the view page's links, not the case pages'. A
+sweep that fetched each project's first case page and read its 相關連結 would
+find every sibling-referenced id (WAF-permitting). Measure the gap before
+opening the change: the corpus's 623 twur-bearing projects carry case ids
+whose pages may name siblings; each is one request.
+
+**Form:** measurement first (the sweep probe), then an openspec change
+(`official-link-discovery` — the second-id-source rule gains the sibling-page
+source) + cache refresh + one re-emit. The 懷生16 fix itself rides the change.
+
+---
+
+## E11 — no 施工中 badge in 相關連結 (user, 2026-11-12)
+
+**The user's rule (item 7).** The 相關連結 status badge names a case's
+*state of approval*, not its construction progress. 施工中 renders there 463
+times (`scheduleBadgeText`, `viewer/app.js:477` — everything except
+已核准/已核定 renders; 無 → [無], NA → [NA]).
+
+**Measured** (case_schedules corpus-wide, 2026-11-12): 施工中 **463**,
+自行撤回 131, 已核准 712, 已駁回 40, 已失效 74, 審查中 82, 已核定 24,
+已完工 5, 完成成果備查 1, 已撤銷 1, 無 16.
+
+**The change:** `scheduleBadgeText` (or its call site at
+`viewer/app.js:1573`) drops 施工中 from the 相關連結 badge list. The other
+statuses keep their badges: a reviewer needs 已駁回/自行撤回/已失效/審查中 in
+this list — they are the approval states the list exists to name. 施工中
+stays visible where it belongs: the construction-stage chip and the dead-end
+chip on the graph node, and the dashboard's status column.
+
+**Scope guard:** the user's word was 施工中 (the user wrote [已施工]; the
+payload's value is 施工中 — same status, the badge text differs from the
+schedule value by one character). The change drops exactly that value, not
+已完工 (5 cases — a completion state a reviewer may still want named here;
+the decision table asks).
+
+**Form:** direct `fix:` + one test (the badge contract test in
+`tests/test_viewer_dashboard.py`-style: the 相關連結 render of a 施工中 case
+carries no badge; an 已駁回 case keeps one).
+
+---
+
+## E12 — no edge below a dead node, 無 joins the dead set (user, 2026-11-12)
+
+**The user's rule (item 8).** A node whose case is 已駁回 / 自行撤回 / 已失效 /
+**無** renders no edge below. The D4b rule (2026-11-05) already refuses the
+under-fallback for the first three plus 已撤銷 — the dead set lives at
+`viewer/app.js` `isDeadEnd`:
+
+```js
+const isDeadEnd = s => s === "已失效" || s === "自行撤回" || s === "已駁回" || s === "已撤銷";
+```
+
+**無 is not in it.** Measured (2026-11-12):
+
+| Population | Count |
+| --- | --- |
+| orphan nodes with schedule 無 | **11** — the D4b refusal does not cover them |
+| orphan nodes with a dead schedule (covered) | 240 |
+| recno nodes whose first case is 無 | **0** — the approval nodes never carry 無 |
+
+The 11 無 orphans can take a dotted edge below today (`nearestRecnoRowUnder`
+runs when `isDeadEnd` says no). Under the rule they render undotted, like the
+240 dead orphans.
+
+**The pipeline side must agree.** `schedules.py`'s dead set
+(`TERMINAL_SCHEDULES` / `_DEAD_SCHEDULES`) gained 已撤銷 in
+`revoke-dead-schedule`; 無 is a *missing* state, not a terminal one — the
+two sets serve different rules (chain-edge refusal vs status derivation).
+The viewer-side `isDeadEnd` gains 無; the pipeline sets stay as they are.
+
+**Form:** direct `fix:` — one entry in `isDeadEnd` + the test (a 無 orphan
+with only dead neighbours renders no dotted edge). The smoke harness's
+overlap checks count dotted edges; the fixture gains a 無 orphan.
+
+---
+
+## E13 — the national re-crawl, under the WAF cap (user, item 9)
+
+**The state.** The national portal's crawl is WAF-capped; the corpus holds
+110 index entries and names 622 view ids. The last full sweep is the
+`fetch_remaining_national_portal.py` pattern: title search per project,
+60–180 s sleeps (revert to 180–300 s on a WAF reset), 3 retries with
+exponential backoff, stop at 06:30, log to `fetch_failures.json`.
+
+**What a re-crawl would touch, measured 2026-11-12:**
+
+| Population | Count |
+| --- | --- |
+| projects with no twur link (the sweep's own target) | **57** |
+| the no-match ledger's census | has-approved 16, mixed/other 32, never-approved 15, no-cases 6, miss 5 |
+| view ids named by the payload but absent from the 110-entry index | **514** (622 − 108) |
+| projects whose `no-cases` verdict may have flipped since their last probe | 3 of 6 (河堤399, 吳興163-2, 懷生928 gained pages through other routes) |
+
+**The plan, three phases — each gated on the previous one's failure rate:**
+
+1. **Probe the WAF's current temper (1 evening).** The sweep's own
+   `--max-projects 10` against the 57: if the reset window has tightened
+   (a `Request Rejected` inside the 180 s spacing), the pacing is the
+   finding, and phase 2 waits.
+2. **The 57 twur-less projects (the sweep as-is).** Paced 180 s, 06:30
+   deadline, nightly until the set stops moving. The E10 sibling-page source
+   joins here: a project whose title search misses still gets its first
+   case page read, and the 相關連結 links it names are candidates.
+3. **The 514 unindexed view ids (a second sweep mode).** The index is the
+   bulk entry point; the 514 were resolved before the cap or never indexed.
+   The sweep's title search re-finds them one by one — this is the long
+   tail, run only when phase 2's failure rate stays under the threshold the
+   first two nights set.
+
+**The rules that do not change.** The sweep writes into the same
+`.link_cache` (single-writer lock); it never ingests; every write lands in a
+cache the next `--from-js` re-emit reads. `check_deploy.py` after the
+re-emit. The 14-day TTL on `no_match_ledger.json` governs re-probes — the
+re-crawl is not a second ledger.
+
+**Form:** probe first (phase 1 is read-mostly), then run the existing sweep —
+no openspec change unless the sweep gains the E10 sibling-source (that edit
+is E10's change). The re-emit after the crawl rides the usual path.
+
+---
+
 ## Order
 
 | Step | Item | Priority | Form | Depends on | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 1 | **E1** — NFKC folding at the cleansing boundary; the six-pin test group | **P1** | openspec change (`data-cleansing`) + pytest | — | Independent of the UI work; smallest; its test group is fully specified |
 | 2 | **E2** — URL write-back + keyboard, steps 1–4 only | **P1** | openspec change (viewer) + harness cases | — | The read half exists; this adds the write half and the focus path |
-| 3 | **E3** — harness geometry stubs, then the windowed list | **P2** | openspec change (viewer + harness) | E2 (the harness cases E2 adds are the base) | Lands last; the dashboard reuses its helper |
-| 4 | **E4** — the 國 badge rules re-stated; the per-label route narrows to registration + name | **P1** | openspec change (`official-link-discovery` + `viewer-related-links`) + viewer + payload? | — | 451 badges move; the pipeline may need `twur_name` on more nodes |
-| 5 | **E5** — the construction-event 國 badge: national-only, not corroborated | **P1** | direct `fix:` + viewer test | E4 (one badge vocabulary) | 288 badges go, 2 stay; a viewer-side rule change |
-| 6 | **E6** — badge links: the event 國 becomes a link to view/<id> | **P2** | direct `fix:` | E5 | One element swap |
-| 7 | **E7** — the joined node's 北 badge covers both area cases; the callout splits by section | **P2** | openspec change (viewer + `case-record-join`) | — | 30 joined nodes, 28 area pairs |
-| 8 | **E8** — area labels [A區]/[B區] beside the badge or callout | **P2** | direct `fix:` | E7 | Derives from E7's section split |
-| 9 | **E9** — callout values never wrap; the gutter grows to content | **P3** | direct `fix:` + harness measurement | — | 744 of 1,431 callouts wrap today; the widest value needs 302 px |
+| 3 | **E11** — drop 施工中 from the 相關連結 badges | **P1** | direct `fix:` + test | — | One value off one badge list; 463 badges |
+| 4 | **E12** — 無 joins `isDeadEnd`; the 無 orphans lose the dotted edge | **P1** | direct `fix:` + test | — | One entry in the dead set; 11 orphans |
+| 5 | **E4** — the 國 badge rules re-stated; the per-label route narrows to registration + name | **P1** | openspec change (`official-link-discovery` + `viewer-related-links`) + viewer | — | 451 badges move; the pipeline may need `twur_name` on more nodes |
+| 6 | **E5** — the construction-event 國 badge: national-only, not corroborated | **P1** | direct `fix:` + viewer test | E4 (one badge vocabulary) | 288 badges go, 2 stay |
+| 7 | **E6** — badge links: the event 國 becomes a link to view/<id> | **P2** | direct `fix:` | E5 | One element swap |
+| 8 | **E7** — the joined node's 北 badge covers both area cases; the callout splits by section | **P2** | openspec change (viewer + `case-record-join`) | — | 30 joined nodes, 28 area pairs |
+| 9 | **E8** — area labels [A區]/[B區] beside the badge or callout | **P2** | direct `fix:` | E7 | Derives from E7's section split |
+| 10 | **E9** — callout values never wrap; the gutter grows to content | **P3** | direct `fix:` + harness measurement | — | 744 of 1,431 callouts wrap; the widest value needs 302 px |
+| 11 | **E10** — the sibling-page id source; 懷生16's 09503201 joins | **P2** | probe first, then openspec change (`official-link-discovery`) + cache refresh + re-emit | the WAC temper probe (E13 phase 1) | The sweep-scale gap is unmeasured — measure before opening |
+| 12 | **E13** — the national re-crawl: WAF probe → the 57 → the 514 | **P2** | probe + the existing sweep; no openspec change | E10's sibling-source edit, if agreed | Phase-gated on the failure rate |
+| 13 | **E3** — harness geometry stubs, then the windowed list | **P2** | openspec change (viewer + harness) | E2 | Lands last; the dashboard reuses its helper |
 
 **Why this order.**
 
-- **E1 first.** It is a pipeline defect with a fully specified test group, and
-  every other change that touches names or counts benefits from the fold being
-  in. It needs no harness work and no viewer work.
-- **E2 before E3.** Both need harness cases; E2's are smaller (focus and URL
-  assertions). E3's geometry stubs build on a harness that already knows how
-  to drive the list, and E3 must keep E2's deep-link write working — landing
-  E3 first would mean E2 reviews against a moving base.
-- **E4 before E5.** Both reshape the badge vocabulary; E4 defines when a 國
-  exists on a node, E5 removes the event badge that contradicts it. Landing
-  E5 first would remove badges E4's rule may re-home.
+- **E1, E2 first — unchanged.** E1 is a pipeline defect with a fully
+  specified test group. E2 needs the harness cases E3 builds on. Neither
+  touches the badge or callout work.
+- **E11 and E12 are one-liners and go before the badge redesigns.** Each is a
+  named value in one set (`scheduleBadgeText`'s list; `isDeadEnd`). Landing
+  them first means E4–E9 review against a viewer that already reads the dead
+  set the user expects.
+- **E4 before E5/E6.** Both reshape the badge vocabulary; E4 defines when a
+  國 exists on a node, E5 removes the event badge that contradicts it.
 - **E5 and E6 are one edit site.** The event badge at `viewer/app.js:1398`
   changes from `natCorroborated`-driven span to `nationalHit`-driven link in
-  the same template; they are split here only because E5's rule is a
-  measurement and E6's is a swap.
-- **E7 → E8 → E9 are one review unit** with three separable edits: the
-  section split (E7), its labels (E8), and the box sizing (E9). E9 is
+  the same template.
+- **E7 → E8 → E9 are one review unit** with three separable edits. E9 is
   independent and can land any time, but reviewing the callout three times
   costs more than reviewing it once.
+- **E10 probes before it opens.** One case is measured; the sweep-scale gap
+  is not. The sibling-page source (one request per project) is a new crawl
+  surface, and E13's phase-1 WAF probe measures whether that surface is
+  affordable at all this week.
+- **E13 runs last and nightly.** It writes nothing but caches; its re-emit
+  rides the usual path. Its phase-1 probe is also E10's gate, so the probe
+  runs before E10 opens.
 - **E3 last, with the dashboard in mind.** The windowing helper is written
-  once for both lists. If the dashboard's drill-down list ships first without
-  it, the dashboard inherits the full-render cost and pays for the refactor
-  twice.
+  once for both lists.
 
 ## Decisions waiting on the user
 
@@ -478,10 +639,12 @@ E7/E8 so the callout is reviewed once.
 | --- | --- | --- |
 | **E1** | Open the change? The six-pin test group is specified (§11.3) and re-verified. The fix is one `NFKC` call at the cleansing boundary plus the tests | E1 |
 | **E2** | Open the change with scope = steps 1–4 (no windowing, no debounce)? | E2 |
-| **E3** | Open the change (harness + windowing together)? Sequence after E2? | E3 |
 | **E4** | Confirm the narrowed 國 rule: case-registered OR exact-`twur_name` name; the 451 stage+date-bound badges go. Confirm with it whether the name route covers the 權利變換 擬訂 node (大安590 node 884) — its 案名 differs from `twur_name` by one word | E4 |
 | **E5** | Confirm: the 使照 event keeps 國 only when the city case has no 使照 and the view does (288 go, 2 stay)? | E5 |
 | **E7** | Confirm the joined callout shows one box per section, with per-section diffs — and whether the merged 基地面積 rows stay or go | E7 |
+| **E10** | Confirm the sibling-page sweep (one request per twur-bearing project) to size the gap before the change opens? | E10 |
+| **E11** | Scope check: the user wrote [已施工]; the payload's value is 施工中. Also — does 已完工 (5 cases) stay badged in 相關連結? | E11 |
+| **E13** | Confirm the three-phase plan and tonight's phase-1 probe (`--max-projects 10` on the 57)? | E13 |
 
 One change opens per the user's word — a recommended option is not a decision.
 `openspec list` before proposing: another session may already have opened one.
@@ -496,6 +659,12 @@ One change opens per the user's word — a recommended option is not a decision.
   `scripts/probe_compat_field.py`, `scripts/probe_compat_name_id.py`,
   `scripts/probe_compat_index_core.py`, `scripts/probe_nfkc_keyword_exposure.py`
   (all read-only, offline).
+- E10's precedent: batch B/C's C8b (新光101, 寶清599, 敦化585-11 — plan cases
+  the parcel search does not index, found by probing sibling ids) and batch D
+  step 6b (the second-id-source change that landed the confirm-by-header
+  rule).
+- E13's tool: `scripts/fetch_remaining_national_portal.py` (the sweep; its
+  header documents the pacing, the retry ladder and the 06:30 deadline).
 - The lesson that scopes this batch: **a scope is a claim about what was not
   measured** (batch D D16d; `docs/DashboardNUXUI.md` §11.4; the memory
   `scope-is-a-claim-about-what-was-not-measured`).

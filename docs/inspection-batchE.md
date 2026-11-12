@@ -454,7 +454,18 @@ E7/E8 so the callout is reviewed once.
 
 ---
 
-## E10 — 懷生16: a live -A區 plan case the parcel search never returns (user, 2026-11-12)
+## E10 — 懷生16: a live -A區 plan case the parcel search never returns (user, 2026-11-12) — **PROBED 2026-11-13, change not opened**
+
+Probe results (2026-11-13): the sibling-source gap is **unmeasurable
+offline** — the only source is the case page's 相關連結 (the Playwright
+searcher's surface), and no offline proxy reproduces it (the header NAME
+carries a case's own state, not a cross-reference; 0 cross-referenced ids
+over the whole payload). E13's phase-1 WAF probe read the NATIONAL portal
+temperate (10 processed, 0 failed, no rejections); the CITY API answered
+30 sampled milestone requests without rejection. The gap's size therefore
+arrives with the nightly phase-2 sweep, which reads case pages for the 53
+twur-less projects. The 懷生16 fix (09503201 joins) rides the change when
+the sweep-scale evidence is in.
 
 **The user's finding (item 6).** 大安區-懷生段二小段-16地號等6筆 shows a case in
 the platform's own 相關連結 that this dataset has never held: **`09503201`** —

@@ -966,6 +966,47 @@ which is the better shape.
 
 ## 14. Revision record
 
+### 14.-3 2026-11-13 — review time re-anchored on the first approval's own case; a second interval to the pre-permit approval
+
+**The rule changed, on the user's word (2026-11-13).** The 審議量能與時程 section
+measured review time from the earliest of 申請計畫日期 / 申請概要日期 / the national
+事業計畫申請日期 over every case, to the gazette date of the earliest node. The
+openspec change `dashboard-review-time` (MODIFIED requirement in
+`policy-dashboard`, 12 scenarios, tests first) replaces it: the first approval is
+the project's earliest 擬訂 node among 事業計畫 / 權利變換 approvals (else the
+earliest such node; 事業概要 rows never count); the application date is the
+earliest 申請計畫日期 / 申請權變日期 on **that node's own city case** (`links.taipei`
+→ `links.case_milestones`); line 1 ends at that case's 核定日期 / 權變核定日期;
+line 2 ends at the case 核定 date of the latest eligible node before the earliest
+建照核發日期 (or the latest node when no permit is recorded; absent when the permit
+precedes every node). The 審議時間中位數 card now shows the line 2 median and names
+line 1 and the total-to-use-permit medians in its sub-line; the review chart draws
+both lines with a legend; the caption names the projects with only a 事業概要
+approval; the definitions block restates the rule in both languages.
+
+**Measured on the page (harness, payload `5c81270`, 680 projects):** card 3.8 years
+(line 2, n 664); line 1 3.0 years (n 666); total to use permit 7.1 years (was 8.0 —
+the application no longer reaches back to the 概要 date); 14 outline-only projects.
+`tests/test_dashboard_rules.py` holds 11 new or rewritten review tests; the
+dotted-ROC test now probes idle time with a national 核定 date because the national
+application date is no longer a review source. Suite 1303 passed / 1 skipped.
+
+**Seven data defects found while measuring, fixed through the ledger (not this
+change).** Five split families whose 擬訂 sat in a sibling project — 犁和段102 ↔
+165 (851 ↔ 1345), 萬隆段461 ↔ 468 (1287 ↔ 1387), 萬隆段623 ↔ 519 (339 ↔ 970),
+華江段274 ↔ 215-2 (854 ↔ 1119), 萬大段519-2 ↔ 萬華段519-2 (404 ↔ 993; a section typo
+in two 案名s, the 河堤399 shape) — and 景美段501's two rows with swapped stage labels
+(1423 → 擬訂/0, 1393 → 變更/1; the city case and the national page both date the
+擬訂 on 2005-03-17 and the 權變 變更 on 2007-08-02). Nine ledger lines (five
+`confirm_merge`, four field corrections) were drafted and verified offline against
+`data/clean.tsv` — each key matches exactly one record, the pairs resolve to the
+recnos above — and wait for the append and a PDF ingest of 核定案件-2026-10-28.pdf
+(680 → 675 projects). **Two things stay as they are:** 德惠段813-1 recno 986 prints
+2017-05-10 for an approval the city dates 2018/05/10 (the ledger has no date
+field; the 擬訂-first rule sidesteps the row), and 1393's name-derived
+`stage_事業計畫` / `stage_權利變換` keep the printed 擬訂 (not ledger-correctable; the
+dashboard reads `stage`).
+
 ### 14.-2 2026-11-12 — the dashboard's spec restored from the shipped page; the artifact recorded as provenance
 
 **Nothing in the figures moved; the record did.** The page `viewer/dashboard.html`

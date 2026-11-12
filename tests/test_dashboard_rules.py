@@ -56,6 +56,29 @@ def project(pid="大安區-測試段一小段-1地號等3筆", district="大安�
     }
 
 
+def node(date, stage="擬訂", case="c1", track=None):
+    """An approval node bound to one or more city cases, the shape the payload
+    emits (`links.taipei` holds the case ids). `case` may be a list."""
+    n = {"date": date, "stage": stage,
+         "links": {"taipei": case if isinstance(case, list) else [case]}}
+    if track:
+        n["track"] = track
+    return n
+
+
+def review_points(out):
+    """{(interval, year): (median, projects)} from the review chart's tooltips."""
+    pts = {}
+    for pt in out["review"]["series"]:
+        for k, v in pt["values"].items():
+            if k != "專案數" and k != "Projects":
+                pts[(k, pt["head"])] = (v.split()[0], pt["values"].get("專案數", pt["values"].get("Projects")))
+    return pts
+
+
+FIRST, PREPERMIT = "自申請至首次核定", "自申請至建照核發前之核定"
+
+
 def payload(projects, published=PUB):
     return {
         "published_date": published,
@@ -188,11 +211,16 @@ def test_the_clock_is_the_gazette_not_today(tmp_path):
 # --- 1.4 dates ---------------------------------------------------------------
 
 def test_a_dotted_roc_date(tmp_path):
-    """107.02.08 is 2018-02-08: three years to a 2021-02-08 approval."""
+    """107.02.08 is 2018-02-08: it is the project's last progress, 8.72 years
+    before the 2026-10-28 gazette (design D7 of dashboard-review-time — the
+    national application date is no longer a review source, so the probe is
+    idle time, read through the same date parser)."""
     out = render(tmp_path, payload([project(
-        nodes=[{"date": "2021-02-08", "stage": "擬訂事業計畫"}],
-        mn={"事業計畫申請日期": "107.02.08"})]))
-    assert out["cards"][REVIEW]["num"] == "3.0"
+        nodes=[{"date": "2016-01-01", "stage": "擬訂事業計畫"}],
+        mn={"事業計畫核定日期": "107.02.08"})]))
+    row = out["watch"]["rows"][0]
+    assert row["cells"][2] == "2018-02-08"
+    assert row["cells"][3] == "8.72"
 
 
 def test_a_date_that_does_not_exist(tmp_path):
@@ -215,37 +243,126 @@ def test_a_date_after_the_gazette(tmp_path):
 # --- 1.5 review --------------------------------------------------------------
 
 def test_both_dates_present(tmp_path):
+    """The first approval's own case: 申請計畫 2015-01-01, 核定 2018-01-01."""
     out = render(tmp_path, payload([project(
-        nodes=[{"date": "2018-01-01", "stage": "擬訂事業計畫"}],
-        cm={"申請計畫日期": "2015-01-01"})]))
-    assert out["cards"][REVIEW]["num"] == "3.0"
+        nodes=[node("2018-01-01")],
+        cm={"申請計畫日期": "2015-01-01", "核定日期": "2018-01-01"})]))
+    assert review_points(out)[(FIRST, "2018")] == ("3.0", "1")
 
 
 def test_approval_before_application(tmp_path):
     out = render(tmp_path, payload([project(
-        nodes=[{"date": "2014-01-01", "stage": "擬訂事業計畫"}],
-        cm={"申請計畫日期": "2015-01-01"})]))
+        nodes=[node("2014-01-01")],
+        cm={"申請計畫日期": "2015-01-01", "核定日期": "2014-01-01"})]))
     assert out["cards"][REVIEW]["num"] == "—"
     assert out["review"]["series"] == [] and out["review"]["empty"]
 
 
 def test_the_median_over_an_even_count(tmp_path):
-    # review years 1.0, 2.0, 3.0, 10.0 against one 2020-01-01 approval each
+    # first-approval years 1.0, 2.0, 3.0, 10.0 against one 2020-01-01 approval each
     apps = ["2019-01-01", "2018-01-01", "2017-01-01", "2010-01-01"]
-    docs = [project(pid="p%d" % i, nodes=[{"date": "2020-01-01", "stage": "擬訂事業計畫"}],
-                    cm={"申請計畫日期": a}) for i, a in enumerate(apps)]
+    docs = [project(pid="p%d" % i, nodes=[node("2020-01-01")],
+                    cm={"申請計畫日期": a, "核定日期": "2020-01-01"}) for i, a in enumerate(apps)]
     out = render(tmp_path, payload(docs))
-    assert out["cards"][REVIEW]["num"] == "2.5"
+    assert review_points(out)[(FIRST, "2020")] == ("2.5", "4")
 
 
 def test_the_count_travels_with_the_median(tmp_path):
-    docs = [project(pid="p%d" % i, nodes=[{"date": "2018-0%d-01" % (i + 1), "stage": "擬訂事業計畫"}],
-                    cm={"申請計畫日期": "2015-01-01"}) for i in range(2)]
+    docs = [project(pid="p%d" % i, nodes=[node("2018-0%d-01" % (i + 1))],
+                    cm={"申請計畫日期": "2015-01-01", "核定日期": "2018-0%d-01" % (i + 1)}) for i in range(2)]
     out = render(tmp_path, payload(docs))
-    (pt,) = out["review"]["series"]
-    assert pt["head"] == "2018"
-    assert pt["values"]["專案數"] == "2"
-    assert pt["values"]["中位數"].split()[0] == "3.0"
+    pts = review_points(out)
+    assert pts[(FIRST, "2018")][1] == "2"
+    assert pts[(PREPERMIT, "2018")][1] == "2"
+
+
+def test_the_application_is_read_from_the_first_approvals_own_case(tmp_path):
+    """Case A on the 擬訂 node applied 2016; case B on the later 變更 applied
+    2012. The interval is A's 2.0 years, not B's 6.0."""
+    out = render(tmp_path, payload([project(
+        nodes=[node("2018-01-01", case="c1"), node("2020-01-01", stage="變更", case="c2")],
+        cm={"c1": {"申請計畫日期": "2016-01-01", "核定日期": "2018-01-01"},
+            "c2": {"申請計畫日期": "2012-01-01", "核定日期": "2020-01-01"}})]))
+    assert review_points(out)[(FIRST, "2018")][0] == "2.0"
+
+
+def test_a_niding_node_is_preferred_as_the_first_approval(tmp_path):
+    """德惠段813-1's shape: a 變更 row printed 2017-05-10 precedes the 擬訂 row
+    of 2017-11-23. The 擬訂 node is the first approval: 2015-10-26 → 2017-11-23
+    is 2.08 years, in the year 2017; the 變更 case would read 0.27 in 2018."""
+    out = render(tmp_path, payload([project(
+        nodes=[node("2017-05-10", stage="變更", case="c1"), node("2017-11-23", case="c2")],
+        cm={"c1": {"申請計畫日期": "2018-01-30", "核定日期": "2018-05-10"},
+            "c2": {"申請計畫日期": "2015-10-26", "核定日期": "2017-11-23", "建照核發日期": "2019-08-07"}})]))
+    pts = review_points(out)
+    assert pts[(FIRST, "2017")][0] == "2.1"
+    assert (FIRST, "2018") not in pts
+
+
+def test_only_outline_approvals(tmp_path):
+    out = render(tmp_path, payload([
+        project(pid="p0", nodes=[{"date": "2024-07-29", "stage": "擬訂", "track": "事業概要"}]),
+        project(pid="p1", nodes=[node("2018-01-01", track="事業計畫")],
+                cm={"申請計畫日期": "2015-01-01", "核定日期": "2018-01-01"})]))
+    assert out["cards"][PROJECTS]["num"] == "2"
+    pts = review_points(out)
+    assert pts[(FIRST, "2018")] == ("3.0", "1")
+    assert pts[(PREPERMIT, "2018")] == ("3.0", "1")
+    assert "1" in out["reviewCap"] and "事業概要" in out["reviewCap"]
+
+
+def test_time_to_the_approval_before_the_building_permit(tmp_path):
+    """萬隆519's shape: 擬訂 2013, 變更 2017, 變更 2022, permit 2018-07-16. Line 2
+    ends at the 2017 approval (9.0 years), not at 2022."""
+    out = render(tmp_path, payload([project(
+        nodes=[node("2013-02-07", case="c1"), node("2017-02-07", stage="變更", case="c2"),
+               node("2022-11-23", stage="變更", case="c3")],
+        cm={"c1": {"申請計畫日期": "2008-02-07", "核定日期": "2013-02-07", "建照核發日期": "2018-07-16"},
+            "c2": {"核定日期": "2017-02-07"},
+            "c3": {"核定日期": "2022-11-23"}})]))
+    pts = review_points(out)
+    assert pts[(FIRST, "2013")][0] == "5.0"
+    assert pts[(PREPERMIT, "2013")][0] == "9.0"
+    assert out["cards"][REVIEW]["num"] == "9.0"
+
+
+def test_no_building_permit_the_latest_approval(tmp_path):
+    out = render(tmp_path, payload([project(
+        nodes=[node("2018-01-01", case="c1"), node("2020-01-01", stage="變更", case="c2")],
+        cm={"c1": {"申請計畫日期": "2015-01-01", "核定日期": "2018-01-01"},
+            "c2": {"核定日期": "2020-01-01"}})]))
+    pts = review_points(out)
+    assert pts[(FIRST, "2018")][0] == "3.0"
+    assert pts[(PREPERMIT, "2018")][0] == "5.0"
+
+
+def test_the_permit_precedes_every_approval(tmp_path):
+    out = render(tmp_path, payload([project(
+        nodes=[node("2018-01-01")],
+        cm={"申請計畫日期": "2015-01-01", "核定日期": "2018-01-01", "建照核發日期": "2017-01-01"})]))
+    pts = review_points(out)
+    assert pts[(FIRST, "2018")][0] == "3.0"
+    assert (PREPERMIT, "2018") not in pts
+    assert out["cards"][REVIEW]["num"] == "—"
+
+
+def test_the_card_shows_the_pre_permit_median(tmp_path):
+    out = render(tmp_path, payload([project(
+        nodes=[node("2018-01-01", case="c1"), node("2020-01-01", stage="變更", case="c2")],
+        cm={"c1": {"申請計畫日期": "2015-01-01", "核定日期": "2018-01-01"},
+            "c2": {"核定日期": "2020-01-01"}})]))
+    assert out["cards"][REVIEW]["num"] == "5.0"
+    assert "3.0" in out["cards"][REVIEW]["sub"]
+
+
+def test_joined_cases_take_the_earliest_application(tmp_path):
+    """Two area cases on one recno: 2013-04-08 → 2019-07-24 is 6.29 years
+    (6.3); the later case's 2013-06-01 would read 6.1."""
+    out = render(tmp_path, payload([project(
+        nodes=[node("2019-07-24", case=["c1", "c2"])],
+        cm={"c1": {"申請計畫日期": "2013-06-01", "核定日期": "2019-07-24"},
+            "c2": {"申請計畫日期": "2013-04-08", "核定日期": "2019-07-24"}})]))
+    assert review_points(out)[(FIRST, "2019")][0] == "6.3"
 
 
 # --- 1.6 approvals -----------------------------------------------------------

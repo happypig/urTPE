@@ -353,6 +353,9 @@ function extract() {
   const rb = qsa(review, ".chart");
   out.approvals = seriesOf(rb[0]);
   out.review = seriesOf(rb[1]);
+  // the review card's caption carries the 概要-only notice (dashboard-review-time)
+  const reviewCard = qsa(review, ".card")[1];
+  out.reviewCap = text(first(reviewCard, "p.cap"));
   out.households = barsOf(first(sec("relocation"), ".chart"));
   const housing = sec("housing");
   out.publand = barsOf(first(housing, ".chart"));

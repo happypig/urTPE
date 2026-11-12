@@ -74,11 +74,13 @@
     ],
     newPlans: ["New plans", "擬訂"],
     changes: ["Changes", "變更"],
-    cReview: ["Median years from application to first approval", "自申請至首次核定的年數中位數"],
+    cReview: ["Median review years, by year of first approval", "審議年數中位數，依首次核定年度"],
     cReviewCap: [
-      "By the year the first approval was issued. Years with few projects move a lot.",
-      "依首次核定年度。專案數少的年度波動較大。",
+      "Each project is measured from the plan application on its first approval's own city case. Years with few projects move a lot.",
+      "每件專案自其首次核定案件的計畫申請日起算。專案數少的年度波動較大。",
     ],
+    review1: ["Application to first approval", "自申請至首次核定"],
+    review2: ["Application to the approval before the building permit", "自申請至建照核發前之核定"],
     median: ["Median", "中位數"],
     projectsN: ["Projects", "專案數"],
     noApprovals: ["No approvals recorded.", "沒有核定紀錄。"],
@@ -114,13 +116,13 @@
     en: [
       ["Stage.", "已完工: a use permit date is recorded. 施工中: a construction start date but no use permit. 已領建照未開工: a building permit but no start. 已核定未領建照: approved, no building permit recorded."],
       ["Idle years.", "Years between the latest recorded milestone, approval or permit of a project and the latest gazette. The 3 and 5 year cut-offs are a convention of this page, not a legal definition, and a quiet record can also mean missing data."],
-      ["Review time.", "Years from the earliest plan or outline application date to the first gazette approval."],
+      ["Review time.", "Measured on the city case of a project's first approval (its earliest 擬訂 plan or rights-transfer approval; outline approvals never count): years from that case's plan application to its approval, and to the last approval before the building permit — or the latest approval when no permit is recorded. Projects with only an outline approval are left out and counted in the chart caption."],
       ["Coverage.", "Only approved cases appear here; projects stuck before approval are not in the gazette. Households, land areas and public-benefit area are the figures filed with each plan and may differ from built results."],
     ],
     zh: [
       ["階段。", "已完工：有使用執照日期。施工中：有開工日期但無使用執照。已領建照未開工：有建造執照但未開工。已核定未領建照：已核定，但無建造執照紀錄。"],
       ["停滯年數。", "專案最近一筆里程碑、核定或執照紀錄，距最新一期公報的年數。三年與五年的門檻是本頁的慣例，並非法定定義；沒有紀錄也可能只是資料缺漏。"],
-      ["審議時間。", "自最早的事業計畫或事業概要申請日，至公報首次核定日的年數。"],
+      ["審議時間。", "以專案首次核定案件（最早的擬訂事業計畫或權利變換計畫，不含事業概要）為準：自該案的計畫申請日，至該案核定日的年數，以及至建照核發前最後一次核定的年數；無建照紀錄者量至最近一次核定。僅有事業概要核定的專案不計入，件數標示於圖表說明。"],
       ["涵蓋範圍。", "這裡只有已核定案件；核定前就卡住的案件不在公報內。戶數、土地面積與公益設施面積為計畫書所載數字，可能與實際興建結果不同。"],
     ],
   };
@@ -208,9 +210,35 @@
       const nd = keep(nodes.map((n) => pd(n.date))).sort((a, c) => a - c);
       const allOf = (key) => keep(cm.map((c) => pd(c[key])));
 
-      const apply = min(allOf("申請計畫日期").concat(allOf("申請概要日期"), keep([pd(mn["事業計畫申請日期"])])));
-      const first = nd.length ? nd[0] : null;
+      // Review time is anchored on the first approval node and read from that
+      // node's own city case (policy-dashboard, dashboard-review-time): the
+      // 概要 application is an outline, not the plan under review, and the
+      // national date is a second copy of the city's. 事業概要 rows never count.
+      const cmById = l.case_milestones || {};
+      const eligible = nodes
+        .map((n) => ({ n, ms: pd(n.date) }))
+        .filter((x) => x.ms != null && String(x.n.track || "") !== "事業概要")
+        .sort((a, c) => a.ms - c.ms);
+      const casesOf = (n) => {
+        const found = ((n.links && n.links.taipei) || []).map((id) => cmById[id]).filter(Boolean);
+        if (found.length) return found;
+        return n.links && n.links.milestones_taipei ? [n.links.milestones_taipei] : [];
+      };
+      const dateOf = (cases, keys) => min(keep(cases.flatMap((c) => keys.map((k) => pd(c[k])))));
+      const approvalOf = (x) => { const d = dateOf(casesOf(x.n), ["核定日期", "權變核定日期"]); return d != null ? d : x.ms; };
+      // the 擬訂 node first, else the earliest eligible node (design D2)
+      const firstX = eligible.find((x) => String(x.n.stage || "").indexOf("擬訂") === 0) || eligible[0] || null;
+      const apply = firstX ? dateOf(casesOf(firstX.n), ["申請計畫日期", "申請權變日期"]) : null;
+      const first = firstX ? approvalOf(firstX) : null;
       const permit = min(allOf("建照核發日期"));
+      // line 2 ends on the latest eligible node before the permit, or the
+      // latest node when no permit is recorded; absent when the permit
+      // precedes every node (design D3)
+      let endX = null;
+      if (permit != null) { const before = eligible.filter((x) => x.ms < permit); endX = before.length ? before[before.length - 1] : null; }
+      else endX = eligible.length ? eligible[eligible.length - 1] : null;
+      const reviewEnd = endX ? approvalOf(endX) : null;
+      const onlyOutline = !eligible.length && nodes.length > 0;
       const starts = allOf("開工日期").concat(keep([pd(im.Eng_Start_Date)]));
       const start = min(starts);
       const comps = allOf("使照核發日期").concat(
@@ -236,6 +264,8 @@
         last_activity: iso(last),
         idle_years: idle,
         review_years: yrs(apply, first),
+        review2_years: yrs(apply, reviewEnd),
+        only_outline: onlyOutline,
         total_years: yrs(apply, comp),
         old_doors: int(num(im.Old_Doors)),
         welfare_area: int(num(im.Welfare_Area)),
@@ -275,8 +305,10 @@
       completed_pct: g.length ? Math.round((done / g.length) * 1000) / 10 : null,
       stalled5: open.filter((p) => p.flag === IDLE5).length,
       stalled3: open.filter((p) => p.flag === IDLE3).length,
-      median_review: median(g.map((p) => p.review_years)),
+      median_review: median(g.map((p) => p.review2_years)),   // the card: to the approval before the permit
+      median_review1: median(g.map((p) => p.review_years)),   // to first approval
       median_total: median(g.map((p) => p.total_years)),
+      outline_only: g.filter((p) => p.only_outline).length,
       open_households: sum(open, "old_doors"),
       households_building: sum(building, "old_doors"),
       households_waiting: sum(open, "old_doors") - sum(building, "old_doors"),
@@ -311,15 +343,19 @@
     return [...m.values()].sort((x, y) => x.year - y.year);
   }
   function reviewOf(rows) {
-    const m = new Map();
-    for (const p of rows) {
-      if (p.review_years == null || !p.first_approval) continue;
-      const y = +p.first_approval.slice(0, 4);
-      if (!m.has(y)) m.set(y, []);
-      m.get(y).push(p.review_years);
-    }
-    return [...m.entries()].sort((x, y) => x[0] - y[0])
-      .map(([year, v]) => ({ year, projects: v.length, median: median(v) }));
+    // both intervals keyed by the year of the first approval's date
+    const series = (key) => {
+      const m = new Map();
+      for (const p of rows) {
+        if (p[key] == null || !p.first_approval) continue;
+        const y = +p.first_approval.slice(0, 4);
+        if (!m.has(y)) m.set(y, []);
+        m.get(y).push(p[key]);
+      }
+      return [...m.entries()].sort((x, y) => x[0] - y[0])
+        .map(([year, v]) => ({ year, projects: v.length, median: median(v) }));
+    };
+    return { first: series("review_years"), pre: series("review2_years") };
   }
 
   // -------------------------------------------------------------- charts
@@ -436,14 +472,22 @@
     }
   }
 
-  function reviewChart(box, rows, scopeName) {
-    if (!rows.length) { box.replaceChildren(el("p", { class: "empty" }, t("noReview"))); return; }
+  function reviewChart(box, data, scopeName) {
+    // two series on one frame: to first approval, and to the approval before
+    // the building permit (dashboard-review-time); each point names its own
+    // interval and its own project count
+    const series = [
+      { rows: data.first, name: t("review1"), color: COLOR.ok },
+      { rows: data.pre, name: t("review2"), color: COLOR.alt },
+    ].filter((s) => s.rows.length);
+    if (!series.length) { box.replaceChildren(el("p", { class: "empty" }, t("noReview"))); return; }
     const h = 240;
     const { svg, w, show, hide } = frame(box, h, scopeName + " · " + t("cReview"));
-    const ticks = niceTicks(Math.max.apply(null, rows.map((r) => r.median)), 4);
+    const all = series.flatMap((s) => s.rows);
+    const ticks = niceTicks(Math.max.apply(null, all.map((r) => r.median)), 4);
     const y = lin(0, ticks[ticks.length - 1], h - 22, 8);
     const ml = textW(svg, ticks.map(f1)) + 10;
-    let y0 = rows[0].year, y1 = rows[rows.length - 1].year;
+    let y0 = Math.min.apply(null, all.map((r) => r.year)), y1 = Math.max.apply(null, all.map((r) => r.year));
     if (y0 === y1) { y0 -= 1; y1 += 1; }
     const x = lin(y0, y1, ml + 6 + textW(svg, [String(y0)]) / 2, w - 6 - textW(svg, [String(y1)]) / 2);
     yAxis(svg, y, ticks, ml, w - 2, f1);
@@ -451,19 +495,24 @@
     for (let yr = y1; yr >= y0; yr -= step) {
       svg.append(sv("text", { x: x(yr), y: h - 6, "text-anchor": "middle" }, yr));
     }
-    // Point to point: a curve would suggest values the data lacks.
-    svg.append(sv("path", {
-      d: rows.map((r, i) => (i ? "L" : "M") + x(r.year) + "," + y(r.median)).join(""),
-      style: "fill:none;stroke-width:2;stroke:" + COLOR.ok,
-    }));
-    for (const r of rows) {
-      svg.append(sv("circle", { cx: x(r.year), cy: y(r.median), r: 4, style: "fill:" + COLOR.ok }));
-      const hit = sv("circle", { cx: x(r.year), cy: y(r.median), r: 11, style: "fill:transparent" });
-      hover(hit, show, hide, [String(r.year), t("median") + ": " + f1(r.median) + " " + t("years"), t("projectsN") + ": " + f0(r.projects)]);
-      svg.append(hit);
-    }
-    const last = rows[rows.length - 1];
-    svg.append(sv("text", { class: "val", x: x(last.year), y: Math.max(12, y(last.median) - 9), "text-anchor": "end" }, f1(last.median)));
+    series.forEach((s, si) => {
+      const rows = s.rows;
+      // Point to point: a curve would suggest values the data lacks.
+      svg.append(sv("path", {
+        d: rows.map((r, i) => (i ? "L" : "M") + x(r.year) + "," + y(r.median)).join(""),
+        style: "fill:none;stroke-width:2;stroke:" + s.color,
+      }));
+      for (const r of rows) {
+        svg.append(sv("circle", { cx: x(r.year), cy: y(r.median), r: 4, style: "fill:" + s.color }));
+        const hit = sv("circle", { cx: x(r.year), cy: y(r.median), r: 11, style: "fill:transparent" });
+        hover(hit, show, hide, [String(r.year), s.name + ": " + f1(r.median) + " " + t("years"), t("projectsN") + ": " + f0(r.projects)]);
+        svg.append(hit);
+      }
+      const last = rows[rows.length - 1];
+      // the first series labels above its last point, the second below, so the two never overprint
+      const ly = si ? Math.min(h - 24, y(last.median) + 16) : Math.max(12, y(last.median) - 9);
+      svg.append(sv("text", { class: "val", x: x(last.year), y: ly, "text-anchor": "end" }, f1(last.median)));
+    });
   }
 
   // -------------------------------------------------------------- render
@@ -481,9 +530,9 @@
       el("p", { class: "kpi-num" }, value == null ? "—" : value, unit ? [" ", el("span", { class: "kpi-unit" }, unit)] : null),
       el("p", { class: "sub" }, sub));
   }
-  function chartCard(titleKey, capKey, leg, box) {
+  function chartCard(titleKey, capKey, leg, box, capText) {
     return el("div", { class: "card" },
-      el("h3", null, t(titleKey)), el("p", { class: "cap" }, t(capKey)), leg, box);
+      el("h3", null, t(titleKey)), el("p", { class: "cap" }, capText || t(capKey)), leg, box);
   }
   function projectCell(p) {
     // Opens the project's history graph in the viewer (index.html reads #project=).
@@ -534,8 +583,9 @@
       card("kProjects", f0(k.projects), "", zh ? [b(pct), "% 已取得使用執照"] : [b(pct), "% have a use permit"]),
       card("kStalled", f0(k.stalled5), "", zh ? ["另有 ", b(f0(k.stalled3)), " 件停滯三至五年"] : ["Plus ", b(f0(k.stalled3)), " idle for three to five years"]),
       card("kReview", med(k.median_review), t("years"), zh
-        ? ["自申請至首次核定。已完工專案自申請至使用執照為 ", b(med(k.median_total)), " 年。"]
-        : ["Application to first approval. ", b(med(k.median_total)), " years from application to use permit for completed projects."]),
+        ? ["自申請至建照核發前之核定。自申請至首次核定為 ", b(med(k.median_review1)), " 年；已完工專案自申請至使用執照為 ", b(med(k.median_total)), " 年。"]
+        : ["Application to the approval before the building permit. ", b(med(k.median_review1)), " years to first approval; ",
+           b(med(k.median_total)), " years from application to use permit for completed projects."]),
       card("kHouseholds", f0(k.open_households), t("householdsUnit"), zh
         ? ["施工中 ", b(f0(k.households_building)), " 戶，尚未開工 ", b(f0(k.households_waiting)), " 戶"]
         : [b(f0(k.households_building)), " under construction, ", b(f0(k.households_waiting)), " not yet started"]),
@@ -574,7 +624,12 @@
         el("h2", null, t("sReview")), el("p", { class: "lede" }, t("sReviewLede")),
         el("div", { class: "grid" },
           chartCard("cApprovals", "cApprovalsCap", legend([["ok", "newPlans"], ["alt", "changes"]]), boxes.approvals),
-          chartCard("cReview", "cReviewCap", null, boxes.review))),
+          chartCard("cReview", "cReviewCap", legend([["ok", "review1"], ["alt", "review2"]]), boxes.review,
+            // the 概要-only notice: these projects count in the project card but in neither interval
+            t("cReviewCap") + (k.outline_only
+              ? (zh ? ` 不含 ${f0(k.outline_only)} 件僅有事業概要核定的專案。`
+                    : ` Excludes ${f0(k.outline_only)} projects with only an outline (事業概要) approval.`)
+              : "")))),
       el("section", { id: "relocation" },
         el("h2", null, t("sReloc")), el("p", { class: "lede" }, t("sRelocLede")),
         chartCard("cHouseholds", "cHouseholdsCap", legend([["ok", "building"], ["alt", "waiting"]]), boxes.households)),

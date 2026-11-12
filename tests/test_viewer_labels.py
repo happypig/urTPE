@@ -903,3 +903,56 @@ console.log("ok");
 """)
     r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
     assert r.returncode == 0, r.stderr
+
+
+def test_the_event_national_badge_fires_only_on_a_national_hit():
+    """E5 (inspection-batchE, user decision 2026-11-12): the construction
+    event's 國 badge means "this date came from the national page because
+    the city had none" — natCorroborated (a national hit alongside a city
+    date) no longer drives it; nationalHit alone does. Measured: 288
+    corroborated badges go, 2 national-only stay."""
+    js = _js()
+    # the flag natCorroborated survives as data (provenance); the pin is the
+    # DRIVER: the event badge template reads e.national, not e.natCorroborated.
+    m = re.search(r"\$\{e\.natCorroborated \? `<foreignObject", js)
+    assert m is None, (
+        "the event badge is still driven by natCorroborated; it must read "
+        "e.national (nationalHit alone — a corroborated date is not a witness)")
+    m2 = re.search(r"\(e\.national && viewUrl\)", js)
+    assert m2, "the event badge must read e.national (the nationalHit flag)"
+
+
+def test_the_event_national_badge_is_a_link_to_the_view_page():
+    """E6: the event 國 opens the project's national page (view/<id>) — a
+    badge that names a portal must open it. The node badges already do."""
+    js = _js()
+    # the event-node template's 國 badge: an <a> to the view URL with the
+    # badge-link class, not a bare span
+    m = re.search(r"const nationalBadge = \(e\.national && viewUrl\)\s*\? `[\s\S]*?</foreignObject>`", js)
+    assert m, "the event badge template not found"
+    seg = m.group(0)
+    assert "<a " in seg and "badge-link" in seg and 'href=' in seg, (
+        "the event 國 badge renders a span; it must be a link to the view page")
+
+
+def test_the_milestone_cards_national_badges_are_links():
+    """E6: the 推動歷程 card's 國 badges (summary + per-row) link to the
+    national page; the 階段辦理過程 card's 北 badges stay spans (the Taipei
+    case link lives on the node's 北 badge)."""
+    js = _js()
+    # the 推動歷程 (national) card block
+    m = re.search(r"// National portal milestones \(推動歷程\)([\s\S]*?)// Taipei platform milestones", js)
+    assert m, "the milestone-card block not found"
+    national_block = m.group(1)
+    assert 'href="${escapeHtml(twurUrl)}"' in national_block, (
+        "the 推動歷程 card's 國 badges must link to the national page")
+    # the 階段辦理過程 (taipei) card keeps its spans (the block has no
+    # comment marker; read from the taipei branch to the placeholder branch)
+    i1 = js.find("if (Object.keys(taipei).length > 0)")
+    i2 = js.find("} else if (twurUrl)")
+    assert -1 not in (i1, i2) and i1 < i2, "the taipei card block not found"
+    taipei_block = js[i1:i2]
+    assert 'milestone-badge taipei">北</span>' in taipei_block, (
+        "the taipei card block moved")
+    assert 'href="${escapeHtml(twurUrl)}" target="_blank" rel="noopener" title=' not in taipei_block, (
+        "the 階段辦理過程 card's 北 badge must stay a span")

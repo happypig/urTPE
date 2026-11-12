@@ -340,10 +340,12 @@ function buildConstructionChain(p) {
     const prov = provCase ? `案${provCase}${anchored ? `·編號${ownerRecno}` : ""}` : "";
     out.push({
       label: slot, date: dateStr, national: nationalHit, prov,
-      // natCorroborated: the national portal holds this date (history-graph
-      // scenario "National-mapped event shows the 國 badge") — drives the 國
-      // badge even when the slot is a city event. nationalHit slots are
-      // corroborated by construction.
+      // E5 (inspection-batchE, user decision 2026-11-12): the 國 badge means
+      // "this date came from the national page because the city had none" —
+      // nationalHit alone drives it. natCorroborated (a national hit beside a
+      // city date; 288 corpus events) no longer badges: the two portals'
+      // agreement is corroboration, not a second witness (§3.6: 267 of 288
+      // agree).
       case: provCase, anchored, ownerRecno,
       natCorroborated: natCorroborated || nationalHit,
       slot_idx: CONSTRUCTION_CHAIN_SLOTS.indexOf(slot),
@@ -634,18 +636,30 @@ function renderMilestones(project, nodes) {
   let html = "";
 
   // National portal milestones (推動歷程)
+  // E6 (inspection-batchE, user decision 2026-11-12): the card's 國 badges
+  // link to the national page — a badge that names a portal must open it.
+  // The per-row badge on a 使用核發日期 row follows the graph badge's rule
+  // (E5): a corroborated row (the city holds 使照 too) carries no badge —
+  // the portals' agreement is not a second witness.
   if (Object.keys(national).length > 0) {
+    const cityUlic = (links.milestones_taipei || {})["使照核發日期"];
+    const vmView = twurUrl.match(/view\/(\d+)/);
+    const viewTitle = vmView ? `view/${vmView[1]}` : "國土署入口網";
+    const badgeLink = `<a class="milestone-badge national" href="${escapeHtml(twurUrl)}" target="_blank" rel="noopener" title="${escapeHtml(viewTitle)}">國</a>`;
     html += `<details class="milestone-card" open>
       <summary class="milestone-summary">
         <span class="milestone-title">推動歷程 (國土署)</span>
-        <span class="milestone-badge national">國</span>
+        ${twurUrl ? badgeLink : `<span class="milestone-badge national">國</span>`}
       </summary>
       <dl class="milestone-list">`;
     for (const [label, date] of Object.entries(national)) {
+      const corroborated = label === "使用核發日期" && !!cityUlic;
       html += `<div class="milestone-row">
         <dt class="milestone-label">${escapeHtml(label)}</dt>
         <dd class="milestone-date">${escapeHtml(fmtDate(date))}</dd>
-        <span class="milestone-badge national">國</span>
+        ${corroborated || !twurUrl
+          ? `<span class="milestone-badge national">國</span>`
+          : badgeLink}
       </div>`;
     }
     html += `</dl></details>`;
@@ -1353,6 +1367,7 @@ function init() {
     // building authority's permit when the project carries one.
     if (hasEvents) {
       const permit = (p.links || {}).permit || null;
+      const viewUrl = (p.links || {}).twur || "";
       events.forEach(e => {
         const b = evPos[e.label];
         const colorCls = e.national ? "national" : "taipei";
@@ -1362,10 +1377,18 @@ function init() {
         const isUlic = e.label === "使照核發日期";
         const permitTxt = (isUlic && permit && permit.permit_no)
           ? `　執照${permit.permit_no}${permit.date ? `（${fmtDateReverse(permit.date)}）` : ""}` : "";
+        // E5+E6 (inspection-batchE, user decisions 2026-11-12): the 國 badge
+        // fires on a national hit alone (natCorroborated no longer badges —
+        // corroboration is not a second witness) and opens the project's
+        // national page: a badge that names a portal must open it.
+        const vmView = viewUrl.match(/view\/(\d+)/);
+        const nationalBadge = (e.national && viewUrl)
+          ? `<foreignObject x="-5" y="-24" width="18" height="14"><div xmlns="http://www.w3.org/1999/xhtml"><a class="node-milestone-badge national badge-link" href="${escapeHtml(viewUrl)}" target="_blank" rel="noopener" title="${vmView ? "view/" + vmView[1] : "國土署入口網"}">國</a></div></foreignObject>`
+          : "";
         const inner = `<circle r="6"></circle>
           <text class="event-label ${colorCls}" x="11" y="3">${escapeHtml(e.label)}：${escapeHtml(fmtDateReverse(e.date))}${escapeHtml(permitTxt)}</text>
           ${e.prov ? `<text class="chain-prov" x="11" y="14">${escapeHtml(e.prov)}</text>` : ""}
-          ${e.natCorroborated ? `<foreignObject x="-5" y="-24" width="18" height="14"><div xmlns="http://www.w3.org/1999/xhtml"><span class="node-milestone-badge national" title="國土署里程碑">國</span></div></foreignObject>` : ""}`;
+          ${nationalBadge}`;
         s += `<g class="event-node" transform="translate(${b.x},${b.y})">` +
           (href ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${inner}</a>` : inner) +
           `</g>`;

@@ -198,6 +198,20 @@ candidate rects are clamped into the viewBox (extending it when needed), and
 no callout rect may intersect another record's or label's rect. Records
 without an implementation snapshot SHALL render no callout.
 
+A joined node — one anchoring 2+ city cases that each carry an implementation
+payload — SHALL render one callout box **per section** (joined-node-section-
+callouts, user decision 2026-11-12: 在負載中按案例發出)： the payload's
+`implementation_by_case` carries the per-case snapshots keyed by case id,
+the box header names the case's area suffix (`[A區]` — parsed from the case
+name), and the diff marker compares within a section across nodes, never
+across sections. A callout row SHALL render on ONE line whatever the value's
+length: the box width follows the widest row's content, the graph's gutter
+takes the widest box (the former 160 px clamp is retired, along with the
+wrap-height model built to predict wrapping that no longer happens), and the
+SVG width grows with the gutter (the centering rule already handles
+`svgW > W`). Measured 2026-11-13 on the 675-project payload: 1,426 callouts,
+739 of which wrapped under the old cap; the widest value needs ~302 px.
+
 #### Scenario: First carrying record renders the baseline callout
 - **WHEN** the earliest carrying record's snapshot carries 實施方式 = 權利變換，
   基地面積 = 3,056, 原戶數 = 98
@@ -228,6 +242,21 @@ without an implementation snapshot SHALL render no callout.
 #### Scenario: Records without implementation
 - **WHEN** no record carries an implementation snapshot
 - **THEN** no callout renders and the graph layout is otherwise unchanged
+
+#### Scenario: A joined node renders one box per section
+- **WHEN** a node anchors -A區 and -B區 cases whose payloads both exist
+  (敦化363-1 node 537: -A 使照 2025/04/29, -B 2025/05/06)
+- **THEN** the node renders two callout boxes, one per case, each headed
+  with the case's area suffix
+- **AND** the diff marker compares within a section across nodes, not across
+  sections
+
+#### Scenario: A callout row never wraps
+- **WHEN** a callout value is wider than the old 160 px cap (the widest
+  corpus value needs ~302 px)
+- **THEN** the box grows to the value's natural width and the row renders on
+  one line
+- **AND** the graph's gutter and SVG width grow with the box
 
 ### Requirement: Badge rollover tooltips name their target
 

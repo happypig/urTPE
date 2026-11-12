@@ -18,6 +18,14 @@ the 擬訂 section+parcel fallback — and SHALL NOT re-implement the former
 per-label stage+date matcher client-side. A node the payload does not mark
 SHALL carry no 國 badge, whatever a national label's date says.
 
+A joined node — one anchoring 2+ city cases — SHALL render one 北 badge per
+anchored case (joined-node-section-callouts, user decision 2026-11-12,
+item 4b): each badge links its own `r_progress_detail.aspx?case_id=` page,
+and the case's area suffix (`[A區]` / `[B區]` — parsed from the case name in
+`candidate_names`; the corpus holds A, B, C, D, E, 北, 南, 東, 西) SHALL
+render beside its badge (item 4d). A single-case node renders one badge and
+no label. Nodes whose cases carry no suffix render no label.
+
 #### Scenario: Approval node links to its anchored case
 - **WHEN** a record anchors to Taipei case 09804142
 - **THEN** that node's 北 badge opens `r_progress_detail.aspx?case_id=09804142` in a new tab
@@ -51,6 +59,15 @@ SHALL carry no 國 badge, whatever a national label's date says.
 #### Scenario: Link section hidden by default, available for debugging
 - **WHEN** the detail pane renders
 - **THEN** no 相關連結 list appears unless the user explicitly enables the 除錯 toggle, which reveals the full link list (with 案名 annotations) for debugging purposes
+
+#### Scenario: A joined node renders one 北 badge per case
+- **WHEN** a node anchors 10906101 (-A區) and 10906102 (-B區)
+- **THEN** it renders two 北 badges, each linking its own case page
+- **AND** each badge carries the case's area label (`[A區]` / `[B區]`)
+
+#### Scenario: A single-case node renders one badge, no label
+- **WHEN** a node anchors one case whose name carries no area suffix
+- **THEN** it renders one 北 badge and no area label
 
 ### Requirement: 相關連結 resolves case names for orphan case_ids via fallback chain
 

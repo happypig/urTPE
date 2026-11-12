@@ -428,10 +428,10 @@ the fix-callout-wrap-height D2 rules, 2026-11-12):
 
 | Population | Count |
 | --- | --- |
-| nodes rendering a callout | **1,431** |
-| nodes where some value wraps to 2 lines under the 160 px cap | **744** |
+| nodes rendering a callout | **1,426** (1,431 at the 680 payload; re-measured 2026-11-13 on the 675 payload) |
+| nodes where some value wraps to 2 lines under the 160 px cap | **739** (744 at the 680 payload) |
 | the widest value | 敦化南北路特定專用區(A區)(原屬第四之一種住宅區) — **~302 px** |
-| projects whose widest callout exceeds the 160 px cap | **225 of 677** |
+| projects whose widest callout exceeds the 160 px cap | **225 of 677** (677 projects with callouts at the 680 payload) |
 | per-project widest box: median / p90 | 142 px / 207 px |
 
 **The design.** Drop `CALLOUT_GUTTER_CAP` as a hard clamp and let the gutter

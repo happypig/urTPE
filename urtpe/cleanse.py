@@ -7,6 +7,7 @@ CleanRecord plus auto-fix and review/flag annotations.
 from __future__ import annotations
 
 import re
+import unicodedata
 
 from urtpe.models import CleanRecord, RawRecord
 
@@ -76,6 +77,16 @@ def roc_to_iso(date_str: str) -> tuple[str | None, tuple[int, int, int] | None]:
 
 
 def normalize_name(name: str) -> str:
+    # nfkc-fold-compat-ideographs (2026-11-12): fold CJK compatibility
+    # ideographs to their unified forms BEFORE any keyword comparison. The
+    # city writes 利 as U+F9DD inside 權利變換 (live case 11507018) and the
+    # PDF prints 北/都/更 as U+F963/FA26/F901 in 6 案名 — a literal keyword
+    # match cannot see them. The fold sits here (one site: normalize_name
+    # feeds parse_name_id, _tracks and every name comparison downstream);
+    # name_raw stays verbatim. A scope is a claim about what was not
+    # measured (batch D D16d): if a third reader surfaces, measure before
+    # widening.
+    name = unicodedata.normalize("NFKC", name)
     name = name.replace("計劃", "計畫")
     name = name.replace("ㄧ", "一")
     name = re.sub(r"\s+", "", name)

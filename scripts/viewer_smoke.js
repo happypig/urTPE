@@ -326,7 +326,9 @@ setTimeout(() => {
     const orphanEdges = L.orphanEdges || [];
     // revoke-dead-schedule (2026-11-10): 已撤銷 joins the dead set — the header
     // 業經本府撤銷核准, 7 corpus cases. Same rule as app.js isDeadEnd.
-    const DEAD = new Set(["已失效", "自行撤回", "已駁回", "已撤銷"]);
+    // E12 (inspection-batchE, 2026-11-12): 無 joins too — the 11 無 orphans
+    // render undotted like the dead ones.
+    const DEAD = new Set(["已失效", "自行撤回", "已駁回", "已撤銷", "無"]);
     for (const g of orphans) {
       if (!g.case_name) continue; // nameless anchors render no row (§4 decision 4)
       const hasEdge = orphanEdges.some(d => d.id.includes(`orphan-edge:v${g.case_id}->`));

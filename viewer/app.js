@@ -557,7 +557,7 @@ function fmtDate(text) {
 // 已撤銷 (revoke-dead-schedule, 2026-11-10): the platform's revoked state
 // (header 業經本府撤銷核准, 7 corpus cases) — approved, then withdrawn by the
 // government. Same dead set as the pipeline's _DEAD_SCHEDULES.
-const isDeadEnd = s => s === "已失效" || s === "自行撤回" || s === "已駁回" || s === "已撤銷";
+const isDeadEnd = s => s === "已失效" || s === "自行撤回" || s === "已駁回" || s === "已撤銷" || s === "無";
 // Effective comparison key: real nodes use their ANCHORED case_id
 // (links.taipei[0]); virtual nodes their own case_id; case-less real nodes
 // yield "" (sorts first — "" < any case_id keeps the order strictly ascending).
@@ -612,6 +612,9 @@ function virtualChainPairs(clusters) {
       if ((a.track || "") !== (b.track || "")) continue;
       // D4b (inspection-batchD): no chain edge starts at a dead end — nothing
       // follows a closed case (已失效/自行撤回/已駁回; 36 of 48 corpus pairs).
+      // E12 (inspection-batchE, 2026-11-12): 無 joins the set — a case the
+      // platform holds no state for must not read as open. The pipeline's
+      // TERMINAL/_DEAD sets stay unchanged (無 is missing, not terminal).
       if (isDeadEnd(a.schedule || a.case_schedule || "")) continue;
       pairs.push([a, b, c.stage]);
     }
@@ -1591,6 +1594,13 @@ function init() {
       }
       if (links.taipei && links.taipei.length) {
         const schedules = links.case_schedules || {};
+        // E11 (inspection-batchE, user decision 2026-11-12): the 相關連結 badge
+        // names a case's APPROVAL state, not its construction progress or
+        // completion — 施工中 (463) and 已完工 (5) go. The graph's stage chip
+        // and the dashboard's status column already show them where they
+        // belong. The dead/in-review states stay: they are what this list
+        // exists to name.
+        const LINK_BADGE_SUPPRESSED = new Set(["施工中", "已完工"]);
         links.taipei.forEach(cid => {
           const url = `https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cid}`;
           const nm = linkLabels.byCase[cid] || "";
@@ -1599,7 +1609,8 @@ function init() {
           // this case under a new id and left it with no current state — name the
           // successor instead of a status badge (11211211 → 11409026).
           const succ = (links.superseded_by || {})[cid] || "";
-          const schedBadge = succ ? "" : scheduleBadgeText(sched);
+          const schedBadge = (succ || LINK_BADGE_SUPPRESSED.has(sched))
+            ? "" : scheduleBadgeText(sched);
           const succNote = succ ? ` <span class="link-schedule">已由 ${escapeHtml(succ)} 取代</span>` : "";
           s += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">臺北市都市更新審議服務平台 (case_id: ${cid})</a>${nm ? ` — <span class="link-case-name">${escapeHtml(nm)}</span>` : ""}${schedBadge ? ` <span class="link-schedule">${escapeHtml(schedBadge.trim())}</span>` : ""}${succNote}</li>`;
         });

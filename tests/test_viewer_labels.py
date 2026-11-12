@@ -869,6 +869,50 @@ console.log("ok");
     assert r.returncode == 0, r.stderr
 
 
+def test_is_dead_end_covers_wu_the_missing_state():
+    """E12 (inspection-batchE, user decision 2026-11-12): 無 joins the dead
+    set. 無 is a *missing* state, not a terminal one — the pipeline's
+    TERMINAL/_DEAD sets stay as they are; the viewer's chain-edge refusal
+    gains it so the 11 無 orphans render undotted like the 240 dead ones."""
+    import subprocess
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    jsn = _js().replace("\r\n", "\n")
+    m = re.search(r"const isDeadEnd = [\s\S]*?;\n", jsn)
+    assert m, "isDeadEnd helper not found"
+    prog = (m.group(0) + """
+for (const [sched, expect] of [["無", true], ["已失效", true], ["自行撤回", true],
+                                ["已駁回", true], ["已撤銷", true],
+                                ["施工中", false], ["已核准", false], ["", false]]) {
+  if (isDeadEnd(sched) !== expect) throw new Error("isDeadEnd wrong for " + sched);
+}
+console.log("ok");
+""")
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr
+
+
+def test_the_link_badge_suppresses_construction_and_completion_states():
+    """E11 (inspection-batchE, user decision 2026-11-12): the 相關連結 badge
+    names a case's APPROVAL state — 施工中 (463) and 已完工 (5) do not render
+    there; the dead/in-review states do (they are what the list exists to
+    name). The suppression lives at the 相關連結 call site, not in
+    scheduleBadgeText — the graph's event rows and chips keep the full
+    vocabulary."""
+    js = _js()
+    m = re.search(r"LINK_BADGE_SUPPRESSED = new Set\(\[([^\]]*)\]\)", js)
+    assert m, "the 相關連結 suppression set is not found"
+    assert "施工中" in m.group(1) and "已完工" in m.group(1), (
+        "the suppression set does not name 施工中 and 已完工: %s" % m.group(1))
+    # the call site applies it (succ || suppressed → no badge)
+    m2 = re.search(r"schedBadge = \(succ \|\| LINK_BADGE_SUPPRESSED\.has\(sched\)\)", js)
+    assert m2, "the 相關連結 badge does not read the suppression set"
+    # scheduleBadgeText itself is untouched — the graph keeps the vocabulary
+    assert 's === "已核准" || s === "已核定"' in js, (
+        "scheduleBadgeText changed; the graph's event rows lose their badges")
+
+
 def test_list_chips_replaced_by_dead_end_badge():
     """D4c: the family chips (審查中/撤回/未核定) are gone; the dead-end badge
     reads the is_current node's own case schedule and renders after the

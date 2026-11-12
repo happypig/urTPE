@@ -11,8 +11,10 @@ remains open. It is a review document, not a change proposal.
   `3e0c570`, after the `bind-the-unplaced-by-searching-the-cell-section` change,
   once more on 2026-11-10 at `aa71501`, after the 萬隆519 merge, and once more on
   2026-11-12 at `7a1102a`, after the 河堤399 and 懷生928 changes. See §14 for what moved.
-- **Status:** nothing implemented. No openspec change is open for the dashboard or the
-  viewer UI work. `openspec/changes/` holds `archive/` only.
+- **Status:** the dashboard page shipped on 2026-11-11 (`94cd3e8`, a hand port of the
+  Claude Desktop artifact) with no openspec change behind it; the `dashboard-spec`
+  change, opened 2026-11-12, restores its spec from the shipped code (§14.-2). The
+  viewer UI work (§8) has no change open.
 - **Payload revision:** the figures were re-derived four times on 2026-11-06 as the
   D9g plan landed, again on 2026-11-09, and again on 2026-11-10. The first version was
   pinned to blob `0b3a22b9`; see §14.
@@ -963,6 +965,46 @@ which is the better shape.
 ---
 
 ## 14. Revision record
+
+### 14.-2 2026-11-12 — the dashboard's spec restored from the shipped page; the artifact recorded as provenance
+
+**Nothing in the figures moved; the record did.** The page `viewer/dashboard.html`
+(+ `dashboard.js`, `dashboard.css`) shipped on 2026-11-11 in commit `94cd3e8` and
+closed its publishing contracts in `ee389c2` on 2026-11-12, with no openspec change.
+It is a hand port of the Claude Desktop artifact "Taipei urban renewal: process
+duration" (`https://claude.ai/artifact/DMpCPHZGqougawwmvMxz2H`), whose 14-column
+derivation was rebuilt in the repo and matched byte-for-byte on 682 rows on
+2026-11-09. The artifact is the provenance of the page's rules and nothing more: its
+page runs on the artifact runtime and its data is a CSV snapshot. Until this entry
+no tracked file named it.
+
+The openspec change `dashboard-spec` (opened 2026-11-12) restores the spec from the
+code: one new capability, `policy-dashboard`, 10 ADDED requirements, 35 scenarios,
+each read from `viewer/dashboard.js` — the four-stage order, idle time to 統計至
+with the 3- and 5-year flags, both calendars with pre-1995 and post-gazette dates
+treated as absent, review and total time with medians over present values, the
+擬訂 / 變更 split, households and public land from the implementation record, the
+district scope, the two tables, the hash-linked bilingual view. The rules are now
+pinned by `tests/test_dashboard_rules.py` (39 tests), which render the real page in
+a stub DOM through `scripts/dashboard_smoke.js` and read the cards, bars, tables and
+chart tooltips back — the §13.1 shape. Measured on this payload (680 / 1,444) by the
+same rules in Python and by the harness on the live page, identical: stages
+已完工 406 · 施工中 127 · 已核定未領建照 122 · 已領建照未開工 25; flags 推進中 231 ·
+停滯3至5年 33 · 停滯5年以上 10; review n 679, median 3.67 (shown 3.7); 346 projects
+with public land, 2 capped at 100%.
+
+**One gap found while reading the code, not fixed (design.md D2).** The page reads
+開工日期 and 使照核發日期 from each case's milestones (`links.case_milestones[*]`),
+and the payload never carries either key there — 0 of 1,444 case entries. Both live
+at the project level in `links.milestones_taipei` (開工日期 in 508 projects,
+使照核發日期 in 332), which the page does not read. Measured consequence: 0 projects
+misclassified on completion (the other three sources cover every one) and **3 whose
+Taipei 開工日期 the page does not see**, shown one stage early:
+`中正區-永昌段四小段-132-2地號等15筆`, `士林區-光華段四小段-282地號等2筆`,
+`大安區-龍泉段二小段-771地號等27筆`. Reading `milestones_taipei` for the start and
+completion sources is §10 rule 4 applied to the code ("construction stages read from
+the project level") and is a behavior change: a follow-up candidate with its own
+change and its own measurement, not part of the spec restore.
 
 ### 14.-1 2026-11-12 — the second shrink: 河堤399 unites its families, and §3–§7 moved with it
 

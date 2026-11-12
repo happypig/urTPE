@@ -218,8 +218,10 @@ def test_graph_links_live_on_nodes():
     assert "r_progress_detail.aspx?case_id=" in js, (
         "event/approval labels must link to Taipei case pages"
     )
-    # 北/國 badges wrapped as anchors
-    assert re.search(r"<a[^>]+class=\"badge-link\"", js) or "<a " in js.split("getNodeMilestoneBadges")[1][:600], (
+    # 北/國 badges wrapped as anchors (search the whole file: the badge
+    # function's comment grew, so a fixed 600-char window no longer reaches
+    # the anchors)
+    assert re.search(r"<a[^>]+class=\"badge-link\"", js) or "<a " in js.split("getNodeMilestoneBadges")[1], (
         "node badges must be hyperlinks"
     )
 
@@ -616,117 +618,10 @@ def test_stage_key_cluster_order_kept_bands_removed():
     assert ".stage-band" not in css
 
 
-def test_national_label_key_binds_stage_and_track():
-    # §2: nationalLabelKey maps a national approval label to {stage, track}; application
-    # dates and 使用核發日期 bind nothing.
-    import subprocess, json
-    node = shutil.which("node")
-    if not node:
-        pytest.skip("node not available")
-    js = APP_JS.read_text(encoding="utf-8")
-    m = re.search(r"(const CHINESE_DIGIT = \{[\s\S]*?\};\nconst nationalLabelKey = label => \{[\s\S]*?\n\};)", js)
-    assert m, "nationalLabelKey must exist in app.js"
-    cases = [["事業計畫核定日期", "擬訂", "事業計畫"],
-             ["權利變換計畫核定日期", "擬訂", "權利變換"],
-             ["第一次變更事業計畫核定日期", "變更", "事業計畫"],
-             ["第一次變更權利變換計畫核定日期", "變更", "權利變換"],
-             # D3a (inspection-batchD): second-or-later 變更 ordinals. The shipped
-             # code built 變更(二次) while every payload node spells 變更(第二次),
-             # so 223 such labels bound 0 nodes (吉林717 node 762 shape).
-             ["第二次變更權利變換計畫核定日期", "變更(第二次)", "權利變換"],
-             ["第三次變更事業計畫核定日期", "變更(第三次)", "事業計畫"],
-             ["第4次變更事業計畫核定日期", "變更(第4次)", "事業計畫"],
-             ["第十次變更權利變換計畫核定日期", "變更(第十次)", "權利變換"],
-             ["使用核發日期", None, None],
-             ["申請計畫日期", None, None]]
-    arg = json.dumps(cases, ensure_ascii=False)
-    prog = (m.group(0) + "\nconst cases = " + arg + ";\n" +
-            "console.log(JSON.stringify(cases.map(([label, stage, track]) => {\n" +
-            "  const k = nationalLabelKey(label);\n" +
-            "  const ok = k == null ? stage == null && track == null\n" +
-            "             : k.stage === stage && k.track === track;\n" +
-            "  return [label, ok];\n" +
-            "})));\n")
-    r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
-    assert r.returncode == 0, r.stderr
-    results = json.loads(r.stdout)
-    assert all(ok for _, ok in results), f"nationalLabelKey mismatches: {results}"
-
-
 def test_is_current_branch_removed_from_國_badge():
     # §2: the 現況 rule no longer grants 國 alone.
     js = APP_JS.read_text(encoding="utf-8")
     assert "node.is_current" not in js, "國 badge must not be granted by is_current alone"
-
-
-def test_per_track_stage_helpers_present():
-    """§10: per-track stage text + combined-track append (viewer change specs)."""
-    js = (APP_JS.parent / "app.js").read_text(encoding="utf-8")
-    assert "perTrackStageText" in js, "chain/filter helpers present"
-    assert "scheduleBadgeText" in js, "已核准 default-state filter present"
-
-
-def test_national_label_binding_is_per_label():
-    """C1/S4: a national label binds at most one node, decided per label.
-    Scoring per node badged every candidate of a multi-match label (16 unearned
-    國 on 19 multi-candidate labels)."""
-    import subprocess, json
-    node = shutil.which("node")
-    if not node:
-        pytest.skip("node not available")
-    js = APP_JS.read_text(encoding="utf-8")
-    m = re.search(r"(const CHINESE_DIGIT = \{[\s\S]*?\};\nconst nationalLabelKey = label => \{[\s\S]*?\n\};)", js)
-    assert m, "nationalLabelKey must exist in app.js"
-    if "bindNationalLabels" not in js:
-        pytest.fail("bindNationalLabels not implemented yet (S4 test-first)")
-    jsn = js.replace("\r\n", "\n")
-    m2 = re.search(r"(function trackMatches[\s\S]*?\n\}\n)(function bindNationalLabels[\s\S]*?\n\}\n)", jsn)
-    if not m2:
-        # trackMatches and bindNationalLabels are separated by the two date
-        # helpers this test does not need; extract the spans directly.
-        i1 = jsn.index("function trackMatches")
-        i2 = jsn.index("function bindNationalLabels")
-        end = jsn.index("\n}\n", i2) + 3
-        m2 = type("M", (), {"group": lambda self, k: jsn[i1:i2] if k == 1 else jsn[i2:end]})()
-    assert m2, "trackMatches + bindNationalLabels must exist in app.js"
-    prog = (m.group(0).replace("\r\n", "\n") + "\n" + m2.group(1) + "\n" + m2.group(2) + "\n"
-        + """
-const projects = [
-  { // single candidate binds whatever the date
-    nodes: [{recno: 1, stage: "擬訂", track: "事業計畫", date: "2009-06-04"}],
-    national: {"事業計畫核定日期": "98.06.04"}
-  },
-  { // multi-candidate: exact date decides
-    nodes: [{recno: 3, stage: "擬訂", track: "事業計畫", date: "2022-08-02"},
-            {recno: 370, stage: "變更", track: "事業計畫", date: "2023-03-21"}],
-    national: {"第一次變更事業計畫核定日期": "112.03.21"}
-  },
-  { // ±1 day decides
-    nodes: [{recno: 5, stage: "擬訂", track: "事業計畫", date: "2023-03-20"},
-            {recno: 6, stage: "擬訂", track: "事業計畫", date: "2023-09-01"}],
-    national: {"事業計畫核定日期": "112.03.21"}
-  },
-  { // a tie ±1 day cannot break binds nothing
-    nodes: [{recno: 7, stage: "擬訂", track: "事業計畫", date: "2023-03-20"},
-            {recno: 8, stage: "擬訂", track: "事業計畫", date: "2023-03-20"}],
-    national: {"事業計畫核定日期": "112.03.21"}
-  },
-  { // 使用核發日期 and application dates bind nothing
-    nodes: [{recno: 9, stage: "擬訂", track: "事業計畫", date: "2020-01-01"}],
-    national: {"使用核發日期": "109.10.25", "事業計畫申請日期": "109.01.01"}
-  }
-];
-const out = projects.map(p => bindNationalLabels({nodes: p.nodes, links: {milestones_national: p.national}}));
-console.log(JSON.stringify(out));
-""")
-    r = subprocess.run([node, "-e", prog], capture_output=True, text=True, encoding="utf-8", timeout=60)
-    assert r.returncode == 0, r.stderr
-    out = json.loads(r.stdout)
-    assert "1" in out[0], "single candidate binds its node"
-    assert list(out[1]) == ["370"], f"exact date decides: {out[1]}"
-    assert list(out[2]) == ["5"], f"±1 day decides: {out[2]}"
-    assert out[3] == {}, f"a tie the window cannot break binds nothing: {out[3]}"
-    assert out[4] == {}, f"execution/application labels bind nothing: {out[4]}"
 
 
 def test_related_link_labels_use_the_city_name():

@@ -253,15 +253,17 @@ stage+date binding the rule replaces.
 | Population (over the 680-project payload, 2026-11-12) | Count |
 | --- | --- |
 | nodes with 國 today (per-label binding OR view-verified) | **1,186** |
-| nodes with 國 under the proposed rule | **735** |
-| nodes that lose it (stage+date-bound only) | **451** — 文林838-1 node 433 is one |
-| nodes that gain it | **0** — every name-route node is already bound today |
-| of the 735, current nodes | 259 (230 via a view-verified case, 29 via the name route) |
+| nodes with 國 under the rule, exact name + registration only (the pre-fallback measure) | 735 |
+| nodes with 國 under the decided rule (with the 擬訂 section+parcel fallback) | **800** |
+| nodes that lose it (stage+date-bound only) | **402** — 文林838-1 node 433 is one |
+| nodes that gain it through the fallback | **16** — 擬訂 nodes whose land core matches the title and whose 案名 drifts further than one word ((原N筆), 權利變換-only titles) |
 
-The measured cost is one-directional: the rule only removes. No node gains
-a badge, because the 擬訂 node's dates always match the national 核定日期
-labels — the binding already finds them. What the rule buys is **precision**:
-a 國 badge means "the view page names this", not "a date matched".
+The pre-fallback measure read "0 gain" because the 擬訂 nodes' dates always
+matched the national 核定日期 labels — the binding found them. The fallback
+finds **16 more**: 擬訂 nodes the binding MISSED (their dates differ from the
+title's by more than the tie-break window) but whose land core matches it.
+What the rule buys is **precision**: a 國 badge means "the view page names
+this unit", not "a date matched".
 
 **Spec surface.** `viewer-related-links` (the badge requirement's scenarios
 change; the archive guard needs the live body carried) and

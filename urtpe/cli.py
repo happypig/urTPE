@@ -214,6 +214,12 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
                 rec.stage_權利變換 = node["stage_權利變換"]
             if node.get("recovery"):
                 rec.recovery = dict(node["recovery"])
+            # national-badge-by-registration (2026-11-12): the resolved 國
+            # binding rides the node; a field missing here is dropped on the
+            # next --from-js run without any error (the supersede-headerless-
+            # cases D6 contract).
+            if node.get("national_badges"):
+                rec.national_badges = True
             if node.get("links"):
                 rec.links = dict(node["links"])
                 # D1 (inspection-batchD): pre-rename payloads carried the

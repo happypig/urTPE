@@ -96,7 +96,8 @@
             "Landkind1": "第四種商業區(原屬第三種商業區)",
             "Landkind1_Area": "895.0",
             "case_id": "10701311"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -345,7 +346,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09811141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1041,
@@ -916,7 +918,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09812231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1100,
@@ -1366,7 +1369,8 @@
             "Landkind1": "第四種商業區(特)(原屬第三種商業區)",
             "Landkind1_Area": "1088.0",
             "case_id": "10511291"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 582,
@@ -1464,7 +1468,8 @@
             "Landkind1": "商四特(原屬商三)",
             "Landkind1_Area": "1088.0",
             "case_id": "10802161"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -1865,7 +1870,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09911191"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -2093,7 +2099,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10203252"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 610,
@@ -2175,7 +2182,8 @@
             "Landkind1": "商四特(原屬第三種商業區)",
             "Landkind1_Area": "1237.0",
             "case_id": "10810221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 360,
@@ -2586,7 +2594,8 @@
             "Landkind1": "第四種商業區",
             "Landkind1_Area": "1087.0",
             "case_id": "10405121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 880,
@@ -2958,7 +2967,8 @@
             "StateLand1_Area": "2.95",
             "StateLand2_Area": "1.05",
             "case_id": "10205221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 824,
@@ -3796,7 +3806,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "786.0",
             "case_id": "10605101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 256,
@@ -4160,7 +4171,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "2.44",
             "case_id": "10412231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 701,
@@ -4234,7 +4246,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "1843.44",
             "case_id": "10412232"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -4506,7 +4519,8 @@
             "StateLand1_Owner": "臺北市/臺北市政府財政局",
             "StateLand1_Area": "9.0",
             "case_id": "11408005"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -4710,7 +4724,8 @@
             "Landkind1_Area": "864.0",
             "Landkind2_Area": "144.0",
             "case_id": "10906051"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -4947,7 +4962,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "925.0",
             "case_id": "09206102"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1405,
@@ -5385,7 +5401,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "1233.0",
             "case_id": "09902051"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 813,
@@ -5477,7 +5494,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "1233.0",
             "case_id": "10702121"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -5831,7 +5849,8 @@
             "StateLand1_Area": "15.42",
             "StateLand2_Area": "1720.0",
             "case_id": "09804142"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 953,
@@ -6472,7 +6491,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2523.0",
             "case_id": "10506011"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 76,
@@ -6912,7 +6932,8 @@
             "Landkind2_Area": "370.0",
             "Landkind3_Area": "0.0",
             "case_id": "10110232"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 32,
@@ -6992,7 +7013,8 @@
             "Landkind1_Area": "370.0",
             "Landkind2_Area": "2878.0",
             "case_id": "10911291"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -7376,7 +7398,8 @@
             "Landkind1_Area": "1552.0",
             "Landkind2_Area": "2598.0",
             "case_id": "11010183"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -7683,7 +7706,8 @@
             "StateLand1_Area": "1995.65",
             "StateLand2_Area": "117.42",
             "case_id": "10611242"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 518,
@@ -8074,7 +8098,8 @@
             "Landkind1_Area": "325.2",
             "Landkind2_Area": "1760.71",
             "case_id": "10609191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 344,
@@ -8738,7 +8763,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "109.0",
             "case_id": "10409241"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -9114,7 +9140,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09506201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 910,
@@ -10086,7 +10113,8 @@
             "Landkind1": "第三種商業區(原屬住三之二)",
             "Landkind1_Area": "1066.0",
             "case_id": "10706151"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -10329,7 +10357,8 @@
             "Landkind1": "第四種商業區(特)(原商三)",
             "Landkind1_Area": "1208.0",
             "case_id": "10311131"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -10711,7 +10740,8 @@
             "Landkind1": "商二特(原屬第三種住宅區)",
             "Landkind1_Area": "1230.0",
             "case_id": "11107221"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -10972,7 +11002,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09605192"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1188,
@@ -11598,7 +11629,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "342.16",
             "case_id": "11008091"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -11894,7 +11926,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09912313"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 888,
@@ -12350,7 +12383,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "923.0",
             "case_id": "10906092"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 71,
@@ -12784,7 +12818,8 @@
             "Landkind2_Area": "72.0",
             "Landkind3_Area": "71.0",
             "case_id": "09905211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1165,
@@ -13177,7 +13212,8 @@
             "Landkind1_Area": "1424.0",
             "Landkind2_Area": "386.0",
             "case_id": "09605193"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1195,
@@ -13809,7 +13845,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09807231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1226,
@@ -14176,7 +14213,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09111072"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1407,
@@ -14752,7 +14790,8 @@
             "Landkind1": "商四特(原屬第三種商業區)",
             "Landkind1_Area": "1557.0",
             "case_id": "11011241"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -15203,7 +15242,8 @@
             "StateLand1_Area": "174.38",
             "StateLand2_Area": "203.49",
             "case_id": "09511211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 924,
@@ -16094,7 +16134,8 @@
             "StateLand1_Owner": "中華民國(國有財產局)",
             "StateLand1_Area": "176.0",
             "case_id": "10007291"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 581,
@@ -16566,7 +16607,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09703182"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1305,
@@ -17001,7 +17043,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "703.0",
             "case_id": "10410011"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -17413,7 +17456,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09307102"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1372,
@@ -18260,7 +18304,8 @@
             "StateLand1_Area": "600.64",
             "StateLand2_Area": "1.37",
             "case_id": "09710240"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1262,
@@ -18394,7 +18439,8 @@
             "StateLand1_Area": "600.64",
             "StateLand2_Area": "1.37",
             "case_id": "09710241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1090,
@@ -18935,7 +18981,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "26.52",
             "case_id": "10512211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 377,
@@ -19052,7 +19099,8 @@
             "StateLand1_Owner": "行政院農業委員會農田水利署/中華民國",
             "StateLand1_Area": "39.0",
             "case_id": "11004271"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -19554,7 +19602,8 @@
             "StateLand1_Area": "17.5",
             "StateLand2_Area": "271.05",
             "case_id": "10409211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 793,
@@ -19654,7 +19703,8 @@
             "StateLand1_Area": "271.05",
             "StateLand2_Area": "17.5",
             "case_id": "10409214"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 415,
@@ -19730,7 +19780,8 @@
             "StateLand1_Area": "17.5",
             "StateLand2_Area": "271.05",
             "case_id": "10409215"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -20152,7 +20203,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "448.36",
             "case_id": "11008281"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 54,
@@ -20552,7 +20604,8 @@
             "StateLand1_Area": "733.0",
             "StateLand2_Area": "284.0",
             "case_id": "10603011"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -20898,7 +20951,8 @@
             "Landkind1": "第三種住宅區(特)",
             "Landkind1_Area": "2307.0",
             "case_id": "10301062"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 444,
@@ -20992,7 +21046,8 @@
             "Landkind1": "第三種住宅區(特)",
             "Landkind1_Area": "2307.0",
             "case_id": "10301063"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -21323,7 +21378,8 @@
             "Landkind2_Area": "1964.13",
             "Landkind3_Area": "752.4",
             "case_id": "09001120"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1383,
@@ -22627,7 +22683,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10401131"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 331,
@@ -22727,7 +22784,8 @@
             "Landkind1": "第四種商業區特(原屬第三種商業區)",
             "Landkind1_Area": "1186.0",
             "case_id": "10811261"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -23062,7 +23120,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09905110"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1187,
@@ -23523,7 +23582,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10204221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 648,
@@ -24019,7 +24079,8 @@
             "StateLand1_Area": "140.62",
             "StateLand2_Area": "234.38",
             "case_id": "10504162"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -24339,7 +24400,8 @@
             "Landkind2_Area": "4.0",
             "Landkind3_Area": "0.0",
             "case_id": "10112041"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 792,
@@ -24430,7 +24492,8 @@
             "Landkind1_Area": "1752.0",
             "Landkind2_Area": "4.0",
             "case_id": "10603312"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 782,
@@ -24519,7 +24582,8 @@
             "Landkind1_Area": "1752.0",
             "Landkind2_Area": "4.0",
             "case_id": "10603311"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 301,
@@ -24993,7 +25057,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "12.52",
             "case_id": "11008311"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -25326,7 +25391,8 @@
             "Landkind1_Area": "842.0",
             "Landkind2_Area": "143.0",
             "case_id": "10412222"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 497,
@@ -25851,7 +25917,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "669.0",
             "case_id": "11102211"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -26140,7 +26207,8 @@
             "StateLand2_Area": "442.81",
             "StateLand3_Area": "1.79",
             "case_id": "09804241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 786,
@@ -26272,7 +26340,8 @@
             "StateLand2_Area": "192.0",
             "StateLand3_Area": "250.81",
             "case_id": "10212061"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 230,
@@ -26796,7 +26865,8 @@
             "StateLand1_Owner": "臺北市政府捷運工程局",
             "StateLand1_Area": "3262.0",
             "case_id": "09704251"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -27107,7 +27177,8 @@
             "Landkind1_Area": "1451.0",
             "Landkind2_Area": "58.0",
             "case_id": "10902271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 319,
@@ -27501,7 +27572,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2141.0",
             "case_id": "11407047"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -27703,7 +27775,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "812.0",
             "case_id": "10604141"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -28003,7 +28076,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09307191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1253,
@@ -28341,7 +28415,8 @@
             "StateLand4_Area": "0.0",
             "StateLand5_Area": "0.0",
             "case_id": "09105281"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -28615,7 +28690,8 @@
             "Landkind2_Area": "126.0",
             "Landkind3_Area": "0.0",
             "case_id": "10106251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 804,
@@ -28973,7 +29049,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09205062"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1359,
@@ -29424,7 +29501,8 @@
             "StateLand1_Owner": "中華民國(國防部總政治作戰局)",
             "StateLand1_Area": "1560.0",
             "case_id": "10008121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 945,
@@ -29870,7 +29948,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "0.33",
             "case_id": "10208161"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 826,
@@ -30422,7 +30501,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09812042"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 876,
@@ -30504,7 +30584,8 @@
             "Landkind1": "第三種商業區(特)(原第三種住宅區)",
             "Landkind1_Area": "1472.0",
             "case_id": "09812043"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -30840,7 +30921,8 @@
             "StateLand1_Area": "677.87",
             "StateLand2_Area": "153.0",
             "case_id": "09912312"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 886,
@@ -31021,7 +31103,8 @@
             "StateLand1_Area": "677.87",
             "StateLand2_Area": "153.0",
             "case_id": "09912316"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 365,
@@ -31747,7 +31830,8 @@
             "Landkind2_Area": "1.0",
             "Landkind3_Area": "0.0",
             "case_id": "09612111"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1200,
@@ -32147,7 +32231,8 @@
             "Landkind2_Area": "114.0",
             "Landkind3_Area": "1.0",
             "case_id": "10212210"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 744,
@@ -32247,7 +32332,8 @@
             "Landkind2_Area": "114.0",
             "Landkind3_Area": "1.0",
             "case_id": "10606171"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 62,
@@ -32692,7 +32778,8 @@
             "StateLand2_Area": "1470.0",
             "StateLand3_Area": "260.0",
             "case_id": "11010291"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -33000,7 +33087,8 @@
             "StateLand1_Area": "761.0",
             "StateLand2_Area": "223.0",
             "case_id": "10304142"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 474,
@@ -33092,7 +33180,8 @@
             "StateLand1_Area": "761.0",
             "StateLand2_Area": "223.0",
             "case_id": "10805151"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -33502,7 +33591,8 @@
             "StateLand2_Area": "5388.0",
             "StateLand3_Area": "419.0",
             "case_id": "09403242"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -33970,7 +34060,8 @@
             "Landkind1_Area": "277.0",
             "Landkind2_Area": "2359.0",
             "case_id": "10805131"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 9,
@@ -34342,7 +34433,8 @@
             "Landkind1_Area": "746.0",
             "Landkind2_Area": "1092.0",
             "case_id": "10109051"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 821,
@@ -34708,7 +34800,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09912022"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1030,
@@ -34794,7 +34887,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1409.0",
             "case_id": "10303211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 778,
@@ -35373,7 +35467,8 @@
             "StateLand1_Area": "320.0",
             "StateLand2_Area": "23.0",
             "case_id": "09902121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 902,
@@ -35874,7 +35969,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "82.85",
             "case_id": "10302251"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -36222,7 +36318,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局、國防部總政治作戰局)",
             "StateLand1_Area": "664.0",
             "case_id": "09012313"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1332,
@@ -36740,7 +36837,8 @@
             "StateLand1_Area": "175.64",
             "StateLand2_Area": "14.49",
             "case_id": "09506101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 247,
@@ -37192,7 +37290,8 @@
             "Landkind1_Area": "268.0",
             "Landkind2_Area": "1186.0",
             "case_id": "10611241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 453,
@@ -37270,7 +37369,8 @@
             "Landkind1_Area": "1186.0",
             "Landkind2_Area": "268.0",
             "case_id": "10611244"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 104,
@@ -37356,7 +37456,8 @@
             "Landkind1_Area": "1186.0",
             "Landkind2_Area": "268.0",
             "case_id": "10611245"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -37671,7 +37772,8 @@
             "StateLand4_Owner": "澎湖縣望安鄉公所(望安鄉)",
             "StateLand4_Area": "21.88",
             "case_id": "10612221"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -37914,7 +38016,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1043.0",
             "case_id": "09904301"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 389,
@@ -37991,7 +38094,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1043.0",
             "case_id": "09904302"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 153,
@@ -38458,7 +38562,8 @@
             "StateLand4_Owner": "行政院農業委員會農田水利署/中華民國",
             "StateLand4_Area": "657.0",
             "case_id": "11011011"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -38947,7 +39052,8 @@
             "Landkind1_Area": "1114.58",
             "Landkind2_Area": "114.42",
             "case_id": "10311111"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 487,
@@ -39309,7 +39415,8 @@
             "StateLand4_Owner": "國立台灣大學",
             "StateLand4_Area": "412.0",
             "case_id": "09712241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 885,
@@ -39596,7 +39703,8 @@
             "StateLand4_Owner": "臺北市政府財政局(臺北市)",
             "StateLand4_Area": "70.0",
             "case_id": "10305273"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -40096,7 +40204,8 @@
             "StateLand1_Area": "584.0",
             "StateLand2_Area": "121.0",
             "case_id": "10406282"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -40442,7 +40551,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "7.0",
             "case_id": "10501251"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -40834,7 +40944,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09210160"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1394,
@@ -41332,7 +41443,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "390.0",
             "case_id": "10411101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 598,
@@ -42080,7 +42192,8 @@
             "Landkind1_Area": "25.0",
             "Landkind2_Area": "927.0",
             "case_id": "11102081"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -42376,7 +42489,8 @@
             "Landkind2_Area": "69.0",
             "Landkind3_Area": "0.0",
             "case_id": "10012271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 395,
@@ -42460,7 +42574,8 @@
             "Landkind2": "第三種住宅區",
             "Landkind1_Area": "768.0",
             "case_id": "11012302"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 152,
@@ -42916,7 +43031,8 @@
             "Landkind2_Area": "1183.0",
             "Landkind3_Area": "0.0",
             "case_id": "09912121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 849,
@@ -43084,7 +43200,8 @@
             "Landkind2_Area": "1183.0",
             "Landkind3_Area": "0.0",
             "case_id": "09912123"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 70,
@@ -43640,7 +43757,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09203221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1420,
@@ -43759,7 +43877,8 @@
             "StateLand1_Area": "594.39",
             "StateLand2_Area": "228.0",
             "case_id": "09203223"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1400,
@@ -44294,7 +44413,8 @@
             "StateLand4_Owner": "臺北市政府消防局(臺北市)",
             "StateLand4_Area": "417.0",
             "case_id": "10112121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 363,
@@ -44433,7 +44553,8 @@
             "StateLand4_Owner": "臺北市政府財政局/臺北市",
             "StateLand4_Area": "18.0",
             "case_id": "11103111"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -44882,7 +45003,8 @@
             "StateLand4_Area": "399.0",
             "StateLand5_Area": "2891.0",
             "case_id": "10108221"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -45157,7 +45279,8 @@
             "Landkind1_Area": "217.0",
             "Landkind2_Area": "792.0",
             "case_id": "10407301"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -45379,7 +45502,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09906141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1138,
@@ -45719,7 +45843,8 @@
             "Exe_Way": "權利變換",
             "Base_Area": "10368.12",
             "case_id": "10303101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 266,
@@ -45812,7 +45937,8 @@
             "Landkind1": "商三特(原屬第三種住宅區)",
             "Landkind1_Area": "2081.0",
             "case_id": "10908181"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -46158,7 +46284,8 @@
             "StateLand1_Area": "164.0",
             "StateLand2_Area": "2.0",
             "case_id": "10401301"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 479,
@@ -46596,7 +46723,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "13.0",
             "case_id": "10506031"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -46951,7 +47079,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09410151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1070,
@@ -48431,7 +48560,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "259.11",
             "case_id": "10105045"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 65,
@@ -49192,7 +49322,8 @@
             "StateLand2_Area": "283.0",
             "StateLand3_Area": "1635.0",
             "case_id": "09409101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 225,
@@ -49745,7 +49876,8 @@
             "StateLand1_Area": "1834.0",
             "StateLand2_Area": "64.0",
             "case_id": "09410260"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1321,
@@ -49870,7 +50002,8 @@
             "Landkind2_Area": "2447.0",
             "Landkind3_Area": "0.0",
             "case_id": "09410262"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1247,
@@ -50602,7 +50735,8 @@
             "StateLand2_Area": "222.0",
             "StateLand3_Area": "262.0",
             "case_id": "09309101"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -50958,7 +51092,8 @@
             "StateLand2_Area": "70.26",
             "StateLand3_Area": "14.0",
             "case_id": "11007091"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -51368,7 +51503,8 @@
             "StateLand2_Area": "85.54",
             "StateLand3_Area": "484.46",
             "case_id": "09407221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1225,
@@ -51866,7 +52002,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "273.0",
             "case_id": "10410261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 601,
@@ -51957,7 +52094,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "273.0",
             "case_id": "10812271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 268,
@@ -52614,7 +52752,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10302141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 499,
@@ -53452,7 +53591,8 @@
               "date-pm1": false,
               "similarity-band": false
             }
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -53831,7 +53971,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1078.0",
             "case_id": "10601031"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 397,
@@ -53916,7 +54057,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1078.0",
             "case_id": "11005051"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 317,
@@ -54499,7 +54641,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10205202"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -54971,7 +55114,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10104182"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 396,
@@ -55099,7 +55243,8 @@
             "StateLand1_Area": "84.84",
             "StateLand2_Area": "487.0",
             "case_id": "11002261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 106,
@@ -55719,7 +55864,8 @@
             "StateLand2_Area": "95.0",
             "StateLand3_Area": "122.0",
             "case_id": "09510143"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1233,
@@ -56801,7 +56947,8 @@
             "StateLand1_Area": "13.0",
             "StateLand2_Area": "49.0",
             "case_id": "09809061"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 668,
@@ -56909,7 +57056,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "49.0",
             "case_id": "09809062"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 646,
@@ -57485,7 +57633,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10204032"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 780,
@@ -57918,7 +58067,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1058.0",
             "case_id": "10409031"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -58171,7 +58321,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "282.0",
             "case_id": "09512201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1137,
@@ -58725,7 +58876,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "611.0",
             "case_id": "09908111"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1013,
@@ -59384,7 +59536,8 @@
             "StateLand1_Area": "469.0",
             "StateLand2_Area": "469.2",
             "case_id": "09505271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1266,
@@ -60284,7 +60437,8 @@
             "Landkind2_Area": "172.0",
             "Landkind3_Area": "64.0",
             "case_id": "10209181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 964,
@@ -60635,7 +60789,8 @@
             "Landkind1_Area": "4325.72",
             "Landkind2_Area": "9.0",
             "case_id": "11107261"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -60871,7 +61026,8 @@
             "StateLand1_Area": "132.0",
             "StateLand2_Area": "431.0",
             "case_id": "10501281"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 370,
@@ -60969,7 +61125,8 @@
             "StateLand1_Area": "132.0",
             "StateLand2_Area": "431.0",
             "case_id": "10501283"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -61539,7 +61696,8 @@
             "StateLand1_Area": "7.65",
             "StateLand2_Area": "288.33",
             "case_id": "10008271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 944,
@@ -62333,7 +62491,8 @@
             "StateLand2_Area": "559.67",
             "StateLand3_Area": "0.12",
             "case_id": "10406281"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 657,
@@ -62421,7 +62580,8 @@
             "StateLand1_Area": "754.79",
             "StateLand2_Area": "0.12",
             "case_id": "10707221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 130,
@@ -62871,7 +63031,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10110211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 501,
@@ -62949,7 +63110,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "745.0",
             "case_id": "10810271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 212,
@@ -63474,7 +63636,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1067.0",
             "case_id": "10409101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 383,
@@ -63552,7 +63715,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1067.0",
             "case_id": "10409102"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 194,
@@ -64131,7 +64295,8 @@
             "Landkind2_Area": "483.0",
             "Landkind3_Area": "0.0",
             "case_id": "10008192"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 991,
@@ -64920,7 +65085,8 @@
             "StateLand1_Owner": "行政院農業委員會農田水利署/中華民國",
             "StateLand1_Area": "4.0",
             "case_id": "11103051"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -65205,7 +65371,8 @@
             "StateLand1_Area": "15.0",
             "StateLand2_Area": "1896.0",
             "case_id": "09506151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 950,
@@ -65328,7 +65495,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09506152"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 371,
@@ -65425,7 +65593,8 @@
             "StateLand1_Area": "14.08",
             "StateLand2_Area": "1889.0",
             "case_id": "09506154"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -65891,7 +66060,8 @@
             "Landkind2_Area": "321.0",
             "Landkind3_Area": "0.0",
             "case_id": "09710041"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 918,
@@ -66777,7 +66947,8 @@
             "StateLand1_Owner": "臺北市都市更新處(臺北市)",
             "StateLand1_Area": "617.69",
             "case_id": "10712281"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 121,
@@ -67159,7 +67330,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1729.0",
             "case_id": "11105302"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -67959,7 +68131,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09706021"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 708,
@@ -68054,7 +68227,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "29.03",
             "case_id": "10706152"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 520,
@@ -69165,7 +69339,8 @@
             "StateLand1_Owner": "中華民國(國有財產局)",
             "StateLand1_Area": "32.0",
             "case_id": "09712050"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1240,
@@ -69893,7 +70068,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "29.0",
             "case_id": "10404271"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -70319,7 +70495,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10306241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 971,
@@ -70742,7 +70919,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2010.0",
             "case_id": "11409053"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -70976,7 +71154,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2429.0",
             "case_id": "10910071"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 109,
@@ -71362,7 +71541,8 @@
             "Landkind2_Area": "1307.0",
             "Landkind3_Area": "0.0",
             "case_id": "09809011"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 451,
@@ -71442,7 +71622,8 @@
             "Landkind2_Area": "1307.0",
             "Landkind3_Area": "0.0",
             "case_id": "10111062"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -71792,7 +71973,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09812031"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 898,
@@ -72115,7 +72297,8 @@
             "Landkind1_Area": "1611.0",
             "Landkind2_Area": "819.0",
             "case_id": "09812034"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 393,
@@ -72203,7 +72386,8 @@
             "Urban_Renew_Fee": "2512401709.0",
             "pc_afterUpdTotalValue": "6692498950.0",
             "case_id": "09812035"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -72714,7 +72898,8 @@
             "StateLand1_Owner": "教育部(中華民國)",
             "StateLand1_Area": "383.0",
             "case_id": "10410141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 642,
@@ -72791,7 +72976,8 @@
             "StateLand1_Owner": "教育部(中華民國)",
             "StateLand1_Area": "383.0",
             "case_id": "10410142"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 237,
@@ -73378,7 +73564,8 @@
             "StateLand1_Owner": "內政部警政署",
             "StateLand1_Area": "647.87",
             "case_id": "08911251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1358,
@@ -74320,7 +74507,8 @@
             "Landkind1": "第二種住宅區",
             "Landkind1_Area": "1025.0",
             "case_id": "10211021"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 240,
@@ -74826,7 +75014,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10203171"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 564,
@@ -74937,7 +75126,8 @@
             "StateLand1_Owner": "臺北市政府工務局公園路燈工程管理處(臺北市)",
             "StateLand1_Area": "80.34",
             "case_id": "10812301"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 170,
@@ -76022,7 +76212,8 @@
             "StateLand2_Area": "3130.0",
             "StateLand3_Area": "1173.0",
             "case_id": "09608220"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -76307,7 +76498,8 @@
             "StateLand2_Area": "90.08",
             "StateLand3_Area": "1906.92",
             "case_id": "10203251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 283,
@@ -76715,7 +76907,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1035.0",
             "case_id": "10310091"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 508,
@@ -76798,7 +76991,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1046.0",
             "case_id": "10907231"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -77533,7 +77727,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1089.0",
             "case_id": "10108201"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -77776,7 +77971,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10109141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 975,
@@ -78232,7 +78428,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09802191"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -78563,7 +78760,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09906112"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 450,
@@ -78665,7 +78863,8 @@
             "StateLand1_Area": "122.0",
             "StateLand2_Area": "274.0",
             "case_id": "09906113"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 369,
@@ -79290,7 +79489,8 @@
             "StateLand1_Area": "869.0",
             "StateLand2_Area": "17.0",
             "case_id": "09403312"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 572,
@@ -80313,7 +80513,8 @@
             "StateLand1_Owner": "臺北市政府都市發展局",
             "StateLand1_Area": "189.0",
             "case_id": "09509092"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1229,
@@ -80403,7 +80604,8 @@
             "StateLand1_Owner": "臺北市都市發展局(臺北市)",
             "StateLand1_Area": "189.0",
             "case_id": "09509091"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 890,
@@ -80847,7 +81049,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "1.0",
             "case_id": "09110091"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1367,
@@ -81420,7 +81623,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09408121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1235,
@@ -81820,7 +82024,8 @@
             "StateLand2_Area": "985.0",
             "StateLand3_Area": "410.27",
             "case_id": "09105031"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1161,
@@ -81991,7 +82196,8 @@
             "StateLand2_Area": "22.46",
             "StateLand3_Area": "62.0",
             "case_id": "10310221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 603,
@@ -82082,7 +82288,8 @@
             "StateLand2_Area": "22.46",
             "StateLand3_Area": "1236.46",
             "case_id": "10310222"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 53,
@@ -82817,7 +83024,8 @@
             "Landkind1": "第四種住宅區",
             "Landkind1_Area": "735.0",
             "case_id": "10607211"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -83041,7 +83249,8 @@
             "Landkind1": "第四種住宅區",
             "Landkind1_Area": "1749.0",
             "case_id": "10306151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 58,
@@ -83127,7 +83336,8 @@
             "Landkind1": "第四種住宅區",
             "Landkind1_Area": "1749.0",
             "case_id": "10306152"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -83390,7 +83600,8 @@
             "Landkind1": "商三特(原屬商二)",
             "Landkind1_Area": "453.0",
             "case_id": "09601062"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -83742,7 +83953,8 @@
             "StateLand1_Owner": "臺北市財政局及臺北市政府警察局",
             "StateLand1_Area": "932.0",
             "case_id": "09702141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1111,
@@ -84328,7 +84540,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09912102"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1067,
@@ -84892,7 +85105,8 @@
             "Landkind1": "第四種住宅區",
             "Landkind1_Area": "583.0",
             "case_id": "10612182"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 267,
@@ -85567,7 +85781,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1167.0",
             "case_id": "11208101"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -85794,7 +86009,8 @@
             "Landkind1_Area": "918.0",
             "Landkind2_Area": "96.0",
             "case_id": "10310101"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -86114,7 +86330,8 @@
             "StateLand1_Owner": "國防部政治作戰局(中華民國)",
             "StateLand1_Area": "1362.0",
             "case_id": "10202022"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 11,
@@ -86581,7 +86798,8 @@
             "StateLand2_Area": "327.0",
             "StateLand3_Area": "278.0",
             "case_id": "10002161"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 407,
@@ -86690,7 +86908,8 @@
             "StateLand2_Area": "2657.0",
             "StateLand3_Area": "278.0",
             "case_id": "10909091"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -87336,7 +87555,8 @@
             "StateLand1_Owner": "國防部政治作戰局/中華民國",
             "StateLand1_Area": "2069.0",
             "case_id": "11102151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 205,
@@ -87720,7 +87940,8 @@
             "StateLand1_Owner": "臺北市/臺北市政府財政局",
             "StateLand1_Area": "988.0",
             "case_id": "11410011"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -88005,7 +88226,8 @@
             "StateLand1_Area": "2605.6",
             "StateLand2_Area": "1112.4",
             "case_id": "09601041"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -88318,7 +88540,8 @@
             "Landkind1": "商三特(原屬第三之一種住宅區)",
             "Landkind1_Area": "998.0",
             "case_id": "10905281"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -88539,7 +88762,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "71.11",
             "case_id": "10405221"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -88895,7 +89119,8 @@
             "Landkind1_Area": "1005.0",
             "Landkind2_Area": "3.0",
             "case_id": "11111222"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -89252,7 +89477,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10205251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 350,
@@ -89384,7 +89610,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "98.0",
             "case_id": "10908291"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -89771,7 +89998,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2839.0",
             "case_id": "11206141"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -89985,7 +90213,8 @@
             "Landkind1": "第一種商業區",
             "Landkind1_Area": "538.13",
             "case_id": "10712071"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 167,
@@ -90594,7 +90823,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09307211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1340,
@@ -91046,7 +91276,8 @@
             "StateLand1_Area": "3362.93",
             "StateLand2_Area": "844.0",
             "case_id": "10111261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 602,
@@ -91190,7 +91421,8 @@
             "StateLand1_Area": "3362.93",
             "StateLand2_Area": "844.0",
             "case_id": "10712271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 282,
@@ -91795,7 +92027,8 @@
             "StateLand1_Owner": "中華民國(國防部總政治作戰局)",
             "StateLand1_Area": "446.0",
             "case_id": "09204231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1384,
@@ -92425,7 +92658,8 @@
             "StateLand1_Area": "65.0",
             "StateLand2_Area": "641.0",
             "case_id": "09805252"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1174,
@@ -93519,7 +93753,8 @@
             "StateLand1_Owner": "臺北市政府財政局/臺北市",
             "StateLand1_Area": "4.0",
             "case_id": "11106211"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -93798,7 +94033,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "837.0",
             "case_id": "10506171"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -94076,7 +94312,8 @@
             "StateLand2_Area": "49.0",
             "StateLand3_Area": "553.0",
             "case_id": "09807161"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 811,
@@ -94565,7 +94802,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09911251"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -94795,7 +95033,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10206161"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -95160,7 +95399,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09206191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1201,
@@ -96003,7 +96243,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10112141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 919,
@@ -96819,7 +97060,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10311011"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 597,
@@ -96895,7 +97137,8 @@
             "StateLand1_Owner": "臺北市政府都市發展局(臺北市)",
             "StateLand1_Area": "723.02",
             "case_id": "10311012"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -97386,7 +97629,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "9.75",
             "case_id": "09812265"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -97732,7 +97976,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1194.0",
             "case_id": "10410272"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 538,
@@ -97807,7 +98052,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1194.0",
             "case_id": "10902221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 316,
@@ -98283,7 +98529,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1395.0",
             "case_id": "10312141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 534,
@@ -98356,7 +98603,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1395.0",
             "case_id": "10806011"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -98693,7 +98941,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1403.0",
             "case_id": "10409021"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 616,
@@ -98766,7 +99015,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1403.0",
             "case_id": "10810211"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -99052,7 +99302,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09605191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1210,
@@ -99585,7 +99836,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09209271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1151,
@@ -100326,7 +100578,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "958.0",
             "case_id": "11408002"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -100575,7 +100828,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10101081"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 961,
@@ -100935,7 +101189,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "4449.0",
             "case_id": "11101281"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -101186,7 +101441,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "804.0",
             "case_id": "11502008"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -101438,7 +101694,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "641.04",
             "case_id": "10407232"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -101783,7 +102040,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10104051"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 574,
@@ -101951,7 +102209,8 @@
             "Landkind1": "第一種商業區",
             "Landkind1_Area": "1642.0",
             "case_id": "10104053"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -102275,7 +102534,8 @@
             "Landkind1": "第三種工業區",
             "Landkind1_Area": "796.0",
             "case_id": "11109301"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -102488,7 +102748,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "372.0",
             "case_id": "11105281"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 98,
@@ -102817,7 +103078,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09305072"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1337,
@@ -103207,7 +103469,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10306161"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 913,
@@ -103674,7 +103937,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09809151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1054,
@@ -103778,7 +104042,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10209171"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 837,
@@ -104217,7 +104482,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1553.0",
             "case_id": "10209176"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -104666,7 +104932,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "128.21",
             "case_id": "09811101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1099,
@@ -105295,7 +105562,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09911124"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 516,
@@ -105861,7 +106129,8 @@
             "StateLand1_Owner": "臺北市政府工務局新建工程處",
             "StateLand1_Area": "1387.77",
             "case_id": "09111160"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1361,
@@ -106285,7 +106554,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10403041"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 739,
@@ -106654,7 +106924,8 @@
             "StateLand1_Owner": "臺北市政府都市發展局(臺北市)",
             "StateLand1_Area": "749.0",
             "case_id": "10705021"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 394,
@@ -106740,7 +107011,8 @@
             "StateLand1_Owner": "臺北市政府都市發展局/臺北市",
             "StateLand1_Area": "749.0",
             "case_id": "11002041"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -107142,7 +107414,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "379.58",
             "case_id": "10504272"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 528,
@@ -107215,7 +107488,8 @@
             "Landkind3": "第三種住宅區",
             "Landkind1_Area": "379.58",
             "case_id": "10504273"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 448,
@@ -107283,7 +107557,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "379.58",
             "case_id": "10504274"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -107659,7 +107934,8 @@
             "StateLand1_Area": "18.45",
             "StateLand2_Area": "34.0",
             "case_id": "10406272"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 406,
@@ -107747,7 +108023,8 @@
             "StateLand1_Area": "18.45",
             "StateLand2_Area": "34.0",
             "case_id": "11003311"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 144,
@@ -108185,7 +108462,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "1298.0",
             "case_id": "10312101"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -108500,7 +108778,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "1160.15",
             "case_id": "10501282"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 295,
@@ -108600,7 +108879,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "1160.15",
             "case_id": "10912091"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 49,
@@ -109078,7 +109358,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市政府)",
             "StateLand1_Area": "143.0",
             "case_id": "10012272"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 716,
@@ -109787,7 +110068,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09206241"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -110118,7 +110400,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09805202"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 570,
@@ -110723,7 +111006,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2860.0",
             "case_id": "10401201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 381,
@@ -110800,7 +111084,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2860.0",
             "case_id": "10401202"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 239,
@@ -111294,7 +111579,8 @@
             "Landkind1_Area": "1333.64",
             "Landkind2_Area": "1669.0",
             "case_id": "10409251"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -111527,7 +111813,8 @@
             "Landkind1": "第三之一種住宅區",
             "Landkind1_Area": "857.0",
             "case_id": "11409039"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -111816,7 +112103,8 @@
             "Landkind1_Area": "1454.0",
             "Landkind2_Area": "1876.0",
             "case_id": "10203041"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -112089,7 +112377,8 @@
             "Landkind1": "第三種工業區",
             "Landkind1_Area": "4291.0",
             "case_id": "10909182"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 4,
@@ -112468,7 +112757,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "122.95",
             "case_id": "10409132"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 619,
@@ -112555,7 +112845,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "122.95",
             "case_id": "10808191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 168,
@@ -113118,7 +113409,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "84.08",
             "case_id": "10012261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 818,
@@ -113875,7 +114167,8 @@
             "StateLand1_Area": "5.0",
             "StateLand2_Area": "1225.0",
             "case_id": "11203071"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -114326,7 +114619,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10009271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 899,
@@ -114679,7 +114973,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09707201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1238,
@@ -115271,7 +115566,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市政府)",
             "StateLand1_Area": "39.49",
             "case_id": "10312303"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 560,
@@ -115938,7 +116234,8 @@
             "StateLand1_Owner": "中華民國(國有財產署)",
             "StateLand1_Area": "29.03",
             "case_id": "09707181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1092,
@@ -116601,7 +116898,8 @@
             "StateLand1_Area": "33.47",
             "StateLand2_Area": "78.91",
             "case_id": "10412021"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -116869,7 +117167,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10304126"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -117265,7 +117564,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10108311"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -117574,7 +117874,8 @@
             "StateLand1_Owner": "行政院農業委員會農田水利署(中華民國)",
             "StateLand1_Area": "40.22",
             "case_id": "10907181"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -118074,7 +118375,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "852.0",
             "case_id": "09906091"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -118528,7 +118830,8 @@
             "StateLand1_Area": "176.0",
             "StateLand2_Area": "75.0",
             "case_id": "09803272"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -118866,7 +119169,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10211302"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 730,
@@ -119936,7 +120240,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "119.0",
             "case_id": "10106084"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 585,
@@ -120022,7 +120327,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "119.0",
             "case_id": "10106085"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 332,
@@ -120458,7 +120764,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "139.86",
             "case_id": "11105271"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -120710,7 +121017,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10402021"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 573,
@@ -120790,7 +121098,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1000.04",
             "case_id": "10903261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 103,
@@ -121185,7 +121494,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "24.97",
             "case_id": "10512261"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -121427,7 +121737,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "110.0",
             "case_id": "10611281"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 433,
@@ -121933,7 +122244,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10206181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 577,
@@ -122013,7 +122325,8 @@
             "Landkind1": "第三之二種住宅區",
             "Landkind1_Area": "1028.0",
             "case_id": "10904301"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 246,
@@ -122517,7 +122830,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10010181"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -122805,7 +123119,8 @@
             "Landkind1_Area": "1580.23",
             "Landkind2_Area": "32.77",
             "case_id": "10601041"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 464,
@@ -123274,7 +123589,8 @@
             "StateLand1_Area": "34.0",
             "StateLand2_Area": "19.0",
             "case_id": "10009071"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 695,
@@ -123382,7 +123698,8 @@
             "StateLand1_Area": "19.0",
             "StateLand2_Area": "34.0",
             "case_id": "10411102"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 304,
@@ -124040,7 +124357,8 @@
             "StateLand1_Area": "78.88",
             "StateLand2_Area": "1.52",
             "case_id": "10512131"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -124410,7 +124728,8 @@
             "StateLand1_Area": "2614.9",
             "StateLand2_Area": "827.83",
             "case_id": "10407171"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 692,
@@ -124484,7 +124803,8 @@
             "StateLand1_Area": "827.83",
             "StateLand2_Area": "2614.9",
             "case_id": "10407172"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 545,
@@ -124563,7 +124883,8 @@
             "StateLand1_Area": "827.83",
             "StateLand2_Area": "2614.9",
             "case_id": "10407173"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -124885,7 +125206,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "132.95",
             "case_id": "09602021"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1261,
@@ -125387,7 +125709,8 @@
             "StateLand1_Owner": "臺北市政府財政局/臺北市",
             "StateLand1_Area": "95.0",
             "case_id": "11105101"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -125660,7 +125983,8 @@
             "StateLand1_Owner": "中華民國/無",
             "StateLand1_Area": "0.0",
             "case_id": "11407049"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -126200,7 +126524,8 @@
             "StateLand1_Owner": "臺北市政府工務局新建工程處(臺北市)",
             "StateLand1_Area": "19.52",
             "case_id": "10510181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 8,
@@ -126585,7 +126910,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10001241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 500,
@@ -126658,7 +126984,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "648.0",
             "case_id": "10001242"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -126967,7 +127294,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "4723.17",
             "case_id": "10909211"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -127264,7 +127592,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "64.0",
             "case_id": "09504080"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 790,
@@ -127389,7 +127718,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "57.0",
             "case_id": "09504081"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 159,
@@ -128009,7 +128339,8 @@
             "StateLand1_Area": "312.19",
             "StateLand2_Area": "75.86",
             "case_id": "10008051"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1010,
@@ -128560,7 +128891,8 @@
             "Landkind1_Area": "98.0",
             "Landkind2_Area": "2027.0",
             "case_id": "10404272"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 658,
@@ -128632,7 +128964,8 @@
             "Landkind1_Area": "98.0",
             "Landkind2_Area": "2027.0",
             "case_id": "10404273"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -128936,7 +129269,8 @@
             "Landkind2_Area": "119.25",
             "Landkind3_Area": "1052.7",
             "case_id": "10404091"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 281,
@@ -129464,7 +129798,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2741.76",
             "case_id": "10406291"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 691,
@@ -129538,7 +129873,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2741.76",
             "case_id": "10406293"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -129850,7 +130186,8 @@
             "StateLand1_Owner": "澎湖縣望安鄉公所",
             "StateLand1_Area": "21.49",
             "case_id": "10410271"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -130390,7 +130727,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "745.0",
             "case_id": "10410031"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 253,
@@ -130808,7 +131146,8 @@
             "StateLand2_Area": "25.0",
             "StateLand3_Area": "67.25",
             "case_id": "09608241"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -131185,7 +131524,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "476.0",
             "case_id": "10211231"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -131451,7 +131791,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1627.7",
             "case_id": "11407030"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -131712,7 +132053,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09005081"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -132044,7 +132386,8 @@
             "Landkind1": "第三種住宅區(特)",
             "Landkind1_Area": "2612.0",
             "case_id": "10312031"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -132286,7 +132629,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "100.0",
             "case_id": "10105152"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 671,
@@ -132369,7 +132713,8 @@
             "StateLand1_Area": "12.0",
             "StateLand2_Area": "100.0",
             "case_id": "10803151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 7,
@@ -132785,7 +133130,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09611231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1291,
@@ -133118,7 +133464,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09705281"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -133361,7 +133708,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09707081"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1243,
@@ -133917,7 +134265,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09611261"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -134180,7 +134529,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10204033"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 349,
@@ -134716,7 +135066,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "168.0",
             "case_id": "10809251"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -135016,7 +135367,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09910072"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1003,
@@ -135610,7 +135962,8 @@
             "Landkind1": "商業區(供商業設施使用)",
             "Landkind1_Area": "4596.0",
             "case_id": "10405232"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 287,
@@ -135868,7 +136221,8 @@
             "Landkind1": "商業區(供商務設施使用)",
             "Landkind1_Area": "4596.0",
             "case_id": "10405233"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -136279,7 +136633,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "216.0",
             "case_id": "10111131"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 202,
@@ -137509,7 +137864,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09607091"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 405,
@@ -137625,7 +137981,8 @@
             "Landkind1": "住宅區(特)(比照第三種住宅區)",
             "Landkind1_Area": "10693.0",
             "case_id": "10808301"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -139633,7 +139990,8 @@
             "StateLand1_Owner": "臺北市政府工務局新建工程處",
             "StateLand1_Area": "253.0",
             "case_id": "09407111"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 148,
@@ -139755,7 +140113,8 @@
             "StateLand1_Owner": "臺北市政府工務局新建工程處/臺北市",
             "StateLand1_Area": "253.0",
             "case_id": "11103151"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -140997,7 +141356,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09606051"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 973,
@@ -142143,7 +142503,8 @@
             "Landkind1": "住宅區(特)",
             "Landkind1_Area": "2525.0",
             "case_id": "11405012"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -143274,7 +143635,8 @@
               "date-pm1": false,
               "similarity-band": false
             }
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -143728,7 +144090,8 @@
             "StateLand1_Owner": "財政部國有財產署",
             "StateLand1_Area": "20.0",
             "case_id": "10006251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 613,
@@ -144328,7 +144691,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "269.0",
             "case_id": "10412191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 334,
@@ -144407,7 +144771,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "269.0",
             "case_id": "10412192"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 92,
@@ -144810,7 +145175,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "444.0",
             "case_id": "10407241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 656,
@@ -144903,7 +145269,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "444.0",
             "case_id": "10710261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 73,
@@ -145318,7 +145685,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "5994.0",
             "case_id": "10609301"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 687,
@@ -145389,7 +145757,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "5994.0",
             "case_id": "10609302"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 533,
@@ -145470,7 +145839,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "5994.0",
             "case_id": "10906231"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -145786,7 +146156,8 @@
             "StateLand2_Area": "33.86",
             "StateLand3_Area": "23.0",
             "case_id": "10404261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 449,
@@ -145893,7 +146264,8 @@
             "StateLand2_Area": "33.86",
             "StateLand3_Area": "23.0",
             "case_id": "10905251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 183,
@@ -146495,7 +146867,8 @@
             "StateLand1_Area": "66.0",
             "StateLand2_Area": "817.23",
             "case_id": "09908252"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 480,
@@ -147100,7 +147473,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10205191"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -147462,7 +147836,8 @@
             "StateLand1_Owner": "交通部臺灣鐵路管理局(中華民國)",
             "StateLand1_Area": "26047.65",
             "case_id": "10806041"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -147771,7 +148146,8 @@
             "Landkind1": "第二種工業區",
             "Landkind1_Area": "2830.0",
             "case_id": "11011181"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -148041,7 +148417,8 @@
             "Landkind1": "商業特定專用區(二)(工)",
             "Landkind1_Area": "1747.0",
             "case_id": "10909141"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -148759,7 +149136,8 @@
             "StateLand1_Owner": "臺北市政府都市發展局",
             "StateLand1_Area": "56.67",
             "case_id": "09703181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1300,
@@ -149347,7 +149725,8 @@
             "StateLand1_Area": "71.5",
             "StateLand2_Area": "30.0",
             "case_id": "09503232"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 234,
@@ -149438,7 +149817,8 @@
             "StateLand1_Area": "71.5",
             "StateLand2_Area": "30.0",
             "case_id": "09503233"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -149767,7 +150147,8 @@
             "StateLand1_Area": "2.0",
             "StateLand2_Area": "444.0",
             "case_id": "09309221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1356,
@@ -150783,7 +151164,8 @@
             "Landkind2_Area": "422.52",
             "Landkind3_Area": "4590.18",
             "case_id": "10808201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 99,
@@ -151197,7 +151579,8 @@
             "StateLand1_Area": "329.0",
             "StateLand2_Area": "10.0",
             "case_id": "10407081"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -151546,7 +151929,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "335.0",
             "case_id": "10110261"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -151862,7 +152246,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "186.42",
             "case_id": "10012262"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -152153,7 +152538,8 @@
             "StateLand2_Area": "44.0",
             "StateLand3_Area": "23.0",
             "case_id": "10703311"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 645,
@@ -152611,7 +152997,8 @@
             "StateLand1_Area": "4.0",
             "StateLand2_Area": "44.0",
             "case_id": "11208111"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -153011,7 +153398,8 @@
             "StateLand1_Area": "149.0",
             "StateLand2_Area": "100.0",
             "case_id": "09508282"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 672,
@@ -153130,7 +153518,8 @@
             "StateLand1_Area": "149.0",
             "StateLand2_Area": "100.0",
             "case_id": "10707172"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 242,
@@ -154013,7 +154402,8 @@
             "Landkind2_Area": "2207.0",
             "Landkind3_Area": "694.0",
             "case_id": "10203261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 565,
@@ -154112,7 +154502,8 @@
             "StateLand1_Owner": "臺北市政府衛生局(臺北市)",
             "StateLand1_Area": "6002.0",
             "case_id": "10901211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 77,
@@ -154694,7 +155085,8 @@
               "建照核發日期": "2022/08/10",
               "申請核定日期": "2018/12/27"
             }
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -155106,7 +155498,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10405041"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -155438,7 +155831,8 @@
             "StateLand1_Owner": "中華民國/財政部國有財產署",
             "StateLand1_Area": "258.0",
             "case_id": "11402007"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -155702,7 +156096,8 @@
             "Landkind1": "第三種工業區",
             "Landkind1_Area": "8904.0",
             "case_id": "10510141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 600,
@@ -155781,7 +156176,8 @@
             "Landkind1": "第三種工業區",
             "Landkind1_Area": "8904.0",
             "case_id": "10510142"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 354,
@@ -156264,7 +156660,8 @@
             "Landkind1": "特定商用區(一)",
             "Landkind1_Area": "2892.48",
             "case_id": "11101141"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -156481,7 +156878,8 @@
             "Landkind1": "特定商業區(一)",
             "Landkind1_Area": "5288.69",
             "case_id": "10812181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 569,
@@ -156805,7 +157203,8 @@
             "StateLand1_Owner": "交通部台灣鐵路管理局/中華民國",
             "StateLand1_Area": "3392.19",
             "case_id": "11011161"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -157106,7 +157505,8 @@
             "Landkind1": "特定商業區(一)",
             "Landkind1_Area": "3642.45",
             "case_id": "11108191"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -157389,7 +157789,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09805061"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1087,
@@ -157801,7 +158202,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "5.73",
             "case_id": "10408181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 664,
@@ -157885,7 +158287,8 @@
             "Landkind1_Area": "1706.0",
             "Landkind2_Area": "235.0",
             "case_id": "10408182"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 485,
@@ -158345,7 +158748,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1277.0",
             "case_id": "10406103"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 638,
@@ -158415,7 +158819,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1277.0",
             "case_id": "10406104"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -158722,7 +159127,8 @@
             "StateLand1_Owner": "財政部國有財產局(中華民國)",
             "StateLand1_Area": "3518.0",
             "case_id": "11106151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 189,
@@ -159104,7 +159510,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "623.0",
             "case_id": "10303302"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 937,
@@ -159660,7 +160067,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "570.73",
             "case_id": "10511292"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 599,
@@ -159732,7 +160140,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "570.73",
             "case_id": "10511293"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -160034,7 +160443,8 @@
             "Landkind2_Area": "45.0",
             "Landkind3_Area": "0.0",
             "case_id": "10006132"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -160263,7 +160673,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "652.0",
             "case_id": "10611221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 690,
@@ -160330,7 +160741,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "652.0",
             "case_id": "10611222"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 60,
@@ -160757,7 +161169,8 @@
             "Landkind1_Area": "911.0",
             "Landkind2_Area": "0.0",
             "case_id": "10209162"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 787,
@@ -161433,7 +161846,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "85.5",
             "case_id": "10302101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 418,
@@ -161615,7 +162029,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "85.5",
             "case_id": "10302103"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -161956,7 +162371,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1159.0",
             "case_id": "10406261"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -162257,7 +162673,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09811012"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1066,
@@ -162734,7 +163151,8 @@
             "StateLand4_Owner": "彰化縣員林市公所(員林市)",
             "StateLand4_Area": "7.95",
             "case_id": "09708071"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -163127,7 +163545,8 @@
             "Landkind2_Area": "1361.16",
             "Landkind3_Area": "0.0",
             "case_id": "09306291"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1265,
@@ -163527,7 +163946,8 @@
             "Landkind1": "第三種商業區(原住三)",
             "Landkind1_Area": "2056.0",
             "case_id": "10208052"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 67,
@@ -164429,7 +164849,8 @@
             "Landkind1": "第三種商業區(原住三)",
             "Landkind1_Area": "1273.0",
             "case_id": "10402261"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -164838,7 +165259,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10106116"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 836,
@@ -165066,7 +165488,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "115.43",
             "case_id": "10106118"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 136,
@@ -165787,7 +166210,8 @@
             "StateLand1_Owner": "臺北市政府工務局水利工程處(臺北市)",
             "StateLand1_Area": "67.81",
             "case_id": "10509261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 241,
@@ -166176,7 +166600,8 @@
             "StateLand1_Area": "177.21",
             "StateLand2_Area": "40.83",
             "case_id": "10605211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 110,
@@ -166561,7 +166986,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "4.25",
             "case_id": "10907061"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -166810,7 +167236,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "527.0",
             "case_id": "11008161"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -167076,7 +167503,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10203162"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 679,
@@ -167611,7 +168039,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1552.0",
             "case_id": "10511081"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 262,
@@ -167975,7 +168404,8 @@
             "StateLand1_Owner": "新北市政府財政局/新北市",
             "StateLand1_Area": "16.0",
             "case_id": "10910122"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -168309,7 +168739,8 @@
             "Landkind1": "第一種商業區",
             "Landkind1_Area": "2796.0",
             "case_id": "11101051"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -168531,7 +168962,8 @@
             "StateLand1_Owner": "臺北市政府警察局/臺北市",
             "StateLand1_Area": "1950.0",
             "case_id": "11104061"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 255,
@@ -168849,7 +169281,8 @@
             "Landkind1_Area": "1893.0",
             "Landkind2_Area": "235.0",
             "case_id": "10305091"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -169093,7 +169526,8 @@
             "StateLand1_Owner": "臺北市/臺北市政府都市發展局",
             "StateLand1_Area": "3.0",
             "case_id": "11407048"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -169328,7 +169762,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "50.64",
             "case_id": "09911102"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -169611,7 +170046,8 @@
             "StateLand1_Area": "876.0",
             "StateLand2_Area": "741.0",
             "case_id": "10703211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 95,
@@ -170070,7 +170506,8 @@
             "Landkind1": "第三種工業區",
             "Landkind1_Area": "3603.0",
             "case_id": "11112063"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -170332,7 +170769,8 @@
             "Landkind2": "道路",
             "Landkind3": "2,013.30",
             "case_id": "10210311"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -170727,7 +171165,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2679.0",
             "case_id": "10308261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 845,
@@ -170808,7 +171247,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2679.0",
             "case_id": "10308262"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 277,
@@ -171403,7 +171843,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2015.0",
             "case_id": "10107101"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -171679,7 +172120,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "7.0",
             "case_id": "10411131"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 796,
@@ -171757,7 +172199,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "7.0",
             "case_id": "10705101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 555,
@@ -171836,7 +172279,8 @@
             "Landkind1": "市場用地",
             "Landkind1_Area": "1819.0",
             "case_id": "10909221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 112,
@@ -172289,7 +172733,8 @@
             "Landkind1_Area": "595.0",
             "Landkind2_Area": "224.0",
             "case_id": "10905081"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 48,
@@ -172696,7 +173141,8 @@
             "Landkind1": "第三之二種住宅區",
             "Landkind1_Area": "1211.0",
             "case_id": "10405261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 515,
@@ -173363,7 +173809,8 @@
             "Landkind1_Area": "840.17",
             "Landkind2_Area": "1144.83",
             "case_id": "10212091"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 618,
@@ -173468,7 +173915,8 @@
             "Landkind1_Area": "840.17",
             "Landkind2_Area": "1144.83",
             "case_id": "10811181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 135,
@@ -173885,7 +174333,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "3146.0",
             "case_id": "10910271"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -174166,7 +174615,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "42.0",
             "case_id": "10907081"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -174440,7 +174890,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1570.0",
             "case_id": "10612061"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 400,
@@ -174534,7 +174985,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1570.0",
             "case_id": "10909011"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -174938,7 +175390,8 @@
             "StateLand2_Area": "14.2",
             "StateLand3_Area": "18.74",
             "case_id": "10103151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 773,
@@ -175028,7 +175481,8 @@
             "StateLand2_Area": "14.2",
             "StateLand3_Area": "18.74",
             "case_id": "10103152"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 743,
@@ -175121,7 +175575,8 @@
             "StateLand2_Area": "14.2",
             "StateLand3_Area": "18.74",
             "case_id": "10103153"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 311,
@@ -175982,7 +176437,8 @@
             "Landkind2_Area": "1086.96",
             "Landkind3_Area": "17.04",
             "case_id": "10109071"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 797,
@@ -176459,7 +176915,8 @@
             "Landkind2_Area": "952.0",
             "Landkind3_Area": "15.0",
             "case_id": "10502014"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 567,
@@ -176560,7 +177017,8 @@
             "Landkind2_Area": "952.0",
             "Landkind3_Area": "15.0",
             "case_id": "10809051"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 312,
@@ -177008,7 +177466,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "9.0",
             "case_id": "09810292"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1180,
@@ -177480,7 +177939,8 @@
             "StateLand1_Owner": "臺北市政府工務局新建工程處(臺北市)",
             "StateLand1_Area": "27.0",
             "case_id": "10511161"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 741,
@@ -177581,7 +178041,8 @@
             "StateLand1_Owner": "臺北市政府工務局新建工程處(臺北市)",
             "StateLand1_Area": "27.0",
             "case_id": "10712191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 258,
@@ -178037,7 +178498,8 @@
             "StateLand1_Owner": "臺北市政府財政局/臺北市",
             "StateLand1_Area": "31.0",
             "case_id": "11107151"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -178345,7 +178807,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10304111"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 871,
@@ -178595,7 +179058,8 @@
             "StateLand1_Area": "60.0",
             "StateLand2_Area": "302.0",
             "case_id": "10304114"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -179062,7 +179526,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09512281"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1295,
@@ -179467,7 +179932,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10403031"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -179751,7 +180217,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "1.42",
             "case_id": "10404152"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 809,
@@ -180097,7 +180564,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1652.99",
             "case_id": "10406141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 273,
@@ -180521,7 +180989,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09403081"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -180843,7 +181312,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10210081"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -181200,7 +181670,8 @@
             "Settle_Doors": "0.0",
             "Road_Area": "0.0",
             "case_id": "11504024"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -181439,7 +181910,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09708261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 823,
@@ -182089,7 +182561,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10111041"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 863,
@@ -182442,7 +182915,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10001121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1064,
@@ -182977,7 +183451,8 @@
             "StateLand1_Area": "19.8",
             "StateLand2_Area": "13.0",
             "case_id": "10101201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1069,
@@ -183585,7 +184060,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09509131"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1274,
@@ -184132,7 +184608,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "80.0",
             "case_id": "09712261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 689,
@@ -184222,7 +184699,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "80.0",
             "case_id": "09712262"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 251,
@@ -184696,7 +185174,8 @@
             "StateLand1_Area": "19.0",
             "StateLand2_Area": "8.0",
             "case_id": "09601031"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1053,
@@ -185146,7 +185625,8 @@
             "StateLand1_Owner": "臺北市市場處(臺北市)",
             "StateLand1_Area": "3090.0",
             "case_id": "10601251"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -185353,7 +185833,8 @@
               "權變核定日期": "2024/05/02",
               "建照核發日期": "2024/10/25"
             }
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 248,
@@ -185445,7 +185926,8 @@
             "Landkind1": "第一種商業區",
             "Landkind1_Area": "1005.0",
             "case_id": "10903312"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -185766,7 +186248,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "148.0",
             "case_id": "10106081"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 519,
@@ -186344,7 +186827,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "8.0",
             "case_id": "09808111"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 947,
@@ -186783,7 +187267,8 @@
             "Landkind2_Area": "11.42",
             "Landkind3_Area": "0.0",
             "case_id": "10208171"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 443,
@@ -186901,7 +187386,8 @@
             "Landkind1_Area": "2469.58",
             "Landkind2_Area": "11.42",
             "case_id": "10904251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 172,
@@ -187402,7 +187888,8 @@
             "StateLand2_Area": "94.83",
             "StateLand3_Area": "757.23",
             "case_id": "10607231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 621,
@@ -188314,7 +188801,8 @@
             "Landkind2_Area": "1257.0",
             "Landkind3_Area": "0.0",
             "case_id": "09603212"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1365,
@@ -188537,7 +189025,8 @@
             "Landkind1_Area": "950.0",
             "Landkind2_Area": "1257.0",
             "case_id": "09603214"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -189413,7 +189902,8 @@
             "StateLand1_Area": "137.0",
             "StateLand2_Area": "26.0",
             "case_id": "10908271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 188,
@@ -190525,7 +191015,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "287.0",
             "case_id": "09303022"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1401,
@@ -191046,7 +191537,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09908213"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -191491,7 +191983,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "1140.0",
             "case_id": "09605031"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -191892,7 +192385,8 @@
             "StateLand1_Area": "139.0",
             "StateLand2_Area": "1.0",
             "case_id": "10003082"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 666,
@@ -192091,7 +192585,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "140.0",
             "case_id": "10003084"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 353,
@@ -192627,7 +193122,8 @@
             "StateLand1_Owner": "臺北市政府工務局新建工程處",
             "StateLand1_Area": "65.0",
             "case_id": "09902084"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1203,
@@ -192858,7 +193354,8 @@
             "Landkind1_Area": "4600.0",
             "Landkind2_Area": "13.0",
             "case_id": "11006221"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -193520,7 +194017,8 @@
             "StateLand1_Area": "80.0",
             "StateLand2_Area": "19.0",
             "case_id": "10906151"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -193889,7 +194387,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "18.0",
             "case_id": "09609301"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 727,
@@ -194021,7 +194520,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "1.0",
             "case_id": "09609302"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -194638,7 +195138,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "843.0",
             "case_id": "10608211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 459,
@@ -194732,7 +195233,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "843.0",
             "case_id": "11004141"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -195070,7 +195572,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "6.39",
             "case_id": "10211141"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -195411,7 +195914,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "660.0",
             "case_id": "10311061"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 535,
@@ -195945,7 +196449,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "136.0",
             "case_id": "10005151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 595,
@@ -196641,7 +197146,8 @@
             "StateLand2_Area": "4.6",
             "StateLand3_Area": "9.2",
             "case_id": "10205091"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 758,
@@ -196760,7 +197266,8 @@
             "Landkind1_Area": "2248.54",
             "Landkind2_Area": "498.0",
             "case_id": "10205092"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 593,
@@ -196843,7 +197350,8 @@
             "Landkind1_Area": "2248.54",
             "Landkind2_Area": "498.0",
             "case_id": "10205093"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -197275,7 +197783,8 @@
             "StateLand2_Area": "12.0",
             "StateLand3_Area": "27.0",
             "case_id": "10206222"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -197517,7 +198026,8 @@
             "Landkind1": "第三種特定商業區(原住四1)",
             "Landkind1_Area": "862.0",
             "case_id": "10410202"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -197833,7 +198343,8 @@
             "StateLand1_Owner": "臺北市政府捷運工程局",
             "StateLand1_Area": "4461.93",
             "case_id": "09902085"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -198200,7 +198711,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "5.0",
             "case_id": "09504261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1292,
@@ -199067,7 +199579,8 @@
             "StateLand1_Owner": "臺北市政府工務局新建工程處",
             "StateLand1_Area": "11.0",
             "case_id": "10005141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 718,
@@ -199153,7 +199666,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "1290.61",
             "case_id": "10005142"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -199480,7 +199994,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "832.0",
             "case_id": "11203021"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -199731,7 +200246,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "2.0",
             "case_id": "10105032"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -200002,7 +200518,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "280.0",
             "case_id": "09610191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 815,
@@ -200313,7 +200830,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "1603.0",
             "case_id": "09610194"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 408,
@@ -200406,7 +200924,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "1603.0",
             "case_id": "09610195"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 326,
@@ -201078,7 +201597,8 @@
             "StateLand1_Area": "2.0",
             "StateLand2_Area": "82.0",
             "case_id": "10110181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 39,
@@ -202014,7 +202534,8 @@
             "Landkind1_Area": "924.0",
             "Landkind2_Area": "4.0",
             "case_id": "10211271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 579,
@@ -202106,7 +202627,8 @@
             "Landkind1_Area": "924.0",
             "Landkind2_Area": "4.0",
             "case_id": "10806261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 412,
@@ -202584,7 +203106,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09903291"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 877,
@@ -203058,7 +203581,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09610124"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1215,
@@ -203733,7 +204257,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "17.0",
             "case_id": "09902024"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 999,
@@ -204547,7 +205072,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "913.0",
             "case_id": "09903171"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1059,
@@ -205325,7 +205851,8 @@
             "Landkind2_Area": "1571.0",
             "Landkind3_Area": "0.0",
             "case_id": "10011191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 617,
@@ -205525,7 +206052,8 @@
             "Landkind1_Area": "1764.0",
             "Landkind2_Area": "1571.0",
             "case_id": "10011194"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 409,
@@ -205630,7 +206158,8 @@
             "Landkind1_Area": "1764.0",
             "Landkind2_Area": "1571.0",
             "case_id": "10011195"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 226,
@@ -206276,7 +206805,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10006252"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 432,
@@ -206386,7 +206916,8 @@
             "StateLand1_Owner": "行政院農業委員會農田水利署(中華民國)",
             "StateLand1_Area": "68.0",
             "case_id": "10006254"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 341,
@@ -206890,7 +207421,8 @@
             "StateLand2_Area": "42.0",
             "StateLand3_Area": "1449.0",
             "case_id": "09907231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 529,
@@ -207008,7 +207540,8 @@
             "StateLand2_Area": "42.0",
             "StateLand3_Area": "1449.0",
             "case_id": "10903071"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -207357,7 +207890,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "17.0",
             "case_id": "10804091"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -207768,7 +208302,8 @@
             "Landkind1_Area": "3156.62",
             "Landkind2_Area": "7.0",
             "case_id": "09502251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1283,
@@ -208361,7 +208896,8 @@
             "Landkind1_Area": "4421.0",
             "Landkind2_Area": "299.0",
             "case_id": "10506131"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 721,
@@ -208529,7 +209065,8 @@
             "Landkind1_Area": "4421.0",
             "Landkind2_Area": "299.0",
             "case_id": "10506132"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -208860,7 +209397,8 @@
             "StateLand1_Area": "123.25",
             "StateLand2_Area": "2318.0",
             "case_id": "09512121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 43,
@@ -208999,7 +209537,8 @@
             "StateLand4_Owner": "臺北市政府財政局/臺北市",
             "StateLand4_Area": "443.0",
             "case_id": "09512122"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -209457,7 +209996,8 @@
             "Landkind1_Area": "1101.0",
             "Landkind2_Area": "269.0",
             "case_id": "10408241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 238,
@@ -210043,7 +210583,8 @@
             "Landkind1_Area": "2071.92",
             "Landkind2_Area": "417.68",
             "case_id": "11211101"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -210296,7 +210837,8 @@
             "StateLand1_Owner": "農業部農田水利署/中華民國",
             "StateLand1_Area": "28.0",
             "case_id": "11211031"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -210642,7 +211184,8 @@
             "Landkind1": "第四種住宅區",
             "Landkind1_Area": "2308.0",
             "case_id": "11101271"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -210944,7 +211487,8 @@
             "Landkind1_Area": "663.0",
             "Landkind2_Area": "17.0",
             "case_id": "11306171"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -211215,7 +211759,8 @@
             "Landkind2_Area": "1452.0",
             "Landkind3_Area": "0.0",
             "case_id": "09211140"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1360,
@@ -211632,7 +212177,8 @@
             "Landkind1_Area": "278.0",
             "Landkind2_Area": "4253.0",
             "case_id": "10411031"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -211961,7 +212507,8 @@
               "申請概要日期": "2019/07/16",
               "概要核准日期": "2020/04/15"
             }
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 333,
@@ -212049,7 +212596,8 @@
             "Landkind1_Area": "705.0",
             "Landkind2_Area": "1095.0",
             "case_id": "10907131"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 94,
@@ -212469,7 +213017,8 @@
             "Landkind1": "第四種住宅區",
             "Landkind1_Area": "790.0",
             "case_id": "10301231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 662,
@@ -212933,7 +213482,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10208071"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 673,
@@ -213488,7 +214038,8 @@
             "Landkind2_Area": "423.0",
             "Landkind3_Area": "0.0",
             "case_id": "09810151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1140,
@@ -213827,7 +214378,8 @@
             "Landkind1": "第四種住宅區",
             "Landkind1_Area": "2336.0",
             "case_id": "10106073"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 101,
@@ -214214,7 +214766,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "08907101"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -214514,7 +215067,8 @@
             "StateLand1_Owner": "臺北市政府工務局新建工程處",
             "StateLand1_Area": "33.0",
             "case_id": "10004141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 989,
@@ -214918,7 +215472,8 @@
             "Landkind2_Area": "231.0",
             "Landkind3_Area": "0.0",
             "case_id": "10204191"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -215216,7 +215771,8 @@
             "StateLand4_Owner": "臺北市政府都市發展局(臺北市)",
             "StateLand4_Area": "0.67",
             "case_id": "10406111"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 184,
@@ -215320,7 +215876,8 @@
             "StateLand4_Owner": "臺北市政府都市發展局/臺北市",
             "StateLand4_Area": "0.67",
             "case_id": "10406112"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -215721,7 +216278,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10004292"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 558,
@@ -216237,7 +216795,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09901161"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -216765,7 +217324,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09904270"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 884,
@@ -216856,7 +217416,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1788.0",
             "case_id": "10205192"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 386,
@@ -216943,7 +217504,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1788.0",
             "case_id": "10205193"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 132,
@@ -217631,7 +218193,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10209031"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 120,
@@ -218327,7 +218890,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10405131"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 387,
@@ -218419,7 +218983,8 @@
             "Landkind1": "敦化南北路特定專用區(B)(原屬第三種住宅區)",
             "Landkind1_Area": "1057.0",
             "case_id": "10405133"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -218895,7 +219460,8 @@
             "StateLand3_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10302223"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 74,
@@ -219303,7 +219869,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "486.0",
             "case_id": "09909151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1019,
@@ -219376,7 +219943,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "3093.0",
             "case_id": "09909152"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 995,
@@ -219791,7 +220359,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10212031"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 628,
@@ -219887,7 +220456,8 @@
             "StateLand1_Owner": "國立臺北教育大學(中華民國)",
             "StateLand1_Area": "349.0",
             "case_id": "10704181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 169,
@@ -220386,7 +220956,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "675.0",
             "case_id": "10304123"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 586,
@@ -220533,7 +221104,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "675.0",
             "case_id": "10611121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 27,
@@ -220966,7 +221538,8 @@
             "Landkind2_Area": "869.0",
             "Landkind3_Area": "0.0",
             "case_id": "09810272"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 979,
@@ -222033,7 +222606,8 @@
             "Landkind1_Area": "1076.0",
             "Landkind2_Area": "16.0",
             "case_id": "10610301"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 28,
@@ -222477,7 +223051,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10206031"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 373,
@@ -222581,7 +223156,8 @@
             "StateLand1_Area": "554.0",
             "StateLand2_Area": "101.0",
             "case_id": "10206032"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -223039,7 +223615,8 @@
             "StateLand2_Area": "282.0",
             "StateLand3_Area": "11.0",
             "case_id": "10901031"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -223392,7 +223969,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "61.0",
             "case_id": "09908101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1049,
@@ -223482,7 +224060,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "61.0",
             "case_id": "10207191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 710,
@@ -224285,7 +224864,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10002141"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -224551,7 +225131,8 @@
             "StateLand1_Area": "781.75",
             "StateLand2_Area": "405.98",
             "case_id": "09403240"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1277,
@@ -225685,7 +226266,8 @@
             "Landkind1_Area": "2.42",
             "Landkind2_Area": "1444.58",
             "case_id": "10604281"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 506,
@@ -225785,7 +226367,8 @@
             "Landkind1_Area": "2.42",
             "Landkind2_Area": "1444.58",
             "case_id": "10911121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 55,
@@ -226284,7 +226867,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2191.0",
             "case_id": "10505251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 214,
@@ -226748,7 +227332,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09808181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1153,
@@ -227278,7 +227863,8 @@
             "StateLand4_Owner": "國有財產局",
             "StateLand4_Area": "702.0",
             "case_id": "09503203"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1124,
@@ -227447,7 +228033,8 @@
             "StateLand1_Area": "1883.55",
             "StateLand2_Area": "31.67",
             "case_id": "09503205"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 314,
@@ -228421,7 +229008,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10007011"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 661,
@@ -228570,7 +229158,8 @@
             "Landkind1_Area": "794.0",
             "Landkind2_Area": "194.0",
             "case_id": "10007013"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 263,
@@ -229233,7 +229822,8 @@
             "Landkind2_Area": "688.0",
             "Landkind3_Area": "0.0",
             "case_id": "09803211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 678,
@@ -229322,7 +229912,8 @@
             "Landkind1_Area": "108.0",
             "Landkind2_Area": "688.0",
             "case_id": "10706051"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -229922,7 +230513,8 @@
             "StateLand1_Area": "43.0",
             "StateLand2_Area": "1423.0",
             "case_id": "10904141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 59,
@@ -230396,7 +230988,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "821.0",
             "case_id": "09610032"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 18,
@@ -230896,7 +231489,8 @@
             "StateLand2_Area": "4.13",
             "StateLand3_Area": "17.38",
             "case_id": "10505171"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -231252,7 +231846,8 @@
             "StateLand1_Area": "115.0",
             "StateLand2_Area": "137.0",
             "case_id": "10503012"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -231622,7 +232217,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10204151"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -231853,7 +232449,8 @@
             "Landkind1_Area": "116.0",
             "Landkind2_Area": "1076.0",
             "case_id": "10007081"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -232097,7 +232694,8 @@
             "StateLand1_Area": "2561.0",
             "StateLand2_Area": "21.0",
             "case_id": "10611202"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 592,
@@ -232189,7 +232787,8 @@
             "StateLand2_Area": "315.0",
             "StateLand3_Area": "21.0",
             "case_id": "10611204"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 434,
@@ -232633,7 +233232,8 @@
             "StateLand1_Owner": "國防部總政治作戰局",
             "StateLand1_Area": "902.0",
             "case_id": "09808021"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1034,
@@ -233087,7 +233687,8 @@
             "StateLand1_Owner": "國防部總政治作戰局",
             "StateLand1_Area": "1313.0",
             "case_id": "09803231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1048,
@@ -233953,7 +234554,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "2.0",
             "case_id": "10008061"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 959,
@@ -234313,7 +234915,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2156.0",
             "case_id": "10611111"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 203,
@@ -234742,7 +235345,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "90.0",
             "case_id": "10111244"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 930,
@@ -234925,7 +235529,8 @@
             "StateLand1_Area": "90.0",
             "StateLand2_Area": "118.0",
             "case_id": "10111248"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 155,
@@ -235474,7 +236079,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "1.0",
             "case_id": "10112191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 514,
@@ -236000,7 +236606,8 @@
             "StateLand2_Area": "370.0",
             "StateLand3_Area": "329.0",
             "case_id": "11007311"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -236292,7 +236899,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10403161"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 359,
@@ -236391,7 +236999,8 @@
             "StateLand1_Owner": "行政院農業委員會農田水利署/中華民國",
             "StateLand1_Area": "869.0",
             "case_id": "10909241"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -236748,7 +237357,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09809211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 325,
@@ -237451,7 +238061,8 @@
             "Landkind1_Area": "762.0",
             "Landkind2_Area": "98.0",
             "case_id": "10211152"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -237677,7 +238288,8 @@
             "StateLand1_Owner": "行政院農業委員會農田水利署/中華民國",
             "StateLand1_Area": "121.0",
             "case_id": "11009241"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -237951,7 +238563,8 @@
             "StateLand1_Area": "203.0",
             "StateLand2_Area": "7.0",
             "case_id": "11102251"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -238297,7 +238910,8 @@
             "StateLand1_Area": "39.0",
             "StateLand2_Area": "150.0",
             "case_id": "10706121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 139,
@@ -238721,7 +239335,8 @@
             "StateLand1_Area": "1810.0",
             "StateLand2_Area": "36.0",
             "case_id": "10710021"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 356,
@@ -239581,7 +240196,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "62.0",
             "case_id": "10705042"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 215,
@@ -240059,7 +240675,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "62.8",
             "case_id": "10910151"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -240457,7 +241074,8 @@
             "StateLand1_Area": "808.0",
             "StateLand2_Area": "58.0",
             "case_id": "09905162"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 609,
@@ -241044,7 +241662,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10011271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 372,
@@ -241137,7 +241756,8 @@
             "Landkind2_Area": "1092.77",
             "Landkind3_Area": "555.23",
             "case_id": "10011273"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 3,
@@ -241565,7 +242185,8 @@
             "Landkind1_Area": "1123.0",
             "Landkind2_Area": "97.0",
             "case_id": "10207101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 355,
@@ -242140,7 +242761,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1779.0",
             "case_id": "10308211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 644,
@@ -242231,7 +242853,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1779.0",
             "case_id": "10807031"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 177,
@@ -242786,7 +243409,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "88.0",
             "case_id": "10202271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 729,
@@ -243239,7 +243863,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09912292"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1077,
@@ -243614,7 +244239,8 @@
             "Landkind2_Area": "448.22",
             "Landkind3_Area": "1293.34",
             "case_id": "09410263"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1309,
@@ -244061,7 +244687,8 @@
             "StateLand1_Area": "1311.0",
             "StateLand2_Area": "203.0",
             "case_id": "10010111"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -244843,7 +245470,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "6.0",
             "case_id": "10011041"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 806,
@@ -245270,7 +245898,8 @@
             "StateLand1_Area": "269.0",
             "StateLand2_Area": "773.0",
             "case_id": "09908180"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 712,
@@ -245354,7 +245983,8 @@
             "StateLand1_Area": "269.0",
             "StateLand2_Area": "773.0",
             "case_id": "10709281"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 419,
@@ -245436,7 +246066,8 @@
             "StateLand1_Area": "269.0",
             "StateLand2_Area": "773.0",
             "case_id": "10709282"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 178,
@@ -245981,7 +246612,8 @@
             "StateLand1_Owner": "國產署、國防部政治作戰局、臺北市新工處、台灣大學",
             "StateLand1_Area": "3433.63",
             "case_id": "09706271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 576,
@@ -246584,7 +247216,8 @@
             "StateLand1_Owner": "國立臺灣大學",
             "StateLand1_Area": "1555.0",
             "case_id": "10108271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 512,
@@ -247329,7 +247962,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "42.0",
             "case_id": "10111245"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -247785,7 +248419,8 @@
             "Landkind2_Area": "1069.2",
             "Landkind3_Area": "0.0",
             "case_id": "08909161"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1431,
@@ -248183,7 +248818,8 @@
             "Landkind2_Area": "18.16",
             "Landkind3_Area": "188.0",
             "case_id": "09809241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 655,
@@ -248293,7 +248929,8 @@
             "Landkind2_Area": "18.16",
             "Landkind3_Area": "188.0",
             "case_id": "10606021"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -248677,7 +249314,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "860.61",
             "case_id": "09510145"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1267,
@@ -249449,7 +250087,8 @@
             "Landkind1_Area": "218.0",
             "Landkind2_Area": "502.0",
             "case_id": "10309301"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -249767,7 +250406,8 @@
             "StateLand1_Area": "16.0",
             "StateLand2_Area": "34.0",
             "case_id": "10601202"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 532,
@@ -249874,7 +250514,8 @@
             "StateLand2_Area": "53.0",
             "StateLand3_Area": "34.0",
             "case_id": "10901151"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -250235,7 +250876,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09911092"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 985,
@@ -250787,7 +251429,8 @@
             "StateLand2_Area": "614.0",
             "StateLand3_Area": "57.0",
             "case_id": "10208101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 917,
@@ -251455,7 +252098,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "18.0",
             "case_id": "10401091"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -251736,7 +252380,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10210151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 810,
@@ -252129,7 +252774,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1173.0",
             "case_id": "11204211"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -252348,7 +252994,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09009032"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -252599,7 +253246,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09010061"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1393,
@@ -252681,7 +253329,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09010062"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -253065,7 +253714,8 @@
             "StateLand2_Area": "7.0",
             "StateLand3_Area": "5.0",
             "case_id": "09412272"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1335,
@@ -253558,7 +254208,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "4147.0",
             "case_id": "10307251"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -253812,7 +254463,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09203271"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -254102,7 +254754,8 @@
             "StateLand1_Area": "983.0",
             "StateLand2_Area": "56.0",
             "case_id": "09603171"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1260,
@@ -254510,7 +255163,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "40.0",
             "case_id": "09410041"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 714,
@@ -254591,7 +255245,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "40.0",
             "case_id": "09410043"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 346,
@@ -255309,7 +255964,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "0.34",
             "case_id": "10204302"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 523,
@@ -255853,7 +256509,8 @@
             "StateLand1_Area": "406.0",
             "StateLand2_Area": "74.0",
             "case_id": "10502015"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -256195,7 +256852,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "389.0",
             "case_id": "09507191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1314,
@@ -256792,7 +257450,8 @@
             "StateLand1_Area": "183.0",
             "StateLand2_Area": "485.0",
             "case_id": "09908301"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 983,
@@ -257358,7 +258017,8 @@
             "StateLand1_Area": "41.0",
             "StateLand2_Area": "3407.86",
             "case_id": "09907221"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 588,
@@ -257478,7 +258138,8 @@
             "StateLand1_Area": "138.0",
             "StateLand2_Area": "5880.86",
             "case_id": "10804121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 285,
@@ -257609,7 +258270,8 @@
             "StateLand1_Owner": "臺北市政府財政局/臺北市",
             "StateLand1_Area": "1000.0",
             "case_id": "10907091"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 29,
@@ -258440,7 +259102,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09012251"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -258800,7 +259463,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09801071"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -259059,7 +259723,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "629.0",
             "case_id": "10411181"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -259390,7 +260055,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1267.0",
             "case_id": "10212271"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -259694,7 +260360,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "845.0",
             "case_id": "10502012"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -259927,7 +260594,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09103140"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1342,
@@ -260461,7 +261129,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09905191"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -260700,7 +261369,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09905013"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -261080,7 +261750,8 @@
             "StateLand4_Owner": "國防部軍備局(中華民國)",
             "StateLand4_Area": "38.0",
             "case_id": "10401291"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 417,
@@ -261179,7 +261850,8 @@
             "StateLand1_Area": "723.5",
             "StateLand2_Area": "111.0",
             "case_id": "10401292"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 300,
@@ -261710,7 +262382,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "218.0",
             "case_id": "10404111"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 82,
@@ -262141,7 +262814,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "112.0",
             "case_id": "10201301"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -262584,7 +263258,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "41.0",
             "case_id": "09609171"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1319,
@@ -262704,7 +263379,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09609172"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1280,
@@ -263493,7 +264169,8 @@
             "StateLand1_Area": "36.0",
             "StateLand2_Area": "3.0",
             "case_id": "09902263"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1123,
@@ -263863,7 +264540,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10204171"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -264108,7 +264786,8 @@
             "StateLand1_Owner": "中華民國(國有財產局)",
             "StateLand1_Area": "96.0",
             "case_id": "09906261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1117,
@@ -264682,7 +265361,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "243.0",
             "case_id": "11010082"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -265018,7 +265698,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09304201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1424,
@@ -265408,7 +266089,8 @@
             "StateLand1_Owner": "臺北市政府財政局、臺北市縣政府",
             "StateLand1_Area": "299.0",
             "case_id": "09409261"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1307,
@@ -265831,7 +266513,8 @@
             "StateLand4_Owner": "臺北市政府財政局(臺北市)",
             "StateLand4_Area": "27.0",
             "case_id": "09911061"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -266117,7 +266800,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10103091"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 647,
@@ -266750,7 +267434,8 @@
             "Landkind1_Area": "354.31",
             "Landkind2_Area": "841.17",
             "case_id": "11205101"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -266994,7 +267679,8 @@
             "StateLand1_Area": "253.0",
             "StateLand2_Area": "72.0",
             "case_id": "11105311"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -267369,7 +268055,8 @@
             "StateLand2_Area": "95.0",
             "StateLand3_Area": "29.67",
             "case_id": "10205271"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 421,
@@ -267469,7 +268156,8 @@
             "StateLand1_Area": "25.0",
             "StateLand2_Area": "98.0",
             "case_id": "10205272"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -267833,7 +268521,8 @@
             "StateLand2_Area": "51.13",
             "StateLand3_Area": "157.0",
             "case_id": "09901283"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 192,
@@ -268352,7 +269041,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "281.0",
             "case_id": "09308101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 700,
@@ -269039,7 +269729,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10405111"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -269385,7 +270076,8 @@
             "StateLand1_Area": "148.0",
             "StateLand2_Area": "458.0",
             "case_id": "10608041"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 566,
@@ -270110,7 +270802,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09205140"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1386,
@@ -270654,7 +271347,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "737.75",
             "case_id": "09506161"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -271010,7 +271704,8 @@
               "date-pm1": false,
               "similarity-band": false
             }
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 970,
@@ -271123,7 +271818,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "1301.0",
             "case_id": "10303241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 410,
@@ -271209,7 +271905,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "1301.0",
             "case_id": "10303242"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -271801,7 +272498,8 @@
             "StateLand1_Owner": "中華民國(國有財產署)",
             "StateLand1_Area": "346.0",
             "case_id": "09810161"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1154,
@@ -271900,7 +272598,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10203311"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1023,
@@ -272874,7 +273573,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10101071"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 916,
@@ -273317,7 +274017,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10012251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1052,
@@ -273661,7 +274362,8 @@
             "StateLand1_Owner": "臺北市政府都市發展局",
             "StateLand1_Area": "134.91",
             "case_id": "10212211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 839,
@@ -273737,7 +274439,8 @@
             "StateLand1_Owner": "臺北市政府都市發展局(臺北市)",
             "StateLand1_Area": "134.91",
             "case_id": "10212212"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 147,
@@ -274220,7 +274923,8 @@
             "StateLand1_Owner": "國防部軍備局",
             "StateLand1_Area": "80.18",
             "case_id": "10108251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1040,
@@ -274295,7 +274999,8 @@
             "StateLand1_Owner": "國防部軍備局",
             "StateLand1_Area": "80.18",
             "case_id": "10404251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 653,
@@ -274698,7 +275403,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "10034.0",
             "case_id": "10406071"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 698,
@@ -274774,7 +275480,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "10034.0",
             "case_id": "10707081"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -275067,7 +275774,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "1134.0",
             "case_id": "09709162"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1183,
@@ -275537,7 +276245,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09009034"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1403,
@@ -275946,7 +276655,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "08901201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1436,
@@ -276381,7 +277091,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09409201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1268,
@@ -276895,7 +277606,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "86.0",
             "case_id": "10903181"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 293,
@@ -277694,7 +278406,8 @@
             "Landkind1": "第三種商業區",
             "Landkind1_Area": "1693.0",
             "case_id": "11104221"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -278007,7 +278720,8 @@
             "StateLand1_Area": "234.5",
             "StateLand2_Area": "104.5",
             "case_id": "10001251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 549,
@@ -278821,7 +279535,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09009033"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -279159,7 +279874,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09303270"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1385,
@@ -279602,7 +280318,8 @@
             "StateLand1_Area": "161.0",
             "StateLand2_Area": "4859.0",
             "case_id": "09912304"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 447,
@@ -279688,7 +280405,8 @@
             "StateLand1_Area": "4859.0",
             "StateLand2_Area": "161.0",
             "case_id": "09912305"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -280006,7 +280724,8 @@
             "Landkind2_Area": "1202.5",
             "Landkind3_Area": "0.0",
             "case_id": "09503011"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1311,
@@ -280395,7 +281114,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09812263"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1016,
@@ -281137,7 +281857,8 @@
             "StateLand1_Area": "1677.4",
             "StateLand2_Area": "1015.0",
             "case_id": "10811021"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -281514,7 +282235,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1151.0",
             "case_id": "11012212"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -281833,7 +282555,8 @@
             "Landkind1_Area": "383.09",
             "Landkind2_Area": "1134.91",
             "case_id": "10507051"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 612,
@@ -281912,7 +282635,8 @@
             "Landkind1_Area": "1134.91",
             "Landkind2_Area": "383.09",
             "case_id": "10507052"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -282403,7 +283127,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09807031"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1228,
@@ -282781,7 +283506,8 @@
             "Landkind1_Area": "1894.0",
             "Landkind2_Area": "2250.0",
             "case_id": "10410151"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 97,
@@ -283074,7 +283800,8 @@
               "概要審議會通過日期": "2020/03/02",
               "概要召開審議會日期": "2020/03/02"
             }
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 367,
@@ -283180,7 +283907,8 @@
             "StateLand1_Area": "70.0",
             "StateLand2_Area": "70.0",
             "case_id": "10909041"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -283493,7 +284221,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1338.0",
             "case_id": "11501039"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -283762,7 +284491,8 @@
             "Landkind1_Area": "1116.0",
             "Landkind2_Area": "328.0",
             "case_id": "11208292"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -284046,7 +284776,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09601264"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1083,
@@ -284556,7 +285287,8 @@
             "StateLand1_Owner": "臺北市/臺北市政府財政局",
             "StateLand1_Area": "6.0",
             "case_id": "11412024"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -284815,7 +285547,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09906111"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 475,
@@ -284934,7 +285667,8 @@
             "Landkind1": "商三特(原屬第二種商業區)",
             "Landkind1_Area": "1613.0",
             "case_id": "10810041"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -285243,7 +285977,8 @@
             "Landkind1_Area": "1907.0",
             "Landkind2_Area": "2536.0",
             "case_id": "10210171"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 900,
@@ -285599,7 +286334,8 @@
             "Landkind1": "敦化南北路特定專用區(B區)(原屬住3)",
             "Landkind1_Area": "1298.0",
             "case_id": "11105251"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -285877,7 +286613,8 @@
             "Landkind2_Area": "590.0",
             "Landkind3_Area": "918.0",
             "case_id": "09308061"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1301,
@@ -286278,7 +287015,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "740.0",
             "case_id": "10310211"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 503,
@@ -286437,7 +287175,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "740.0",
             "case_id": "10905073"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -286832,7 +287571,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09809231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 822,
@@ -287918,7 +288658,8 @@
             "Landkind1": "第三種商業區(特)(原屬第2種商業區)",
             "Landkind1_Area": "767.0",
             "case_id": "10206182"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -288135,7 +288876,8 @@
             "Landkind1_Area": "411.0",
             "Landkind2_Area": "726.0",
             "case_id": "10412251"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 482,
@@ -288213,7 +288955,8 @@
             "Landkind1_Area": "411.0",
             "Landkind2_Area": "726.0",
             "case_id": "11002231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 33,
@@ -288630,7 +289373,8 @@
             "StateLand1_Owner": "國防部政治作戰局/中華民國",
             "StateLand1_Area": "3884.0",
             "case_id": "10906101"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 161,
@@ -289311,7 +290055,8 @@
             "StateLand1_Owner": "國防部政治作戰局(中華民國)",
             "StateLand1_Area": "6071.12",
             "case_id": "10311072"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 963,
@@ -289390,7 +290135,8 @@
             "StateLand1_Owner": "國防部政治作戰局(中華民國)",
             "StateLand1_Area": "6072.0",
             "case_id": "10311073"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 667,
@@ -290154,7 +290900,8 @@
             "Landkind1_Area": "20913.0",
             "Landkind2_Area": "7.0",
             "case_id": "10612201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 327,
@@ -290236,7 +290983,8 @@
             "Landkind1_Area": "20913.0",
             "Landkind2_Area": "7.0",
             "case_id": "10612202"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -290520,7 +291268,8 @@
             "Landkind1": "住宅用地(民生社區特定專用區)",
             "Landkind1_Area": "3158.0",
             "case_id": "10612033"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 252,
@@ -290605,7 +291354,8 @@
             "Landkind1": "住宅用地(民生社區特定專用區)",
             "Landkind1_Area": "3158.0",
             "case_id": "10612034"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -290917,7 +291667,8 @@
             "Landkind1": "第三種住宅區(特)",
             "Landkind1_Area": "2252.0",
             "case_id": "09707197"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -291272,7 +292023,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10206131"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 484,
@@ -291723,7 +292475,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10110131"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 81,
@@ -292342,7 +293095,8 @@
             "Landkind1_Area": "1271.0",
             "Landkind2_Area": "530.0",
             "case_id": "10812201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 280,
@@ -292699,7 +293453,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "09406140"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1322,
@@ -293138,7 +293893,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10305211"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -293542,7 +294298,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2857.0",
             "case_id": "10601241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 390,
@@ -293631,7 +294388,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2857.0",
             "case_id": "10601242"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -293883,7 +294641,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "740.0",
             "case_id": "10812291"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 352,
@@ -294459,7 +295218,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09112120"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1377,
@@ -294869,7 +295629,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "43.0",
             "case_id": "10210141"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 422,
@@ -294975,7 +295736,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "43.0",
             "case_id": "10901311"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -295379,7 +296141,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "10303191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 495,
@@ -296062,7 +296825,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產局)",
             "StateLand1_Area": "92.0",
             "case_id": "09703201"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 946,
@@ -297052,7 +297816,8 @@
             "StateLand1_Owner": "中華民國(臺北市政府工務局新建工程處)",
             "StateLand1_Area": "4.0",
             "case_id": "10006211"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -297292,7 +298057,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "104.0",
             "case_id": "10405291"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 374,
@@ -297838,7 +298604,8 @@
             "StateLand1_Area": "256.0",
             "StateLand2_Area": "1.0",
             "case_id": "10612181"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -298154,7 +298921,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "55.0",
             "case_id": "10611081"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 477,
@@ -298240,7 +299008,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "55.0",
             "case_id": "11011081"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 57,
@@ -298678,7 +299447,8 @@
             "Landkind1": "第四種商業區",
             "Landkind1_Area": "1720.0",
             "case_id": "10410203"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -298951,7 +299721,8 @@
             "StateLand1_Owner": "財政部國有財產署",
             "StateLand1_Area": "88.0",
             "case_id": "10301091"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 640,
@@ -299358,7 +300129,8 @@
             "StateLand1_Area": "1330.0",
             "StateLand2_Area": "16.0",
             "case_id": "10504191"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -299956,7 +300728,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "235.0",
             "case_id": "09809072"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 486,
@@ -300146,7 +300919,8 @@
             "StateLand1_Owner": "臺北市政府財政局(臺北市)",
             "StateLand1_Area": "235.0",
             "case_id": "09809074"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -300629,7 +301403,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09601250"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1221,
@@ -301246,7 +302021,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2053.72",
             "case_id": "10609071"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 636,
@@ -301726,7 +302502,8 @@
             "StateLand1_Owner": "中華民國(財政部國有財產署)",
             "StateLand1_Area": "16.0",
             "case_id": "10408281"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -302012,7 +302789,8 @@
             "StateLand1_Owner": "財政部國有財產署/中華民國",
             "StateLand1_Area": "154.0",
             "case_id": "10910281"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 216,
@@ -302441,7 +303219,8 @@
             "StateLand1_Area": "88.0",
             "StateLand2_Area": "409.0",
             "case_id": "10610121"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 87,
@@ -302926,7 +303705,8 @@
             "StateLand1_Area": "1258.0",
             "StateLand2_Area": "8.5",
             "case_id": "10111202"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -303267,7 +304047,8 @@
             "StateLand5_Area": "0.0",
             "StateLand6_Area": "0.0",
             "case_id": "09305082"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1084,
@@ -304004,7 +304785,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "715.0",
             "case_id": "10608262"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 423,
@@ -304071,7 +304853,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "715.0",
             "case_id": "10608263"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 321,
@@ -304518,7 +305301,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10104272"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -304955,7 +305739,8 @@
             "Landkind1_Area": "263.0",
             "Landkind2_Area": "882.0",
             "case_id": "10312091"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -305258,7 +306043,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "36.0",
             "case_id": "10903062"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 323,
@@ -305893,7 +306679,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "2090.0",
             "case_id": "09601231"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -306204,7 +306991,8 @@
             "Landkind2_Area": "0.0",
             "Landkind3_Area": "0.0",
             "case_id": "10209182"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1027,
@@ -306632,7 +307420,8 @@
             "StateLand1_Owner": "臺北市政府財政局",
             "StateLand1_Area": "77.0",
             "case_id": "09707263"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1094,
@@ -307099,7 +307888,8 @@
             "StateLand1_Owner": "財政部國有財產署(中華民國)",
             "StateLand1_Area": "18.0",
             "case_id": "10401051"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -308042,7 +308832,8 @@
             "StateLand2_Area": "86.0",
             "StateLand3_Area": "1.0",
             "case_id": "10111241"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 631,
@@ -308147,7 +308938,8 @@
             "StateLand1_Area": "287.0",
             "StateLand2_Area": "1.0",
             "case_id": "10911181"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -308470,7 +309262,8 @@
             "Landkind1": "商三(原屬第三種住宅區)",
             "Landkind1_Area": "1286.0",
             "case_id": "10812191"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 209,
@@ -309167,7 +309960,8 @@
             "Landkind2_Area": "1157.0",
             "Landkind3_Area": "0.0",
             "case_id": "10112231"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -309524,7 +310318,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1565.0",
             "case_id": "10412161"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 878,
@@ -309596,7 +310391,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1565.0",
             "case_id": "10412164"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [
@@ -309941,7 +310737,8 @@
             "StateLand4_Owner": "臺北市政府新建工程處",
             "StateLand4_Area": "303.0",
             "case_id": "09610231"
-          }
+          },
+          "national_badges": true
         },
         {
           "recno": 1113,
@@ -310937,7 +311734,8 @@
             "StateLand1_Owner": "臺北市/財政局",
             "StateLand1_Area": "406.41",
             "case_id": "11510008"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -311252,7 +312050,8 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "943.0",
             "case_id": "10906021"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
@@ -311518,7 +312317,8 @@
             "StateLand1_Area": "532.0",
             "StateLand2_Area": "13.0",
             "case_id": "10203161"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],

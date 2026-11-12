@@ -67,6 +67,10 @@ class CleanRecord:
     # Provenance for a recovered publisher-truncated row (recovery pass); rides
     # into the emitted node. Never serialized into the TSVs (positional writers).
     recovery: dict = field(default_factory=dict)
+    # national-badge-by-registration (2026-11-12): the resolved 國 binding,
+    # computed at graph build and threaded through --from-js reloads (the D6
+    # contract: a field the loader drops is lost on the next rebuild).
+    national_badges: bool = False
 
     def parcel_set(self) -> set[str]:
         s = set(self.parcels)

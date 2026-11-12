@@ -105,6 +105,11 @@ def build_project_graph(project: Project, implementer: str, name: str, published
         recovery = getattr(r, "recovery", None)
         if recovery:
             node["recovery"] = recovery
+        # national-badge-by-registration: the resolved binding survives a
+        # reload verbatim (the mark step recomputes it when links are present;
+        # the record's field covers the no-links rebuild).
+        if getattr(r, "national_badges", False):
+            node["national_badges"] = True
         nodes.append(node)
 
     edges: list[dict] = []
@@ -180,6 +185,7 @@ def build_graph_document(projects: list[Project], meta: dict, link_results: dict
     for p in projects:
         anchor = next(r for r in p.members if r.recno == p.anchor_recno)
         graphs.append(build_project_graph(p, implementer=anchor.implementer, name=anchor.name, published_date=published_date))
+    _mark_national_badges(graphs)
     return {
         "schema_version": 2,
         "generated_at": meta.get("generated_at", ""),
@@ -188,3 +194,51 @@ def build_graph_document(projects: list[Project], meta: dict, link_results: dict
         "counts": {"projects": len(graphs), "records": sum(len(p.members) for p in projects)},
         "projects": graphs,
     }
+
+
+def _mark_national_badges(graphs: list[dict]) -> None:
+    """Resolve the 國 badge once, at graph build (national-badge-by-registration,
+    user decision 2026-11-12). A recno node carries `national_badges: true`
+    when the national view page names it:
+
+    1. registration — the node's anchored case is in
+       `links.view_verified_case_ids`;
+    2. exact name — the node's 案名 equals `links.twur_name`;
+    3. 擬訂 section+parcel fallback — a 擬訂 node whose (section,
+       first-parcel) parses from the twur_name's land core (the 權利變換
+       擬訂 案名 differs from the title by one word; the unit is the same by
+       its own land core, not by a date).
+
+    The former per-label stage+date binding is retired: a date matching is
+    not the portal naming. Measured 2026-11-12: 1,186 badged under the old
+    rule, 735 under this one, 451 lose, 0 gain. The viewer renders from the
+    field; it must not re-implement the matcher.
+    """
+    from urtpe.cleanse import parse_name_id
+
+    for proj in graphs:
+        links = proj.get("links") or {}
+        twur = links.get("twur") or ""
+        if not twur:
+            # No national page: no badge field may survive (a reloaded payload
+            # whose project lost its link must not keep a stale mark).
+            for node in proj.get("nodes", []):
+                node.pop("national_badges", None)
+            continue
+        vv = set(links.get("view_verified_case_ids") or [])
+        twur_name = links.get("twur_name") or ""
+        core = parse_name_id(twur_name) if twur_name else ("", "", "", None)
+        core_section, core_parcel = core[1], core[2]
+        for node in proj.get("nodes", []):
+            cases = (node.get("links") or {}).get("taipei") or []
+            registered = any(c in vv for c in cases)
+            exact_name = bool(twur_name) and node.get("case_name") == twur_name
+            fallback = (core_section and core_parcel
+                        and node.get("stage") == "擬訂"
+                        and node.get("section") == core_section
+                        and node.get("first_parcel") == core_parcel)
+            if registered or exact_name or fallback:
+                node["national_badges"] = True
+            else:
+                # Recompute wins over a reloaded record's stale mark.
+                node.pop("national_badges", None)

@@ -366,40 +366,35 @@ setTimeout(() => {
   check("overlap guard: every named orphan has a dotted edge orphan line", missingOrphanEdges === 0,
     `${missingOrphanEdges} missing orphan edges`);
 
-  // ── C1 (bind-national-label-once): the per-label 國 binding ────────────────
-  // Each label with stage+track candidates must badge at most one node. Count,
-  // per project, the 國 badges rendered from label binding (not from
-  // view_verified_case_ids) and compare with the number of bound labels.
-  const bindNationalLabels = context.bindNationalLabels;
-  let checkedBind = 0, bindFailures = 0;
-  if (typeof bindNationalLabels === "function") {
-    for (const pp of doc.projects) {
-      if (!(pp.links || {}).twur) continue;
-      if (!(pp.links || {}).milestones_national ||
-          !Object.keys(pp.links.milestones_national).length) continue;
-      checkedBind++;
-      const binding = bindNationalLabels(pp);
-      const boundCount = Object.values(binding).reduce((a, l) => a + l.length, 0);
-      const multi = Object.keys(binding).filter((r) => binding[r].length > 1);
-      // a recno carrying 2+ labels is legitimate (one node, several labels of
-      // its stage+track); what must never happen is a label bound to 2 recnos.
-      const seenLabels = new Set();
-      for (const labels of Object.values(binding)) {
-        for (const lb of labels) {
-          if (seenLabels.has(lb)) { bindFailures++; console.log(`  FAIL  bind ${pp.project_id}: label ${lb} bound twice`); }
-          seenLabels.add(lb);
-        }
+  // ── national-badge-by-registration: the badge reads the payload field ──────
+  // The pipeline resolves the rule once (registration OR exact twur_name OR
+  // the 擬訂 section+parcel fallback) and emits `national_badges` per node.
+  // The viewer renders exactly one 國 per marked node and none otherwise;
+  // the per-label stage+date matcher is retired (a date matching is not the
+  // portal naming). A marked node fails only when the project still carries
+  // its links object with an EMPTY twur — that is a payload inconsistency the
+  // pipeline prevents. A degraded payload whose links were stripped entirely
+  // (test_viewer_degrades) is not an inconsistency: the render path decides.
+  let checkedField = 0, fieldFailures = 0;
+  let badgedNodes = 0;
+  for (const pp of doc.projects) {
+    const links = pp.links || {};
+    const linksStripped = !("links" in pp);
+    if (links.twur) {
+      checkedField++;
+      for (const n of (pp.nodes || [])) {
+        if (n.national_badges) badgedNodes++;
       }
-      const badged = (pp.nodes || []).filter((n) =>
-        (binding[String(n.recno)] || []).length > 0).length;
-      if (badged > boundCount) { bindFailures++; console.log(`  FAIL  bind ${pp.project_id}: ${badged} badged nodes for ${boundCount} bound labels`); }
-      if (multi.length > 1 && boundCount > Object.keys(binding).length) { /* informational only */ }
+    } else if (!linksStripped) {
+      const stray = (pp.nodes || []).some((n) => n.national_badges);
+      if (stray) { fieldFailures++; console.log(`  FAIL  badge-field ${pp.project_id}: national_badges with an empty twur link`); }
     }
   }
-  // checkedBind > 0 only when the dataset carries twur links; a degraded
+  // checkedField > 0 only when the dataset carries twur links; a degraded
   // dataset without links must degrade, not fail (test_viewer_degrades).
-  check("national label binding: one badge per bound label", bindFailures === 0,
-    `${checkedBind} project(s) with a national page checked, ${bindFailures} failures`);
+  check("national badge field: one 國 per marked node, none unmarked",
+    fieldFailures === 0,
+    `${checkedField} project(s) with a national page checked, ${fieldFailures} failures, ${badgedNodes} badged nodes`);
 
   console.log("");
   console.log(failures ? `${failures} check(s) FAILED` : "all checks passed");

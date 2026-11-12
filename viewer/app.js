@@ -20,18 +20,10 @@ const NATIONAL_MAPPED_LABELS = { "使照核發日期": "使用核發日期" };
 // (事業計畫 / 權利變換). A node gets 國 when a label binds to it by stage+track
 // (date tie-break when several nodes match). Returns null for labels that name no
 // stage (使用核發日期, …申請日期). Node stages render 第N次 as Chinese ordinals:
-// 第一次→變更, 第二次→變更(第二次), etc.
-const CHINESE_DIGIT = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
-const nationalLabelKey = label => {
-  const m = String(label).match(/^(第([一二三四五六七八九十\d]+)次變更)?(事業計畫|權利變換計畫)核定日期$/);
-  if (!m) return null;
-  const raw = m[2] || "";
-  const ordinal = raw === "" ? 0 : Number(raw) || CHINESE_DIGIT[raw] || 0;
-  const stage = ordinal === 0 ? "擬訂" : ordinal === 1 ? "變更" : `變更(第${raw}次)`;
-  // label track 權利變換計畫 → node track 權利變換 (label keeps 計畫 for grammar)
-  const track = m[3] === "權利變換計畫" ? "權利變換" : m[3];
-  return { stage, track };
-};
+// nationalLabelKey / CHINESE_DIGIT / trackMatches / nationalRocToIso /
+// _shiftIsoDay retired (national-badge-by-registration, 2026-11-12): the 國
+// badge reads the pipeline's resolved `national_badges` field — the rule
+// lives in one place (urtpe/graph.py), not re-implemented here.
 // Implementation summary callout on the anchor record.
 const IMPLEMENTATION_CALLOUT_FIELDS = {
   Exe_Way: "實施方式",
@@ -116,78 +108,27 @@ function byDateNodes(nodes) {
   });
 }
 
-// §2: 國 binds to the recno node whose stage+track match a national approval
-// label (date tie-break when several nodes match). view_verified_case_ids stays
-// as a second source; the current-node rule alone is removed.
-function trackMatches(nodeTrack, labelTrack) {
-  if (nodeTrack === labelTrack) return true;
-  const combined = "事業計畫、權利變換";
-  return nodeTrack === combined && (labelTrack === "事業計畫" || labelTrack === "權利變換");
-}
-
-function nationalRocToIso(v) {
-  const s = String(v || "");
-  const m = s.match(/^(\d{2,3})\.(\d{1,2})\.(\d{1,2})$/);
-  if (!m) return s;
-  return `${1911 + Number(m[1])}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
-}
-
-const _shiftIsoDay = (iso, days) => {
-  const d = new Date(`${iso}T00:00:00Z`);
-  if (Number.isNaN(d.getTime())) return iso;
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-};
-
-// §2 / C1 (bind-national-label-once): binding is per label, decided once per
-// project — not per node. Scoring each node on its own badged every candidate
-// of a multi-match label (19 labels, 41 badged nodes, 16 unearned 國). Each
-// label's candidates are the nodes of its stage+track; one candidate binds
-// whatever the date, several resolve by exact date, then ±1 day (the
-// 公告-vs-committee offset the 北 matcher allows); 0 or 2+ survivors bind
-// nothing.
-function bindNationalLabels(project) {
-  const national = (project.links || {}).milestones_national || {};
-  const nodes = (project.nodes || []).filter(n => n.recno != null);
-  const out = {}; // recno -> [labels]
-  for (const label of Object.keys(national)) {
-    const k = nationalLabelKey(label);
-    if (!k) continue; // 使用核發日期 / application dates never bind
-    let candidates = nodes.filter(n => n.stage === k.stage && trackMatches(n.track, k.track));
-    if (!candidates.length) continue;
-    if (candidates.length > 1) {
-      const iso = nationalRocToIso(national[label]);
-      const near = new Set([iso, _shiftIsoDay(iso, 1), _shiftIsoDay(iso, -1)]);
-      let hits = candidates.filter(n => n.date === iso);
-      if (hits.length !== 1) {
-        hits = candidates.filter(n => near.has(n.date));
-      }
-      if (hits.length !== 1) continue; // 0 or 2+ survivors: the label binds nothing
-      candidates = hits;
-    }
-    const recno = String(candidates[0].recno);
-    (out[recno] = out[recno] || []).push(label);
-  }
-  return out;
-}
+// nationalLabelKey / CHINESE_DIGIT / trackMatches / nationalRocToIso /
+// _shiftIsoDay and the C1 per-label binding (bindNationalLabels) retired
+// (national-badge-by-registration, 2026-11-12): the 國 badge reads the
+// pipeline's resolved `national_badges` field — the rule lives in one place
+// (urtpe/graph.py), not re-implemented here.
 
 function getNodeMilestoneBadges(node, project) {
   // Portal links live on the nodes (相關連結 section retired): 北 → anchored
-  // Taipei case page; 國 → national view page on the node a national label
-  // binds to (per-label binding, bindNationalLabels) AND on nodes whose case
-  // the view page names (view_verified_case_ids — the portal's assertion,
-  // fix-row-order-tiebreak-and-view-badges D4). One 國 if both. The 現況 rule
-  // (current-node rule alone) is removed.
+  // Taipei case page; 國 → national view page on the nodes the pipeline
+  // marked `national_badges` (national-badge-by-registration, 2026-11-12:
+  // the view page names the node by case registration, by the exact title
+  // name, or through the 擬訂 section+parcel fallback — resolved once at
+  // graph build). The per-label stage+date matcher (bindNationalLabels /
+  // nationalLabelKey) is retired: a date matching is not the portal naming.
   const badges = [];
   const cases = (node.links || {}).taipei || [];
   if (cases.length) {
     badges.push(`<a class="node-milestone-badge taipei badge-link" href="https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cases[0]}" target="_blank" rel="noopener" title="案${cases[0]}">北</a>`);
   }
   const twur = project && project.links && project.links.twur;
-  const viewVerified = (project && project.links && project.links.view_verified_case_ids) || [];
-  const anchoredViewVerified = cases.length && viewVerified.includes(cases[0]);
-  const boundLabels = (twur && project.__nationalBindings) ? project.__nationalBindings[String(node.recno)] : null;
-  if (twur && ((boundLabels && boundLabels.length) || anchoredViewVerified)) {
+  if (twur && node.national_badges) {
     const vm = twur.match(/view\/(\d+)/);
     const label = vm ? `view/${vm[1]}` : "國土署入口網";
     badges.push(`<a class="node-milestone-badge national badge-link" href="${escapeHtml(twur)}" target="_blank" rel="noopener" title="${escapeHtml(label)}">國</a>`);
@@ -948,9 +889,6 @@ function init() {
   function renderDetail(p) {
     const detail = document.getElementById("detail");
     const nodes = byDateNodes(p.nodes);
-    // C1 (bind-national-label-once): the per-label 國 binding is computed once
-    // per project, before any node asks for its badges.
-    p.__nationalBindings = bindNationalLabels(p);
     // §5.2 virtual orphan nodes: harvested name → stage/track (+node_date when
     // the platform records an approval date). Undated named orphans join their
     // stage cluster tagged (未核定) instead of the interim column.

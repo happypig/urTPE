@@ -346,6 +346,125 @@ def test_the_site_headers_share_one_about_chip():
             "%s's chip rule lacks the 8px radius" % path)
 
 
+# --- the hand-written doc pages are bilingual (docs-bilingual) ----------------
+
+BILINGUAL_DOCS = ("docs/etl_process.html", "docs/domain-model.html")
+
+
+def test_the_hand_written_doc_pages_default_to_zh_tw():
+    """The site's readers are zh_TW policy readers; the two hand-written doc
+    pages opened English or English-default, a different language from every
+    page that linked the reader there. Both now open zh_TW: the document
+    element declares zh-Hant, and the CSS pair hides the other rendering."""
+    for path in BILINGUAL_DOCS:
+        html = (ROOT / path).read_text(encoding="utf-8")
+        assert re.search(r'<html lang="zh-Hant"[^>]*>', html), (
+            "%s does not declare lang=zh-Hant on the document element" % path)
+        css = html.replace(" ", "")
+        assert "html:not(.zh) .zh{display:none}".replace(" ", "") in css, (
+            "%s's CSS does not hide the zh rendering when English is selected" % path)
+        assert "html.zh .en{display:none}".replace(" ", "") in css, (
+            "%s's CSS does not hide the English rendering in zh_TW mode" % path)
+
+
+def test_the_language_switch_sits_beside_the_about_chip():
+    """The mockup rule: the switch packs against the 關於 chip at the header's
+    right edge, not centre-aligned between the title and the chip. The chip
+    stays the header's last link."""
+    for path in BILINGUAL_DOCS:
+        html = (ROOT / path).read_text(encoding="utf-8")
+        header = re.search(r"<header>(.*?)</header>", html, re.S).group(1)
+        switch = re.search(r'class="switch"', header)
+        assert switch, "%s carries no language switch" % path
+        between = header[switch.end():]
+        m = re.search(r'<a class="navlink"[^>]*href="[^"]*about\.html"', between)
+        assert m, (
+            "%s's 關於 chip does not follow the language switch" % path)
+        prefix = between[:m.start()].strip()
+        assert "<a" not in prefix and "<label" not in prefix, (
+            "%s carries markup between the switch and the 關於 chip: %r"
+            % (path, prefix))
+        after = between[m.end():].strip()
+        assert "<a" not in after, (
+            "%s's 關於 chip is not the header's last link" % path)
+
+
+def test_the_domain_model_page_ships_both_renderings_in_one_dom():
+    """The browser pass (docs-bilingual task 3.2) caught the domain model still
+    wearing its pre-change anatomy: English prose bare in the DOM — the h1, the
+    five h2s, the layer h4s, the leads — so `html.zh .en{display:none}` had
+    nothing to hide and a fresh visit showed both renderings at once. Pairing
+    like the ETL page is the fix. The en==zh pin does not transfer: this page
+    also carries name+gloss anatomy (a technical name verbatim plus a zh-only
+    gloss), so zh legitimately exceeds en."""
+    html = (ROOT / "docs/domain-model.html").read_text(encoding="utf-8")
+    en = len(re.findall(r'<span class="en">', html))
+    zh = len(re.findall(r'<span class="zh">', html))
+    assert en >= 40 and zh >= 40, (
+        "the domain-model page carries %d en / %d zh span pairs — its English "
+        "prose is still bare text the CSS pair cannot hide" % (en, zh))
+    assert zh >= en, (
+        "the domain-model page has more en than zh spans: %d en vs %d zh — an "
+        "English passage lost its zh partner" % (en, zh))
+    # A span nested inside a span of the other language renders in neither
+    # mode: the outer rule hides the inner one with it. The browser pass
+    # caught one h3 lost this way.
+    for outer in ("en", "zh"):
+        nested = re.findall(
+            r'<span class="%s">(?:(?!</span>).)*?<span class="%s">'
+            % (outer, "zh" if outer == "en" else "en"), html, re.S)
+        assert not nested, (
+            "the domain-model page nests a %s span inside a %s span — it "
+            "renders in neither mode" % ("zh" if outer == "en" else "en", outer))
+
+
+def test_the_domain_model_page_has_no_bare_english_prose():
+    """The pin that names the defect the browser pass caught: every English
+    prose passage sits in a `.en` span, so the zh default hides it. Technical
+    names stay verbatim by spec — code elements and one-word names are
+    exempt — so the scan flags only runs of three or more Latin words outside
+    an `.en` span. It caught two while being written: `is a coordinate`
+    classed as zh, and `= land core slug` bare."""
+    html = (ROOT / "docs/domain-model.html").read_text(encoding="utf-8")
+    body = html.split("</head>")[1]
+    body = re.sub(r"<script.*?</script>", "", body, flags=re.S)
+    body = re.sub(r'<span class="en">.*?</span>', "", body, flags=re.S)
+    body = re.sub(r"<code>.*?</code>", "", body, flags=re.S)
+    text = re.sub(r"<[^>]+>", " ", body)
+    bare = re.findall(r"(?:[A-Za-z][A-Za-z'’\-]*\s+){2,}[A-Za-z][A-Za-z'’\-]*", text)
+    assert not bare, (
+        "the domain-model page carries English prose outside .en spans — it "
+        "shows in both renderings: %r" % bare[:10])
+
+
+def test_the_domain_model_switch_starts_unchecked():
+    """The switch label names what checking it does (English), so over a
+    zh_TW default it must ship unchecked — the browser pass caught it
+    pre-checked, first click a no-op."""
+    html = (ROOT / "docs/domain-model.html").read_text(encoding="utf-8")
+    m = re.search(r'<label class="switch"><input type="checkbox" id="lang"'
+                  r'(?P<attrs>[^>]*)>', html)
+    assert m, "the domain-model page carries no language switch"
+    assert "checked" not in m.group("attrs"), (
+        "the domain-model switch ships checked; the label says English but "
+        "the page shows zh_TW, and the first click does nothing")
+
+
+def test_the_etl_page_ships_both_renderings_in_one_dom():
+    """Pairing-based, like the domain model: one DOM, two renderings, the
+    toggle a two-line class flip. If the en/zh span counts diverge, a passage
+    lost its pair and one language shows a hole."""
+    html = (ROOT / "docs/etl_process.html").read_text(encoding="utf-8")
+    en = len(re.findall(r'<span class="en">', html))
+    zh = len(re.findall(r'<span class="zh">', html))
+    assert en >= 40 and zh >= 40, (
+        "the ETL page carries %d en / %d zh span pairs — too few to be the "
+        "bilingual page the change asks for" % (en, zh))
+    assert en == zh, (
+        "the ETL page's en/zh span counts diverge: %d en vs %d zh — a passage "
+        "lost its pair" % (en, zh))
+
+
 # --- the doc pages' back links (about-page-links) -----------------------------
 
 def test_the_three_doc_pages_link_back_to_the_about_page():

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hant" class="zh">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,7 +11,8 @@
   the current diagram omits.
 
   Language switch is a two-line inline script. Both languages are in the DOM and
-  one set is hidden by CSS, so the page works with JS disabled (English shown).
+  one set is hidden by CSS, so the page works with JS disabled (zh_TW shown,
+  per docs-bilingual: the pairing is explicit en/zh spans, like the ETL page).
 -->
 <style>
   /* The site's one design system: the cream palette the dashboard and the
@@ -37,7 +38,8 @@
        font:15px/1.65 "Instrument Sans","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
 
   header{background:var(--panel);border-bottom:1px solid var(--line);padding:26px 32px;
-         display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+         display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap}
+  header>div{flex:1;min-width:260px}
   h1{margin:0 0 6px;font-size:21px}
   .sub{color:var(--muted);font-size:13px;margin:0;max-width:80ch}
   .switch{display:flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap;
@@ -111,25 +113,25 @@
 
 <header>
   <div>
-    <h1>Domain Model<span class="zh"> · 領域模型</span></h1>
-    <p class="sub">Taipei urban-renewal approvals, from gazette row to browser graph.
+    <h1><span class="en">Domain Model</span><span class="zh">領域模型</span></h1>
+    <p class="sub"><span class="en">Taipei urban-renewal approvals, from gazette row to browser graph.</span>
       <span class="zh">臺北市都市更新核定案件：從公報一列到瀏覽器圖。</span></p>
   </div>
-  <label class="switch"><input type="checkbox" id="lang"> <span>中文</span></label>
+  <label class="switch"><input type="checkbox" id="lang"> <span>English</span></label>
   <a class="navlink" href="../viewer/about.html">關於</a>
 </header>
 
 <main>
 
 <section>
-  <h2><span class="n">§1</span>The model <span class="zh">模型</span></h2>
-  <p class="lead">Read left to right. The PDF is the skeleton; identity is the join key;
-    the portals attach depth and breadth; the graph is what ships.
+  <h2><span class="n">§1</span><span class="en">The model</span><span class="zh">模型</span></h2>
+  <p class="lead"><span class="en">Read left to right. The PDF is the skeleton; identity is the join key;
+    the portals attach depth and breadth; the graph is what ships.</span>
     <span class="zh">由左至右。公報是骨架；身分是 join key；兩個門戶分別補上深度與廣度；圖是對外產物。</span></p>
 
   <div class="layers">
     <div class="layer src">
-      <h4>Sources <span class="zh">來源</span></h4>
+      <h4><span class="en">Sources</span> <span class="zh">來源</span></h4>
       <div class="ent">
         <div class="name">PDFGazette <span class="role zh">核定案件一覽表</span></div>
         <div class="tagline"><span class="en">246 pages, newest-first, 編號 1 = latest</span>
@@ -148,7 +150,7 @@
     </div>
 
     <div class="layer id">
-      <h4>Identity <span class="zh">身分</span></h4>
+      <h4><span class="en">Identity</span> <span class="zh">身分</span></h4>
       <div class="ent">
         <div class="name">RawRecord <span class="role zh">原始列</span></div>
         <ul><li><code>recno</code> <span class="zh">編號（列印值）</span></li>
@@ -168,7 +170,7 @@
       </div>
       <div class="ent">
         <div class="name">Project <span class="role zh">更新單元</span></div>
-        <ul><li><code>project_id</code> = land core slug</li>
+        <ul><li><code>project_id</code> = <span class="en">land core slug</span><span class="zh">地號核心 slug</span></li>
           <li><code>anchor_recno</code> <span class="zh">最新一次核定</span></li>
           <li><code>members</code> <span class="zh">組成紀錄</span></li>
           <li><code>borderline</code> <span class="zh">0.5–0.7 未併入的候選</span></li></ul>
@@ -176,7 +178,7 @@
     </div>
 
     <div class="layer por">
-      <h4>Portal <span class="zh">門戶</span></h4>
+      <h4><span class="en">Portal</span> <span class="zh">門戶</span></h4>
       <div class="ent">
         <div class="name">DiscoveryResult <span class="role zh">連結探索結果</span></div>
         <ul><li><code>city_case_ids</code> <span class="zh">北市案號</span></li>
@@ -200,7 +202,7 @@
     </div>
 
     <div class="layer out">
-      <h4>Emission <span class="zh">產出</span></h4>
+      <h4><span class="en">Emission</span> <span class="zh">產出</span></h4>
       <div class="ent">
         <div class="name">GraphDocument <span class="role zh">歷史圖文件</span></div>
         <ul><li><code>counts</code> <span class="zh">專案／紀錄數</span></li>
@@ -221,13 +223,13 @@
     </div>
 
     <div class="layer">
-      <h4>Identity rules <span class="zh">身分規則</span></h4>
+      <h4><span class="en">Identity rules</span> <span class="zh">身分規則</span></h4>
       <div class="ent">
         <div class="name">land core <span class="role zh">地號核心</span></div>
         <div class="tagline"><code>{district}{section}{first_parcel}地號等{count}筆</code></div>
       </div>
       <div class="ent">
-        <div class="name">編號 <span class="role zh">is a coordinate</span></div>
+        <div class="name">編號 <span class="role"><span class="en">is a coordinate</span></span><span class="role zh">座標，不是身分</span></div>
         <div class="tagline"><span class="en">newest-first, re-dated by the city,
           not an identity. Never key anything durable on it.</span>
           <span class="zh">由新到舊、會被市政府改期，不是身分。不可作為任何持久鍵。</span></div>
@@ -243,7 +245,7 @@
 </section>
 
 <section>
-  <h2><span class="n">§2</span>Relationships <span class="zh">關係</span></h2>
+  <h2><span class="n">§2</span><span class="en">Relationships</span> <span class="zh">關係</span></h2>
   <table>
     <thead><tr>
       <th><span class="en">From → To</span><span class="zh">起 → 迄</span></th>
@@ -279,7 +281,7 @@
 </section>
 
 <section>
-  <h2><span class="n">§3</span>What each side is for <span class="zh">兩邊各自的作用</span></h2>
+  <h2><span class="n">§3</span><span class="en">What each side is for</span> <span class="zh">兩邊各自的作用</span></h2>
   <table>
     <thead><tr>
       <th><span class="en">Side</span><span class="zh">來源</span></th>
@@ -300,7 +302,7 @@
 </section>
 
 <section>
-  <h2><span class="n">§4</span>TaipeiCase <span class="zh">北市案件</span></h2>
+  <h2><span class="n">§4</span><span class="en">TaipeiCase</span> <span class="zh">北市案件</span></h2>
   <div class="callout note">
     <div class="h"><span class="en">The join has landed; the unified class is still proposed.</span>
       <span class="zh">join 已落地；統一的類別仍在提案中。</span></div>
@@ -313,7 +315,7 @@
       於是它以零散的 key 形式被攜帶著走。</span></p>
   </div>
 
-  <h3><span class="en">The asymmetry it costs today · <span class="zh">今天為此付出的代價</span></span></h3>
+  <h3><span class="en">The asymmetry it costs today</span> · <span class="zh">今天為此付出的代價</span></h3>
   <div class="cols">
     <div class="col">
       <div class="ent">
@@ -478,7 +480,7 @@
 </section>
 
 <section>
-  <h2><span class="n">§5</span>Measured facts <span class="zh">量測事實</span></h2>
+  <h2><span class="n">§5</span><span class="en">Measured facts</span> <span class="zh">量測事實</span></h2>
   <p class="note-line"><span class="en">One measurement pass over the post-restore 2026-10-15
     payload (<code>viewer/projects.data.js</code>, 694 units; measured 2026-11-01 — both emitted
     artifacts agree). Case names were taken from <code>orphan_nodes</code> plus the
@@ -520,7 +522,7 @@
 </section>
 
 <section>
-  <h2><span class="n">§6</span>Gazette cadence <span class="zh">公報節奏</span></h2>
+  <h2><span class="n">§6</span><span class="en">Gazette cadence</span> <span class="zh">公報節奏</span></h2>
   <p class="lead"><span class="en">Acquisition is a separate process from ingestion. A gazette is
     identified by its content hash, never by a timestamp — the city re-uploads a byte-identical PDF
     and only advances the stamp on the page. The archive lives outside the repo, so a pipeline run
@@ -651,14 +653,15 @@
     <code>urtpe/links.py</code>、<code>urtpe/archive.py</code>、<code>urtpe/ledger.py</code>、
     <code>urtpe/poller.py</code>、<code>urtpe/changeset.py</code>、
     <code>openspec/specs/official-link-discovery/spec.md</code>。
-    本檔為 <code>docs/domain_model.md</code> 的雙語附頁，後者仍為文字上的 source of truth。
+    本檔為 <code>docs/domain_model.md</code> 的雙語附頁，後者仍為文字上的依據。
     完全獨立，不連任何外部資源。</span>
 </footer>
 
 <script>
   document.getElementById('lang').addEventListener('change', function () {
-    document.documentElement.classList.toggle('zh', this.checked);
-    document.documentElement.lang = this.checked ? 'zh-Hant' : 'en';
+    var zh = this.checked ? false : true;
+    document.documentElement.classList.toggle('zh', zh);
+    document.documentElement.lang = zh ? 'zh-Hant' : 'en';
   });
 </script>
 </body>

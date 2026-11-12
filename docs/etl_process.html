@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hant" class="zh">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,6 +8,12 @@
   Companion rendering of docs/etl_process.md. The Markdown file stays the prose
   source of truth; this page adds the pipeline diagram, the gate table, the
   merge-score anatomy and the viewer layout as visuals.
+
+  Bilingual (openspec: docs-bilingual): prose passages carry en/zh span pairs
+  in one DOM, zh_TW default, the header switch toggles the html.zh class —
+  the same pairing docs/domain-model.html uses. Both renderings show with
+  scripting disabled, one hidden by CSS. Technical names — file paths,
+  modules, flags, exit codes — stay verbatim in both.
 
   Self-contained: no external requests, no CDN, opens offline from file:// like
   the viewer and docs/domain-model.html. Measured figures were taken from the
@@ -34,6 +40,8 @@
     --ok:#3fae74;   --ok-bg:#f0fdf4;
     --muted-bg:#fdf0e7;
   }
+  html:not(.zh) .zh{display:none}
+  html.zh .en{display:none}
   *{box-sizing:border-box}
   body{margin:0;padding:0 0 64px;background:var(--bg);color:var(--ink);
        font:15px/1.65 "Instrument Sans","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
@@ -45,6 +53,10 @@
            border:1px solid var(--line);border-radius:8px;padding:6px 12px;
            white-space:nowrap;flex:none}
   .navlink:hover{color:var(--ink);border-color:var(--accent)}
+  .switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap;
+          border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer;
+          background:var(--bg);flex:none}
+  .switch input{margin:0;cursor:pointer}
   h1{margin:0 0 6px;font-size:21px}
   .sub{color:var(--muted);font-size:13px;margin:0;max-width:92ch}
   .sub a{color:var(--acq)}
@@ -227,16 +239,21 @@
 
 <header>
   <div class="hwrap">
-    <h1>ETL Process — PDF to Viewer</h1>
-    <p class="sub">How the Taipei urban-renewal gazette (核定案件一覽表) becomes
-      <code>viewer/projects.data.js</code> and the static HTML viewer.
-      Prose source of truth: <a href="etl_process.md"><code>docs/etl_process.md</code></a> ·
+    <h1><span class="en">ETL Process — PDF to Viewer</span><span class="zh">ETL 流程 — 從 PDF 到檢視器</span></h1>
+    <p class="sub"><span class="en">How the Taipei urban-renewal gazette (核定案件一覽表) becomes
+      <code>viewer/projects.data.js</code> and the static HTML viewer.</span><span class="zh">臺北市都市更新公報（核定案件一覽表）如何變成
+      <code>viewer/projects.data.js</code> 與靜態 HTML 檢視器。</span>
+      <span class="en">Prose source of truth: <a href="etl_process.md"><code>docs/etl_process.md</code></a> ·
       Companion pages: <a href="domain-model.html">domain model</a> ·
-      <a href="release-diff.html">release-diff report</a>.
-      Measured on the 2026-10-28 gazette: <strong>1,444 records → 680 projects</strong>,
-      2002-03-21 → 2026-10-28.
+      <a href="release-diff.html">release-diff report</a>.</span><span class="zh">文字版的 source of truth：<a href="etl_process.md"><code>docs/etl_process.md</code></a> ·
+      附頁：<a href="domain-model.html">領域模型</a> ·
+      <a href="release-diff.html">歷次公報差異報告</a>。</span>
+      <span class="en">Measured on the 2026-10-28 gazette: <strong>1,444 records → 680 projects</strong>,
+      2002-03-21 → 2026-10-28.</span><span class="zh">量測自 2026-10-28 公報：<strong>1,444 筆紀錄 → 680 個專案</strong>，
+      2002-03-21 → 2026-10-28。</span>
       </p>
     </div>
+  <label class="switch"><input type="checkbox" id="lang"> <span>English</span></label>
   <a class="navlink" href="../viewer/about.html">關於</a>
 </header>
 
@@ -244,180 +261,211 @@
 
 <!-- ============================================================= -->
 <section>
-  <h2><span class="n">1</span>Pipeline overview</h2>
-  <p class="lead">One command runs the whole flow:
+  <h2><span class="n">1</span><span class="en">Pipeline overview</span><span class="zh">管線總覽</span></h2>
+  <p class="lead"><span class="en">One command runs the whole flow:
     <code class="cmd">python -m urtpe.cli source.pdf -o data --viewer viewer --links</code>.
     Stages 2–7 run inside the single-writer lock; every gate (§6) evaluates
-    before the first artifact is written.</p>
+    before the first artifact is written.</span><span class="zh">一行命令跑完整條流程：
+    <code class="cmd">python -m urtpe.cli source.pdf -o data --viewer viewer --links</code>。
+    第 2–7 階段在單一寫入者鎖內執行；每一道關卡（§6）都在第一份產出寫入之前評估。</span></p>
 
   <div class="pipe">
     <div class="stage s-acq">
       <div class="rail"><div class="dot">1</div><div class="bar"></div></div>
       <div class="who">Acquire<span class="mod">scripts/poll_gazette.py</span></div>
-      <div class="what">Hash-gated check of the publisher page. Downloads the ~2 MB PDF
-        only when the page's bytes change; archives it outside the repo.
+      <div class="what"><span class="en">Hash-gated check of the publisher page. Downloads the ~2 MB PDF
+        only when the page's bytes change; archives it outside the repo.</span><span class="zh">以雜湊把關檢查出版方頁面。僅在頁面位元組改變時下載約 2 MB 的 PDF；
+        封存到 repo 之外。</span>
         <span class="out">→ <code>urtpe-gazettes/核定案件-YYYY-MM-DD.pdf</code> + <code>index.jsonl</code></span></div>
     </div>
     <div class="stage s-ext">
       <div class="rail"><div class="dot">2</div><div class="bar"></div></div>
       <div class="who">Extract<span class="mod">urtpe/extract.py</span></div>
-      <div class="what">Ruled-table read via pymupdf <code>find_tables("lines")</code>.
-        Verbatim cells, dual calendar → ISO, publisher truncation excluded and named.
+      <div class="what"><span class="en">Ruled-table read via pymupdf <code>find_tables("lines")</code>.
+        Verbatim cells, dual calendar → ISO, publisher truncation excluded and named.</span><span class="zh">以 pymupdf <code>find_tables("lines")</code> 讀格線表格。
+        儲存格逐字保留、雙日曆 → ISO、出版方截斷排除並命名。</span>
         <span class="out">→ <code>data/raw.tsv</code> (RawRecord)</span></div>
     </div>
     <div class="stage s-cln">
       <div class="rail"><div class="dot">3</div><div class="bar"></div></div>
       <div class="who">Cleanse<span class="mod">urtpe/cleanse.py</span></div>
-      <div class="what">Known-error normalization, derived fields (section, parcels,
-        aliases, stage, track), ambiguity → review flags.
+      <div class="what"><span class="en">Known-error normalization, derived fields (section, parcels,
+        aliases, stage, track), ambiguity → review flags.</span><span class="zh">已知錯誤正規化、衍生欄位（區段、地號、
+        別名、階段、軌道），歧義 → 複核旗標。</span>
         <span class="out">→ <code>data/clean.tsv</code> (CleanRecord)</span></div>
     </div>
     <div class="stage s-ldg">
       <div class="rail"><div class="dot">4</div><div class="bar"></div></div>
       <div class="who">Ledger<span class="mod">urtpe/ledger.py</span></div>
-      <div class="what">Append-only manual corrections, keyed on land core + approval date,
-        applied on every ingest.
-        <span class="out">→ corrected CleanRecords (4 entries live)</span></div>
+      <div class="what"><span class="en">Append-only manual corrections, keyed on land core + approval date,
+        applied on every ingest.</span><span class="zh">僅追加的人工更正，以地號核心 + 核定日期為鍵，
+        每次匯入時套用。</span>
+        <span class="out"><span class="en">→ corrected CleanRecords (4 entries live)</span><span class="zh">→ 更正後的 CleanRecord（現有 4 筆）</span></span></div>
     </div>
     <div class="stage s-mrg">
       <div class="rail"><div class="dot">5</div><div class="bar"></div></div>
       <div class="who">Merge<span class="mod">urtpe/merge.py</span></div>
-      <div class="what">Weighted similarity (§4) clusters repeat approvals of the same
-        更新單元 into families; anchor + <code>project_id</code> per family.
+      <div class="what"><span class="en">Weighted similarity (§4) clusters repeat approvals of the same
+        更新單元 into families; anchor + <code>project_id</code> per family.</span><span class="zh">加權相似度（§4）把同一
+        更新單元的重複核定聚成家族；每個家族給錨點與 <code>project_id</code>。</span>
         <span class="out">→ <code>data/merged.tsv</code> (Project)</span></div>
     </div>
     <div class="stage s-lnk">
       <div class="rail"><div class="dot">6</div><div class="bar"></div></div>
       <div class="who">Links<span class="mod">urtpe/links.py</span></div>
-      <div class="what">Cache-first portal discovery (Taipei ashx + national portal),
-        <code>--links</code>, onto the merged families.
+      <div class="what"><span class="en">Cache-first portal discovery (Taipei ashx + national portal),
+        <code>--links</code>, onto the merged families.</span><span class="zh">快取優先的門戶探索（北市 ashx + 全國門戶），
+        <code>--links</code>，掛到合併後的家族上。</span>
         <span class="out">→ <code>data/.link_cache/</code>, <code>crawl_log.tsv</code></span></div>
     </div>
     <div class="stage s-grf">
       <div class="rail"><div class="dot">7</div><div class="bar"></div></div>
       <div class="who">Graph<span class="mod">urtpe/graph.py</span></div>
-      <div class="what">Per-project history: nodes = records, edges = revision / track /
-        section chains converging on the anchor. Schema v2.
+      <div class="what"><span class="en">Per-project history: nodes = records, edges = revision / track /
+        section chains converging on the anchor. Schema v2.</span><span class="zh">逐專案歷史：節點＝紀錄，邊＝修訂／軌道／
+        區段鏈，收斂到錨點。Schema v2。</span>
         <span class="out">→ <code>data/projects.json</code></span></div>
     </div>
     <div class="stage s-vw">
       <div class="rail"><div class="dot">8</div><div class="bar"></div></div>
       <div class="who">Viewer<span class="mod">urtpe/viewer.py</span></div>
-      <div class="what">The payload <code>window.PROJECTS = {…}</code> for the static
-        <code>file://</code> page, plus the <code>?v=</code> cache-bust on both script tags.
+      <div class="what"><span class="en">The payload <code>window.PROJECTS = {…}</code> for the static
+        <code>file://</code> page, plus the <code>?v=</code> cache-bust on both script tags.</span><span class="zh">靜態
+        <code>file://</code> 頁面的 payload <code>window.PROJECTS = {…}</code>，加上兩個 script 標籤的
+        <code>?v=</code> 快避破除。</span>
         <span class="out">→ <code>viewer/projects.data.js</code></span></div>
     </div>
   </div>
 
-  <div class="loopback">↺ &nbsp;<strong>Loopback:</strong>
-    <code>viewer/projects.data.js</code> is both input and output —
-    <code>--from-js</code> reloads it and re-emits it, so the payload is state, not scratch.</div>
+  <div class="loopback">↺ &nbsp;<strong><span class="en">Loopback:</span><span class="zh">迴路：</span></strong>
+    <span class="en"><code>viewer/projects.data.js</code> is both input and output —
+    <code>--from-js</code> reloads it and re-emits it, so the payload is state, not scratch.</span><span class="zh"><code>viewer/projects.data.js</code> 既是輸入也是輸出 —
+    <code>--from-js</code> 重新載入並重新輸出，所以 payload 是狀態，不是暫存。</span></div>
 
   <div class="regimes">
     <div class="regime">
-      <div class="h">Full ingest</div>
+      <div class="h"><span class="en">Full ingest</span><span class="zh">完整匯入</span></div>
       <div class="cmd"><code>python -m urtpe.cli <pdf> -o data --viewer viewer --links</code></div>
-      <div class="stages">Stages 1–8, from the PDF. ~45 s; the only way a reader change
-        reaches historical records uniformly.</div>
+      <div class="stages"><span class="en">Stages 1–8, from the PDF. ~45 s; the only way a reader change
+        reaches historical records uniformly.</span><span class="zh">第 1–8 階段，從 PDF 開始。約 45 秒；讀取器改變要一致地
+        觸及歷史紀錄，只有這一條路。</span></div>
     </div>
     <div class="regime">
-      <div class="h">Rebuild</div>
+      <div class="h"><span class="en">Rebuild</span><span class="zh">重建</span></div>
       <div class="cmd"><code>python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --links</code></div>
-      <div class="stages">Skips stages 2–5: nodes load back as CleanRecords verbatim;
-        links → graph → viewer only.</div>
+      <div class="stages"><span class="en">Skips stages 2–5: nodes load back as CleanRecords verbatim;
+        links → graph → viewer only.</span><span class="zh">跳過第 2–5 階段：節點以 CleanRecord 逐字載回；
+        只跑 links → graph → viewer。</span></div>
     </div>
   </div>
 </section>
 
 <!-- ============================================================= -->
 <section>
-  <h2><span class="n">2</span>Acquire — hash decides, timestamp never does</h2>
-  <p class="lead"><code>scripts/poll_gazette.py</code> answers one question: has the city
+  <h2><span class="n">2</span><span class="en">Acquire — hash decides, timestamp never does</span><span class="zh">取得 — 雜湊決定，時間戳記永遠不決定</span></h2>
+  <p class="lead"><span class="en"><code>scripts/poll_gazette.py</code> answers one question: has the city
     published a gazette we do not hold? It archives; it never ingests. Ingesting is a
-    separate explicit act.</p>
+    separate explicit act.</span><span class="zh"><code>scripts/poll_gazette.py</code> 只回答一個問題：市政府是否發布了我們
+    還沒有的公報？它只封存，從不匯入。匯入是另一個明確的動作。</span></p>
   <table>
-    <thead><tr><th>Property</th><th>Rule</th><th>Why</th></tr></thead>
+    <thead><tr><th><span class="en">Property</span><span class="zh">性質</span></th><th><span class="en">Rule</span><span class="zh">規則</span></th><th><span class="en">Why</span><span class="zh">原因</span></th></tr></thead>
     <tbody>
-      <tr><td>Change detection</td><td>SHA-256 content hash</td>
-        <td>The publisher re-uploads unchanged documents under a later 資料更新 stamp
-          (measured 2026-10-05); a timestamp poller would re-ingest weekly.</td></tr>
-      <tr><td>Steady-state cost</td><td>one ~86 KB page GET</td>
-        <td>The ~2 MB PDF downloads only when the page's bytes change.</td></tr>
-      <tr><td>Every check leaves a record</td><td><code>poll_log.jsonl</code>:
+      <tr><td><span class="en">Change detection</span><span class="zh">變更偵測</span></td><td><span class="en">SHA-256 content hash</span><span class="zh">SHA-256 內容雜湊</span></td>
+        <td><span class="en">The publisher re-uploads unchanged documents under a later 資料更新 stamp
+          (measured 2026-10-05); a timestamp poller would re-ingest weekly.</span><span class="zh">出版方會以較新的 資料更新 標記重新上傳未變更的文件
+          （2026-10-05 量測）；時間戳記輪詢器會每週重複匯入。</span></td></tr>
+      <tr><td><span class="en">Steady-state cost</span><span class="zh">穩態成本</span></td><td><span class="en">one ~86 KB page GET</span><span class="zh">一次約 86 KB 的頁面 GET</span></td>
+        <td><span class="en">The ~2 MB PDF downloads only when the page's bytes change.</span><span class="zh">約 2 MB 的 PDF 只在頁面位元組改變時下載。</span></td></tr>
+      <tr><td><span class="en">Every check leaves a record</span><span class="zh">每次檢查都留紀錄</span></td><td><code>poll_log.jsonl</code>:
         <code>new_gazette</code> / <code>reuploaded</code> / <code>unchanged</code> / <code>failed</code></td>
-        <td>A check that found nothing must not look like a check that never ran.</td></tr>
-      <tr><td>Archive location</td><td><code>D:\project\urtpe-gazettes\</code> (outside git;
-        <code>URTPE_ARCHIVE_ROOT</code> override)</td>
-        <td>Corpus completion, reconciliation and the release-diff report all re-read
-          archived PDFs; members are never deleted.</td></tr>
-      <tr><td>PDF links</td><td>live link repoints; version-specific URL durable</td>
-        <td>The archive index records each publication's <code>publisher_url</code>.</td></tr>
+        <td><span class="en">A check that found nothing must not look like a check that never ran.</span><span class="zh">沒有發現任何東西的檢查，不能看起來像從未執行的檢查。</span></td></tr>
+      <tr><td><span class="en">Archive location</span><span class="zh">封存位置</span></td><td><code>D:\project\urtpe-gazettes\</code> (<span class="en">outside git; <code>URTPE_ARCHIVE_ROOT</code> override</span><span class="zh">在 git 之外；<code>URTPE_ARCHIVE_ROOT</code> 覆寫</span>)</td>
+        <td><span class="en">Corpus completion, reconciliation and the release-diff report all re-read
+          archived PDFs; members are never deleted.</span><span class="zh">語料補全、對帳與歷次公報差異報告都會重讀封存的 PDF；
+          成員永不刪除。</span></td></tr>
+      <tr><td><span class="en">PDF links</span><span class="zh">PDF 連結</span></td><td><span class="en">live link repoints; version-specific URL durable</span><span class="zh">即時連結會改指；版本特定 URL 持久</span></td>
+        <td><span class="en">The archive index records each publication's <code>publisher_url</code>.</span><span class="zh">封存索引記錄每次發行的 <code>publisher_url</code>。</span></td></tr>
     </tbody>
   </table>
 </section>
 
 <!-- ============================================================= -->
 <section>
-  <h2><span class="n">3</span>Extract — refuse rather than approximate</h2>
-  <p class="lead">pymupdf reads each page with <code>find_tables(strategy="lines")</code>;
+  <h2><span class="n">3</span><span class="en">Extract — refuse rather than approximate</span><span class="zh">擷取 — 寧可拒絕，不求近似</span></h2>
+  <p class="lead"><span class="en">pymupdf reads each page with <code>find_tables(strategy="lines")</code>;
     cell boundaries come from the document's own ruling lines, never stored coordinates.
     Seven columns verbatim: 編號, 核定日期, 行政區, 案名, 地號, 實施者, 更新規劃單位 —
     plus <code>gazette_id</code>. A structure the reader cannot read exactly raises
-    <code>TableStructureError</code> (exit 3); nothing is written.</p>
+    <code>TableStructureError</code> (exit 3); nothing is written.</span><span class="zh">pymupdf 以 <code>find_tables(strategy="lines")</code> 讀每一頁；
+    儲存格邊界來自文件自身的格線，絕不用儲存的座標。
+    七個欄位逐字保留：編號、核定日期、行政區、案名、地號、實施者、更新規劃單位 —
+    再加 <code>gazette_id</code>。讀取器無法精確解讀的結構會拋出
+    <code>TableStructureError</code>（exit 3）；不寫出任何東西。</span></p>
 
-  <h3>3.1 The two-fault distinction on a 地號 cell</h3>
+  <h3><span class="en">3.1 The two-fault distinction on a 地號 cell</span><span class="zh">3.1 地號儲存格的雙重故障區分</span></h3>
   <div class="split">
     <div class="fault reader">
-      <div class="h">Reader fault — page furniture</div>
-      The city prints the page number inside the last row's 地號 cell.
-      <div class="verdict">✓ Stripped — only when the trailing digits equal that page
-        (<code>strip_page_footer</code>).</div>
+      <div class="h"><span class="en">Reader fault — page furniture</span><span class="zh">讀取器故障 — 頁面物件</span></div>
+      <span class="en">The city prints the page number inside the last row's 地號 cell.</span><span class="zh">市政府把頁碼印在最後一列的地號儲存格裡。</span>
+      <div class="verdict"><span class="en">✓ Stripped — only when the trailing digits equal that page
+        (<code>strip_page_footer</code>).</span><span class="zh">✓ 剔除 — 僅當尾端數字等於該頁頁碼
+        （<code>strip_page_footer</code>）。</span></div>
     </div>
     <div class="fault publisher">
-      <div class="h">Publisher fault — truncation</div>
-      The city cuts the cell at the printed row height and never draws the remainder;
-      the text is absent from the PDF.
-      <div class="verdict">✗ Excluded and named — never repaired by inference.</div>
+      <div class="h"><span class="en">Publisher fault — truncation</span><span class="zh">出版方故障 — 截斷</span></div>
+      <span class="en">The city cuts the cell at the printed row height and never draws the remainder;
+      the text is absent from the PDF.</span><span class="zh">市政府在列印行高處切斷儲存格，且從不繪出剩餘部分；
+      文字不在 PDF 裡。</span>
+      <div class="verdict"><span class="en">✗ Excluded and named — never repaired by inference.</span><span class="zh">✗ 排除並命名 — 絕不以推測修補。</span></div>
     </div>
   </div>
-  <p>A cell is publisher-truncated when it ends in a tail pattern
+  <p><span class="en">A cell is publisher-truncated when it ends in a tail pattern
     (<code>、，,</code> / digit / sub-parcel hyphen) or lost its closing phrase while
     showing fewer parcels than its 案名 declares. A completed closing phrase
     (<code>地號等N筆土地</code>) is never count-checked — 48 rows per Gregorian gazette
-    disagree with their 案名 and are complete as published.</p>
+    disagree with their 案名 and are complete as published.</span><span class="zh">儲存格以尾部模式結尾
+    （<code>、，,</code>／數字／子地號連字號）、或顯示的地號數少於案名宣告且失去結尾語時，即為出版方截斷。
+    完整的結尾語（<code>地號等N筆土地</code>)永不做筆數檢查 — 每份西元曆公報有 48 列與其案名
+    不一致，但照原樣是完整的。</span></p>
 
-  <h3>3.2 Two bounded repairs, both audited</h3>
+  <h3><span class="en">3.2 Two bounded repairs, both audited</span><span class="zh">3.2 兩種有界修補，都有稽核</span></h3>
   <table>
-    <thead><tr><th>Repair</th><th>Trigger</th><th>Conditions (all must hold)</th></tr></thead>
+    <thead><tr><th><span class="en">Repair</span><span class="zh">修補</span></th><th><span class="en">Trigger</span><span class="zh">觸發</span></th><th><span class="en">Conditions (all must hold)</span><span class="zh">條件（全部成立）</span></th></tr></thead>
     <tbody>
-      <tr><td><strong>Corpus completion</strong><br>
+      <tr><td><strong><span class="en">Corpus completion</span><span class="zh">語料補全</span></strong><br>
             <code>complete_truncated_cell</code></td>
-        <td>default, on every ingest</td>
-        <td>same 段/小段 · truncated text is a literal prefix of the candidate's ·
-          candidate's parcel count equals the count the 案名 declares</td></tr>
-      <tr><td><strong>API recovery</strong><br>
+        <td><span class="en">default, on every ingest</span><span class="zh">預設，每次匯入</span></td>
+        <td><span class="en">same 段/小段 · truncated text is a literal prefix of the candidate's ·
+          candidate's parcel count equals the count the 案名 declares</span><span class="zh">同 段/小段 · 截斷文字是候選文字的逐字前綴 ·
+          候選的地號數等於案名宣告的筆數</span></td></tr>
+      <tr><td><strong><span class="en">API recovery</span><span class="zh">API 復原</span></strong><br>
             <code>--recover-truncated</code></td>
-        <td>opt-in flag only; without it output is byte-identical</td>
-        <td>same unit · surviving 案名 contained · declared count present ·
-          date closes (±1 day flagged). Residuals rejoin the exclusion path.</td></tr>
+        <td><span class="en">opt-in flag only; without it output is byte-identical</span><span class="zh">僅限明確加旗標；不加時輸出逐位元組相同</span></td>
+        <td><span class="en">same unit · surviving 案名 contained · declared count present ·
+          date closes (±1 day flagged). Residuals rejoin the exclusion path.</span><span class="zh">同單元 · 存留案名包含 · 宣告筆數存在 ·
+          日期閉合（±1 天給旗標）。殘餘回到排除路徑。</span></td></tr>
     </tbody>
   </table>
-  <p>Calendars: ROC through the 2026-08-27 gazette, Gregorian from 2026-09-24 onward;
+  <p><span class="en">Calendars: ROC through the 2026-08-27 gazette, Gregorian from 2026-09-24 onward;
     accepted per cell, normalized to ISO-8601. <code>published_date</code> comes from the
-    document's own 統計至 line.</p>
+    document's own 統計至 line.</span><span class="zh">日曆：民國曆到 2026-08-27 公報，西元曆自 2026-09-24 起；
+   逐格接受，正規化為 ISO-8601。<code>published_date</code> 來自文件自身的 統計至 列。</span></p>
 </section>
 
 <!-- ============================================================= -->
 <section>
-  <h2><span class="n">4</span>Cleanse & merge — one meaning, one word</h2>
-  <p class="lead">Cleansing normalizes known errors into <code>auto_fixes</code>, derives
+  <h2><span class="n">4</span><span class="en">Cleanse & merge — one meaning, one word</span><span class="zh">淨化與合併 — 一個意思，一個詞</span></h2>
+  <p class="lead"><span class="en">Cleansing normalizes known errors into <code>auto_fixes</code>, derives
     the identity fields, and routes ambiguity into <code>review_flags</code> — 321 flagged
     nodes on the current corpus. The ledger applies manual corrections keyed on
-    land core + approval date, never 編號.</p>
+    land core + approval date, never 編號.</span><span class="zh">淨化把已知錯誤正規化並記入 <code>auto_fixes</code>，衍生
+    身分欄位，並把歧義送進 <code>review_flags</code> — 現行語料有 321 個
+    帶旗標的節點。帳本以地號核心 + 核定日期為鍵套用人工更正，
+    絕不用 編號。</span></p>
 
   <div class="regimes">
     <div class="regime">
-      <div class="h">Auto-fixes (applied, named)</div>
+      <div class="h"><span class="en">Auto-fixes (applied, named)</span><span class="zh">自動修正（套用且命名）</span></div>
       <table style="margin-top:4px">
         <tbody>
           <tr><td>松化區 → 松山區</td></tr>
@@ -430,7 +478,7 @@
       </table>
     </div>
     <div class="regime">
-      <div class="h">Review flags (surfaced, never resolved silently)</div>
+      <div class="h"><span class="en">Review flags (surfaced, never resolved silently)</span><span class="zh">複核旗標（浮出，絕不默默解決）</span></div>
       <table style="margin-top:4px">
         <tbody>
           <tr><td>日期無法解析</td></tr>
@@ -444,20 +492,21 @@
     </div>
   </div>
 
-  <h3>4.1 The similarity score — one weighted sum decides a family</h3>
-  <p class="lead">~70% of records are repeat stage approvals of the same 更新單元.
-    <code>score(r1, r2)</code> in [0,1], <code>urtpe/merge.py:40</code>:</p>
+  <h3><span class="en">4.1 The similarity score — one weighted sum decides a family</span><span class="zh">4.1 相似度分數 — 一個加權總和決定家族</span></h3>
+  <p class="lead"><span class="en">~70% of records are repeat stage approvals of the same 更新單元.
+    <code>score(r1, r2)</code> in [0,1], <code>urtpe/merge.py:40</code>:</span><span class="zh">約 70% 的紀錄是同一更新單元的重複階段核定。
+    <code>score(r1, r2)</code> 在 [0,1]，<code>urtpe/merge.py:40</code>：</span></p>
   <div class="scorebar">
-    <div class="sb-sec">section .35</div>
-    <div class="sb-fp">first parcel .20</div>
-    <div class="sb-jac">parcel Jaccard .30</div>
-    <div class="sb-cnt">count .10</div>
+    <div class="sb-sec"><span class="en">section .35</span><span class="zh">段 .35</span></div>
+    <div class="sb-fp"><span class="en">first parcel .20</span><span class="zh">首宗地號 .20</span></div>
+    <div class="sb-jac"><span class="en">parcel Jaccard .30</span><span class="zh">地號 Jaccard .30</span></div>
+    <div class="sb-cnt"><span class="en">count .10</span><span class="zh">筆數 .10</span></div>
   </div>
   <div class="scorekey">
-    <div><strong>section .35</strong> — exact (district, section) match required for any nonzero score</div>
-    <div><strong>first parcel .20</strong> — equal 1.0 · alias bridge 0.95 · in parcel set 0.7</div>
-    <div><strong>Jaccard .30</strong> — parcel-set overlap; dropped and renormalized under the site-shrink rule (S13)</div>
-    <div><strong>count .10</strong> — equal 1.0 · bridged by 原N筆 0.8 · named anchors score 1.0 outright</div>
+    <div><strong><span class="en">section .35</span><span class="zh">段 .35</span></strong> — <span class="en">exact (district, section) match required for any nonzero score</span><span class="zh">要有精確的（行政區、段）相符，分數才可能不為零</span></div>
+    <div><strong><span class="en">first parcel .20</span><span class="zh">首宗地號 .20</span></strong> — <span class="en">equal 1.0 · alias bridge 0.95 · in parcel set 0.7</span><span class="zh">相等 1.0 · 別名橋接 0.95 · 在地號集合內 0.7</span></div>
+    <div><strong><span class="en">Jaccard .30</span><span class="zh">Jaccard .30</span></strong> — <span class="en">parcel-set overlap; dropped and renormalized under the site-shrink rule (S13)</span><span class="zh">地號集合重疊；依基地縮小規則 (S13) 捨棄並重新正規化</span></div>
+    <div><strong><span class="en">count .10</span><span class="zh">筆數 .10</span></strong> — <span class="en">equal 1.0 · bridged by 原N筆 0.8 · named anchors score 1.0 outright</span><span class="zh">相等 1.0 · 由 原N筆 橋接 0.8 · 具名錨點直接得 1.0</span></div>
   </div>
   <div class="band">
     <span class="lbl">0.0</span>
@@ -467,115 +516,135 @@
     <span class="lbl">1.0</span>
   </div>
   <p style="font-size:12.5px;color:var(--muted);display:flex;gap:18px;flex-wrap:wrap">
-    <span><strong>< 0.5</strong> separate units</span>
-    <span><strong>0.5–0.7</strong> borderline — flagged for review</span>
-    <span><strong>≥ 0.7</strong> same family (<code>LINK_THRESHOLD</code>)</span>
-    <span><strong>ledger confirm_merge</strong> unions before scoring, whatever the score</span>
+    <span><strong>< 0.5</strong> <span class="en">separate units</span><span class="zh">不同單元</span></span>
+    <span><strong>0.5–0.7</strong> <span class="en">borderline — flagged for review</span><span class="zh">邊界 — 給旗標待複核</span></span>
+    <span><strong>≥ 0.7</strong> <span class="en">same family (<code>LINK_THRESHOLD</code>)</span><span class="zh">同家族（<code>LINK_THRESHOLD</code>）</span></span>
+    <span><strong><span class="en">ledger confirm_merge</span><span class="zh">帳本 confirm_merge</span></strong> <span class="en">unions before scoring, whatever the score</span><span class="zh">不論分數，計分前先聯集</span></span>
   </p>
-  <p>Anchor: newest 核定日期, tie-break to lowest recno — the family's 現況 record.
+  <p><span class="en">Anchor: newest 核定日期, tie-break to lowest recno — the family's 現況 record.
     <code>project_id</code> is the anchor's land-core slug
     (<code>{district}-{section}-{first_parcel}地號等{count}筆</code>); it churns
     (~11% of multi-record families have moved) and is not a stable identity. The census
-    gate then proves the partition total and disjoint.</p>
+    gate then proves the partition total and disjoint.</span><span class="zh">錨點：最新的 核定日期，平手時取最小 recno — 家族的 現況 紀錄。
+    <code>project_id</code> 是錨點的地號核心 slug
+    （<code>{district}-{section}-{first_parcel}地號等{count}筆</code>）；它會變動
+    （約 11% 的多紀錄家族搬過）且不是穩定身分。接著由普查
+    關卡證明分割總量且互斥。</span></p>
 </section>
 
 <!-- ============================================================= -->
 <section>
-  <h2><span class="n">5</span>Links — the durable cache, not the network, is the state</h2>
-  <p class="lead"><code>urtpe/links.py</code> (4,450 lines, both portal adapters) runs
+  <h2><span class="n">5</span><span class="en">Links — the durable cache, not the network, is the state</span><span class="zh">Links — 持久快取才是狀態，不是網路</span></h2>
+  <p class="lead"><span class="en"><code>urtpe/links.py</code> (4,450 lines, both portal adapters) runs
     cache-first: a <code>result.json</code> hit means zero HTTP calls for that project.
-    <code>--links</code> is recommended and advisory by design (D5).</p>
+    <code>--links</code> is recommended and advisory by design (D5).</span><span class="zh"><code>urtpe/links.py</code>（4,450 行，兩個門戶介接器）以
+    快取優先執行：<code>result.json</code> 命中即表示該專案零 HTTP 呼叫。
+    <code>--links</code> 是建議且設計上僅供參考（D5）。</span></p>
   <table>
-    <thead><tr><th>Step</th><th>Source</th><th>Yields</th></tr></thead>
+    <thead><tr><th><span class="en">Step</span><span class="zh">步驟</span></th><th><span class="en">Source</span><span class="zh">來源</span></th><th><span class="en">Yields</span><span class="zh">產出</span></th></tr></thead>
     <tbody>
-      <tr><td class="nowrap">1 · Cache check</td>
-        <td><code>data/.link_cache/<project_id>/result.json</code> (~727 project dirs)</td>
-        <td>previous DiscoveryResult — no network</td></tr>
-      <tr><td class="nowrap">2 · Taipei platform</td>
-        <td><code>Get_updcase_list.ashx</code> by section + first parcel, then
-          <code>Get_project168_second.ashx</code> per case_id</td>
-        <td>case ids, the 34-field milestone map, implementation, rewards</td></tr>
-      <tr><td class="nowrap">3 · National portal</td>
-        <td><code>portal_index.json</code> (newest ~110, WAF-capped) → <code>view/N</code> page</td>
-        <td>推動歷程 milestones, <code>twur_url</code>; strict matcher on
-          section+parcel+count</td></tr>
-      <tr><td class="nowrap">4 · Status</td>
-        <td>per project</td>
-        <td><code>resolved</code> / <code>resolved_no_city</code> / <code>unresolved</code> /
-          <code>error</code> → <code>crawl_log.tsv</code></td></tr>
+      <tr><td class="nowrap"><span class="en">1 · Cache check</span><span class="zh">1 · 快取檢查</span></td>
+        <td><code>data/.link_cache/<project_id>/result.json</code> (<span class="en">~727 project dirs</span><span class="zh">約 727 個專案目錄</span>)</td>
+        <td><span class="en">previous DiscoveryResult — no network</span><span class="zh">上一次的 DiscoveryResult — 不碰網路</span></td></tr>
+      <tr><td class="nowrap"><span class="en">2 · Taipei platform</span><span class="zh">2 · 北市平台</span></td>
+        <td><span class="en"><code>Get_updcase_list.ashx</code> by section + first parcel, then
+          <code>Get_project168_second.ashx</code> per case_id</span><span class="zh">以 段 + 首宗地號 查 <code>Get_updcase_list.ashx</code>，再
+          逐 case_id 查 <code>Get_project168_second.ashx</code></span></td>
+        <td><span class="en">case ids, the 34-field milestone map, implementation, rewards</span><span class="zh">案號、34 欄里程碑映射、實作資料、獎勵</span></td></tr>
+      <tr><td class="nowrap"><span class="en">3 · National portal</span><span class="zh">3 · 全國門戶</span></td>
+        <td><span class="en"><code>portal_index.json</code> (newest ~110, WAF-capped) → <code>view/N</code> page</span><span class="zh"><code>portal_index.json</code>（僅最新約 110 筆，WAF 限流）→ <code>view/N</code> 頁面</span></td>
+        <td><span class="en">推動歷程 milestones, <code>twur_url</code>; strict matcher on
+          section+parcel+count</span><span class="zh">推動歷程 里程碑、<code>twur_url</code>；以
+          段+地號+筆數 嚴格比對</span></td></tr>
+      <tr><td class="nowrap"><span class="en">4 · Status</span><span class="zh">4 · 狀態</span></td>
+        <td><span class="en">per project</span><span class="zh">逐專案</span></td>
+        <td><span class="en"><code>resolved</code> / <code>resolved_no_city</code> / <code>unresolved</code> /
+          <code>error</code> → <code>crawl_log.tsv</code></span><span class="zh"><code>resolved</code> / <code>resolved_no_city</code> / <code>unresolved</code> /
+          <code>error</code> → <code>crawl_log.tsv</code></span></td></tr>
     </tbody>
   </table>
   <div class="callout note">
-    <div class="h">Cache safety</div>
-    The cache is durable state: <code>project_aliases.json</code> migrates dirs across
+    <div class="h"><span class="en">Cache safety</span><span class="zh">快取安全</span></div>
+    <span class="en">The cache is durable state: <code>project_aliases.json</code> migrates dirs across
     <code>project_id</code> churn; the coverage guard aborts before emission when a
     coverage flag drops or every identity re-keys — the 2026-08-24 shape, where four
-    concurrent runs wiped 47 caches. The single-writer lock (§6) exists because of it.
+    concurrent runs wiped 47 caches. The single-writer lock (§6) exists because of it.</span><span class="zh">快取是持久狀態：<code>project_aliases.json</code> 在
+    <code>project_id</code> 變動時遷移目錄；當覆蓋度旗標下降或所有身分重新配鍵時，覆蓋度防護在輸出之前中止 —
+    這是 2026-08-24 的形狀：四個並行執行清掉了 47 個快取。單一寫入者鎖（§6）因此而生。</span>
   </div>
 </section>
 
 <!-- ============================================================= -->
 <section>
-  <h2><span class="n">6</span>Gates — ordered, before any artifact is written</h2>
-  <p class="lead">A check that runs after the damage is not a check. Every gate evaluates
-    before the first write, so a refused ingestion leaves every artifact exactly as it was.</p>
+  <h2><span class="n">6</span><span class="en">Gates — ordered, before any artifact is written</span><span class="zh">關卡 — 有序，在任何產出寫入之前</span></h2>
+  <p class="lead"><span class="en">A check that runs after the damage is not a check. Every gate evaluates
+    before the first write, so a refused ingestion leaves every artifact exactly as it was.</span><span class="zh">在損害之後才跑的檢查不是檢查。每一道關卡都在
+    第一次寫入之前評估，所以被拒絕的匯入讓每一份產出保持原樣。</span></p>
   <table class="gates">
-    <thead><tr><th>Order</th><th>Gate</th><th>Module</th><th>Outcome</th></tr></thead>
+    <thead><tr><th><span class="en">Order</span><span class="zh">順序</span></th><th><span class="en">Gate</span><span class="zh">關卡</span></th><th><span class="en">Module</span><span class="zh">模組</span></th><th><span class="en">Outcome</span><span class="zh">結果</span></th></tr></thead>
     <tbody>
-      <tr class="block"><td class="gorder">pre-read</td>
-        <td>single-writer lock — one run per output tree; stale after 6 h or a dead PID</td>
+      <tr class="block"><td class="gorder"><span class="en">pre-read</span><span class="zh">讀取前</span></td>
+        <td><span class="en">single-writer lock — one run per output tree; stale after 6 h or a dead PID</span><span class="zh">單一寫入者鎖 — 每個輸出樹一次執行；6 小時後或 PID 已死即過期</span></td>
         <td><code>urtpe/lock.py</code></td><td class="gex">exit 5</td></tr>
-      <tr class="block"><td class="gorder">after read</td>
-        <td>structural faults — merged cell, ragged grid, page with no table</td>
+      <tr class="block"><td class="gorder"><span class="en">after read</span><span class="zh">讀取後</span></td>
+        <td><span class="en">structural faults — merged cell, ragged grid, page with no table</span><span class="zh">結構故障 — 合併儲存格、不齊的格線、無表格的頁面</span></td>
         <td><code>urtpe/extract.py</code></td><td class="gex">exit 3</td></tr>
-      <tr class="block"><td class="gorder">after read</td>
-        <td>completeness tripwire — 編號 contiguity (minus explained exclusions), unparsed
-          dates, pages yielding no table</td>
+      <tr class="block"><td class="gorder"><span class="en">after read</span><span class="zh">讀取後</span></td>
+        <td><span class="en">completeness tripwire — 編號 contiguity (minus explained exclusions), unparsed
+          dates, pages yielding no table</span><span class="zh">完整性絆線 — 編號 連續性（扣除已解釋的排除）、無法解析的
+          日期、讀不到表格的頁面</span></td>
         <td><code>urtpe/tripwire.py:38</code></td><td class="gex">exit 4</td></tr>
-      <tr class="block"><td class="gorder">after merge</td>
-        <td>census partition — total, disjoint, members sum to the record count</td>
+      <tr class="block"><td class="gorder"><span class="en">after merge</span><span class="zh">合併後</span></td>
+        <td><span class="en">census partition — total, disjoint, members sum to the record count</span><span class="zh">普查分割 — 總量、互斥、成員總和等於紀錄數</span></td>
         <td><code>urtpe/tripwire.py:202</code></td><td class="gex">exit 4</td></tr>
-      <tr class="block"><td class="gorder">after merge</td>
-        <td>reconciliation vs. the archived predecessor — three authoritative signals only;
-          blocking on shrink, withdrawn newest cohort, total re-key</td>
+      <tr class="block"><td class="gorder"><span class="en">after merge</span><span class="zh">合併後</span></td>
+        <td><span class="en">reconciliation vs. the archived predecessor — three authoritative signals only;
+          blocking on shrink, withdrawn newest cohort, total re-key</span><span class="zh">與封存前任對帳 — 僅三個權威訊號；
+          縮減、最新一批撤回、全體重新配鍵時阻斷</span></td>
         <td><code>urtpe/reconcile.py</code></td><td class="gex">exit 2</td></tr>
-      <tr class="warnrow"><td class="gorder">on emission</td>
-        <td>emission-fault check — link/implementation data wholly absent; badge/flag
-          disagreement</td>
-        <td><code>urtpe/emission.py</code></td><td class="gex">warning only</td></tr>
+      <tr class="warnrow"><td class="gorder"><span class="en">on emission</span><span class="zh">輸出時</span></td>
+        <td><span class="en">emission-fault check — link/implementation data wholly absent; badge/flag
+          disagreement</span><span class="zh">輸出故障檢查 — 連結/實作資料完全缺席；徽章/旗標
+          不一致</span></td>
+        <td><code>urtpe/emission.py</code></td><td class="gex"><span class="en">warning only</span><span class="zh">僅警告</span></td></tr>
     </tbody>
   </table>
 
-  <h3>6.1 Exit codes are a contract</h3>
+  <h3><span class="en">6.1 Exit codes are a contract</span><span class="zh">6.1 結束碼是合約</span></h3>
   <table class="exitcodes">
-    <thead><tr><th>Code</th><th>Meaning</th><th>State on disk</th></tr></thead>
+    <thead><tr><th><span class="en">Code</span><span class="zh">代碼</span></th><th><span class="en">Meaning</span><span class="zh">意義</span></th><th><span class="en">State on disk</span><span class="zh">磁碟狀態</span></th></tr></thead>
     <tbody>
-      <tr><td>0</td><td>success</td><td>written</td></tr>
-      <tr><td>2</td><td>unexplained reconcile changes (<code>--allow-reconcile-block</code> not given)</td>
-        <td>archive/index written, emission not written</td></tr>
-      <tr><td>3</td><td><code>TableStructureError</code> — reader refused the document</td>
-        <td>nothing written</td></tr>
-      <tr><td>4</td><td><code>TripwireFailure</code> (incl. the census gate)</td><td>nothing written</td></tr>
-      <tr><td>5</td><td><code>LockHeld</code> — another run owns this output tree</td><td>nothing written</td></tr>
-      <tr><td>1</td><td>anything else</td><td>not a contract — diagnose before retrying</td></tr>
+      <tr><td>0</td><td><span class="en">success</span><span class="zh">成功</span></td><td><span class="en">written</span><span class="zh">已寫入</span></td></tr>
+      <tr><td>2</td><td><span class="en">unexplained reconcile changes (<code>--allow-reconcile-block</code> not given)</span><span class="zh">未解釋的對帳變更（未給 <code>--allow-reconcile-block</code>）</span></td>
+        <td><span class="en">archive/index written, emission not written</span><span class="zh">封存/索引已寫入，輸出未寫入</span></td></tr>
+      <tr><td>3</td><td><span class="en"><code>TableStructureError</code> — reader refused the document</span><span class="zh"><code>TableStructureError</code> — 讀取器拒絕該文件</span></td>
+        <td><span class="en">nothing written</span><span class="zh">未寫入任何東西</span></td></tr>
+      <tr><td>4</td><td><span class="en"><code>TripwireFailure</code> (incl. the census gate)</span><span class="zh"><code>TripwireFailure</code>（含普查關卡）</span></td><td><span class="en">nothing written</span><span class="zh">未寫入任何東西</span></td></tr>
+      <tr><td>5</td><td><span class="en"><code>LockHeld</code> — another run owns this output tree</span><span class="zh"><code>LockHeld</code> — 另一次執行持有此輸出樹</span></td><td><span class="en">nothing written</span><span class="zh">未寫入任何東西</span></td></tr>
+      <tr><td>1</td><td><span class="en">anything else</span><span class="zh">其他一切</span></td><td><span class="en">not a contract — diagnose before retrying</span><span class="zh">不是合約 — 重試前先診斷</span></td></tr>
     </tbody>
   </table>
   <div class="callout gate">
-    <div class="h">A non-zero exit is a refusal, not a flake</div>
-    Do not retry past it and do not pass a flag to get around it.
+    <div class="h"><span class="en">A non-zero exit is a refusal, not a flake</span><span class="zh">非零結束碼是拒絕，不是偶發</span></div>
+    <span class="en">Do not retry past it and do not pass a flag to get around it.
     <code>--allow-reconcile-block</code> is marked 危險 and <code>--no-archive</code> 不建議
-    in the help text for a reason.
+    in the help text for a reason.</span><span class="zh">不要繞過它重試，也不要加旗標迴避。
+    <code>--allow-reconcile-block</code> 在說明文字裡標為 危險、<code>--no-archive</code> 標為 不建議，
+    是有原因的。</span>
   </div>
 </section>
 
 <!-- ============================================================= -->
 <section>
-  <h2><span class="n">7</span>Emit — schema v2 and the artifacts</h2>
-  <p class="lead"><code>build_graph_document</code> attaches the discovered links and emits
+  <h2><span class="n">7</span><span class="en">Emit — schema v2 and the artifacts</span><span class="zh">輸出 — schema v2 與產出檔</span></h2>
+  <p class="lead"><span class="en"><code>build_graph_document</code> attaches the discovered links and emits
     schema v2: nodes carry every cleansed field, edges are deduplicated
     <code>{from, to, kind}</code> chains converging on the anchor. Flags are
     deduplicated and stably ordered at emission — the 2026-10-06 dataset once carried
-    1,162 copies of one flag.</p>
+    1,162 copies of one flag.</span><span class="zh"><code>build_graph_document</code> 掛上探索到的連結並輸出
+    schema v2：節點帶每一個淨化後的欄位，邊是去重的
+    <code>{from, to, kind}</code> 鏈，收斂到錨點。旗標在輸出時去重並穩定排序 —
+    2026-10-06 的資料集曾經帶著同一旗標的 1,162 份副本。</span></p>
   <pre><code>{
   "schema_version": 2,
   "generated_at": "…", "source": "…", "published_date": "2026-10-28",
@@ -590,7 +659,7 @@
                   "milestones_national": {…}, "milestones_taipei": {…} } } ] }</code></pre>
 
   <div class="art">
-    <div class="h">Artifacts written across a full run (tracked; a run produces a ~24 MB diff)</div>
+    <div class="h"><span class="en">Artifacts written across a full run (tracked; a run produces a ~24 MB diff)</span><span class="zh">一次完整執行寫出的產出檔（已追蹤；一次執行產生約 24 MB 的差異）</span></div>
     <div class="artgrid">
       <div class="file"><span><code>data/raw.tsv</code> — every row verbatim + parse_error</span><span class="sz">550 KB</span></div>
       <div class="file"><span><code>data/clean.tsv</code> — 24 columns, all derived fields</span><span class="sz">959 KB</span></div>
@@ -606,10 +675,12 @@
 
 <!-- ============================================================= -->
 <section>
-  <h2><span class="n">8</span>The viewer — one static page over one payload</h2>
-  <p class="lead">A <code>file://</code> site: no server, no fetch — four files, and the
+  <h2><span class="n">8</span><span class="en">The viewer — one static page over one payload</span><span class="zh">檢視器 — 一份靜態頁面對一份 payload</span></h2>
+  <p class="lead"><span class="en">A <code>file://</code> site: no server, no fetch — four files, and the
     data arrives as a script tag. Layout sketch (not a screenshot): the left list, the
-    right detail with the SVG timeline, and the milestone cards.</p>
+    right detail with the SVG timeline, and the milestone cards.</span><span class="zh">一個 <code>file://</code> 站：無伺服器、無 fetch — 四個檔案，
+    資料以 script 標籤送達。版面示意（非截圖）：左側清單、
+    右側帶 SVG 時間軸的詳情，與里程碑卡片。</span></p>
 
   <div class="viewer">
     <div class="vhead">
@@ -692,60 +763,74 @@
   </div>
 
   <div class="vlegend">
-    <span class="k"><span class="badge cur">現況</span> anchor — newest approval, tie-break lowest recno</span>
-    <span class="k"><span class="badge taipei">北</span> node's anchored Taipei case → <code>r_progress_detail.aspx</code></span>
-    <span class="k"><span class="badge national">國</span> national portal, bound per-label by stage+track+date</span>
+    <span class="k"><span class="badge cur">現況</span> <span class="en">anchor — newest approval, tie-break lowest recno</span><span class="zh">錨點 — 最新核定，平手取最小 recno</span></span>
+    <span class="k"><span class="badge taipei">北</span> <span class="en">node's anchored Taipei case → <code>r_progress_detail.aspx</code></span><span class="zh">節點錨定的北市案 → <code>r_progress_detail.aspx</code></span></span>
+    <span class="k"><span class="badge national">國</span> <span class="en">national portal, bound per-label by stage+track+date</span><span class="zh">全國門戶，以 階段+軌道+日期 逐標籤綁定</span></span>
   </div>
   <div class="vlegend">
-    <span class="k"><span class="sw" style="background:var(--grf)"></span> approval node · 64 px row</span>
-    <span class="k"><span class="sw" style="background:var(--muted)"></span> execution event (建照→開工→使照) · 32 px row</span>
-    <span class="k"><span class="sw" style="background:var(--muted)"></span> virtual orphan — platform case no gazette record cites; undated ones tag (未核定)</span>
-    <span class="k">left list: district chip · stage chip (建/開/使) · dead-end chip (已失效/撤回/駁回)</span>
+    <span class="k"><span class="sw" style="background:var(--grf)"></span> <span class="en">approval node · 64 px row</span><span class="zh">核定節點 · 64 px 列</span></span>
+    <span class="k"><span class="sw" style="background:var(--muted)"></span> <span class="en">execution event (建照→開工→使照) · 32 px row</span><span class="zh">執行事件（建照→開工→使照）· 32 px 列</span></span>
+    <span class="k"><span class="sw" style="background:var(--muted)"></span> <span class="en">virtual orphan — platform case no gazette record cites; undated ones tag (未核定)</span><span class="zh">虛擬孤兒 — 沒有任何公報紀錄引用的平台案；無日期者標 (未核定)</span></span>
+    <span class="k"><span class="en">left list: district chip · stage chip (建/開/使) · dead-end chip (已失效/撤回/駁回)</span><span class="zh">左側清單：行政區 chip · 階段 chip (建/開/使) · 死端 chip (已失效/撤回/駁回)</span></span>
   </div>
 
   <div class="callout note">
-    <div class="h">Cache-bust and publishing</div>
-    <code>write_projects_js</code> rewrites the <code>?v=</code> on both script tags from
+    <div class="h"><span class="en">Cache-bust and publishing</span><span class="zh">快取破除與發布</span></div>
+    <span class="en"><code>write_projects_js</code> rewrites the <code>?v=</code> on both script tags from
     the dataset (publication date + 4-hex digest of date-and-counts); identical data
     yields an identical version. The site publishes to
     <code>https://happypig.github.io/urTPE</code> from <code>main</code> — a commit touching
     <code>viewer/</code> leaves the live site stale until pushed
     (<code>python scripts/check_deploy.py</code> reports fresh / stale / missing).
-    Render-path regression check: <code>node scripts/viewer_smoke.js</code> (manual, not pytest).
+    Render-path regression check: <code>node scripts/viewer_smoke.js</code> (manual, not pytest).</span><span class="zh"><code>write_projects_js</code> 依資料集重寫兩個 script 標籤的 <code>?v=</code>
+    （發布日期 + 日期與計數的 4 位十六進位摘要）；相同資料得到相同版本。
+    本站從 <code>main</code> 發布到
+    <code>https://happypig.github.io/urTPE</code> — 觸及
+    <code>viewer/</code> 的 commit 在推送前會讓線上站停留在舊版
+    （<code>python scripts/check_deploy.py</code> 分別回報 fresh / stale / missing）。
+    渲染路徑的迴歸檢查：<code>node scripts/viewer_smoke.js</code>（手動，不進 pytest）。</span>
   </div>
 </section>
 
 <!-- ============================================================= -->
 <section>
-  <h2><span class="n">9</span>Operating the pipeline</h2>
-  <p class="lead">Full ingest of a new gazette:</p>
+  <h2><span class="n">9</span><span class="en">Operating the pipeline</span><span class="zh">操作管線</span></h2>
+  <p class="lead"><span class="en">Full ingest of a new gazette:</span><span class="zh">完整匯入一份新公報：</span></p>
   <table>
     <tbody>
-      <tr><td class="num">1.</td><td>Run <code>python scripts/poll_gazette.py</code> — it archives on <code>new_gazette</code>.</td></tr>
-      <tr><td class="num">2.</td><td>Ingest: <code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links</code></td></tr>
-      <tr><td class="num">3.</td><td>Read the run output — tripwire PASS, reconcile, ledger, exclusion count.
-        Any <code>[CENSUS]</code>/<code>[EMISSION]</code> line names a real defect.</td></tr>
-      <tr><td class="num">4.</td><td>Exit 0 commits the dataset (mind the ~24 MB diff). Exit 2/3/4/5 is a refusal —
-        diagnose, never bypass with a flag.</td></tr>
-      <tr><td class="num">5.</td><td>Push <code>main</code> so Pages serves the new payload; verify with
-        <code>python scripts/check_deploy.py</code>.</td></tr>
+      <tr><td class="num">1.</td><td><span class="en">Run <code>python scripts/poll_gazette.py</code> — it archives on <code>new_gazette</code>.</span><span class="zh">執行 <code>python scripts/poll_gazette.py</code> — 遇 <code>new_gazette</code> 時封存。</span></td></tr>
+      <tr><td class="num">2.</td><td><span class="en">Ingest: <code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links</code></span><span class="zh">匯入：<code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links</code></span></td></tr>
+      <tr><td class="num">3.</td><td><span class="en">Read the run output — tripwire PASS, reconcile, ledger, exclusion count.
+        Any <code>[CENSUS]</code>/<code>[EMISSION]</code> line names a real defect.</span><span class="zh">讀執行輸出 — 絆線 PASS、對帳、帳本、排除數。
+        任何 <code>[CENSUS]</code>/<code>[EMISSION]</code> 列都指出真實缺陷。</span></td></tr>
+      <tr><td class="num">4.</td><td><span class="en">Exit 0 commits the dataset (mind the ~24 MB diff). Exit 2/3/4/5 is a refusal —
+        diagnose, never bypass with a flag.</span><span class="zh">exit 0 收入資料集（注意約 24 MB 的差異）。exit 2/3/4/5 是拒絕 —
+        先診斷，絕不用旗標繞過。</span></td></tr>
+      <tr><td class="num">5.</td><td><span class="en">Push <code>main</code> so Pages serves the new payload; verify with
+        <code>python scripts/check_deploy.py</code>.</span><span class="zh">推送 <code>main</code> 讓 Pages 供應新 payload；以
+        <code>python scripts/check_deploy.py</code> 驗證。</span></td></tr>
     </tbody>
   </table>
   <div class="callout note">
-    <div class="h">Rules that outlast any single run</div>
-    One run per output tree (the lock is stale after 6 h or a dead PID — check the PID
+    <div class="h"><span class="en">Rules that outlast any single run</span><span class="zh">比任何單次執行都長久的規則</span></div>
+    <span class="en">One run per output tree (the lock is stale after 6 h or a dead PID — check the PID
     before deleting it) · never key anything durable on 編號 · manual corrections go in
     the ledger, not a dated script · <code>data/.link_cache/</code> is durable state —
     five backup dirs from past incidents exist because it was once lost ·
     tests: <code>python -m pytest</code> (1,231 collected; one deliberate skip at
-    <code>tests/test_idempotent_flags.py:117</code>).
+    <code>tests/test_idempotent_flags.py:117</code>).</span><span class="zh">每個輸出樹一次執行（鎖在 6 小時後或 PID 已死即過期 — 刪除前先確認 PID）·
+    絕不以 編號 作為任何持久鍵 · 人工更正進帳本，不寫日期版的一次性腳本 ·
+    <code>data/.link_cache/</code> 是持久狀態 —
+    過去事故留下的五個備份目錄就是因為它曾經被清掉 ·
+    測試：<code>python -m pytest</code>（蒐集 1,231 項；一項刻意 skip 於
+    <code>tests/test_idempotent_flags.py:117</code>）。</span>
   </div>
 </section>
 
 </main>
 
 <footer>
-  Sources: <code>urtpe/cli.py</code>, <code>urtpe/extract.py</code>, <code>urtpe/cleanse.py</code>,
+  <span class="en">Sources: <code>urtpe/cli.py</code>, <code>urtpe/extract.py</code>, <code>urtpe/cleanse.py</code>,
   <code>urtpe/ledger.py</code>, <code>urtpe/merge.py</code>, <code>urtpe/links.py</code>,
   <code>urtpe/graph.py</code>, <code>urtpe/viewer.py</code>, <code>urtpe/tripwire.py</code>,
   <code>urtpe/reconcile.py</code>, <code>urtpe/emission.py</code>, <code>urtpe/coverage.py</code>,
@@ -754,8 +839,23 @@
   companion pages <a href="domain-model.html">domain-model.html</a> and
   <a href="release-diff.html">release-diff.html</a>.
   Self-contained — no external requests. Measured figures from the 2026-10-28 gazette
-  emission, 2026-11-12.
+  emission, 2026-11-12.</span>
+  <span class="zh">來源：<code>urtpe/cli.py</code>、<code>urtpe/extract.py</code>、<code>urtpe/cleanse.py</code>、
+  <code>urtpe/ledger.py</code>、<code>urtpe/merge.py</code>、<code>urtpe/links.py</code>、
+  <code>urtpe/graph.py</code>、<code>urtpe/viewer.py</code>、<code>urtpe/tripwire.py</code>、
+  <code>urtpe/reconcile.py</code>、<code>urtpe/emission.py</code>、<code>urtpe/coverage.py</code>、
+  <code>scripts/poll_gazette.py</code>、<code>viewer/app.js</code>、<code>viewer/index.html</code>。
+  本檔為 <code>docs/etl_process.md</code> 的附頁，後者仍為文字上的 source of truth；
+  附頁 <a href="domain-model.html">domain-model.html</a> 與
+  <a href="release-diff.html">release-diff.html</a>。
+  完全獨立，不連任何外部資源。量測數字取自 2026-10-28 公報輸出，2026-11-12。</span>
 </footer>
 
+<script>
+  document.getElementById('lang').addEventListener('change', function () {
+    document.documentElement.classList.toggle('zh', !this.checked);
+    document.documentElement.lang = this.checked ? 'en' : 'zh-Hant';
+  });
+</script>
 </body>
 </html>

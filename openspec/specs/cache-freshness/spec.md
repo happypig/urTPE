@@ -40,8 +40,8 @@ application signal SHALL cover every application track — `申請核定日期` 
 approved after the cache was written leaves the same absence (measured
 2026-11-02: 北投區-關渡段二小段-303's 11505020 carries only 申請計畫日期/申請權變日期
 in the cache while the API reports 核定日期 2026/09/30). A case whose cached
-status is 自行撤回 / 已駁回 / 已失效 SHALL NOT make its project a candidate: such a
-case was closed without approval and will never gain an approval date
+status is 自行撤回 / 已駁回 / 已失效 / 已撤銷 SHALL NOT make its project a candidate:
+such a case was closed without approval and will never gain an approval date
 (measured 2026-11-02: 85 of the 176 selected projects carried only such cases).
 Nor SHALL a case whose last-read platform header reads `無`, or a case recorded
 as superseded by another case: the city re-files an application under a new
@@ -69,8 +69,10 @@ re-derived status SHALL NOT replace a cached later stage (施工中 / 已完工 
 完成成果備查) with the approved state. A header that exists and reads `無` (or has
 an empty `NAME`) states that the case has no current state: it SHALL clear a
 cached 審查中 or approved-family status (已核准 / 已核定) and SHALL keep a terminal
-status (自行撤回 / 已駁回 / 已失效) or a later stage, because a withdrawn case stays
-withdrawn and clearing it could hide a project's never-approved reason. A header
+status (自行撤回 / 已駁回 / 已失效 / 已撤銷) or a later stage, because a withdrawn case
+stays withdrawn and clearing it could hide a project's never-approved reason. A
+header whose `NAME` holds 撤銷 states a revoked approval and SHALL derive 已撤銷.
+A header
 that names an unrecognised outcome SHALL keep the cached status, except that a
 cached approved-family status on a case whose own milestones carry no approval
 date SHALL be cleared. A missing header row is no evidence and SHALL change
@@ -148,7 +150,7 @@ cases, each separately from cases still awaiting approval.
 
 #### Scenario: A project whose awaiting cases were all closed is not selected
 
-- **WHEN** a project's only awaiting cases are cached as 自行撤回 or 已駁回
+- **WHEN** a project's only awaiting cases are cached as 自行撤回, 已駁回 or 已撤銷
   (南海段一小段-687 11012301, 信義段二小段-142 11105301, 三玉段一小段-672 09812232)
 - **THEN** the project is not selected and is not re-fetched
 
@@ -197,7 +199,7 @@ cases, each separately from cases still awaiting approval.
 
 #### Scenario: A 無 header keeps a terminal status
 
-- **WHEN** a cached case's status is 自行撤回 (or 已駁回 / 已失效) and its header
+- **WHEN** a cached case's status is 自行撤回 (or 已駁回 / 已失效 / 已撤銷) and its header
   `NAME` is `無`
 - **THEN** its status stays 自行撤回
 
@@ -307,6 +309,14 @@ cases, each separately from cases still awaiting approval.
 - **THEN** the refreshed cache records the header dates for that case
 - **AND** the node resolver can bind the case by the header date on the next
   emission, without a request
+
+#### Scenario: A revoked case derives 已撤銷 from its header
+
+- **WHEN** a case's header `NAME` reads 業經本府撤銷核准 (measured 2026-11-10:
+  7 corpus cases, e.g. 中山57's 09801092/09801094, 美仁800's 09707196)
+- **THEN** the case's derived status is 已撤銷
+- **AND** it is not 無 (the emptied-case rule does not touch a state header)
+  and not 已核准 (the word is 核准, not 核定)
 
 ### Requirement: The refreshed binding replaces the positional fallback for the affected nodes
 

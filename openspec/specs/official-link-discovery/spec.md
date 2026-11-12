@@ -66,8 +66,12 @@ in order, never by list position:
 1. **案名 match over the cached cases** — tier 1 exact (spaces ignored),
    tier 2 loose (等, `(原N筆)`, 擬定↔擬訂, `案及`→`及`, the area suffix,
    `權利變換案`→`權利變換計畫案`), tier 3 stage-with-ordinal + plan type
-   (ignoring `(含釐正圖冊)`). Cases whose schedule is 自行撤回 / 已駁回 / 已失效
-   SHALL NOT bind. A 無 case SHALL yield to an approved same-name sibling.
+   (ignoring `(含釐正圖冊)`). Cases whose schedule is 自行撤回 / 已駁回 / 已失效 / 已撤銷
+   SHALL NOT bind. 已撤銷 is the revoked state — a case the header names
+   業經本府撤銷核准 was approved and then withdrawn by the government (measured
+   2026-11-10: 7 corpus cases; a revoked approval is never gazetted, so no
+   gazette node claims one today — the guard is for the same-name binding a
+   future cache could create). A 無 case SHALL yield to an approved same-name sibling.
    When every live match in the tier carries a distinct area suffix
    (`-A區` / `-北區` / `(A區段)` …), the node is an area split and **all** its
    cases SHALL bind to the node (one gazette row, several city cases).
@@ -206,6 +210,13 @@ as before.
 - **WHEN** a node's 案名 and a city's case name name the same section, the same
   first parcel and the same land count
 - **THEN** the pair still binds
+
+#### Scenario: A revoked case never binds by name
+
+- **WHEN** a node's 案名 exactly matches a case whose header reads 業經本府撤銷核准
+- **THEN** the case does not bind to the node
+- **AND** a same-name approved sibling binds instead (the 吉林705 shape, with
+  撤銷 in place of 撤回)
 
 ### Requirement: Emit links into the graph document
 

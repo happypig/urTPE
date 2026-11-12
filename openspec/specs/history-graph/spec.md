@@ -261,9 +261,19 @@ chips (審查中 / 撤回) and the 未核定 badge are REMOVED: a gazette approv
 proves the unit was approved, and an older case's state must not label the
 current approval (the 4 撤回/未核定 projects all hold an approved current
 node). A project with no construction badge and no dead-end current case
-shows no state badge. Badges are read-only status chips; they add no
-interaction. Badge colours: 建照 orange, 開工 red, 使照 green, dead-end state
+shows no state badge. Badge colours: 建照 orange, 開工 red, 使照 green, dead-end state
 grey.
+
+Each list item SHALL also be reachable and activatable by keyboard, and the
+selection SHALL be written to the URL (viewer-url-writeback-keyboard,
+2026-11-12): every item carries `tabindex="0"` and `role="button"`, shows a
+visible focus indicator (`:focus-visible`), and Enter or Space activates it
+exactly as a click does. Selecting a project — by click or by keyboard —
+SHALL write `#project=<encodeURIComponent(project_id)>` into the URL with
+`history.replaceState` (one history entry per page load; never a push per
+click), so a reader can copy the selection out of the address bar. The
+deep-link read half (`openFromHash`, the hash format, the dashboard's
+encoding) SHALL NOT change.
 
 #### Scenario: Latest milestone wins the badge
 - **WHEN** a project has 建照核發日期 2018/12/21 and 使照核發日期 2024/04/24
@@ -314,6 +324,21 @@ grey.
 - **WHEN** a project carries none of the three construction dates and its
   current node's case has no dead-end schedule
 - **THEN** its list item shows no stage badge
+
+#### Scenario: A list item is focusable and keyboard-activatable
+- **WHEN** a project item renders in the left-hand list
+- **THEN** it carries `tabindex="0"` and `role="button"`
+- **AND** Enter or Space activates it exactly as a click does
+
+#### Scenario: Selecting a project writes the URL
+- **WHEN** a project is selected, by click or by keyboard
+- **THEN** the URL hash becomes `#project=<encodeURIComponent(project_id)>`
+- **AND** the write is a `replaceState`, so the history stack gains no entry
+
+#### Scenario: The deep link's read half is unchanged
+- **WHEN** the page is opened with `#project=<id>` in the hash, or the hash
+  changes while the page is open
+- **THEN** that project's graph opens, as before
 
 ### Requirement: Node order survives a rebuild from emitted state
 

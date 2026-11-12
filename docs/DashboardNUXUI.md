@@ -998,12 +998,35 @@ change).** Five split families whose 擬訂 sat in a sibling project — 犁和�
 in two 案名s, the 河堤399 shape) — and 景美段501's two rows with swapped stage labels
 (1423 → 擬訂/0, 1393 → 變更/1; the city case and the national page both date the
 擬訂 on 2005-03-17 and the 權變 變更 on 2007-08-02). Nine ledger lines (five
-`confirm_merge`, four field corrections) were drafted and verified offline against
+`confirm_merge`, four field corrections) were verified offline against
 `data/clean.tsv` — each key matches exactly one record, the pairs resolve to the
-recnos above — and wait for the append and a PDF ingest of 核定案件-2026-10-28.pdf
-(680 → 675 projects). **Two things stay as they are:** 德惠段813-1 recno 986 prints
-2017-05-10 for an approval the city dates 2018/05/10 (the ledger has no date
-field; the 擬訂-first rule sidesteps the row), and 1393's name-derived
+recnos above — appended on the user's word, and applied by a PDF ingest of
+核定案件-2026-10-28.pdf the same day: 13 applied / 0 unmatched, tripwire PASS,
+**680 → 675 projects**, the five families one project each, 1423 / 1393 reading
+擬訂 / 變更. Three things the ingest did not do by itself, closed in the same commit:
+(a) the alias rebuild (`scripts/build_project_aliases.py`) wrote only the five
+new pairs and dropped the twelve earlier ones whose cache directories still
+exist — the table is the union, 17 entries; (b) the alias union at the next
+`--from-js --links` re-emit carried case ids and city milestones into the merged
+projects but not the national link, so 萬隆461 (view/51), 萬隆623 (view/153) and
+華江274 (view/216) lost the page their sibling held — recorded in
+`data/twur_overrides.json` with the former cache's title as evidence, and the
+three current caches completed from their former directories (link, title,
+national milestones, verified ids, view.html), after which the second re-emit
+carried them (國 badges back on the 擬訂 nodes); (c) a PDF ingest re-cleanses
+what `--from-js` keeps as emitted: 19 案名 differ only by the E1 NFKC fold, and
+recno 998 reads 變更(第二次) where the re-emitted payload said 變更. Dashboard on
+the merged payload: card 3.8, line 1 3.0 (n 661), line 2 n 661, 14 outline-only,
+stages 121 / 25 / 126 / 403. **德惠段813-1 recno 986 fixed the same day, by a second change.** The gazette
+prints 2017/5/10 for an approval the city dates 2018/05/10; the ledger had no
+date field. `ledger-date-correction` (test-first, ADDED requirement in
+`correction-ledger`) lets an entry set `iso_date` — keyed on the printed day,
+the printed text kept, `ymd` following — and one entry for 986 was applied by a
+second PDF ingest: 14 applied / 0 unmatched, 675 projects, the family now orders
+943 (擬訂 2017-11-23) → 986 (變更 2018-05-10) → 793 → 415. The E4 badge-counter
+test re-pinned from 1,186 / 800 to 1,192 / 801: the five reunified families
+carry their national pages, so six more nodes bind and one more 擬訂 node
+qualifies. **One thing stays as it is:** 1393's name-derived
 `stage_事業計畫` / `stage_權利變換` keep the printed 擬訂 (not ledger-correctable; the
 dashboard reads `stage`).
 

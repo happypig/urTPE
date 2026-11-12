@@ -31,7 +31,15 @@ DEFAULT_LEDGER_PATH = Path(
 CORRECTABLE_FIELDS = (
     "track", "stage", "stage_index", "area_section", "implementer", "planner",
     "section", "first_parcel", "land_count", "named_anchor", "name",
+    # ledger-date-correction: the ISO approval date. The entry is keyed on the
+    # PRINTED day (so it keeps matching on every rebuild); the printed `date`
+    # text is never touched, and `ymd` follows the corrected value in apply().
+    # First use: recno 986 (德惠段813-1), printed 2017/5/10 for an approval the
+    # city dates 2018/05/10.
+    "iso_date",
 )
+
+_ISO_DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 @dataclass
@@ -72,6 +80,17 @@ class Correction:
         if self.field and self.field not in CORRECTABLE_FIELDS and not self.accept_removal:
             raise ValueError(
                 f"{self.field!r} is not correctable; expected one of {CORRECTABLE_FIELDS}")
+        if self.field == "iso_date":
+            # Refuse a typo when the line is written, not on the next rebuild:
+            # a calendar day in ISO form, nothing else (no slashes, no ROC form).
+            value = self.to if isinstance(self.to, str) else ""
+            try:
+                if not _ISO_DAY.match(value):
+                    raise ValueError
+                dt.date.fromisoformat(value)
+            except ValueError:
+                raise ValueError(
+                    f"iso_date correction must be a calendar day as YYYY-MM-DD, got {self.to!r}") from None
 
     @property
     def key(self) -> tuple[str, str]:
@@ -212,6 +231,11 @@ class CorrectionLedger:
                 if not hasattr(rec, entry.field):
                     continue
                 setattr(rec, entry.field, entry.to)
+                if entry.field == "iso_date" and hasattr(rec, "ymd"):
+                    # merge picks the anchor and graph orders members on ymd
+                    # (urtpe/merge.py:185, urtpe/graph.py:12), so the tuple
+                    # must follow the corrected day or the two views disagree.
+                    rec.ymd = tuple(int(part) for part in entry.to.split("-"))
                 matched_keys.add(key)
                 outcome.applied.append(entry.describe())
 

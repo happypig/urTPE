@@ -271,3 +271,46 @@ def test_report_counts_field_correction_plus_confirmation(ledger):
     text = outcome.report()
     assert "manual corrections applied: 2" in text
     assert LAND_1303 in text and LAND_1347 in text
+
+# --- ledger-date-correction: a printed approval date can be corrected -----------
+
+class DatedRec(Rec):
+    """A stand-in carrying the three date views a CleanRecord holds."""
+
+    def __init__(self, land: str, iso_date: str, date: str, ymd: tuple, stage: str = "變更",
+                 recno: int = 0):
+        super().__init__(land, iso_date, recno=recno)
+        self.date = date
+        self.ymd = ymd
+        self.stage = stage
+
+
+def test_date_correction_sets_iso_date_and_ymd_and_keeps_the_print(ledger):
+    """recno 986's shape: the gazette prints 2017/5/10 for an approval the city
+    dates 2018/05/10. The entry is keyed on the printed day."""
+    rec = DatedRec(LAND, "2017-05-10", "2017/5/10", (2017, 5, 10), recno=986)
+    ledger.append(_entry(match_iso_date="2017-05-10", field="iso_date", to="2018-05-10",
+                         why="city case 10409213 dates the approval 2018/05/10"))
+    out = ledger.apply([rec])
+    assert rec.iso_date == "2018-05-10"
+    assert rec.ymd == (2018, 5, 10)
+    assert rec.date == "2017/5/10"
+    assert len(out.applied) == 1 and out.unmatched == []
+
+
+def test_date_and_stage_corrections_on_one_record_both_apply(ledger):
+    """Matching uses the printed day, so a second entry keyed on it still lands
+    after the date entry has moved iso_date."""
+    rec = DatedRec(LAND, "2017-05-10", "2017/5/10", (2017, 5, 10), recno=986)
+    ledger.append(_entry(match_iso_date="2017-05-10", field="iso_date", to="2018-05-10", why="d"))
+    ledger.append(_entry(match_iso_date="2017-05-10", field="stage", to="變更(第二次)", why="s"))
+    out = ledger.apply([rec])
+    assert rec.iso_date == "2018-05-10" and rec.stage == "變更(第二次)"
+    assert len(out.applied) == 2 and out.unmatched == []
+
+
+@pytest.mark.parametrize("bad", ["2018/5/10", "2018-02-30", "107.05.10", ""])
+def test_malformed_date_correction_is_refused(ledger, bad):
+    with pytest.raises(ValueError):
+        Correction(match_land_core=LAND, match_iso_date="2017-05-10", field="iso_date",
+                   to=bad, why="", by="t")

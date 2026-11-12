@@ -169,7 +169,8 @@ def test_the_field_survives_a_rebuild():
 
 def test_the_counters_on_the_live_payload():
     """1,186 nodes carry 國 today (binding OR view-verified); 735 under the
-    rule; 451 lose it; 0 gain it. Re-measured against the current payload —
+    rule; 451 lose it; 0 gain it. Re-pinned 2026-11-13 to 1,192 / 801 after the
+    ledger merges gave five reunified families their national pages. Re-measured against the current payload —
     the figures move when the payload does, and the test names the drift."""
     doc = json.loads(PAYLOAD.read_text(encoding="utf-8"))
     def roc_iso(v):
@@ -227,8 +228,8 @@ def test_the_counters_on_the_live_payload():
     # fallback). They move when the payload moves; the assertion names the
     # drift instead of passing silently. The board's 735 was the
     # pre-fallback measure (registration + exact name only).
-    assert today == 1186, f"today's badged population moved: {today} (board says 1186)"
-    assert new == 800, f"the narrowed rule's population moved: {new} (board says 800)"
+    assert today == 1192, f"today's badged population moved: {today} (board says 1186; 1192 since the 2026-11-13 ledger merges)"
+    assert new == 801, f"the narrowed rule's population moved: {new} (board says 800; 801 since the 2026-11-13 ledger merges)"
 
 
 def _name_matches_core(node, twur_name):

@@ -26,6 +26,30 @@
       "verified_on": "2026-11-10",
       "reason": "The unit's own page (title = the gazette 案名, 928地號等1筆), and its 相關連結 lists exactly one city case, 10002141 — the city CASE_NAME this project's cache already holds, char-identical (§8 rule satisfied). Discovery never attached it: the 2026-10-06 no-match sweep probed view/181 (ledger view_ids_checked) and recorded a plain no-match with no reason text; the sweep-era matcher's body check (fetch_remaining_national_portal.view_page_matches) requires the parcel string in the fetched HTML, and a WAF shell ('Request Rejected', 245 bytes) fails it exactly like a genuine mismatch — the ledger cannot tell them apart, which is why the ledger's outcome enum (match/miss/error) exists in the later code. The stale 懷生931 twur_name/national_milestones this cache held came from that same sweep and were removed 2026-11-10 (commit 55a28f9). n=1 for this shape.",
       "verified_by": "human review of the live portal page view/181 (title + 相關連結 naming 10002141), cross-checked against the cache's case_case_names"
+    },
+    "文山區-萬隆段二小段-461地號等1筆": {
+      "twur_view_id": "51",
+      "twur_url": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/51",
+      "portal_title": "擬訂臺北市文山區萬隆段二小段468地號等58筆土地都市更新事業計畫案",
+      "verified_on": "2026-11-13",
+      "reason": "The family was reunified through the correction ledger on 2026-11-13 (confirm_merge, the 文山區-萬隆段二小段-468地號等58筆 擬訂 with the 文山區-萬隆段二小段-461地號等1筆 carve-out). Discovery had resolved the national page on the former identity's cache (文山區-萬隆段二小段-468地號等58筆 -> view/51, title names the same unit); the current identity's cache was written before the merge and holds no link, and the alias union carries case ids and city milestones only (urtpe/links.py _merge_aliased_cache), so the link is recorded here as the gap-fill the override table exists for. Evidence: the view page's title above is the former identity's 擬訂 案名 verbatim.",
+      "verified_by": "the former identity's own cache (result.json twur fields and view.html, written by discovery on the pre-merge identity) read 2026-11-13, the same day the ledger merge was confirmed"
+    },
+    "文山區-萬隆段二小段-623地號等1筆": {
+      "twur_view_id": "153",
+      "twur_url": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/153",
+      "portal_title": "擬訂臺北市文山區萬隆段二小段519地號等56筆土地都市更新事業計畫案",
+      "verified_on": "2026-11-13",
+      "reason": "The family was reunified through the correction ledger on 2026-11-13 (confirm_merge, the 文山區-萬隆段二小段-519地號等23筆 擬訂 with the 文山區-萬隆段二小段-623地號等1筆 carve-out). Discovery had resolved the national page on the former identity's cache (文山區-萬隆段二小段-519地號等23筆 -> view/153, title names the same unit); the current identity's cache was written before the merge and holds no link, and the alias union carries case ids and city milestones only (urtpe/links.py _merge_aliased_cache), so the link is recorded here as the gap-fill the override table exists for. Evidence: the view page's title above is the former identity's 擬訂 案名 verbatim.",
+      "verified_by": "the former identity's own cache (result.json twur fields and view.html, written by discovery on the pre-merge identity) read 2026-11-13, the same day the ledger merge was confirmed"
+    },
+    "萬華區-華江段三小段-274地號等1筆": {
+      "twur_view_id": "216",
+      "twur_url": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/216",
+      "portal_title": "擬訂臺北市萬華區華江段三小段215-2地號等22筆土地都市更新事業計畫案",
+      "verified_on": "2026-11-13",
+      "reason": "The family was reunified through the correction ledger on 2026-11-13 (confirm_merge, the 萬華區-華江段三小段-215-2地號等22筆 擬訂 with the 萬華區-華江段三小段-274地號等1筆 carve-out). Discovery had resolved the national page on the former identity's cache (萬華區-華江段三小段-215-2地號等22筆 -> view/216, title names the same unit); the current identity's cache was written before the merge and holds no link, and the alias union carries case ids and city milestones only (urtpe/links.py _merge_aliased_cache), so the link is recorded here as the gap-fill the override table exists for. Evidence: the view page's title above is the former identity's 擬訂 案名 verbatim.",
+      "verified_by": "the former identity's own cache (result.json twur fields and view.html, written by discovery on the pre-merge identity) read 2026-11-13, the same day the ledger merge was confirmed"
     }
   }
 }

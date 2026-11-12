@@ -131,6 +131,12 @@ main { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - 58px); 
 }
 #list .item:hover { background: var(--tint); }
 #list .item.active { background: var(--tint-strong); }
+/* viewer-url-writeback-keyboard: a focusable item with no visible focus
+   indicator fails the reader it was fixed for. */
+#list .item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 #list .item .pid { font-size: 13px; font-weight: 600; }
 #list .item .cnt { font-size: 11px; color: var(--muted); }
 .empty-item { color: var(--muted); text-align: center; padding: 40px 10px; font-size: 13px; }

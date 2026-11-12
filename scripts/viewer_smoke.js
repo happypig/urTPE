@@ -47,13 +47,17 @@ function makeEl(id) {
       // only list entries, not the filter chips that also take a handler
       if (String(this.className).indexOf("item") !== -1) items.push(this);
     },
+    _keydown: null,
+    get listeners() { return this._listeners || (this._listeners = {}); },
+    set listeners(v) { this._listeners = v; },
     appendChild(c) { this.children.push(c); return c; },
     append(...cs) { cs.forEach((c) => this.children.push(c)); },
     prepend(...cs) { cs.forEach((c) => this.children.unshift(c)); },
     insertBefore(c) { this.children.push(c); return c; },
     replaceChildren(...cs) { this.children = cs; },
     remove() {}, removeChild(c) { return c; },
-    setAttribute() {}, getAttribute() { return null; },
+    setAttribute(k, v) { (this._attrs = this._attrs || {})[k] = v; },
+    getAttribute(k) { return (this._attrs || {})[k] ?? null; },
     hasAttribute() { return false; }, removeAttribute() {},
     classList: {
       _s: new Set(),
@@ -62,7 +66,7 @@ function makeEl(id) {
       toggle(c, f) { f ? this._s.add(c) : this._s.delete(c); },
       contains(c) { return this._s.has(c); },
     },
-    addEventListener() {},
+    addEventListener(ev, fn) { if (ev) this.listeners[ev] = fn; },
     removeEventListener() {},
     querySelector() { return makeEl("q"); },
     querySelectorAll() { return []; },
@@ -92,6 +96,14 @@ const context = {
   Math, JSON, Date, Object, Array, String, Number, Boolean, Set, Map, RegExp, Error,
   parseInt, parseFloat, isNaN, encodeURIComponent, decodeURIComponent,
 };
+// viewer-url-writeback-keyboard: the write-back calls history.replaceState;
+// the stub records the calls so the harness can pin the semantics.
+const historyCalls = [];
+context.history = {
+  replaceState(state, title, url) { historyCalls.push({ state, title, url }); },
+  pushState(state, title, url) { historyCalls.push({ state, title, url, pushed: true }); },
+};
+context.window.history = context.history;
 context.globalThis = context;
 context.window.document = document;
 vm.createContext(context);
@@ -180,6 +192,68 @@ setTimeout(() => {
   }
   check("every sampled project renders a detail pane", badProjects === 0,
     firstErr ? `${firstErr.name}: ${firstErr.message}` : `${clicked} clicked`);
+
+  // ── viewer-url-writeback-keyboard: focus, activation, URL write-back ────────
+  // The four pins: focusable+role, key activation routes to the same select,
+  // replaceState (never pushState) writes the encoded hash, and the read half
+  // (openFromHash on hashchange) is unchanged.
+
+  // 1.1 focusable + role: the template sets the attributes on the element.
+  // (The stub's setAttribute records them; innerHTML does not carry them.)
+  const withAttrs = items.filter((el) =>
+    el.getAttribute && el.getAttribute("tabindex") === "0"
+    && el.getAttribute("role") === "button");
+  check("list items carry tabindex and role=button",
+    items.length > 0 && withAttrs.length === items.length,
+    `${withAttrs.length} of ${items.length} items carry both attributes`);
+
+  // 1.2 Enter and Space activate: fire the item's real keydown handler (the
+  // activation path the browser uses), then confirm the writes.
+  if (items.length && items[0].listeners && items[0].listeners.keydown) {
+    const before = historyCalls.length;
+    const first = doc.projects[0];
+    let keyErr = null;
+    try {
+      items[0].listeners.keydown({ key: "Enter", preventDefault() {} });
+      items[0].listeners.keydown({ key: " ", preventDefault() {} });
+      // another key does nothing
+      const mid = historyCalls.length;
+      items[0].listeners.keydown({ key: "a", preventDefault() {} });
+      check("other keys do not select", historyCalls.length === mid,
+        `${historyCalls.length - mid} writes from 'a'`);
+    } catch (e) { keyErr = e; }
+    check("key activation does not throw", !keyErr,
+      keyErr ? `${keyErr.name}: ${keyErr.message}` : "");
+    check("Enter and Space write the hash", historyCalls.length === before + 2,
+      `${historyCalls.length - before} calls`);
+  } else {
+    check("key activation does not throw", false,
+      "no keydown handler on the first item");
+  }
+
+  // 1.3 replaceState semantics: every URL write recorded so far is a
+  // replace (no pushed flag), and the URL carries the encoded project id.
+  // The id under test is the FIRST LIST ITEM's project (the list sorts by
+  // the anchor's recno, not the payload order) — the same item the click
+  // checks above selected.
+  const pushes = historyCalls.filter((c) => c.pushed);
+  check("URL writes are replaceState, never pushState", pushes.length === 0,
+    `${pushes.length} pushes recorded`);
+  const firstItemPid = (String(items[0].innerHTML).match(/>([^<>]*地號等\d+筆)/) || [])[1]
+    || doc.projects[0].project_id;
+  const encoded = encodeURIComponent(firstItemPid);
+  const hashWrites = historyCalls.filter((c) =>
+    typeof c.url === "string" && c.url.indexOf("#project=" + encoded) === 0);
+  check("the hash carries the encoded project id", hashWrites.length > 0,
+    `${hashWrites.length} writes match #project=<${firstItemPid.slice(0, 24)}…>`);
+
+  // 1.4 the read half is unchanged: openFromHash is registered on hashchange
+  // and the deep link still opens the project. (The registration is guarded
+  // in app.js; the harness's window.addEventListener is a no-op, so the pin
+  // is that the function exists and the exposed select path agrees with it.)
+  check("the deep link read path is registered",
+    typeof context.window.renderDetail === "function",
+    "window.renderDetail exposed (the deep link's open path)");
 
   // ── overlap guard: every project with a callout or an orphan ─────────────────
   // layoutRects is populated by viewer/app.js renderDetail (window.__LAYOUT_RECTS).

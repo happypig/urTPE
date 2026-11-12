@@ -906,12 +906,41 @@ function init() {
         ? ` · 基地面積 <span style="color:${areaStyle.color};font-weight:${areaStyle.fontWeight}">${escapeHtml(area)}</span>`
         : area ? ` · 基地面積 ${escapeHtml(area)}` : "";
       const orphanCount = ((p.links || {}).orphan_nodes || []).length;
+      // viewer-url-writeback-keyboard: the item is focusable and keyboard-
+      // activatable (Enter/Space route to the same select as the click), and
+      // the selection is written to the URL so a reader can copy it out.
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("role", "button");
       el.innerHTML = `<div class="pid"><span class="chip" style="background:${districtColor(p.district)}"></span>${escapeHtml(p.project_id)}${stageChip(p)}${deadEndChip(p)}</div>
         <div class="cnt">${p.member_recnos.length}${orphanCount ? `(+${orphanCount})` : ""} 筆 · ${escapeHtml(p.implementer)}${areaHtml}</div>`;
-      el.onclick = () => { activePid = p.project_id; renderList(); renderDetail(p); };
+      el.onclick = () => selectItem(p);
+      el.addEventListener("keydown", (ev) => {
+        // Enter and Space activate, exactly as a click does (role="button"
+        // semantics). Other keys do nothing.
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          selectItem(p);
+        }
+      });
       list.appendChild(el);
     });
   }
+
+  // viewer-url-writeback-keyboard: one select path for click, Enter and
+  // Space. The write is a replaceState — a selection is not a page view; a
+  // push per click would drown the back button. Exposed for the smoke
+  // harness so it can pin the key-activation and write semantics.
+  function selectItem(p) {
+    activePid = p.project_id;
+    renderList();
+    renderDetail(p);
+    try {
+      (typeof context !== "undefined" && context.history
+        ? context.history : window.history).replaceState(
+          null, "", "#project=" + encodeURIComponent(p.project_id));
+    } catch (e) { /* the smoke harness's history is a stub; selection stands */ }
+  }
+  if (typeof window !== "undefined") window.__selectItem = selectItem;
 
   function renderDetail(p) {
     const detail = document.getElementById("detail");
@@ -1621,8 +1650,10 @@ function init() {
   renderList();
 
   // Deep link: index.html#project=<project_id> opens that project's graph.
-  // The policy dashboard (dashboard.html) links its table rows here. Read-only:
-  // clicking an item in the list does not rewrite the hash.
+  // The policy dashboard (dashboard.html) links its table rows here. Since
+  // viewer-url-writeback-keyboard (2026-11-12), selecting an item — by click
+  // or by keyboard — ALSO writes the hash (replaceState), so the URL is
+  // shareable both ways: the dashboard writes, the reader's selection writes.
   function openFromHash() {
     let pid = "";
     try { pid = new URLSearchParams(location.hash.replace(/^#/, "")).get("project") || ""; }

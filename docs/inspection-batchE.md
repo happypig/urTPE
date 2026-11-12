@@ -21,9 +21,10 @@ the 河堤399 merge.
 pipeline defect independent of the UI work. E2 and E3 are viewer work that
 shares one harness upgrade. E4/E7 are openspec changes (spec scenarios and a
 payload field change); E5/E6/E8/E9/E11/E12 are direct fixes at named sites.
-E10 opens only after its sweep probe measures the gap; E13 is the existing
-sweep, phase-gated. The batch keeps them separate so one change's review
-never blocks the others.
+All decisions are made (2026-11-12, the user) — the decision table records
+them; the changes open per the standing rule. E10's sweep probe and E13's
+phase-1 probe run before (or alongside) the change work. The batch keeps the
+items separate so one change's review never blocks the others.
 
 ---
 
@@ -227,10 +228,27 @@ NOT attach by stage+date matching alone. Two counter-examples name the rule:
   not registered by view/766 (`10611281` is), and its 案名 (變更…) differs
   from the title (擬訂…). **Under the rule, node 433 loses the badge.**
 
-**The proposed predicate** — a node carries 國 when its anchored case is in
-`view_verified_case_ids` (the view page's own 相關連結 registration, 2b) **or**
-the node's 案名 equals the project's `twur_name` (the view page names the
-project with that title; the 擬訂 first-plan node carries it, 2a):
+**Where the change lands — decided 2026-11-12 (user): the pipeline emits the
+resolved binding.** The rule computes once, at graph build (`urtpe/graph.py`),
+and the payload carries the result per node: a node whose case is in
+`view_verified_case_ids`, or whose 案名 equals the project's `twur_name`, or
+which qualifies through the 擬訂 section+parcel fallback (below), carries
+`national_badges: true` (name open — the binding labels could ride instead,
+but the badge is boolean at render). The viewer reads the field and renders
+`getNodeMilestoneBadges` from it; `bindNationalLabels` /
+`nationalLabelKey` (`viewer/app.js:149-172`, `:25-35`) retire — the
+stage+date matcher is gone, not re-implemented client-side. Cost measured:
+one boolean on 1,444 nodes ≈ 16 KB on a 9.3 MB payload. The rule living in
+one place means the pipeline's tests pin it (the six-pin shape of E1, not
+the viewer-only alternative).
+
+**The name route's fallback (decided 2026-11-12, user): 嚴格 + 擬訂區段後備.**
+The exact-name route covers the 擬訂 事業計畫 node (大安590 node 1257). The
+權利變換 擬訂 node (node 884, 案名 differing from `twur_name` by one word)
+keeps its badge through a **section+parcel fallback**: a 擬訂 node whose
+(section, first-parcel) matches the `twur_name`'s parses as the same unit.
+This is anchored on the name's own land core, not on dates — it is not the
+stage+date binding the rule replaces.
 
 | Population (over the 680-project payload, 2026-11-12) | Count |
 | --- | --- |
@@ -240,28 +258,17 @@ project with that title; the 擬訂 first-plan node carries it, 2a):
 | nodes that gain it | **0** — every name-route node is already bound today |
 | of the 735, current nodes | 259 (230 via a view-verified case, 29 via the name route) |
 
-**The measured cost is one-directional: the rule only removes.** No node gains
+The measured cost is one-directional: the rule only removes. No node gains
 a badge, because the 擬訂 node's dates always match the national 核定日期
 labels — the binding already finds them. What the rule buys is **precision**:
 a 國 badge means "the view page names this", not "a date matched".
 
-**The one decision the measurement surfaces.** The name route (2a) matches the
-擬訂 node exactly (大安590 node 1257's 案名 equals the title). The 權利變換
-擬訂 node (node 884) differs from the title by one word (權利變換計畫案 vs 事業
-計畫案) and would lose its badge under an exact-name rule. Its case `10205192`
-is not view-verified. If the user wants node 884 to keep 國, the name route
-needs a section+parcel fallback — which is close to the binding it replaces.
-The decision table below asks.
+**Spec surface.** `viewer-related-links` (the badge requirement's scenarios
+change; the archive guard needs the live body carried) and
+`official-link-discovery` (what `view_verified_case_ids` asserts; the
+`national_badges` emission joins the payload requirement).
 
-**Where the change lands.** The badge logic is `viewer/app.js:186-194`
-(`getNodeMilestoneBadges`); the binding it replaces is `bindNationalLabels`
-(`viewer/app.js:149-172`) plus `nationalLabelKey` (`viewer/app.js:25-35`). The
-spec surface is `viewer-related-links` (the badge requirement) and
-`official-link-discovery` (what `view_verified_case_ids` asserts). The payload
-needs no change: `twur_name` and `view_verified_case_ids` both exist.
-
-**Form:** openspec change (the badge requirement's scenarios change; the
-archive guard needs the live body carried).
+**Form:** openspec change (pipeline emission + viewer render + one re-emit).
 
 ---
 
@@ -292,32 +299,40 @@ is the fallback the D4a rule built, and it stays.
 `natCorroborated` stops driving the badge; `nationalHit` alone drives it) +
 the viewer test that pins both counts. The history-graph spec's
 "National-mapped event shows the 國 badge" scenario keeps its reading; the
-corroborated case loses its badge sentence.
+corroborated case loses its badge sentence. The same rule reaches the
+推動歷程 card (E6): a 使用核發日期 row keeps its per-row 國 only in the 2
+national-only projects — the 288 corroborated rows lose it there too
+(measured 2026-11-12: 290 rows carry 使用核發日期; 288 corroborated, 2
+national-only).
 
 ---
 
-## E6 — every 國 badge that names a page is a link to that page (user, 2026-11-12)
+## E6 — the 國 badges in the graph and on the 推動歷程 card become links; the card's badge follows the graph rule (user, 2026-11-12)
 
-**The user's rule (item 1).** A badge that names a portal must open it.
+**The user's rule (item 1, refined the same day).** Two badge sites become
+links, and the card's per-row 國 adopts the graph badge's rule:
 
-**The three badge sites, measured:**
-
-| Site | Today | Link? |
+| Site | Today | Change |
 | --- | --- | --- |
-| Node badges — 北 (`viewer/app.js:184`), 國 (`viewer/app.js:193`) | `<a>` with `href` | **works** |
-| Construction-event 國 (`viewer/app.js:1398`) | `<span title="國土署里程碑">` | **no link** |
-| Milestone-card badges — 推動歷程 (`viewer/app.js:697`, `:704`), 階段辦理過程 (`:715`–`:731`) | `<span>` | no link |
+| Node badges — 北 (`viewer/app.js:184`), 國 (`viewer/app.js:193`) | `<a>` with `href` | **works — unchanged** |
+| Construction-event 國 (`viewer/app.js:1398`) | `<span title="國土署里程碑">` | **becomes `<a href={twur}>`**, title `view/<id>` |
+| 推動歷程 card — summary badge (`viewer/app.js:697`) and per-row badge (`:704`) | `<span>` | **become `<a href={twur}>`** |
+| 階段辦理過程 card badges (`:715`–`:731`) | `<span>` | **stay spans** — they label the Taipei card's source, and the Taipei case link lives on the node's 北 badge |
 
-**The gap is the event badge** (and the cards, which are out of scope here —
-a card badge labels a whole portal, not one addressable page). Under E5's
-rule the event 國 appears only on a national-only date, and the URL is known:
-the project's `links.twur` (view/<id>). The change swaps the `<span>` for an
-`<a>` with `href={twur}` and the `title` becomes `view/<id>` — the same shape
-the node badge already uses (`viewer/app.js:191-193`).
+**The card badge's rule joins E4/E5's vocabulary.** The 推動歷程 card's
+per-row 國 renders on every national row today. Under the graph badge's rule
+the row badge fires on the rows the view page names by the same standard —
+practically: a 使用核發日期 row keeps its 國 only in the 2 national-only
+projects (E5's survivors); the other national rows (核定日期 labels, 申請
+labels) keep theirs, because the card *is* the national page's data and the
+badge there says "this row is the national page's". The rule that changes is
+the 使用核發日期 row: corroborated rows lose the badge, exactly as the event
+row does. The summary badge (the card's title row) stays — the whole card is
+the national page's content.
 
-**Form:** direct `fix:`, one template edit at `viewer/app.js:1398`, landed
-with E5 (same edit site). The `viewer_smoke.js` overlap check walks badges;
-the `<a>` keeps the same footprint.
+**Form:** direct `fix:`, two template sites (`viewer/app.js:1398`, `:697`,
+`:704`), landed with E5 (one rule, one vocabulary). The `viewer_smoke.js`
+overlap check walks badges; the `<a>` keeps the same footprint.
 
 ---
 
@@ -596,7 +611,7 @@ is E10's change). The re-emit after the crawl rides the usual path.
 | 2 | **E2** — URL write-back + keyboard, steps 1–4 only | **P1** | openspec change (viewer) + harness cases | — | The read half exists; this adds the write half and the focus path |
 | 3 | **E11** — drop 施工中 from the 相關連結 badges | **P1** | direct `fix:` + test | — | One value off one badge list; 463 badges |
 | 4 | **E12** — 無 joins `isDeadEnd`; the 無 orphans lose the dotted edge | **P1** | direct `fix:` + test | — | One entry in the dead set; 11 orphans |
-| 5 | **E4** — the 國 badge rules re-stated; the per-label route narrows to registration + name | **P1** | openspec change (`official-link-discovery` + `viewer-related-links`) + viewer | — | 451 badges move; the pipeline may need `twur_name` on more nodes |
+| 5 | **E4** — the 國 badge rules re-stated; the pipeline emits the resolved binding | **P1** | openspec change (`official-link-discovery` + `viewer-related-links`) + pipeline emission + viewer + re-emit | — | 451 badges move; `national_badges` per node (≈16 KB); the 擬訂 section+parcel fallback keeps node 884 |
 | 6 | **E5** — the construction-event 國 badge: national-only, not corroborated | **P1** | direct `fix:` + viewer test | E4 (one badge vocabulary) | 288 badges go, 2 stay |
 | 7 | **E6** — badge links: the event 國 becomes a link to view/<id> | **P2** | direct `fix:` | E5 | One element swap |
 | 8 | **E7** — the joined node's 北 badge covers both area cases; the callout splits by section | **P2** | openspec change (viewer + `case-record-join`) | — | 30 joined nodes, 28 area pairs |
@@ -616,10 +631,14 @@ is E10's change). The re-emit after the crawl rides the usual path.
   them first means E4–E9 review against a viewer that already reads the dead
   set the user expects.
 - **E4 before E5/E6.** Both reshape the badge vocabulary; E4 defines when a
-  國 exists on a node, E5 removes the event badge that contradicts it.
+  國 exists (emitted per node), E5/E6 remove and link the badges that
+  contradict it. E4's re-emit carries the new field; E5/E6's viewer edits
+  read it.
 - **E5 and E6 are one edit site.** The event badge at `viewer/app.js:1398`
   changes from `natCorroborated`-driven span to `nationalHit`-driven link in
-  the same template.
+  the same template; the 推動歷程 card's badges (`:697`, `:704`) join the
+  same edit, and its 使用核發日期 rows adopt E5's rule (288 corroborated
+  rows lose the badge there too).
 - **E7 → E8 → E9 are one review unit** with three separable edits. E9 is
   independent and can land any time, but reviewing the callout three times
   costs more than reviewing it once.
@@ -633,20 +652,30 @@ is E10's change). The re-emit after the crawl rides the usual path.
 - **E3 last, with the dashboard in mind.** The windowing helper is written
   once for both lists.
 
-## Decisions waiting on the user
+## Decisions made (2026-11-12, user)
 
 | Entry | Decision | Blocks |
 | --- | --- | --- |
-| **E1** | Open the change? The six-pin test group is specified (§11.3) and re-verified. The fix is one `NFKC` call at the cleansing boundary plus the tests | E1 |
-| **E2** | Open the change with scope = steps 1–4 (no windowing, no debounce)? | E2 |
-| **E4** | Confirm the narrowed 國 rule: case-registered OR exact-`twur_name` name; the 451 stage+date-bound badges go. Confirm with it whether the name route covers the 權利變換 擬訂 node (大安590 node 884) — its 案名 differs from `twur_name` by one word | E4 |
-| **E5** | Confirm: the 使照 event keeps 國 only when the city case has no 使照 and the view does (288 go, 2 stay)? | E5 |
-| **E7** | Confirm the joined callout shows one box per section, with per-section diffs — and whether the merged 基地面積 rows stay or go | E7 |
-| **E10** | Confirm the sibling-page sweep (one request per twur-bearing project) to size the gap before the change opens? | E10 |
-| **E11** | Scope check: the user wrote [已施工]; the payload's value is 施工中. Also — does 已完工 (5 cases) stay badged in 相關連結? | E11 |
-| **E13** | Confirm the three-phase plan and tonight's phase-1 probe (`--max-projects 10` on the 57)? | E13 |
+| **E4** | **嚴格 + 擬訂區段後備** — the 國 rule: case-registered OR exact-`twur_name` OR a 擬訂 node whose (section, first-parcel) matches the title's land core. The 451 stage+date-bound badges go; node 884 (大安590) keeps its badge through the fallback. **The pipeline emits the resolved binding** (`national_badges` per node) so the rule lives in one place and the pipeline tests pin it | E4 (opens) |
+| **E5** | **同意：national-only.** The 使照 event's 國 fires only when the city has no 使照 and the view does (288 go, 2 stay) | E5 |
+| **E6** | **Graph event 國 + 推動歷程 card badges become links** (to view/<id>); the card's per-row 國 follows the same rule as the graph badge; the 階段辦理過程 card badges stay spans | E6 |
+| **E7** | **在負載中按案例發出** — the payload carries implementation keyed by case id on joined nodes; the viewer renders one box per section, diffs compared within a section | E7 (opens) |
+| **E10** | **同意：先探測** — the one-request-per-project sibling sweep sizes the gap before the change opens | E10 |
+| **E1** | **立即開啟變更** — the NFKC change opens now | E1 (opens) |
+| **E2** | **開啟，步驟 1–4** — the Part 1 change opens with URL write-back + keyboard, no windowing/debounce | E2 (opens) |
+| **E3** | **在 E2 之後開啟** — the windowed list follows E2's harness cases | E3 |
+| **E8** | **徽章 + 標註** — the [A區]/[B區] label renders beside the 北 badge AND on the callout section headers | E8 |
+| **E9** | **同意：無換行，與 E7/E8 一起** — the 160 px cap goes; the gutter takes the widest box; the D2 wrap-height model retires; lands with E7/E8 as one review unit | E9 |
+| **E11** | **移除兩者：施工中 + 已完工** — the 相關連結 badge names approval states only (施工中 463, 已完工 5 go; 審查中/dead states stay) | E11 |
+| **E12** | **同意：無加入死集合** — `isDeadEnd` gains 無 (11 orphans lose the dotted edge); the pipeline's TERMINAL/_DEAD sets stay unchanged | E12 |
+| **E13** | **同意：今晚探測** — phase-1 runs tonight (`--max-projects 10` on the 57, paced 180 s) | E13 (probe opens) |
 
-One change opens per the user's word — a recommended option is not a decision.
+## Decisions waiting on the user
+
+None — every open question in this batch was answered on 2026-11-12. The
+changes open on the user's word, per the standing rule; the table above
+records which are cleared to open.
+
 `openspec list` before proposing: another session may already have opened one.
 
 ## Cross-references

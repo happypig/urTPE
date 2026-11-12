@@ -571,7 +571,15 @@ overlap checks count dotted edges; the fixture gains a 無 orphan.
 
 ---
 
-## E13 — the national re-crawl, under the WAF cap (user, item 9)
+## E13 — the national re-crawl, under the WAF cap (user, item 9) — **PHASE 1 DONE 2026-11-13: temperate; phases 2–3 are the nightly sweep**
+
+Phase-1 result (2026-11-13): the sweep's own `--max-projects 10` ran clean —
+10 processed, **0 failed, 0 WAF rejections**, 4 skipped as recently probed.
+The WAF's temper at the sweep's pacing holds. Phases 2–3 (the 53 twur-less
+nightly; then the 514 unindexed view ids) are the SAME command run nightly
+until the set stops moving — no code change, no openspec change. The
+re-emit after each night's sweep rides the usual path (`--from-js`), and
+`check_deploy.py` after the push.
 
 **The state.** The national portal's crawl is WAF-capped; the corpus holds
 110 index entries and names 622 view ids. The last full sweep is the

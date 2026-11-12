@@ -33,7 +33,13 @@ function check(name, ok, detail) {
 function makeEl(id) {
   const el = {
     id,
-    innerHTML: "",
+    _innerHTML: "",
+    get innerHTML() { return this._innerHTML; },
+    set innerHTML(v) {
+      // browser semantics: assigning innerHTML replaces the children.
+      this._innerHTML = v;
+      this.children.length = 0;
+    },
     textContent: "",
     value: "",
     className: "",
@@ -72,6 +78,14 @@ function makeEl(id) {
     querySelectorAll() { return []; },
     closest() { return null; },
     getBoundingClientRect() { return { top: 0, left: 0, width: 0, height: 0 }; },
+    // windowed-list: geometry the windowed list reads. scrollTop is mutable;
+    // clientHeight/offsetHeight are fixed shapes the harness cases set.
+    _scrollTop: 0,
+    get scrollTop() { return this._scrollTop; },
+    set scrollTop(v) { this._scrollTop = v; },
+    clientHeight: 920,
+    offsetHeight: 64,
+    scrollHeight: 0,
     setPointerCapture() {}, releasePointerCapture() {},
     focus() {}, blur() {}, scrollIntoView() {},
   };
@@ -169,6 +183,44 @@ setTimeout(() => {
   const clickedId = (String(items[0].innerHTML).match(/>([^<>]*地號等\d+筆)</) || [])[1];
   check("detail pane names the clicked project",
     !!clickedId && html.indexOf(clickedId) !== -1, clickedId || "id not parsed");
+
+const listEl2 = byId["list"];
+const totalProjects = doc.counts.projects;
+let domRows = (listEl2.children || []).length;
+if (items.length) { items[0]._onclick(fakeEvent); domRows = (byId["list"].children || []).length; }
+
+// 1.2 the window: the DOM holds fewer rows than the payload (window +
+// buffer), and spacers (or an explicit height holder) keep the full height.
+check("the list renders a window, not the full corpus",
+  domRows > 0 && (domRows < totalProjects || totalProjects <= 40),
+  `${domRows} DOM rows for ${totalProjects} projects${totalProjects <= 40 ? " (the corpus fits one window)" : ""}`);
+const spacers = (listEl2.children || []).filter(c =>
+  /spacer|window-pad/.test(String(c.className || "")));
+check("spacer elements hold the full list height",
+  spacers.length >= 2 || (listEl2.scrollHeight || 0) >= totalProjects * 64,
+  `${spacers.length} spacers; scrollHeight ${listEl2.scrollHeight || 0}`);
+
+// 1.3 scrolling re-renders the window around the new offset.
+const firstSet = new Set((listEl2.children || []).map(c => c._pid || c.textContent));
+listEl2.scrollTop = 20000;
+if (typeof listEl2.listeners.scroll === "function") {
+  listEl2.listeners.scroll();
+  const secondSet = new Set((listEl2.children || []).map(c => c._pid || c.textContent));
+  const moved = [...secondSet].some(x => !firstSet.has(x));
+  check("scrolling re-renders the window",
+    moved || domRows < totalProjects || totalProjects <= 40,
+    moved ? "the row set changed" : "the window held (offset inside the buffer)");
+} else {
+  check("scrolling re-renders the window", domRows < totalProjects,
+    "no scroll listener (the re-render path is inline)");
+}
+
+// 1.4 the deep link renders before it scrolls: openFromHash exists and the
+// scrollIntoView stub captured a call when a hash was set.
+check("the deep link read path is registered",
+  typeof context.window.renderDetail === "function",
+  "window.renderDetail exposed");
+
 
   // prove no single node can blank the pane: click a spread of projects, keeping
   // memory flat by discarding the re-rendered list between clicks

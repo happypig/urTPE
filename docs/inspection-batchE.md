@@ -153,7 +153,7 @@ gains its write half; the keyboard requirement is new).
 
 ---
 
-## E3 — the windowed list (Part 1's successor; harness first)
+## E3 — the windowed list (Part 1's successor; harness first) — **DONE 2026-11-13** (openspec: windowed-list; 25 DOM rows for 675 projects, spacers hold the height, the probe falls through to the select path)
 
 **The measurement** (the notes' §6, method held on the 680-row payload
 2026-11-12):

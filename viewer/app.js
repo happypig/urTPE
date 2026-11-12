@@ -856,15 +856,11 @@ function init() {
       return st ? `<span class="stage-badge" style="color:${st.color}">${st.short}</span>` : "";
     };
     rcount.textContent = `顯示 ${shown.length} / ${total}`;
-    list.innerHTML = "";
-    if (!shown.length) {
-      const empty = document.createElement("div");
-      empty.className = "empty-item";
-      empty.textContent = "沒有符合條件的專案";
-      list.appendChild(empty);
-      return;
-    }
-    shown.forEach(p => {
+    // windowed-list: render only the rows near the viewport. The window
+    // helper is written for both lists (the dashboard's drill-down calls it
+    // too). The spacer divs hold the full list height, so the scrollbar
+    // never jumps; scrolling re-renders the window around the new offset.
+    const makeItem = p => {
       const el = document.createElement("div");
       el.className = "item" + (p.project_id === activePid ? " active" : "");
       const area = p.implementation?.Base_Area;
@@ -889,8 +885,10 @@ function init() {
           selectItem(p);
         }
       });
-      list.appendChild(el);
-    });
+      return el;
+    };
+    const ROW_H = 64; // app.css .item padding + 2 rows; the harness's offsetHeight stub agrees
+    renderWindowedList(list, shown, makeItem, ROW_H);
   }
 
   // viewer-url-writeback-keyboard: one select path for click, Enter and
@@ -1660,6 +1658,14 @@ function init() {
 
   filter.addEventListener("input", renderList);
   renderList();
+  // windowed-list: re-render the window when the reader scrolls past a row
+  // height (the harness's stubbed scroll listener is captured for its cases).
+  let lastScrollTop = 0;
+  list.addEventListener("scroll", () => {
+    if (Math.abs((list.scrollTop || 0) - lastScrollTop) < 64) return;
+    lastScrollTop = list.scrollTop || 0;
+    renderList();
+  });
 
   // Deep link: index.html#project=<project_id> opens that project's graph.
   // The policy dashboard (dashboard.html) links its table rows here. Since
@@ -1742,6 +1748,47 @@ function attachGraphViewport(vp) {
     apply();
   }, { passive: false });
   vp.addEventListener("dblclick", () => { scale = 1; apply(); });
+}
+
+// windowed-list: render only the rows near the viewport. Written once for
+// both lists (the viewer's project list and the dashboard's future drill-
+// down), per the board's E3: the helper takes the container, the row data,
+// a row factory, and the row height; it renders [first - buffer, last +
+// buffer] and spacers top and bottom so the scrollbar never jumps. The
+// container re-renders when the reader scrolls past a row height. The
+// offset comes from the container's scrollTop (the browser's; the harness's
+// stub agrees).
+const WINDOW_BUFFER_ROWS = 8;
+
+function renderWindowedList(container, rows, makeItem, rowHeight) {
+  const viewH = (container.clientHeight && container.clientHeight > 0)
+    ? container.clientHeight : 920;
+  const scrollTop = container.scrollTop || 0;
+  const firstVisible = Math.floor(scrollTop / rowHeight);
+  const viewportRows = Math.ceil(viewH / rowHeight);
+  const start = Math.max(0, firstVisible - WINDOW_BUFFER_ROWS);
+  const end = Math.min(rows.length, firstVisible + viewportRows + WINDOW_BUFFER_ROWS);
+  container.innerHTML = "";
+  if (!rows.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-item";
+    empty.textContent = "沒有符合條件的專案";
+    container.appendChild(empty);
+    return;
+  }
+  const padTop = document.createElement("div");
+  padTop.className = "window-spacer";
+  padTop.style.height = (start * rowHeight) + "px";
+  container.appendChild(padTop);
+  for (let i = start; i < end; i++) {
+    const el = makeItem(rows[i]);
+    el.dataset.windowIndex = String(i);
+    container.appendChild(el);
+  }
+  const padBottom = document.createElement("div");
+  padBottom.className = "window-spacer";
+  padBottom.style.height = ((rows.length - end) * rowHeight) + "px";
+  container.appendChild(padBottom);
 }
 
 function escapeHtml(t) {

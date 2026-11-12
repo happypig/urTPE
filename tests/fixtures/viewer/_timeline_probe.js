@@ -103,8 +103,19 @@ setTimeout(() => {
   const detailEl = document.getElementById("detail");
   const PID_PART = process.argv[3] || "";
   const listChildren = byId["list"].children || [];
-  const target = listChildren.find(c => c.innerHTML.includes(PID_PART));
-  if (target) { target._onclick({ stopPropagation(){}, preventDefault(){}, target:{} }); }
+  const target = listChildren.find(c =>
+    typeof c._onclick === "function" && c.innerHTML.includes(PID_PART));
+  if (target && typeof target._onclick === "function") { target._onclick({ stopPropagation(){}, preventDefault(){}, target:{} }); }
+  else {
+    // windowed-list: the target row may sit outside the rendered window (or
+    // no pid was given — select the first project), and the spacer divs carry
+    // no onclick. The exposed select path renders the detail directly — the
+    // same path the deep link uses.
+    const proj = PID_PART
+      ? (doc.projects || []).find(pp => pp.project_id.includes(PID_PART))
+      : (doc.projects || [])[0];
+    if (proj && context.window.__selectItem) context.window.__selectItem(proj);
+  }
   const svgHtml = detailEl.innerHTML || "";
   // Rows live in separate SVG layers; document order is layer order, not
   // timeline order. The y coordinate (transform translate y) IS the timeline

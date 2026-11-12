@@ -128,7 +128,12 @@ main { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - 58px); 
   border-radius: 8px;
   cursor: pointer;
   border-bottom: 1px solid var(--bg);
+  /* windowed-list: the row height the window math uses (ROW_H = 64).
+     Changing the padding changes the math. */
+  min-height: 64px;
+  box-sizing: border-box;
 }
+#list .window-spacer { width: 100%; }
 #list .item:hover { background: var(--tint); }
 #list .item.active { background: var(--tint-strong); }
 /* viewer-url-writeback-keyboard: a focusable item with no visible focus

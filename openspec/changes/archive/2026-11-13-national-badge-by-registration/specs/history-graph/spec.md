@@ -77,3 +77,53 @@ should mean "the view page names this".
 
 - **WHEN** the payload is reloaded with `--from-js` and re-emitted
 - **THEN** every node's `national_badges` is unchanged
+
+The former binding scenarios are retired with their rule; each names what
+replaces it:
+
+#### Scenario: 國 binds to the node with matching stage+track
+
+- **WHEN** a national label names a stage+track that exactly one node carries
+- **THEN** the label no longer grants the badge by stage+track alone — the
+  pipeline resolves the badge by registration, exact name or the 擬訂
+  fallback (national-badge-by-registration)
+
+#### Scenario: A single-candidate label binds whatever its date
+
+- **WHEN** a label's single stage+track candidate differs from the label's
+  date by more than 1 day
+- **THEN** the node's badge comes from the resolved field, not from the
+  single-candidate rule
+
+#### Scenario: 國 binds by date tie-break
+
+- **WHEN** two nodes share the label's stage+track and the label's date
+  equals one node's date
+- **THEN** the date no longer decides the badge — the resolved field does
+
+#### Scenario: The ±1-day window decides among several candidates
+
+- **WHEN** the label's date falls within ±1 day of one node's date
+- **THEN** the window no longer grants the badge
+
+#### Scenario: A tie that ±1 day cannot break binds nothing
+
+- **WHEN** several nodes share the label's date
+- **THEN** no badge is granted by the tie — the resolved field decides
+
+#### Scenario: view_verified_case_ids still grants 國
+
+- **WHEN** `links.view_verified_case_ids` lists the node's anchored case
+- **THEN** the node carries the badge (registration is the first route)
+
+#### Scenario: 現況 alone no longer grants 國
+
+- **WHEN** a node is 現況 but its case is not view-verified and no other
+  route names it
+- **THEN** it carries no 國 badge
+
+#### Scenario: application dates and 使用核發日期 bind nothing
+
+- **WHEN** a national label 使用核發日期 or 事業計畫申請日期 is present
+- **THEN** it grants no badge — labels grant nothing at all now; the
+  resolved field does

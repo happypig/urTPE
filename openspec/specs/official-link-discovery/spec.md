@@ -232,6 +232,14 @@ source project) so a rejection is auditable offline, round-tripped through a
 `--from-js` reload like `superseded_by`; a result without either field emits
 without the key.
 
+The emission SHALL also resolve the 國 badge per node and carry the result on
+the node itself (national-badge-by-registration, user decision 2026-11-12): a
+recno node carries `national_badges: true` when the national view page names
+it — by case registration (`view_verified_case_ids`), by exact name (the
+node's 案名 equals `links.twur_name`), or through the 擬訂 section+parcel
+fallback — and never by a national label's date matching the node's date. A
+project whose `links.twur` is empty emits no `national_badges` on any node.
+
 #### Scenario: Link field present on projects with a resolution
 - **WHEN** projects.json is generated after discovery
 - **THEN** each resolved project carries a `links` object with its twur URL and any city case URLs
@@ -263,6 +271,12 @@ without the key.
 #### Scenario: A legacy cache without the fields
 - **WHEN** a cache predates the fields
 - **THEN** the payload emits without the keys and nothing fails
+
+#### Scenario: The resolved 國 binding rides the node
+- **WHEN** the graph document is built for a project with a national page
+- **THEN** each node the view page names (registration, exact name, or the
+  擬訂 fallback) carries `national_badges: true`
+- **AND** no other node carries the field
 
 ### Requirement: Fetch failures never abort the crawl
 

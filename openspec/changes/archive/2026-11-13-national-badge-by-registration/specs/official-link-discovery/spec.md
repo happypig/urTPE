@@ -45,6 +45,15 @@ project whose `links.twur` is empty emits no `national_badges` on any node.
 - **WHEN** a project's cache records `adopted_from_view: {"10202065": "中山區-中山段一小段-254地號等13筆"}`
 - **THEN** the emitted project's `links.adopted_from_view` carries that entry
 
+#### Scenario: The rejection record survives a reload
+- **WHEN** a payload carrying `links.view_rejected` is reloaded with `--from-js` and
+  emitted again
+- **THEN** the second payload carries the same `links.view_rejected`
+
+#### Scenario: A legacy cache without the fields
+- **WHEN** a cache predates the fields
+- **THEN** the payload emits without the keys and nothing fails
+
 #### Scenario: The resolved 國 binding rides the node
 - **WHEN** the graph document is built for a project with a national page
 - **THEN** each node the view page names (registration, exact name, or the

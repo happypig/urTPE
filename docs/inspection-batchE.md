@@ -338,7 +338,7 @@ overlap check walks badges; the `<a>` keeps the same footprint.
 
 ---
 
-## E7 — the joined node: one 北 badge over both area cases; the callout splits by section (user, 2026-11-12)
+## E7 — the joined node: one 北 badge over both area cases; the callout splits by section (user, 2026-11-12) — **DONE 2026-11-13** (openspec: joined-node-section-callouts; 30 nodes carry implementation_by_case)
 
 **The shape.** 30 nodes carry 2+ city case ids; 28 of them are area splits
 (the city filed -A區 and -B區 cases for one approval, and the pipeline binds
@@ -401,7 +401,7 @@ re-emit.
 
 ---
 
-## E8 — the area label beside the badge and the callout (user, 2026-11-12)
+## E8 — the area label beside the badge and the callout (user, 2026-11-12) — **DONE 2026-11-13** (the [A區] label renders beside the badge and on the callout section headers)
 
 **The user's rule (4d).** Show `[A區]` / `[B區]` next to the corresponding 北
 badge, or next to the callout section when there is one.
@@ -418,7 +418,7 @@ The tuple measurement above ((A,B) 20, (北,南) 5, …) is the test fixture set
 
 ---
 
-## E9 — callout values never wrap; the gutter grows to the content (user, 2026-11-12)
+## E9 — callout values never wrap; the gutter grows to the content (user, 2026-11-12) — **DONE 2026-11-13** (CALLOUT_GUTTER_CAP and the D2 wrap model retired; white-space: nowrap)
 
 **The user's rule (5).** A callout row is one line, however long the value.
 The box width follows the content; no clamping to the gutter cap.

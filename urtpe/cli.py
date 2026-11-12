@@ -204,6 +204,10 @@ def _load_projects_from_js(js_path: str) -> tuple[list[Project], dict]:
             # lossless even without --links (attach overwrites when it runs)
             if node.get("implementation"):
                 rec.implementation = dict(node["implementation"])
+            # joined-node-section-callouts (2026-11-13): the per-case
+            # snapshots ride the reload (the D6 contract).
+            if node.get("implementation_by_case"):
+                rec.implementation_by_case = dict(node["implementation_by_case"])
             # D14 (inspection-batchD): the §10 per-track sub-stages and the
             # recovery provenance were dropped by the loader, so every rebuild
             # lost them (533 sub-stage nodes, 4 recovery nodes). They are read

@@ -4155,13 +4155,23 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
             # this record anchors to may carry its own third.ashx payload, so
             # per-record callouts can show plan-revision drift. Records whose
             # case has an empty/absent payload carry nothing.
+            # joined-node-section-callouts (2026-11-13): a joined node (2+
+            # anchored cases) emits `implementation_by_case` — the per-case
+            # snapshots keyed by case id — so the callout can show one box per
+            # section. The first snapshot stays in `implementation` (the D5
+            # pick; existing consumers unchanged). The old loop took the FIRST
+            # case's payload and discarded the rest.
+            by_case = {}
             for cid in node_links["taipei"]:
                 payload = (getattr(disc, "implementation", None) or {}).get(cid)
                 if payload:
                     snapshot = dict(payload)
                     snapshot["case_id"] = cid
-                    member.implementation = snapshot
-                    break
+                    if not member.implementation:
+                        member.implementation = snapshot
+                    by_case[cid] = snapshot
+            if len(by_case) >= 2:
+                member.implementation_by_case = by_case
 
         anchored_case_ids = set()
         for member in project.members:

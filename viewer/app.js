@@ -2,8 +2,9 @@
 
 const W = 960, PAD = 60, COL_W = 130, NODE_ROW = 64, EVENT_ROW = 32;
 // Reserved callout gutter left of the leftmost track column. Width is set per
-// project (from the widest callout box) up to this cap; 0 when no callouts.
-const CALLOUT_GUTTER_CAP = 160;
+// project (from the widest callout box); 0 when no callouts. The former 160px
+// cap retired (joined-node-section-callouts E9, 2026-11-13): a callout row
+// never wraps — the gutter grows to the widest box.
 const CALLOUT_MIN_W = 140;
 const CALLOUT_PAD = 8;
 const CALLOUT_GAP = 2; // px between stacked callout boxes
@@ -122,10 +123,18 @@ function getNodeMilestoneBadges(node, project) {
   // name, or through the 擬訂 section+parcel fallback — resolved once at
   // graph build). The per-label stage+date matcher (bindNationalLabels /
   // nationalLabelKey) is retired: a date matching is not the portal naming.
+  // joined-node-section-callouts (2026-11-13): a joined node renders ONE 北
+  // badge PER anchored case, each linking its own page, with the case's area
+  // suffix label beside it ([A區] — parsed from the case name); a
+  // single-case node renders one badge and no label.
   const badges = [];
   const cases = (node.links || {}).taipei || [];
-  if (cases.length) {
-    badges.push(`<a class="node-milestone-badge taipei badge-link" href="https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cases[0]}" target="_blank" rel="noopener" title="案${cases[0]}">北</a>`);
+  const names = (project && project.links && project.links.candidate_names) || {};
+  for (const cid of cases) {
+    const cn = names[cid] || "";
+    const am = cn.match(/[-(（]\s*([A-E北南東西])區\s*[）)]?\s*$/) || cn.match(/[-(（]\s*([A-E北南東西])區(?=[^區]*$)/);
+    const label = am ? `[${am[1]}區]` : "";
+    badges.push(`<a class="node-milestone-badge taipei badge-link" href="https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cid}" target="_blank" rel="noopener" title="案${cid}${label}">北${label ? `<span class="badge-area">${escapeHtml(label)}</span>` : ""}</a>`);
   }
   const twur = project && project.links && project.links.twur;
   if (twur && node.national_badges) {
@@ -1107,19 +1116,46 @@ function init() {
     const callouts = [];
     let prevVals = null;
     let firstCarrier = true;
+    // joined-node-section-callouts E7 (user decision 2026-11-12): a joined
+    // node renders ONE BOX PER SECTION — the diff marker compares within a
+    // section across nodes, never across sections. Section identity comes
+    // from the case's area suffix ([A區]; a no-suffix case is its own
+    // section). prevVals is keyed per section.
+    const AREA_SUFFIX = /[-(（]\s*([A-E北南東西])區\s*[）)]?\s*$/;
+    const sectionOf = (n, impl) => {
+      const cid = impl.case_id || ((n.links || {}).taipei || [])[0] || "";
+      const nm = ((p.links || {}).candidate_names || {})[cid] || "";
+      const m = nm.match(AREA_SUFFIX);
+      return m ? m[1] + "區" : "";
+    };
     nodes.forEach(n => {
       if (!n.implementation) return;
-      const rows = buildImplCallout(n.implementation).map(r => ({
-        label: r.label,
-        value: r.value,
-        changed: !!(prevVals && prevVals[r.label] !== undefined &&
-                    normForCompare(r.label, prevVals[r.label]) !== normForCompare(r.label, r.value)),
-      }));
-      const anyChanged = rows.some(r => r.changed);
-      if (firstCarrier || anyChanged) callouts.push({ n, rows });
+      const byCase = n.implementation_by_case || null;
+      const sections = byCase
+        ? Object.entries(byCase).map(([cid, impl]) => {
+            const nm = ((p.links || {}).candidate_names || {})[cid] || "";
+            const am = nm.match(AREA_SUFFIX);
+            return { section: am ? am[1] + "區" : "", rows: buildImplCallout(impl) };
+          })
+        : [{ section: "", rows: buildImplCallout(n.implementation) }];
+      const prevSection = {};
+      let anyChanged = false;
+      const built = sections.map(sec => {
+        const rows = sec.rows.map(r => ({
+          label: r.label,
+          value: r.value,
+          changed: !!(prevVals && prevSection[sec.section] !== undefined
+                      && prevSection[sec.section][r.label] !== undefined &&
+                      normForCompare(r.label, prevSection[sec.section][r.label]) !== normForCompare(r.label, r.value)),
+        }));
+        if (rows.some(r => r.changed)) anyChanged = true;
+        prevSection[sec.section] = {};
+        rows.forEach(r => { prevSection[sec.section][r.label] = r.value; });
+        return { ...sec, rows };
+      });
+      if (firstCarrier || anyChanged) callouts.push({ n, sections: built, rows: built[0].rows });
       firstCarrier = false;
-      prevVals = {};
-      rows.forEach(r => { prevVals[r.label] = r.value; });
+      prevVals = built[0].rows.reduce((acc, r) => { acc[r.label] = r.value; return acc; }, {});
     });
 
     // §5.3.3 center the graph content horizontally. contentW is the graph's
@@ -1162,27 +1198,25 @@ function init() {
       const w = cjkWidth(head) + areaTxt.length * 11 + schedTxt.length * 6.5 + 14 + 12;
       return { x: q.x + 14, y: q.y - 30, w, h: 50 };
     };
-    // the box width: the widest row's label-at-natural-width + value, clamped.
-    // (fix-callout-wrap-height D2: cjkUnits, not the old cjkWidth×11 heuristic
-    // that over-counted ASCII and mis-sized mixed strings.)
+    // the box width: the widest row's label-at-natural-width + value.
+    // joined-node-section-callouts E9 (user decision 2026-11-12): NO cap — a
+    // callout row is one line whatever the value; the gutter takes the widest
+    // box and the SVG grows with it. The D2 wrap-height model retired: it
+    // existed to predict wrapping that no longer happens. Measured
+    // 2026-11-13 (675-payload): 1,426 callouts, 739 wrapped under the old
+    // cap, the widest value ~302 px.
     const implBoxW = (c) => {
-      const w = Math.max(...c.rows.map(r => 8 + cjkUnits(r.label) * 10 + 6 + cjkUnits(r.value) * 10));
-      return Math.max(CALLOUT_MIN_W, Math.min(w + CALLOUT_PAD, CALLOUT_GUTTER_CAP));
+      const sections = c.sections || [{ rows: c.rows }];
+      const w = Math.max(...sections.flatMap(sec =>
+        sec.rows.map(r => 8 + cjkUnits(r.label) * 10 + 6 + cjkUnits(r.value) * 10)));
+      return Math.max(CALLOUT_MIN_W, w + CALLOUT_PAD);
     };
-    // the value cell's available width: the clamped box minus padding,
-    // minus the label at its NATURAL width (the label cell must not shrink —
-    // shrinking it re-wraps values the height model did not count), minus gap.
-    const implValueAvailW = (c) =>
-      implBoxW(c) - 12 - cjkUnits(String(c.rows[0]?.label || "")) * 10 - 6;
-    const implValueLines = (value, avail) => {
-      const w = cjkUnits(value) * 10;
-      if (w <= avail) return 1;
-      return Math.min(2, Math.ceil(w / avail));
-    };
+    // one line per row, plus a section header per extra section.
     const implBoxH = (c) => {
-      const avail = implValueAvailW(c);
-      const lines = c.rows.reduce((acc, r) => acc + implValueLines(r.value, avail), 0);
-      return lines * 14 + 6;
+      const sections = c.sections || [{ rows: c.rows }];
+      const rows = sections.reduce((a, s) => a + s.rows.length, 0);
+      const headers = c.sections && c.sections.length > 1 ? c.sections.length * 16 : 0;
+      return rows * 14 + 6 + headers;
     };
 
     callouts.forEach(c => {
@@ -1396,12 +1430,18 @@ function init() {
     }
 
     // Per-record implementation callouts: render the pre-placed rects in the gutter.
+    // E7: a joined node's callout carries one section group per case, headed
+    // with the area suffix; sizing uses the widest section.
     callouts.forEach(c => {
       const r = c.rect;
       const np = pos[c.n.recno];
-      const rowsHtml = c.rows.map(row =>
+      const rowsHtml = c.sections.map(sec =>
+        (c.sections.length > 1
+          ? `<div class="impl-callout-section">[${escapeHtml(sec.section || "本區")}]</div>`
+          : "") +
+        sec.rows.map(row =>
         `<div class="impl-callout-row"><span>${escapeHtml(row.label)}</span><b class="${row.changed ? "callout-diff" : ""}" title="${escapeHtml(row.value)}">${escapeHtml(row.value)}</b></div>`
-      ).join("");
+      ).join("")).join("");
       // Route the leader horizontally at a y that clears every neighbour node's
       // label band across the gutter span; otherwise center on the box.
       const leadX1 = r.x + r.w, leadX2 = np.x - 7;

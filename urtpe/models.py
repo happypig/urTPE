@@ -71,6 +71,12 @@ class CleanRecord:
     # computed at graph build and threaded through --from-js reloads (the D6
     # contract: a field the loader drops is lost on the next rebuild).
     national_badges: bool = False
+    # joined-node-section-callouts (2026-11-13): the per-case implementation
+    # snapshots on a joined node (2+ anchored cases), keyed by case id. Never
+    # serialized into the TSVs.
+    implementation_by_case: dict = field(default_factory=dict)
+    # The per-record implementation snapshot (links.py attach); optional.
+    implementation: dict = field(default_factory=dict)
 
     def parcel_set(self) -> set[str]:
         s = set(self.parcels)

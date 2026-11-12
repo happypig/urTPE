@@ -357,6 +357,10 @@ def test_badge_tooltips_carry_ids():
 
 
 def test_callout_zone_row_and_selection():
+    """The callout keeps the 使用分區 row, the zone abbreviator, the
+    first-carrier selection and the leader. The 160 px gutter cap is retired
+    (joined-node-section-callouts E9): a callout row never wraps — the gutter
+    grows to the widest box."""
     js = _js()
     m = re.search(r"function buildImplCallout\s*\([^)]*\)\s*\{[\s\S]*?\n\}", js)
     assert m, "buildImplCallout not found"
@@ -364,56 +368,20 @@ def test_callout_zone_row_and_selection():
     assert "abbreviateZone" in js, "zone abbreviator must exist"
     assert "firstCarrier" in js, "callout selection must keep the first carrier"
     assert "callout-leader" in js, "callout must render a leader to its node"
-    assert "CALLOUT_GUTTER_CAP" in js, "callout gutter cap must be defined"
-    assert "lastBoxBottom" in js, "gutter sweep must track last box bottom"
+    assert "CALLOUT_GUTTER_CAP" not in js, "the 160 px gutter cap is retired"
+    assert "white-space: nowrap" in (APP_JS.parent / "app.css").read_text(encoding="utf-8"), (
+        "the callout row must not wrap (CSS nowrap)")
 
 
-def test_callout_box_height_counts_wrapped_values_not_row_strings():
-    """A wrapped value renders 2 lines, so the box must reserve 2 lines for it.
-
-    implBoxH sized every row at 1 line (value.length > 20 heuristic), but the
-    browser wraps by WIDTH, not length: 事業計畫及權利變換計畫 (11 chars) wraps at
-    a 160px box while a 21-char ASCII number does not. The box then cut the
-    value's second line (the bottom border rode over the text — 大同區-玉泉段二小段-452-2,
-    image 2026-11-10). The height must come from the same width model the box
-    width uses: implValueLines derives each row's line count from cjkUnits.
-    """
+def test_callout_sections_render_per_case():
+    """E7: a joined node's callout renders one section group per case, headed
+    with the area suffix; the sizing counts the headers and the widest
+    section; the diff comparison keys by section."""
     js = _js()
-    m = re.search(r"const implBoxH\s*=\s*\(c\)\s*=>\s*\{[\s\S]*?\n\s*\};", js)
-    assert m, "implBoxH not found"
-    body = m.group(0)
-    assert "String(r.value).length > 20" not in body, (
-        "implBoxH must not size rows by string length — the browser wraps by "
-        "width, so a long ASCII number stays on one line while a short CJK "
-        "value wraps (玉泉452-2: 11-char 實施方式 wrapped, box cut line 2)")
-    assert "implValueLines" in body, (
-        "implBoxH must derive each row's line count from implValueLines — the "
-        "shared width model, so the height matches the real wrap")
-    # the line divisor must match the CSS line-height (14px) plus the box's
-    # own padding, so the reserved height covers the rendered rows
-    assert re.search(r"\*\s*14", body), "line height must stay 14 (CSS line-height)"
-
-
-def test_callout_width_units_helper_exists_and_is_shared():
-    """One width model for the box width and the box height."""
-    js = _js()
-    assert re.search(r"const cjkUnits\s*=\s*\(s\)\s*=>", js) or \
-           re.search(r"function cjkUnits\s*\(", js), (
-        "a shared cjkUnits width helper must exist — implBoxW and implBoxH "
-        "must measure with the same model or the height disagrees with the "
-        "wrap the width model causes")
-    m = re.search(r"const implValueLines\s*=\s*\(value,\s*avail\)\s*=>\s*\{[\s\S]*?\n\s*\};", js)
-    assert m, "implValueLines not found"
-    assert "cjkUnits" in m.group(0), (
-        "the line counter must measure the value with the shared cjkUnits model")
-    # the label cell must not shrink, or the rendered wrap disagrees with the model
-    css = (APP_JS.parent / "app.css").read_text(encoding="utf-8")
-    mcss = re.search(r"\.impl-callout-row span \{[^}]*\}", css)
-    assert mcss and "flex-shrink" in mcss.group(0), (
-        "the label cell must carry flex-shrink: 0 — a shrinking label squeezes "
-        "the value cell below the model's width and re-wraps values the box "
-        "height did not reserve (玉成545)")
-
+    assert "impl-callout-section" in js, "the section header is missing"
+    assert "AREA_SUFFIX" in js, "the area-suffix parser is missing"
+    assert "implementation_by_case" in js, "the per-case snapshots are not read"
+    assert "prevSection" in js, "the diff comparison is not keyed by section"
 
 def test_list_stage_badge():
     js = _js()

@@ -100,6 +100,11 @@ def build_project_graph(project: Project, implementer: str, name: str, published
         impl_snapshot = getattr(r, "implementation", None)
         if impl_snapshot:
             node["implementation"] = impl_snapshot
+        # joined-node-section-callouts (2026-11-13): the per-case snapshots on
+        # a joined node (additive, 2+ anchored cases with payloads only)
+        impl_by_case = getattr(r, "implementation_by_case", None)
+        if impl_by_case:
+            node["implementation_by_case"] = impl_by_case
         # Recovery provenance (additive, recovered rows only — the flag-less
         # emission must stay byte-identical, so this key exists only here)
         recovery = getattr(r, "recovery", None)

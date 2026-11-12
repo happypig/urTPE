@@ -399,7 +399,9 @@ def render_html(releases: list[Release], diffs: list, generated_at: str,
   *{box-sizing:border-box}
   body{margin:0;padding:0 0 64px;background:var(--bg);color:var(--ink);
        font:15px/1.65 "Instrument Sans","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
-  header{background:var(--panel);border-bottom:1px solid var(--line);padding:28px 32px}
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:28px 32px;
+         display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap}
+  header>div{flex:1;min-width:260px}
   h1{margin:0 0 6px;font-size:22px;letter-spacing:.01em}
   .sub{color:var(--muted);font-size:13px;margin:0;max-width:92ch}
   main{max-width:1240px;margin:0 auto;padding:0 32px}
@@ -447,9 +449,10 @@ def render_html(releases: list[Release], diffs: list, generated_at: str,
   .pdf-link:hover{color:var(--ink)}
   .stamp{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
   .muted-cell{color:var(--muted)}
-  .backlink{float:right;font-size:13px;font-weight:400;color:var(--info);
-            text-decoration:none;border-bottom:1px solid currentColor}
-  .backlink:hover{color:var(--ink)}
+  .navlink{color:var(--accent);font-size:13px;text-decoration:none;
+           border:1px solid var(--line);border-radius:8px;padding:6px 12px;
+           white-space:nowrap;flex:none}
+  .navlink:hover{color:var(--ink);border-color:var(--accent)}
   details{margin-top:8px}
   summary{cursor:pointer;font-size:13px;color:var(--info)}
   .fam{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:8px 0;
@@ -470,15 +473,19 @@ def render_html(releases: list[Release], diffs: list, generated_at: str,
 
     # ---- header ----------------------------------------------------------
     w("<header>")
-    # The back link. Relative, so it works from the published site, from a
-    # file:// page, and from a clone alike. It points at the about page
-    # (openspec: about-page-links): 關於 links the viewer in turn, and the
-    # header's report link that 回專案歷史圖 used to answer is gone.
-    w('<a class="backlink" href="../viewer/about.html">關於</a>')
+    # The title block first, then the 關於 chip last (openspec: about-page-links;
+    # the mockup rule 2026-11-12): the chip is the navlink style the viewer and
+    # the dashboard wear, and it closes the header at the right edge. Relative,
+    # so it works from the published site, from a file:// page, and from a
+    # clone alike. 關於 links the viewer in turn, and the header's report link
+    # that 回專案歷史圖 used to answer is gone.
+    w("<div>")
     w("<h1>公報發布間差異 — 專案總數變化說明</h1>")
     w('<p class="sub">每一版公報的核定案件重新讀取、比對，說明專案總數為何不同。'
       '所有數字於 %s 由 <code>scripts/release_diff_report.py</code> 重新產出，'
       '不抄寫前一次結果。</p>' % e(generated_at))
+    w("</div>")
+    w('<a class="navlink" href="../viewer/about.html">關於</a>')
     w("</header>")
 
     w("<main>")

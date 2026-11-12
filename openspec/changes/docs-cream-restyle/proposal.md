@@ -48,20 +48,35 @@ fail after the move.
   `coverage_report.py`), so the next regeneration keeps it. The ETL page and
   the about page are hand-written.
 
+## Extended 2026-11-12: the domain-model page joins the cream system
+
+The user's mockup (2026-11-12) and the header-chip fix made the six-page rule
+explicit, and `docs/domain-model.html` is the one page outside it twice over:
+it still wears the slate palette with a dark-mode block (the exact seam the
+change removes), and it is absent from `viewer/deploy.json`, so
+`check_deploy.py` never compares its served bytes. The page joins the cream
+system — same token block as the other doc pages, dark block out, semantic
+layer colours (sources / identity / portal / emission / gap) mapped onto
+cream tint-and-ink pairs — and joins the deploy record, so its served bytes
+are checked like every other artifact's.
+
 ## Capabilities
 
 ### Modified Capabilities
 
 - `viewer-related-links`: the about-page requirement's self-contained clause
   gains the palette rule — the page wears the site's cream system, no
-  dark-mode block, pinned by test.
+  dark-mode block, pinned by test; extended, the rule covers the domain-model
+  page as well and the page joins the deploy record.
 
 ## Impact
 
 - Code: `docs/release-diff.html` + `scripts/release_diff_report.py`,
   `docs/coverage-report.html` + `scripts/coverage_report.py`,
-  `docs/etl_process.html`, `viewer/about.html`,
-  `tests/test_about_page.py` (the design pin inverts).
+  `docs/etl_process.html`, `docs/domain-model.html`, `viewer/about.html`,
+  `viewer/deploy.json`, `tests/test_about_page.py` (the design pin inverts),
+  `tests/test_release_diff_publish.py` (the deploy-artifact list gains the
+  domain model).
 - Not touched: header links, deploy record, pipeline, the viewer/dashboard's
   own styles.
 - Verification: the suite, the smoke harness, and a browser pass over all

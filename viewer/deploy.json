@@ -17,7 +17,8 @@
     "viewer/dashboard.css",
     "viewer/about.html",
     "docs/release-diff.html",
-    "docs/coverage-report.html"
+    "docs/coverage-report.html",
+    "docs/domain-model.html"
   ],
   "notes": [
     "The final path segment of pages_base is case-sensitive and MUST equal the repository",

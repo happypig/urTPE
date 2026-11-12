@@ -38,12 +38,24 @@ against the two official statistics pages; the maintainer, who answers the
   proposal time; the page states the date and lets the site's own meta line
   carry the moving numbers.)
 
+## Extended 2026-11-12: the domain-model page joins the header rule
+
+The user's mockup (2026-11-12) pins the 關於 control's final shape: the
+navlink chip — terracotta text, hairline border, 8px radius — closing the
+header at the right edge on every published page. Fixing the five pages that
+differed made the rule explicit, and it exposed one more page with no 關於
+link at all: `docs/domain-model.html`. A reader who lands on the bilingual
+domain model from a search result has no route to the license, the sources
+or the contact. Its header gains the same chip, so the rule holds across all
+six header pages (the mockup's five plus the domain model).
+
 ## Capabilities
 
 ### Modified Capabilities
 
 - `viewer-related-links`: the about-page requirement gains the scope-statement
-  clause and its scenario.
+  clause and its scenario; extended, the documentation-pages clause names the
+  domain-model page too and the rightmost-link rule covers its header.
 
 ## Impact
 

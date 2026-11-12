@@ -46,7 +46,7 @@ def test_the_report_links_back_to_the_about_page():
     page replaced the header's report link (openspec: about-page-links) — the
     chain is now report → 關於 → viewer."""
     html = _report()
-    m = re.search(r'<a class="backlink" href="([^"]+)">([^<]*)</a>', html)
+    m = re.search(r'<a class="navlink" href="([^"]+)">([^<]*)</a>', html)
     assert m, "the report carries no back link"
     href = m.group(1)
     assert href == "../viewer/about.html", (
@@ -123,7 +123,8 @@ def test_the_report_is_listed_as_a_deploy_artifact():
                 "viewer/app.js", "viewer/app.css",
                 "viewer/projects.data.js", "viewer/dashboard.html",
                 "viewer/dashboard.js", "viewer/dashboard.css",
-                "docs/release-diff.html", "docs/coverage-report.html"]
+                "docs/release-diff.html", "docs/coverage-report.html",
+                "docs/domain-model.html"]
     for path in expected:
         assert path in data["artifacts"], (
             "%r is published but the deploy record does not name it; its "

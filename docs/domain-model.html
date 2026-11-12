@@ -14,27 +14,27 @@
   one set is hidden by CSS, so the page works with JS disabled (English shown).
 -->
 <style>
+  /* The site's one design system: the cream palette the dashboard and the
+     viewer share (viewer/app.css, viewer/dashboard.css). Light-only by
+     construction — no dark-mode block, or this page would be the only dark
+     one on the site (openspec: docs-cream-restyle). The layer colours keep
+     their hue roles (sources blue, identity teal, portal violet, output
+     amber, gap red) as tint-and-ink pairs on the cream ground, the way the
+     ETL page's stage dots do. */
   :root{
-    --ink:#0f172a; --muted:#64748b; --line:#cbd5e1; --bg:#fff; --panel:#f8fafc;
+    --ink:#211d1d; --muted:#686362; --line:#f3d9bf; --bg:#fff8f4; --panel:#ffffff;
+    --accent:#ad4d2a; --tint:#fff1e8; --sun:#fde272;
     --src:#1d4ed8; --src-bg:#eff6ff;
     --id:#0f766e;  --id-bg:#f0fdfa;
     --por:#7c3aed; --por-bg:#f5f3ff;
     --out:#b45309; --out-bg:#fffbeb;
-    --gap:#b91c1c; --gap-bg:#fef2f2;
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --ink:#e2e8f0; --muted:#94a3b8; --line:#334155; --bg:#0b1220; --panel:#111827;
-      --src:#93c5fd; --src-bg:#0c1e3d; --id:#5eead4; --id-bg:#0b2b28;
-      --por:#c4b5fd; --por-bg:#1b1233; --out:#fbbf24; --out-bg:#2a1f06;
-      --gap:#fca5a5; --gap-bg:#2d1010;
-    }
+    --gap:#8e2626; --gap-bg:#fdf0ef;
   }
   html:not(.zh) .zh{display:none}
   html.zh .en{display:none}
   *{box-sizing:border-box}
   body{margin:0;padding-bottom:64px;background:var(--bg);color:var(--ink);
-       font:15px/1.65 system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif}
+       font:15px/1.65 "Instrument Sans","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
 
   header{background:var(--panel);border-bottom:1px solid var(--line);padding:26px 32px;
          display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
@@ -44,10 +44,15 @@
           border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer;
           background:var(--bg)}
   .switch input{margin:0;cursor:pointer}
+  .navlink{color:var(--accent);font-size:13px;text-decoration:none;
+           border:1px solid var(--line);border-radius:8px;padding:6px 12px;
+           white-space:nowrap;flex:none}
+  .navlink:hover{color:var(--ink);border-color:var(--accent)}
 
   main{max-width:1280px;margin:0 auto;padding:0 32px}
   section{margin-top:42px}
-  h2{font-size:17px;margin:0 0 4px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h2{font-size:17px;margin:0 0 4px;display:inline-block;padding:0 6px;
+     background:linear-gradient(transparent 58%,var(--sun) 58%)}
   h2 .n{color:var(--muted);font-weight:400;margin-right:10px}
   h3{font-size:14.5px;margin:22px 0 8px}
   .lead{color:var(--muted);font-size:13.5px;margin:10px 0 18px;max-width:92ch}
@@ -69,6 +74,7 @@
   .layer.out > h4{color:var(--out)}
 
   .ent{background:var(--bg);border:1px solid var(--line);border-radius:8px;
+       box-shadow:3px 3px 0 var(--line);
        padding:9px 11px;margin-bottom:9px}
   .ent .name{font-weight:650;font-size:13.5px;display:flex;justify-content:space-between;gap:8px}
   .ent .role{color:var(--muted);font-weight:400;font-size:12px}
@@ -110,6 +116,7 @@
       <span class="zh">臺北市都市更新核定案件：從公報一列到瀏覽器圖。</span></p>
   </div>
   <label class="switch"><input type="checkbox" id="lang"> <span>中文</span></label>
+  <a class="navlink" href="../viewer/about.html">關於</a>
 </header>
 
 <main>

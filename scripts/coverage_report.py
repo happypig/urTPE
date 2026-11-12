@@ -207,7 +207,9 @@ def render(f: dict) -> str:
   *{box-sizing:border-box}
   body{margin:0;padding:0 0 64px;background:var(--bg);color:var(--ink);
        font:15px/1.65 "Instrument Sans","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
-  header{background:var(--panel);border-bottom:1px solid var(--line);padding:28px 32px}
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:28px 32px;
+         display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap}
+  header>div{flex:1;min-width:260px}
   h1{margin:0 0 6px;font-size:22px;letter-spacing:.01em}
   .sub{color:var(--muted);font-size:13px;margin:0;max-width:92ch}
   main{max-width:1240px;margin:0 auto;padding:0 32px}
@@ -267,9 +269,10 @@ def render(f: dict) -> str:
   .p-ok{color:var(--ok)} .p-warn{color:var(--warn)} .p-bad{color:var(--bad)}
   .p-info{color:var(--info)}
   .wrap{overflow-x:auto}
-  .backlink{float:right;font-size:13px;font-weight:400;color:var(--info);
-            text-decoration:none;border-bottom:1px solid currentColor}
-  .backlink:hover{color:var(--ink)}
+  .navlink{color:var(--accent);font-size:13px;text-decoration:none;
+           border:1px solid var(--line);border-radius:8px;padding:6px 12px;
+           white-space:nowrap;flex:none}
+  .navlink:hover{color:var(--ink);border-color:var(--accent)}
   footer{max-width:1240px;margin:56px auto 0;padding:20px 32px 0;
          border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
   @media(max-width:700px){ main,header{padding-left:16px;padding-right:16px} }
@@ -280,9 +283,12 @@ def render(f: dict) -> str:
     # ---- header ----------------------------------------------------------
     counts = f["counts"]
     w("<header>")
-    # The back link (openspec: about-page-links): 關於 carries the license,
-    # the sources and the contact; the viewer is one hop further through it.
-    w('<a class="backlink" href="../viewer/about.html">關於</a>')
+    # The title block first, then the 關於 chip last (openspec: about-page-links;
+    # the mockup rule 2026-11-12): the chip is the navlink style the viewer and
+    # the dashboard wear, and it closes the header at the right edge.
+    # 關於 carries the license, the sources and the contact; the viewer is one
+    # hop further through it.
+    w("<div>")
     w("<h1>資料覆蓋度報告 — 三個問題的證明</h1>")
     w('<p class="sub">三個問題：有哪些專案不在名單裡、有哪些編號不屬於任何專案、'
       '每個編號是否都掛著北向平台案件。每一個數字都在 %s 由 '
@@ -290,6 +296,8 @@ def render(f: dict) -> str:
       '資料集統計至 %s，%d 筆核定案件、%d 個專案。</p>'
       % (e(f["generated_at"]), e(f["published_date"]),
          counts.get("records", 0), counts.get("projects", 0)))
+    w("</div>")
+    w('<a class="navlink" href="../viewer/about.html">關於</a>')
     w("</header>")
 
     w("<main>")

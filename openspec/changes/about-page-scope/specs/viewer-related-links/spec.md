@@ -43,6 +43,14 @@ The viewer's header and the dashboard's header SHALL each carry a link to the
 about page, in the page's markup rather than added by script, so the link is
 reachable even when the page's data fails to load.
 
+Every published page that carries site links in its header SHALL carry the
+same 關於 control: the navlink chip the viewer and the dashboard wear
+(terracotta text, hairline border, 8px radius), as the header's last element,
+so the header closes at the right edge on every page. The rule covers the
+domain-model page (`docs/domain-model.html`) too: its header SHALL carry the
+chip, so a reader who lands on it from a search result can still reach the
+license, the data sources and the contact.
+
 #### Scenario: The about page answers the four questions
 
 - **WHEN** the about page is opened
@@ -76,6 +84,12 @@ reachable even when the page's data fails to load.
 - **WHEN** the viewer page or the dashboard page is loaded
 - **THEN** its header carries a link labelled 關於 whose target is a relative path to the about page
 - **AND** the link is present in the page's markup, not added by script
+
+#### Scenario: The domain-model header carries the chip
+
+- **WHEN** the domain-model page is opened
+- **THEN** its header carries the navlink chip labelled 關於 whose target is a relative path to the about page
+- **AND** the chip is the header's last element
 
 #### Scenario: The link survives a data load failure
 

@@ -10,20 +10,26 @@
 
 ## 2. Implementation
 
-- [ ] 2.1 `scripts/release_diff_report.py` — the token block becomes the
+- [x] 2.1 `scripts/release_diff_report.py` — the token block becomes the
   cream palette; the dark block goes; semantic cards/pills map onto cream
   tints; regenerate `docs/release-diff.html`.
-- [ ] 2.2 `scripts/coverage_report.py` — same; regenerate
+- [x] 2.2 `scripts/coverage_report.py` — same; regenerate
   `docs/coverage-report.html`.
-- [ ] 2.3 `docs/etl_process.html` — the token block becomes cream; the dark
+- [x] 2.3 `docs/etl_process.html` — the token block becomes cream; the dark
   block goes; the stage dots and score bar keep their hue roles with cream
   tints.
-- [ ] 2.4 `viewer/about.html` — the token block becomes cream, the dark block
+- [x] 2.4 `viewer/about.html` — the token block becomes cream, the dark block
   goes (back to the palette it launched with, now under the cream rule).
+- [x] 2.5 `docs/domain-model.html` — the token block becomes cream; the dark
+  block goes; the layer/entity/callout colours map onto cream tint-and-ink
+  pairs; the page stays self-contained.
+- [x] 2.6 `viewer/deploy.json` — `docs/domain-model.html` joins the artifact
+  list, so `check_deploy.py` compares its served bytes; the publish test's
+  expected list gains it too.
 
 ## 3. Verification
 
-- [ ] 3.1 The suite passes; the smoke harness passes.
+- [x] 3.1 The suite passes; the smoke harness passes.
 - [ ] 3.2 All six published pages verified in Chrome (file:// and the live
   site): one palette, no dark seam, the 關於 links and header order intact.
 - [ ] 3.3 `check_deploy.py` reports all artifacts fresh after the push.

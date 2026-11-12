@@ -34,6 +34,8 @@ DASHBOARD = ROOT / "viewer" / "dashboard.html"
 DEPLOY = ROOT / "viewer" / "deploy.json"
 RELEASE_DIFF = ROOT / "docs" / "release-diff.html"
 COVERAGE_REPORT = ROOT / "docs" / "coverage-report.html"
+APP_CSS = ROOT / "viewer" / "app.css"
+DASHBOARD_CSS = ROOT / "viewer" / "dashboard.css"
 
 
 @pytest.fixture(scope="module")
@@ -298,15 +300,50 @@ def test_the_page_uses_the_cream_design_system(about):
 
 def test_the_three_doc_pages_use_the_cream_design_system():
     """The generators emit the palette, so the pin reads the emitted files:
-    cream tokens in, slate and the dark block out."""
+    cream tokens in, slate and the dark block out. The domain-model page is
+    hand-written; the same pin covers it once it joins the system."""
     for path in ("docs/etl_process.html", "docs/release-diff.html",
-                 "docs/coverage-report.html"):
+                 "docs/coverage-report.html", "docs/domain-model.html"):
         html = (ROOT / path).read_text(encoding="utf-8")
         assert "#fff8f4" in html, "%s lacks the cream ground token" % path
         assert "#0f172a" not in html, (
             "%s still carries the slate ink token" % path)
         assert "prefers-color-scheme" not in html, (
             "%s still carries a dark-mode block" % path)
+
+
+# --- one 關於 control across the site's headers -------------------------------
+
+def test_the_site_headers_share_one_about_chip():
+    """The mockup rule (2026-11-12): every published page closes its header
+    with the same 關於 chip — the navlink style the viewer and the dashboard
+    already wear — as the header's last element, at the right edge. The doc
+    pages' floated text link and the ETL page's inline-styled link inside the
+    subtitle predate it and read as a different control on every page."""
+    cases = {
+        "viewer/index.html": APP_CSS,
+        "viewer/dashboard.html": DASHBOARD_CSS,
+        "docs/release-diff.html": None,
+        "docs/coverage-report.html": None,
+        "docs/etl_process.html": None,
+    }
+    for path, css_path in cases.items():
+        html = (ROOT / path).read_text(encoding="utf-8")
+        header = re.search(r"<header>(.*?)</header>", html, re.S)
+        assert header, "%s carries no header" % path
+        body = header.group(1)
+        m = re.search(
+            r'<a class="navlink"[^>]*href="[^"]*about\.html"[^>]*>關於</a>', body)
+        assert m, (
+            "%s's 關於 link is not the navlink chip the other pages wear" % path)
+        tail = body[m.end():].strip()
+        assert tail in ("", "</div>"), (
+            "%s carries markup after the 關於 chip: %r" % (path, tail))
+        css = css_path.read_text(encoding="utf-8") if css_path else html
+        assert ".navlink{" in css or ".navlink {" in css, (
+            "%s renders the chip but defines .navlink nowhere" % path)
+        assert "border-radius: 8px" in css or "border-radius:8px" in css, (
+            "%s's chip rule lacks the 8px radius" % path)
 
 
 # --- the doc pages' back links (about-page-links) -----------------------------
@@ -316,7 +353,7 @@ def test_the_three_doc_pages_link_back_to_the_about_page():
     the license, the sources or the contact unless the page itself carries
     the 關於 link. The link sits at the header's right edge."""
     for path in ("docs/etl_process.html", "docs/release-diff.html",
-                 "docs/coverage-report.html"):
+                 "docs/coverage-report.html", "docs/domain-model.html"):
         html = (ROOT / path).read_text(encoding="utf-8")
         header = re.search(r"<header>(.*?)</header>", html, re.S)
         assert header, "%s carries no header" % path

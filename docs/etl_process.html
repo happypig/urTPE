@@ -38,8 +38,13 @@
   body{margin:0;padding:0 0 64px;background:var(--bg);color:var(--ink);
        font:15px/1.65 "Instrument Sans","Microsoft JhengHei","PingFang TC",system-ui,sans-serif}
 
-  header{background:var(--panel);border-bottom:1px solid var(--line);padding:26px 32px}
-  .hwrap{max-width:1180px;margin:0 auto}
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:26px 32px;
+         display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap}
+  .hwrap{flex:1;min-width:260px}
+  .navlink{color:var(--accent);font-size:13px;text-decoration:none;
+           border:1px solid var(--line);border-radius:8px;padding:6px 12px;
+           white-space:nowrap;flex:none}
+  .navlink:hover{color:var(--ink);border-color:var(--accent)}
   h1{margin:0 0 6px;font-size:21px}
   .sub{color:var(--muted);font-size:13px;margin:0;max-width:92ch}
   .sub a{color:var(--acq)}
@@ -230,8 +235,9 @@
       <a href="release-diff.html">release-diff report</a>.
       Measured on the 2026-10-28 gazette: <strong>1,444 records → 680 projects</strong>,
       2002-03-21 → 2026-10-28.
-      <a href="../viewer/about.html" style="float:right;color:var(--acq);font-size:13px;text-decoration:none;border-bottom:1px solid currentColor">關於</a></p>
-  </div>
+      </p>
+    </div>
+  <a class="navlink" href="../viewer/about.html">關於</a>
 </header>
 
 <main>

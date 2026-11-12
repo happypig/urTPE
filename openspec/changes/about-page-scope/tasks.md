@@ -24,6 +24,25 @@
   paragraph after the sources list: approved-only corpus, in-review absent by
   design, both official figures dated and linked.
 
+## Extended 2026-11-12: the domain-model page joins the header rule
+
+- [x] 4.1 `tests/test_about_page.py` — the mockup rule pinned: all six header
+  pages (the five the mockup shows plus `docs/domain-model.html`) close their
+  header with the navlink chip labelled 關於, defined with the 8px radius.
+  Red before implementation.
+- [x] 4.2 `viewer/index.html`, `viewer/dashboard.html` — the chip moves to the
+  header's last position (after the meta line; on the viewer, after the
+  search box).
+- [x] 4.3 `scripts/release_diff_report.py` + `scripts/coverage_report.py` —
+  the floated `.backlink` text link becomes the navlink chip, last in the
+  header; both reports regenerated.
+- [x] 4.4 `docs/etl_process.html` — the inline-styled link inside the subtitle
+  becomes the navlink chip, last in the header.
+- [x] 4.5 `docs/domain-model.html` — the header gains the navlink chip
+  labelled 關於 → `../viewer/about.html`, after the language switch.
+- [x] 4.6 The suite passes; `check_deploy.py` is unaffected (the domain model
+  joins the deploy record under docs-cream-restyle, not here).
+
 ## 3. Verification
 
 - [x] 3.1 The suite passes; the page renders from `file://` with the new

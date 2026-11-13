@@ -13,11 +13,12 @@ that protects it. The domain rules behind the stages live in
 `openspec/config.yaml`; the companion docs are `docs/cli_flow_v2.md` (CLI flow
 and link discovery) and `docs/domain_model.md` (entity model).
 
-Measured on the 2026-10-28 gazette: **1,444 records → 680 projects**, dates
-2002-03-21 to 2026-10-28, calendar mixed (Gregorian), 321 nodes flagged for
-review, 13 auto-fixes applied. (Re-measured 2026-11-12; the ledger merges —
-萬隆519, 河堤399 — moved the project count from 682 to 680. The rule did not
-change; the population did.)
+Measured on the 2026-10-28 gazette: **1,444 records → 675 projects**, dates
+2002-03-21 to 2026-10-28, calendar mixed (Gregorian), 318 nodes flagged for
+review, 13 auto-fixes applied. (Re-measured 2026-11-13; the ledger merges —
+萬隆519 and 河堤399, then the five split families reunified on 2026-11-13 —
+moved the project count from 682 to 680 to 675. The rule did not change; the
+population did.)
 
 ---
 
@@ -259,8 +260,9 @@ Entry kinds:
 Entries are only ever appended. Fixing a wrong correction means appending
 one that supersedes it (`supersedes`), which keeps the history. Applied,
 unmatched and superseded entries are all named in the run report. Measured
-2026-11-12: 4 effective entries (吉林676 land_count + three confirmed merges:
-吉林676, 萬隆519, 河堤399).
+2026-11-13: 14 effective entries — eight confirmed merges (吉林676, 萬隆519,
+河堤399 and the five families of 2026-11-13) and six field corrections
+(`land_count`, `stage` twice, `stage_index` twice, `iso_date`).
 
 The ledger runs **before** the tripwire report and the census gate, because
 both must speak about the partition that is actually emitted (`urtpe/cli.py:388`).
@@ -409,7 +411,7 @@ and emits schema v2:
 {
   "schema_version": 2,
   "generated_at": "...", "source": "...", "published_date": "2026-10-28",
-  "counts": {"projects": 680, "records": 1444},
+  "counts": {"projects": 675, "records": 1444},
   "projects": [ <project graph>, ... ]
 }
 ```
@@ -447,7 +449,7 @@ Artifacts written across a full run:
 | `viewer/projects.data.js` | `viewer.write_projects_js` | `window.PROJECTS = {…};` — the viewer's only data input |
 
 A run against the repo's own tree refreshes `viewer/` even without `--viewer`
-(`urtpe/cli.py:706`). Note the ~24 MB diff: `projects.json` (12.4 MB),
+(`urtpe/cli.py:706`). Note the ~24 MB diff: `projects.json` (12.8 MB),
 `projects.data.js` (9.3 MB) and the three TSVs are tracked; stage deliberately.
 
 ---
@@ -466,7 +468,7 @@ verifies the file on disk carries this run's `published_date` and `counts`.
 ### Page structure
 
 - `<header>` — title, links to the dashboard and the 關於 page, meta line
-  (`680 個專案 / 1444 筆記錄 · 統計至 2026-10-28`), search box (`#filter`).
+  (`675 個專案 / 1444 筆記錄 · 統計至 2026-10-28`), search box (`#filter`).
 - `#filters` — four dropdown dimensions: 地區 (district), 年度 (year),
   事業種類 (track), 計畫與執行 (construction stage: 建照/開工/使照/已失效/
   自行撤回/已駁回 + tracks).

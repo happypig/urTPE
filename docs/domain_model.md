@@ -402,6 +402,26 @@ carries the R-form id `R089213-02`, see the id-space note below):**
 > Still proposed: the unified per-case object itself. Measured corrections:
 > bindings 1,412 (not 1,430); 344 cases cover >1 record; 342 ambiguous markers
 > (320 resolvable / 22 not); 973 virtual entries / 953 distinct; total 1,926.
+>
+> **Re-measured 2026-11-13 (2026-10-28 payload, 1,444 records / 675 projects;
+> `scripts/probe_tab2_numbers.py` and `scripts/probe_tab1_numbers.js`).**
+> Between the two passes the per-node case bindings were re-derived
+> (`docs/portal_operations_log.md` §30, 2026-11-02) and ledger merges took the
+> corpus from 694 to 675 units. The header above and the bullets below keep
+> the 2026-11-01 figures; on today's payload they read:
+> 1,476 bindings on 1,476 cases, so **no case covers more than one record**
+> (was 344), and 30 records name more than one case (was 0); 0 ambiguously
+> anchored markers (was 342) and 4 whose source case is on no record (was
+> 225); 516 virtual entries, 516 distinct (was 973 / 953), 282 undated (was
+> 194); 2 case ids both virtual and real (was 9), total 1,990 or 1,988; 5
+> recovered nodes (recno 190, 1133, 3, 1208, 1007), of which 190 and 1133
+> disagree between `recovery.cases` and `links.taipei` while 1007 — the 1005
+> of the earlier pass — now agrees. **Not re-measured:** the (段, 首宗地號)
+> group figures (493 / 365 / 128), for which no probe survives, and the
+> date-inverted row pairs, whose probe replica predates the 2026-11-02
+> row-order fix. The multi-record argument for the unified class has no
+> instance on today's payload; the four-dictionary scatter of a real case and
+> the unkeyed virtual list are as described.
 
 - A **virtual** case (no matching record) is a self-contained 11-field object in `orphan_nodes`.
 - A **real** case is scattered across four dictionaries — `case_milestones[case_id]` on the

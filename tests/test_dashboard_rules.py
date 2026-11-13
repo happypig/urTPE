@@ -90,7 +90,7 @@ def payload(projects, published=PUB):
 
 
 def render(tmp_path, doc, hash=None, preset=True, index_html=None, fetch=None,
-           today=None, name="p.json"):
+           today=None, name="p.json", press=()):
     node = shutil.which("node")
     if not node:
         pytest.skip("node not available")
@@ -110,6 +110,8 @@ def render(tmp_path, doc, hash=None, preset=True, index_html=None, fetch=None,
         args += ["--fetch", fetch]
     if today:
         args += ["--today", today]
+    for label in press:
+        args += ["--press", label]
     proc = subprocess.run(args, capture_output=True, text=True, encoding="utf-8",
                           timeout=120)
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -363,6 +365,211 @@ def test_joined_cases_take_the_earliest_application(tmp_path):
         cm={"c1": {"申請計畫日期": "2013-06-01", "核定日期": "2019-07-24"},
             "c2": {"申請計畫日期": "2013-04-08", "核定日期": "2019-07-24"}})]))
     assert review_points(out)[(FIRST, "2019")][0] == "6.3"
+
+
+# --- review spread (dashboard-review-spread) ---------------------------------
+#
+# The 完整 view is read from its year tooltips, as the 中位數 view is from its
+# point tooltips. The fixture years are whole, so each rounded figure has one
+# reading: 1.0, 3.0, 4.0, 8.0 put the quartiles at 2.5 and 5.0 under rank
+# interpolation, and nowhere else — nearest-rank reads 1 or 3 and 4 or 8, and
+# the (n + 1)p variant reads 1.5.
+
+FULL = "#review=full"
+SHORTEST, P25, MEDIAN, P75, LONGEST, COUNT = (
+    "最短", "第 25 百分位", "中位數", "第 75 百分位", "最長", "專案數")
+FIVE = (SHORTEST, P25, MEDIAN, P75, LONGEST)
+FULL_MARKS = ("fan-range", "fan-iqr", "fan-median", "box-whisker", "box-iqr", "box-median")
+
+
+def spread(out):
+    """{(interval, year): {row label: value}} from the 完整 view's tooltips."""
+    return {(name, y["year"]): vals
+            for y in out["spread"] for name, vals in y["intervals"].items()}
+
+
+def five(vals):
+    return [vals[k] for k in FIVE]
+
+
+def approved(pid, application, approval, district="大安區", **cm):
+    """One project with one 擬訂 approval and no permit: both intervals read
+    application → approval."""
+    return project(pid=pid, district=district, nodes=[node(approval)],
+                   cm=dict({"申請計畫日期": application, "核定日期": approval}, **cm))
+
+
+def _four_in_2020():
+    # first-approval years 1.0, 3.0, 4.0, 8.0
+    apps = ["2019-01-01", "2017-01-01", "2016-01-01", "2012-01-01"]
+    return [approved("q%d" % i, a, "2020-01-01") for i, a in enumerate(apps)]
+
+
+def _spread_docs():
+    """2018 holds three projects (one with a later 變更, so its two intervals
+    differ), 2019 none, 2020 four."""
+    later = project(
+        pid="r0", nodes=[node("2018-01-01", case="c1"), node("2021-01-01", stage="變更", case="c2")],
+        cm={"c1": {"申請計畫日期": "2015-01-01", "核定日期": "2018-01-01"},
+            "c2": {"核定日期": "2021-01-01"}})
+    return payload([later, approved("r1", "2013-01-01", "2018-01-01"),
+                    approved("r2", "2016-01-01", "2018-01-01")] + _four_in_2020())
+
+
+def test_the_median_view_is_the_default(tmp_path):
+    out = render(tmp_path, _spread_docs())
+    assert out["reviewView"] == "median"
+    assert out["reviewTitle"] == "審議年數中位數，依首次核定年度"
+    assert [(s["label"], s["pressed"]) for s in out["reviewSwitch"]] == [("中位數", True), ("完整", False)]
+    assert review_points(out)[(FIRST, "2020")] == ("3.5", "4")
+    assert out["spread"] == [] and out["reviewMarks"] == {}
+
+
+def test_the_full_view_is_selected(tmp_path):
+    out = render(tmp_path, _spread_docs(), press=["完整"])
+    assert out["reviewView"] == "full"
+    assert out["reviewTitle"] == "審議年數分布，依首次核定年度"
+    assert [(s["label"], s["pressed"]) for s in out["reviewSwitch"]] == [("中位數", False), ("完整", True)]
+    assert set(out["reviewMarks"]) == set(FULL_MARKS)
+    assert "review=full" in out["hash"]
+
+
+def test_percentiles_interpolate_between_the_two_nearest_ranks(tmp_path):
+    out = render(tmp_path, payload(_four_in_2020()), hash=FULL)
+    vals = spread(out)[(FIRST, "2020")]
+    assert five(vals) == ["1.0", "2.5", "3.5", "5.0", "8.0"]
+    assert vals[COUNT] == "4"
+
+
+def test_a_year_with_one_project(tmp_path):
+    out = render(tmp_path, payload([approved("p0", "2015-01-01", "2018-01-01")]), hash=FULL)
+    vals = spread(out)[(FIRST, "2018")]
+    assert five(vals) == ["3.0"] * 5 and vals[COUNT] == "1"
+    # still drawn: the box with its line and its dot, and the fan
+    assert out["reviewMarks"] == {k: 1 for k in FULL_MARKS}
+
+
+def _no_pre_permit(pid, application):
+    """The permit precedes every approval: a first-approval interval and no
+    pre-permit interval."""
+    return approved(pid, application, "2018-01-01", 建照核發日期="2017-01-01")
+
+
+def test_the_tooltip_lists_both_intervals(tmp_path):
+    out = render(tmp_path, payload([approved("p0", "2015-01-01", "2018-01-01"),
+                                    _no_pre_permit("p1", "2013-01-01")]), hash=FULL)
+    assert [y["year"] for y in out["spread"]] == ["2018"]
+    pts = spread(out)
+    assert five(pts[(FIRST, "2018")]) == ["3.0", "3.5", "4.0", "4.5", "5.0"]
+    assert pts[(FIRST, "2018")][COUNT] == "2"
+    assert five(pts[(PREPERMIT, "2018")]) == ["3.0"] * 5
+    assert pts[(PREPERMIT, "2018")][COUNT] == "1"
+
+
+def test_an_interval_absent_from_a_year(tmp_path):
+    out = render(tmp_path, payload([_no_pre_permit("p0", "2015-01-01")]), hash=FULL)
+    pts = spread(out)
+    assert five(pts[(FIRST, "2018")]) == ["3.0"] * 5
+    # no value, and no zero either
+    assert set(pts[(PREPERMIT, "2018")].values()) == {"—"}
+
+
+def test_the_full_view_agrees_with_the_median_view(tmp_path):
+    med = review_points(render(tmp_path, _spread_docs(), name="m.json"))
+    full = spread(render(tmp_path, _spread_docs(), hash=FULL, name="f.json"))
+    assert med, "the fixture shows no median"
+    assert {k: (v[MEDIAN], v[COUNT]) for k, v in full.items() if v[COUNT] != "—"} == med
+
+
+def _three_years():
+    return payload([approved("y%d%d" % (y, i), "%d-01-01" % (y - 3 - i), "%d-01-01" % y)
+                    for y in (2018, 2019, 2020) for i in range(2)])
+
+
+def test_the_fan_is_drawn_point_to_point(tmp_path):
+    out = render(tmp_path, _three_years(), hash=FULL)
+    assert out["reviewMarks"] == {"fan-range": 1, "fan-iqr": 1, "fan-median": 1,
+                                  "box-whisker": 3, "box-iqr": 3, "box-median": 3}
+    paths = [d for k in ("fan-range", "fan-iqr", "fan-median") for d in out["reviewPathCommands"][k]]
+    assert len(paths) == 3
+    for d in paths:
+        assert d and set(d) <= set("MLZ"), "a curve command in the fan: %s" % d
+
+
+def test_a_year_with_no_project_is_crossed(tmp_path):
+    out = render(tmp_path, _spread_docs(), hash=FULL)
+    assert [y["year"] for y in out["spread"]] == ["2018", "2020"]
+    assert out["reviewMarks"]["box-iqr"] == 2
+    # unbroken: one path per fan mark, and each starts once
+    for k in ("fan-range", "fan-iqr", "fan-median"):
+        assert [d.count("M") for d in out["reviewPathCommands"][k]] == [1]
+
+
+def test_the_card_does_not_follow_the_switch(tmp_path):
+    med = render(tmp_path, _spread_docs(), name="m.json")
+    full = render(tmp_path, _spread_docs(), hash=FULL, name="f.json")
+    assert full["reviewView"] == "full"
+    assert med["cards"] == full["cards"]
+    assert med["cards"][REVIEW]["num"] not in ("—", None)
+
+
+def test_the_text_follows_the_view_and_the_language(tmp_path):
+    out = render(tmp_path, _spread_docs(), hash="#review=full&lang=en")
+    assert out["reviewTitle"] == "Review years, shortest to longest, by year of first approval"
+    assert [(s["label"], s["pressed"]) for s in out["reviewSwitch"]] == [("Median", False), ("Full", True)]
+    first, pre = out["reviewLegend"]
+    assert first.startswith("Application to first approval") and "box" in first and "dot" in first
+    assert pre.startswith("Application to the approval before the building permit")
+    assert "band" in pre and "line" in pre
+    assert "25th" in out["reviewCap"] and "few projects" in out["reviewCap"]
+    vals = out["spread"][0]["intervals"]["Application to first approval"]
+    assert list(vals) == ["Shortest", "25th percentile", "Median", "75th percentile", "Longest", "Projects"]
+    zh = render(tmp_path, _spread_docs(), hash=FULL, name="zh.json")
+    assert zh["reviewLegend"][0].startswith(FIRST) and zh["reviewLegend"][1].startswith(PREPERMIT)
+    assert "第 25" in zh["reviewCap"] and "專案數少的年度波動較大" in zh["reviewCap"]
+
+
+def test_the_full_view_keeps_the_outline_notice(tmp_path):
+    out = render(tmp_path, payload([
+        project(pid="p0", nodes=[{"date": "2024-07-29", "stage": "擬訂", "track": "事業概要"}]),
+        approved("p1", "2015-01-01", "2018-01-01")]), hash=FULL)
+    assert out["reviewView"] == "full"
+    assert "1" in out["reviewCap"] and "事業概要" in out["reviewCap"]
+
+
+def test_no_review_time_in_the_scope(tmp_path):
+    out = render(tmp_path, payload([project()]), hash=FULL)
+    assert out["review"]["empty"] == "沒有審議時間紀錄。"
+    assert out["spread"] == []
+    assert [(s["label"], s["pressed"]) for s in out["reviewSwitch"]] == [("中位數", False), ("完整", True)]
+
+
+def _two_districts_reviewed():
+    return payload([approved("萬華區-a", "2015-01-01", "2018-01-01", district="萬華區"),
+                    approved("大安區-b", "2012-01-01", "2020-01-01", district="大安區")])
+
+
+def test_the_full_view_follows_the_district(tmp_path):
+    out = render(tmp_path, _two_districts_reviewed(), hash="#district=萬華區&review=full")
+    assert out["scope"] == "萬華區"
+    assert [y["year"] for y in out["spread"]] == ["2018"]
+    assert five(spread(out)[(FIRST, "2018")]) == ["3.0"] * 5
+    city = render(tmp_path, _two_districts_reviewed(), hash=FULL, name="city.json")
+    assert [y["year"] for y in city["spread"]] == ["2018", "2020"]
+
+
+def test_a_linked_review_view(tmp_path):
+    out = render(tmp_path, _two_districts_reviewed(), hash="#district=萬華區&review=full")
+    assert out["reviewView"] == "full" and out["scope"] == "萬華區"
+    back = render(tmp_path, _two_districts_reviewed(), hash="#district=萬華區&review=full",
+                  press=["中位數"], name="back.json")
+    assert back["reviewView"] == "median" and back["scope"] == "萬華區"
+    assert unquote(back["hash"]) == "#district=萬華區"
+    kept = render(tmp_path, _two_districts_reviewed(), hash="#district=萬華區&lang=en",
+                  press=["Full"], name="kept.json")
+    assert sorted(unquote(kept["hash"]).lstrip("#").split("&")) == ["district=萬華區", "lang=en", "review=full"]
+    unknown = render(tmp_path, _two_districts_reviewed(), hash="#review=banana", name="unknown.json")
+    assert unknown["reviewView"] == "median" and unknown["spread"] == []
 
 
 # --- 1.6 approvals -----------------------------------------------------------

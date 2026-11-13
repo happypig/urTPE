@@ -74,7 +74,17 @@ h3 { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
 .cap { font-size: 12px; color: var(--muted); margin: 0 0 8px; line-height: 1.5; }
 .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin: 0 0 8px; padding: 0; list-style: none; }
 .legend li { display: flex; align-items: center; gap: 5px; }
-.sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+/* flex: none — a legend entry that wraps (the 完整 view's) must not squeeze its swatch */
+.sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex: none; }
+
+/* the review chart's 中位數 / 完整 switch, beside the card title */
+.cardhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin: 0 0 4px; }
+.cardhead h3 { margin: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.segbtn { font: inherit; font-size: 13px; padding: 6px 12px; border: 0; background: var(--panel); color: var(--muted); cursor: pointer; white-space: nowrap; }
+.segbtn + .segbtn { border-left: 1px solid var(--line); }
+.segbtn[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.segbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 .chart { position: relative; }
 .chart svg { display: block; }
@@ -83,6 +93,17 @@ h3 { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
 .chart .gridline { stroke: var(--line); }
 .tip { position: absolute; z-index: 2; pointer-events: none; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12); border-radius: 8px; padding: 6px 10px; font-size: 12px; white-space: nowrap; }
 .tip div + div { color: var(--muted); }
+/* the 完整 view's tooltip: a column per interval, a row per value. The page's
+   own table rules (full width, ruled rows, a wide first column) are undone. */
+.tip table { width: auto; margin-top: 2px; }
+.tip th, .tip td { padding: 1px 0 1px 14px; border: 0; font-weight: 400; color: var(--muted); vertical-align: bottom; text-align: right; }
+.tip tbody th { padding-left: 0; text-align: left; }
+.tip td:first-child { min-width: 0; }
+.tip td.num { color: var(--ink); }
+/* wide enough for either Chinese interval name on one line; the English names wrap, and a phone narrows it */
+.tip .iv { display: inline-block; position: relative; padding-left: 15px; max-width: min(13.5em, 28vw); white-space: normal; text-align: left; line-height: 1.3; vertical-align: bottom; }
+/* pinned to the name's first line: an inline swatch is left alone on a line of its own when the name wraps */
+.tip .iv .sw { position: absolute; left: 0; top: 0.2em; }
 
 .scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }

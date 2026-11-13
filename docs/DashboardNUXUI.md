@@ -966,6 +966,56 @@ which is the better shape.
 
 ## 14. Revision record
 
+### 14.-4 2026-11-13 — the review chart gets a second view: the spread behind the medians
+
+**A second drawing of the same two figures, on the user's word (2026-11-13).**
+The review chart showed one median per year and interval. The openspec change
+`dashboard-review-spread` (one ADDED requirement and one MODIFIED in
+`policy-dashboard`, tests first) adds a 中位數 / 完整 switch to the chart's card.
+中位數 is the chart as it was and stays the default. 完整 shows, per year of first
+approval, the shortest, 25th percentile, median, 75th percentile and longest
+value of both intervals: `review2_years` (to the approval before the building
+permit) as a fan — a light band from shortest to longest, a darker band from the
+25th to the 75th percentile, the median as a line, straight segments, no
+smoothing — and `review_years` (to first approval) as one box per year — a thin
+line, a box, a dot at the median. One tooltip per year lists the five values and
+the project count for both intervals. Title, caption and legend follow the view
+in both languages. The switch state is `review=full` in the URL hash, beside the
+district and the language. **Not changed:** how the two intervals are derived, the
+審議時間中位數 card, the 中位數 view's figures and tooltips.
+
+**The percentile is the rank-interpolated one** (rank (n − 1) × p from zero;
+spreadsheets' PERCENTILE.INC), rounded to one decimal like every figure of the
+chart. The median of 完整 is read by the page's existing `median()`, not at
+p = 0.5, so one year never shows two medians.
+
+**Three points the user settled before the change was opened,** each from a
+measurement on the 2026-10-28 payload at `67f0f1c`: 中位數 is the default; the fan
+connects across a year with no project (the city view has none in 2002–2026, all
+12 districts have some); every year is drawn however few projects it holds (76
+of 235 district-years hold one, where the fan narrows to a point and the box to
+its dot).
+
+**Measured on the page (harness, same payload, city view):** 25 years drawn; 0
+of 50 medians and counts differ between the two views; the card reads 3.8 under
+both. 2026 reads 1.8 / 2.8 / 3.7 / 5.1 / 17.7 (n 32) for both intervals; the
+longest pre-permit value is 21.4, in 2007 (0.8 / 1.0 / 1.6 / 4.3 / 21.4, n 18) —
+against medians near 3 and 4, which is the gap the view exists to show.
+`tests/test_dashboard_rules.py` holds 15 new tests, read from the year tooltips
+plus two structural readings of the harness (mark-class counts and path command
+letters, never coordinates). Suite 1329 passed / 1 skipped.
+
+**Seen in a browser and fixed before the commit:** the y axis topped at 30 for a
+longest value of 21.4 (five steps now, 25); at a 284px plot the median dots
+overprinted into one bar (the dot shrinks with the year's slot); the tooltip
+header's swatch sat on a line of its own when an interval name wrapped; a legend
+entry that wraps squeezed its swatch.
+
+**One thing stays as it is:** `dashboard.css` changed and the asset version did
+not — the cache-bust is derived from the dataset, and no dataset moved. A browser
+can hold the old stylesheet with the new script until its cache expires; the
+switch and the tooltip table then show unstyled and still work.
+
 ### 14.-3 2026-11-13 — review time re-anchored on the first approval's own case; a second interval to the pre-permit approval
 
 **The rule changed, on the user's word (2026-11-13).** The 審議量能與時程 section

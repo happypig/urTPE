@@ -5,7 +5,8 @@
  * households, public land), then per-district aggregates. No build step, no
  * dependency, no network beyond this directory.
  *
- * State lives in the URL hash (#district=萬華區&lang=en) so a view can be linked.
+ * State lives in the URL hash (#district=萬華區&lang=en&review=full) so a view
+ * can be linked.
  */
 (function () {
   "use strict";
@@ -81,6 +82,26 @@
     ],
     review1: ["Application to first approval", "自申請至首次核定"],
     review2: ["Application to the approval before the building permit", "自申請至建照核發前之核定"],
+    // the 完整 view (dashboard-review-spread): the title, caption and legend follow the view
+    reviewView: ["Review chart view", "審議圖表檢視"],
+    viewFull: ["Full", "完整"],
+    cReviewFull: ["Review years, shortest to longest, by year of first approval", "審議年數分布，依首次核定年度"],
+    cReviewFullCap: [
+      "Each project is measured from the plan application on its first approval's own city case. Each year shows the shortest and the longest review, the 25th to 75th percentile (the middle half of its projects) and the median. Years with few projects move a lot.",
+      "每件專案自其首次核定案件的計畫申請日起算。各年度顯示最短與最長、第 25 至第 75 百分位（中間一半的專案）及中位數。專案數少的年度波動較大。",
+    ],
+    review1Marks: [
+      "thin line, shortest to longest; box, 25th to 75th percentile; dot, median",
+      "細線為最短至最長，方塊為第 25 至第 75 百分位，圓點為中位數",
+    ],
+    review2Marks: [
+      "light band, shortest to longest; dark band, 25th to 75th percentile; line, median",
+      "淺色帶為最短至最長，深色帶為第 25 至第 75 百分位，線為中位數",
+    ],
+    shortest: ["Shortest", "最短"],
+    p25: ["25th percentile", "第 25 百分位"],
+    p75: ["75th percentile", "第 75 百分位"],
+    longest: ["Longest", "最長"],
     median: ["Median", "中位數"],
     projectsN: ["Projects", "專案數"],
     noApprovals: ["No approvals recorded.", "沒有核定紀錄。"],
@@ -116,28 +137,32 @@
     en: [
       ["Stage.", "已完工: a use permit date is recorded. 施工中: a construction start date but no use permit. 已領建照未開工: a building permit but no start. 已核定未領建照: approved, no building permit recorded."],
       ["Idle years.", "Years between the latest recorded milestone, approval or permit of a project and the latest gazette. The 3 and 5 year cut-offs are a convention of this page, not a legal definition, and a quiet record can also mean missing data."],
-      ["Review time.", "Measured on the city case of a project's first approval (its earliest 擬訂 plan or rights-transfer approval; outline approvals never count): years from that case's plan application to its approval, and to the last approval before the building permit — or the latest approval when no permit is recorded. Projects with only an outline approval are left out and counted in the chart caption."],
+      ["Review time.", "Measured on the city case of a project's first approval (its earliest 擬訂 plan or rights-transfer approval; outline approvals never count): years from that case's plan application to its approval, and to the last approval before the building permit — or the latest approval when no permit is recorded. Projects with only an outline approval are left out and counted in the chart caption. In the full view of the chart, a percentile is read by linear interpolation between the two nearest ranks of a year's values."],
       ["Coverage.", "Only approved cases appear here; projects stuck before approval are not in the gazette. Households, land areas and public-benefit area are the figures filed with each plan and may differ from built results."],
     ],
     zh: [
       ["階段。", "已完工：有使用執照日期。施工中：有開工日期但無使用執照。已領建照未開工：有建造執照但未開工。已核定未領建照：已核定，但無建造執照紀錄。"],
       ["停滯年數。", "專案最近一筆里程碑、核定或執照紀錄，距最新一期公報的年數。三年與五年的門檻是本頁的慣例，並非法定定義；沒有紀錄也可能只是資料缺漏。"],
-      ["審議時間。", "以專案首次核定案件（最早的擬訂事業計畫或權利變換計畫，不含事業概要）為準：自該案的計畫申請日，至該案核定日的年數，以及至建照核發前最後一次核定的年數；無建照紀錄者量至最近一次核定。僅有事業概要核定的專案不計入，件數標示於圖表說明。"],
+      ["審議時間。", "以專案首次核定案件（最早的擬訂事業計畫或權利變換計畫，不含事業概要）為準：自該案的計畫申請日，至該案核定日的年數，以及至建照核發前最後一次核定的年數；無建照紀錄者量至最近一次核定。僅有事業概要核定的專案不計入，件數標示於圖表說明。圖表的「完整」檢視中，百分位以該年度數值相鄰兩個排序位置之間的線性內插計算。"],
       ["涵蓋範圍。", "這裡只有已核定案件；核定前就卡住的案件不在公報內。戶數、土地面積與公益設施面積為計畫書所載數字，可能與實際興建結果不同。"],
     ],
   };
 
   // --------------------------------------------------------------- state
-  const state = { district: "", lang: "zh" };
+  // review: "full" is the 完整 view of the review chart; anything else is 中位數,
+  // which therefore has one address — the hash without the key
+  const state = { district: "", lang: "zh", review: "" };
   function readHash() {
     const q = new URLSearchParams(location.hash.replace(/^#/, ""));
     state.district = q.get("district") || "";
     state.lang = q.get("lang") === "en" ? "en" : "zh";
+    state.review = q.get("review") === "full" ? "full" : "";
   }
   function writeHash() {
     const q = new URLSearchParams();
     if (state.district) q.set("district", state.district);
     if (state.lang === "en") q.set("lang", "en");
+    if (state.review) q.set("review", state.review);
     const h = q.toString();
     history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
   }
@@ -293,6 +318,18 @@
     return Math.round((s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2) * 10) / 10;
   }
   const sum = (a, k) => a.reduce((n, r) => n + (r[k] || 0), 0);
+  // Percentile by linear interpolation between the two nearest ranks
+  // (dashboard-review-spread, D2): rank (n - 1) * p from zero, the value below
+  // plus the rank's fraction of the step to the value above. Its p = 0.5 is
+  // the median above, but the median is still read from median(): the two
+  // sums can differ in the last bit, and one year must not show two medians.
+  function quantile(sorted, p) {
+    const h = (sorted.length - 1) * p;
+    const lo = Math.floor(h);
+    const hi = Math.min(lo + 1, sorted.length - 1);
+    return sorted[lo] + (h - lo) * (sorted[hi] - sorted[lo]);
+  }
+  const r1 = (v) => Math.round(v * 10) / 10;
 
   function kpiOf(district, g) {
     const open = g.filter((p) => p.status !== "已完工");
@@ -352,8 +389,14 @@
         if (!m.has(y)) m.set(y, []);
         m.get(y).push(p[key]);
       }
-      return [...m.entries()].sort((x, y) => x[0] - y[0])
-        .map(([year, v]) => ({ year, projects: v.length, median: median(v) }));
+      // median for the 中位數 view; the other four for 完整, each to one decimal
+      return [...m.entries()].sort((x, y) => x[0] - y[0]).map(([year, v]) => {
+        const s = v.slice().sort((a, c) => a - c);
+        return {
+          year, projects: v.length, median: median(v),
+          min: r1(s[0]), q1: r1(quantile(s, 0.25)), q3: r1(quantile(s, 0.75)), max: r1(s[s.length - 1]),
+        };
+      });
     };
     return { first: series("review_years"), pre: series("review2_years") };
   }
@@ -390,11 +433,13 @@
     tx.remove();
     return m;
   }
+  // lines: the tooltip's lines, or a function that builds them when asked
   function hover(node, show, hide, lines) {
-    node.addEventListener("pointerenter", (ev) => show(ev, lines));
-    node.addEventListener("pointermove", (ev) => show(ev, lines));
+    const at = (ev) => show(ev, typeof lines === "function" ? lines() : lines);
+    node.addEventListener("pointerenter", at);
+    node.addEventListener("pointermove", at);
     node.addEventListener("pointerleave", hide);
-    node.addEventListener("click", (ev) => show(ev, lines));
+    node.addEventListener("click", at);
   }
   function niceTicks(maxV, n) {
     if (!(maxV > 0)) return [0, 1];
@@ -472,19 +517,12 @@
     }
   }
 
-  function reviewChart(box, data, scopeName) {
-    // two series on one frame: to first approval, and to the approval before
-    // the building permit (dashboard-review-time); each point names its own
-    // interval and its own project count
-    const series = [
-      { rows: data.first, name: t("review1"), color: COLOR.ok },
-      { rows: data.pre, name: t("review2"), color: COLOR.alt },
-    ].filter((s) => s.rows.length);
-    if (!series.length) { box.replaceChildren(el("p", { class: "empty" }, t("noReview"))); return; }
+  // The frame both review views share: years across, review years up from
+  // zero to the nice tick above the largest value of `key`, in about `n` steps.
+  function reviewFrame(box, all, key, label, n) {
     const h = 240;
-    const { svg, w, show, hide } = frame(box, h, scopeName + " · " + t("cReview"));
-    const all = series.flatMap((s) => s.rows);
-    const ticks = niceTicks(Math.max.apply(null, all.map((r) => r.median)), 4);
+    const { svg, w, show, hide } = frame(box, h, label);
+    const ticks = niceTicks(Math.max.apply(null, all.map((r) => r[key])), n);
     const y = lin(0, ticks[ticks.length - 1], h - 22, 8);
     const ml = textW(svg, ticks.map(f1)) + 10;
     let y0 = Math.min.apply(null, all.map((r) => r.year)), y1 = Math.max.apply(null, all.map((r) => r.year));
@@ -495,6 +533,94 @@
     for (let yr = y1; yr >= y0; yr -= step) {
       svg.append(sv("text", { x: x(yr), y: h - 6, "text-anchor": "middle" }, yr));
     }
+    return { svg, show, hide, x, y, h, y0 };
+  }
+
+  // The 完整 view (dashboard-review-spread): the pre-permit interval as a fan,
+  // the first-approval interval as one box per year, on one scale.
+  function reviewSpread(box, data, scopeName) {
+    const all = data.first.concat(data.pre);
+    // Five axis steps: the longest value, 21.4 on the 2026-10-28 payload, then
+    // tops the axis at 25; the 中位數 view's four would leave a third of the
+    // plot empty at 30.
+    const { svg, show, hide, x, y, h, y0 } = reviewFrame(box, all, "max", scopeName + " · " + t("cReviewFull"), 5);
+    const band = Math.abs(x(y0 + 1) - x(y0));          // px from one year to the next
+    const bw = Math.max(4, Math.min(14, band * 0.5));   // the box; never fills its slot
+    // the median dot shrinks with the slot: at phone width 25 years leave under
+    // 9px each, and full-size dots would overprint into one bar
+    const dot = Math.max(2, Math.min(3.5, band * 0.3));
+
+    // The fan. One vertex per year that holds a project, joined by straight
+    // segments: a curve would suggest values the data lacks, and a year with
+    // no project gets no vertex, so the segment between its neighbours
+    // crosses it. A lone year has no width to span, so it is drawn as a short
+    // band, wider than the box that sits on it.
+    const pre = data.pre;
+    if (pre.length) {
+      const at = pre.length === 1
+        ? [[x(pre[0].year) - bw, pre[0]], [x(pre[0].year) + bw, pre[0]]]
+        : pre.map((r) => [x(r.year), r]);
+      const edge = (k) => at.map(([px, r]) => px + "," + y(r[k]));
+      const area = (hi, lo) => "M" + edge(hi).concat(edge(lo).reverse()).join("L") + "Z";
+      svg.append(sv("path", { class: "fan-range", d: area("max", "min"), style: "stroke:none;fill-opacity:.14;fill:" + COLOR.alt }));
+      svg.append(sv("path", { class: "fan-iqr", d: area("q3", "q1"), style: "stroke:none;fill-opacity:.32;fill:" + COLOR.alt }));
+      svg.append(sv("path", {
+        class: "fan-median", d: "M" + edge("median").join("L"),
+        style: "fill:none;stroke-width:2.5;stroke-linejoin:round;stroke:" + COLOR.alt,
+      }));
+    }
+
+    // The boxes, over the fan. The panel-coloured outline is the ring that
+    // keeps a box apart from the band beneath it; the dot is panel on ink so
+    // it reads on the box. With one project the box is its dot.
+    for (const r of data.first) {
+      const cx = x(r.year);
+      const g = sv("g");
+      g.append(sv("line", { class: "box-whisker", x1: cx, x2: cx, y1: y(r.max), y2: y(r.min), style: "stroke-width:1.5;stroke:" + COLOR.ok }));
+      g.append(sv("rect", {
+        class: "box-iqr", x: cx - bw / 2, width: bw, y: y(r.q3), height: Math.max(1, y(r.q1) - y(r.q3)), rx: 1,
+        style: "stroke:var(--panel);stroke-width:1.5;fill:" + COLOR.ok,
+      }));
+      g.append(sv("circle", { class: "box-median", cx, cy: y(r.median), r: dot, style: "fill:var(--panel);stroke:var(--ink);stroke-width:" + (dot < 3 ? 1 : 1.5) }));
+      svg.append(g);
+    }
+
+    // One tooltip per year, for both intervals: the hit target is the year's
+    // whole column, wider than any mark in it.
+    const byYear = (rows) => new Map(rows.map((r) => [r.year, r]));
+    const firstBy = byYear(data.first), preBy = byYear(data.pre);
+    const guide = sv("line", { class: "gridline", y1: y(0), y2: 8, x1: 0, x2: 0, opacity: 0 });
+    svg.append(guide);
+    const ROWS = [["shortest", "min"], ["p25", "q1"], ["median", "median"], ["p75", "q3"], ["longest", "max"], ["projectsN", "projects"]];
+    const head = (color, name) => el("th", null, el("span", { class: "iv" }, el("span", { class: "sw", style: "background:" + color }), name));
+    // an interval with no project in the year shows no value, not a zero
+    const val = (r, k) => (r ? (k === "projects" ? f0(r[k]) : f1(r[k])) : "—");
+    const tipOf = (yr) => () => [String(yr), el("table", null,
+      el("thead", null, el("tr", null, el("th", null), head(COLOR.ok, t("review1")), head(COLOR.alt, t("review2")))),
+      el("tbody", null, ROWS.map(([label, k]) => el("tr", null, el("th", null, t(label)),
+        el("td", { class: "num" }, val(firstBy.get(yr), k)), el("td", { class: "num" }, val(preBy.get(yr), k))))))];
+    const cw = Math.max(band, 12);
+    for (const yr of [...new Set(all.map((r) => r.year))].sort((a, c) => a - c)) {
+      const col = sv("rect", { x: x(yr) - cw / 2, width: cw, y: 0, height: h - 22, style: "fill:transparent" });
+      hover(col, show, hide, tipOf(yr));
+      col.addEventListener("pointerenter", () => { guide.setAttribute("x1", x(yr)); guide.setAttribute("x2", x(yr)); guide.setAttribute("opacity", 1); });
+      col.addEventListener("pointerleave", () => guide.setAttribute("opacity", 0));
+      svg.append(col);
+    }
+  }
+
+  function reviewChart(box, data, scopeName, full) {
+    // two series on one frame: to first approval, and to the approval before
+    // the building permit (dashboard-review-time); each point names its own
+    // interval and its own project count
+    const series = [
+      { rows: data.first, name: t("review1"), color: COLOR.ok },
+      { rows: data.pre, name: t("review2"), color: COLOR.alt },
+    ].filter((s) => s.rows.length);
+    if (!series.length) { box.replaceChildren(el("p", { class: "empty" }, t("noReview"))); return; }
+    if (full) { reviewSpread(box, data, scopeName); return; }
+    const all = series.flatMap((s) => s.rows);
+    const { svg, show, hide, x, y, h } = reviewFrame(box, all, "median", scopeName + " · " + t("cReview"), 4);
     series.forEach((s, si) => {
       const rows = s.rows;
       // Point to point: a curve would suggest values the data lacks.
@@ -520,9 +646,10 @@
   let agg = null;
   const app = document.getElementById("app");
 
+  // an item's text is a key of L, or the text itself when it is composed
   function legend(items) {
     return el("ul", { class: "legend" }, items.map(([c, k]) =>
-      el("li", null, el("span", { class: "sw", style: "background:" + COLOR[c] }), t(k))));
+      el("li", null, el("span", { class: "sw", style: "background:" + COLOR[c] }), L[k] ? t(k) : k)));
   }
   function card(labelKey, value, unit, sub) {
     return el("div", { class: "card" },
@@ -604,6 +731,36 @@
       publand: el("div", { class: "chart" }),
     };
 
+    // The review card is built here, not by chartCard: its title, caption and
+    // legend follow the 中位數 / 完整 switch (dashboard-review-spread). The
+    // switch is state, so it goes through the hash like the district; the
+    // render replaces the card, so focus is handed back to the pressed button.
+    const full = state.review === "full";
+    const setView = (v) => {
+      state.review = v;
+      writeHash();
+      render();
+      for (const btn of app.querySelectorAll("button.segbtn")) if (btn.getAttribute("aria-pressed") === "true") btn.focus();
+    };
+    const viewBtn = (v, key) => el("button", {
+      type: "button", class: "segbtn", "data-view": v || "median",
+      "aria-pressed": String((v === "full") === full), onclick: () => setView(v),
+    }, t(key));
+    const sep = zh ? "：" : ": ";
+    const reviewCard = el("div", { class: "card" },
+      el("div", { class: "cardhead" },
+        el("h3", null, t(full ? "cReviewFull" : "cReview")),
+        el("div", { class: "seg", role: "group", "aria-label": t("reviewView") }, viewBtn("", "median"), viewBtn("full", "viewFull"))),
+      // the 概要-only notice: these projects count in the project card but in neither interval
+      el("p", { class: "cap" }, t(full ? "cReviewFullCap" : "cReviewCap") + (k.outline_only
+        ? (zh ? ` 不含 ${f0(k.outline_only)} 件僅有事業概要核定的專案。`
+              : ` Excludes ${f0(k.outline_only)} projects with only an outline (事業概要) approval.`)
+        : "")),
+      full
+        ? legend([["ok", t("review1") + sep + t("review1Marks")], ["alt", t("review2") + sep + t("review2Marks")]])
+        : legend([["ok", "review1"], ["alt", "review2"]]),
+      boxes.review);
+
     const watch = rows.filter((p) => p.flag === IDLE5 || p.flag === IDLE3).sort((a, c) => c.idle_years - a.idle_years);
     const pubs = rows.filter((p) => p.status !== "已完工" && p.public_area > 0)
       .sort((a, c) => c.public_area - a.public_area).slice(0, 12);
@@ -624,12 +781,7 @@
         el("h2", null, t("sReview")), el("p", { class: "lede" }, t("sReviewLede")),
         el("div", { class: "grid" },
           chartCard("cApprovals", "cApprovalsCap", legend([["ok", "newPlans"], ["alt", "changes"]]), boxes.approvals),
-          chartCard("cReview", "cReviewCap", legend([["ok", "review1"], ["alt", "review2"]]), boxes.review,
-            // the 概要-only notice: these projects count in the project card but in neither interval
-            t("cReviewCap") + (k.outline_only
-              ? (zh ? ` 不含 ${f0(k.outline_only)} 件僅有事業概要核定的專案。`
-                    : ` Excludes ${f0(k.outline_only)} projects with only an outline (事業概要) approval.`)
-              : "")))),
+          reviewCard)),
       el("section", { id: "relocation" },
         el("h2", null, t("sReloc")), el("p", { class: "lede" }, t("sRelocLede")),
         chartCard("cHouseholds", "cHouseholdsCap", legend([["ok", "building"], ["alt", "waiting"]]), boxes.households)),
@@ -651,7 +803,7 @@
         segs: [{ k: "moving", name: t("moving"), color: COLOR.ok }, { k: "idle3", name: t("idle3"), color: COLOR.warn }, { k: "idle5", name: t("idle5"), color: COLOR.bad }],
       });
       approvalsChart(boxes.approvals, approvalsOf(apprs), scopeName);
-      reviewChart(boxes.review, reviewOf(rows), scopeName);
+      reviewChart(boxes.review, reviewOf(rows), scopeName, full);
       const byDistrict = agg.districts.map((d) => agg.kpi.get(d));
       const dim = (r) => !!state.district && r.district !== state.district;
       hbars(boxes.households, {

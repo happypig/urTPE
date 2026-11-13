@@ -5,7 +5,7 @@
  *
  *   node scripts/dashboard_smoke.js --payload fixture.json [--preset]
  *        [--hash "#district=萬華區&lang=en"] [--index-html index.html]
- *        [--fetch reject|404|none] [--today 2030-01-01]
+ *        [--fetch reject|404|none] [--today 2030-01-01] [--press 完整]
  *
  * --preset sets window.PROJECTS before the page runs, so the page's own
  * dataset load is skipped — the shape scripts/viewer_smoke.js uses. Without it
@@ -19,11 +19,23 @@
  * idle time to the gazette's published_date, never to the viewing day, and a
  * test renders the same payload under two clocks to prove it.
  *
+ * --press fires the click handler of the review chart's switch button with
+ * that label, after the page has rendered and before it is read back; it may
+ * be given more than once, and the presses run in order. A label no button
+ * carries is an error, so a test never passes on a switch that is not there.
+ *
  * Chart values are read from the tooltips the page itself builds: every bar,
  * year group and review point carries a pointerenter handler whose lines are
  * the figures a reader sees on hover, so the harness fires the handler and
  * reads the tooltip. No chart geometry is inspected; text width is left at
  * the page's own 8px-per-character fallback.
+ *
+ * The review chart's 完整 view (dashboard-review-spread, design D6) is read
+ * the same way — `spread` is each year's tooltip table — plus two structural
+ * readings that are not coordinates: `reviewMarks`, how many elements carry
+ * each mark class, and `reviewPathCommands`, the command letters of each
+ * path, which is how "straight segments, no smoothing" and "the fan runs
+ * unbroken across a missing year" are asserted.
  */
 "use strict";
 
@@ -36,7 +48,7 @@ const PAGE = path.join(ROOT, "viewer", "dashboard.js");
 
 // --- arguments --------------------------------------------------------------
 const argv = process.argv.slice(2);
-const opt = { payload: null, preset: false, hash: "", indexHtml: null, fetch: "none", today: null };
+const opt = { payload: null, preset: false, hash: "", indexHtml: null, fetch: "none", today: null, press: [] };
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === "--preset") opt.preset = true;
@@ -45,6 +57,7 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === "--index-html") opt.indexHtml = argv[++i];
   else if (a === "--fetch") opt.fetch = argv[++i];
   else if (a === "--today") opt.today = argv[++i];
+  else if (a === "--press") opt.press.push(argv[++i]);
   else { console.error("dashboard_smoke: unknown argument " + a); process.exit(2); }
 }
 
@@ -300,6 +313,40 @@ function seriesOf(box) {
   const pts = walk(box, (x) => (x.listeners.pointerenter || []).length > 0).map(tipLines).filter(Boolean);
   return { series: pts.map((L) => ({ head: L[0], values: kv(L) })), empty: null };
 }
+// the 完整 view: one hover column per year, whose tooltip is the year and a
+// table — a column per interval, a row per value
+function spreadOf(box) {
+  const years = [];
+  if (!box) return years;
+  for (const h of walk(box, (x) => (x.listeners.pointerenter || []).length > 0)) {
+    h.listeners.pointerenter[0]({ clientX: 0, clientY: 0 });
+    const tip = first(box, ".tip");
+    const table = tip && first(tip, "table");
+    if (!table) continue;
+    const names = qsa(first(table, "thead"), "th").slice(1).map(text);
+    const intervals = {};
+    for (const n of names) intervals[n] = {};
+    for (const tr of qsa(first(table, "tbody"), "tr")) {
+      const label = text(first(tr, "th"));
+      const tds = qsa(tr, "td");
+      names.forEach((n, i) => { intervals[n][label] = tds[i] ? tds[i].textContent : null; });
+    }
+    years.push({ year: tip.children[0].textContent, intervals });
+  }
+  return years;
+}
+const MARKS = ["fan-range", "fan-iqr", "fan-median", "box-whisker", "box-iqr", "box-median"];
+function marksOf(box) {
+  const count = {}, commands = {};
+  if (!box) return { count, commands };
+  for (const e of walk(box, (x) => cls(x).some((c) => MARKS.includes(c)))) {
+    const k = cls(e).find((c) => MARKS.includes(c));
+    count[k] = (count[k] || 0) + 1;
+    const d = e.getAttribute("d");
+    if (d != null) (commands[k] = commands[k] || []).push(d.replace(/[^A-Za-z]/g, ""));
+  }
+  return { count, commands };
+}
 function tableOf(root) {
   const tbody = first(first(root, "table"), "tbody");
   const trs = tbody ? tbody.children.filter((c) => c.tagName === "tr") : [];
@@ -356,6 +403,20 @@ function extract() {
   // the review card's caption carries the 概要-only notice (dashboard-review-time)
   const reviewCard = qsa(review, ".card")[1];
   out.reviewCap = text(first(reviewCard, "p.cap"));
+  // the 中位數 / 完整 switch and what follows it (dashboard-review-spread)
+  out.reviewTitle = text(first(reviewCard, "h3"));
+  out.reviewLegend = qsa(reviewCard, "li").map(text);
+  out.reviewSwitch = qsa(reviewCard, "button.segbtn").map((btn) => ({
+    label: btn.textContent, view: btn.getAttribute("data-view"),
+    pressed: btn.getAttribute("aria-pressed") === "true",
+  }));
+  const pressed = out.reviewSwitch.find((s) => s.pressed);
+  out.reviewView = pressed ? pressed.view : null;
+  out.hash = location.hash;
+  out.spread = spreadOf(rb[1]);
+  const marks = marksOf(rb[1]);
+  out.reviewMarks = marks.count;
+  out.reviewPathCommands = marks.commands;
   out.households = barsOf(first(sec("relocation"), ".chart"));
   const housing = sec("housing");
   out.publand = barsOf(first(housing, ".chart"));
@@ -367,6 +428,11 @@ function extract() {
 // the load path resolves through promises; one macrotask is enough
 setTimeout(() => {
   try {
+    for (const label of opt.press) {
+      const btn = qsa(byId.app, "button.segbtn").find((x) => x.textContent === label);
+      if (!btn) { console.error("dashboard_smoke: no switch button reads " + label); process.exit(1); }
+      for (const fn of btn.listeners.click || []) fn({ currentTarget: btn, target: btn });
+    }
     process.stdout.write(JSON.stringify(extract(), null, 1) + "\n");
     process.exit(0);
   } catch (e) {

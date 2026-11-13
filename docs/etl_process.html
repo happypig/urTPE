@@ -775,6 +775,33 @@
   </div>
 
   <div class="callout note">
+    <div class="h"><span class="en">The policy dashboard — a second page over the same payload</span><span class="zh">政策儀表板 — 同一份 payload 上的第二個頁面</span></div>
+    <span class="en"><code>viewer/dashboard.html</code> + <code>viewer/dashboard.js</code> load
+    <code>projects.data.js</code> with the <code>?v=</code> that <code>index.html</code> names and
+    compute every figure in the browser at render time — stalled cases, review workload and speed,
+    relocation demand, public land — so nothing on the page is typed by hand (<code>policy-dashboard</code> spec).
+    The district, the language and the review view live in the URL hash. The review chart has two
+    views, switched in its own card: 中位數 (default) draws the median of both intervals by year of
+    first approval; 完整 (<code>#review=full</code>) draws the spread behind them — the pre-permit
+    interval as a fan (shortest-to-longest band, 25th-to-75th-percentile band, median line, straight
+    segments) and the first-approval interval as one box per year (thin line, box, dot), with one
+    tooltip per year listing the five values and the project count of both intervals. A percentile is
+    read by linear interpolation between the two nearest ranks, to one decimal. Unlike the viewer's
+    smoke script, this render path is in pytest: <code>tests/test_dashboard_rules.py</code> renders the
+    real page through <code>node scripts/dashboard_smoke.js</code>.</span><span class="zh"><code>viewer/dashboard.html</code> + <code>viewer/dashboard.js</code> 以
+    <code>index.html</code> 所指定的 <code>?v=</code> 載入 <code>projects.data.js</code>，
+    在瀏覽器中於渲染時算出每一個數字 — 停滯案件、審議量能與時程、安置需求、公有地 —
+    頁面上沒有任何手寫的數字（<code>policy-dashboard</code> spec）。
+    行政區、語言與審議圖表的檢視都存在 URL hash 裡。審議圖表有兩種檢視，在圖表自己的卡片上切換：
+    中位數（預設）畫出兩段期間依首次核定年度的中位數；完整（<code>#review=full</code>）畫出中位數背後的分布 —
+    自申請至建照核發前之核定為連續的扇形（最短至最長的淺色帶、第 25 至第 75 百分位的深色帶、中位數線，一律直線段），
+    自申請至首次核定為每年一個箱形（細線、方塊、圓點），每個年度一個提示框，列出兩段期間各自的五個數值與專案數。
+    百分位以相鄰兩個排序位置之間的線性內插計算，取到小數一位。與檢視器的 smoke script 不同，
+    這條渲染路徑在 pytest 內：<code>tests/test_dashboard_rules.py</code> 透過
+    <code>node scripts/dashboard_smoke.js</code> 渲染真實頁面。</span>
+  </div>
+
+  <div class="callout note">
     <div class="h"><span class="en">Cache-bust and publishing</span><span class="zh">快取破除與發布</span></div>
     <span class="en"><code>write_projects_js</code> rewrites the <code>?v=</code> on both script tags from
     the dataset (publication date + 4-hex digest of date-and-counts); identical data

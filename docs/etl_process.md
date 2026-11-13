@@ -513,6 +513,35 @@ land, section, implementer, planner, **review_flags**, **auto_fixes**,
 area_section). Recovered rows render provenance badges: 復原, 部分清單,
 修正…, A/B併案, 日期±1, and the memo disagreement badge (`viewer/app.js:1495`).
 
+### Policy dashboard — `viewer/dashboard.html` + `viewer/dashboard.js`
+
+A second page over the same payload. It loads `projects.data.js` with the
+`?v=` that `index.html` names, flattens each project to one row in the
+browser (stage, idle time, the two review intervals, households, public
+land) and computes every figure at render time — nothing on the page is
+typed by hand, so the figures move with the payload (`policy-dashboard`
+spec). Four sections: stalled cases, review workload and speed, relocation
+demand, public land. Its state — district, language, review view — lives in
+the URL hash, so a view can be linked.
+
+The review chart has two views, switched in its own card:
+
+- **中位數** (default) — the median of both intervals by year of first
+  approval: application → first approval, and application → the approval
+  before the building permit.
+- **完整** (`#review=full`) — the spread behind those medians. The pre-permit
+  interval is a fan: a light band from shortest to longest, a darker band
+  from the 25th to the 75th percentile, the median as a line, in straight
+  segments. The first-approval interval is one box per year: a thin line, a
+  box, a dot at the median. One tooltip per year lists the five values and
+  the project count of both intervals. A percentile is read by linear
+  interpolation between the two nearest ranks, to one decimal.
+
+The page's own 定義與限制 block states each rule to the reader. Unlike the
+viewer's smoke script, the dashboard's render path is in pytest:
+`tests/test_dashboard_rules.py` renders the real page through
+`node scripts/dashboard_smoke.js` (a stub DOM) and asserts on what it shows.
+
 ### Publishing
 
 The site is GitHub Pages at `https://happypig.github.io/urTPE` (canonical

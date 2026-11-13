@@ -210,6 +210,28 @@ classDiagram
     %% Invariant 3: milestones live on the case; a node may reference them.
     Node ..> TaipeiCase : renders (solid · dashed orphan · recovered)
     TaipeiCase --> TaipeiMilestones : owns
+
+    %% ---- read model: derived in the browser by viewer/dashboard.js, never
+    %% emitted (policy-dashboard spec). DashboardRow is one row of flatten();
+    %% ReviewYear is one row of reviewOf(), per interval -------------------
+    class DashboardRow {
+        str project_id
+        str status
+        float idle_years
+        float review_years
+        float review2_years
+    }
+    class ReviewYear {
+        int year
+        int projects
+        float min
+        float q1
+        float median
+        float q3
+        float max
+    }
+    ProjectGraph ..> DashboardRow : flatten (browser, one row per project)
+    DashboardRow "*" --> "1" ReviewYear : reviewOf (by year of first approval, per interval)
 ```
 
 ## Notes
@@ -220,7 +242,8 @@ classDiagram
 - **National** is post-approval breadth: one `view/<id>` per project (revision rollup), `national_milestones` (推動歷程 incl. 使用核發, the only occupancy source).
 - **Node anchoring** matches the node's date to a case's 核定日期/權變核定日期 exact-then-±1-day; per-record `implementation` snapshots ride onto nodes.
 - **Two newer `DiscoveryResult` fields** (added after this diagram was first drawn): `case_schedules` — per-case state (已核准/已駁回/自行撤回/已失效/審查中/施工中) explaining why a project whose cases were all rejected has no national-portal page (§6.14); `view_verified_case_ids` — case_ids read off the project's *own* national view page 相關連結, portal-verified and therefore exempt from the landcore-similarity gate (§6.14 ghost creation).
-- Sources: `urtpe/models.py`, `urtpe/graph.py`, `urtpe/links.py`, `urtpe/archive.py`, `urtpe/ledger.py`, `urtpe/poller.py`, `urtpe/changeset.py`, `openspec/specs/official-link-discovery/spec.md`.
+- **The dashboard is a read model, not payload state**: `viewer/dashboard.js` flattens each `ProjectGraph` to one `DashboardRow` in the browser and emits nothing. Its two review intervals are `review_years` (application → first approval) and `review2_years` (application → the approval before the building permit), both read from the first approval node's own city case. `reviewOf` groups them by the first approval's year into `ReviewYear` rows — shortest, 25th percentile, median, 75th percentile, longest, project count — which the review chart draws as its 中位數 view (the two medians) or its 完整 view (`#review=full`: `review2_years` as a fan, `review_years` as one box per year). Percentiles interpolate linearly between the two nearest ranks, to one decimal; the rules are the `policy-dashboard` spec's.
+- Sources: `viewer/dashboard.js`, `urtpe/models.py`, `urtpe/graph.py`, `urtpe/links.py`, `urtpe/archive.py`, `urtpe/ledger.py`, `urtpe/poller.py`, `urtpe/changeset.py`, `openspec/specs/official-link-discovery/spec.md`.
 
 ## Gazette cadence — archive, ledger, poller
 

@@ -220,6 +220,23 @@
           <li><code>links.taipei</code> <span class="zh">該筆的案號</span></li>
           <li><code>implementation</code> <span class="zh">逐筆快照</span></li></ul>
       </div>
+      <div class="ent">
+        <div class="name">DashboardRow <span class="role zh">儀表板列</span></div>
+        <div class="tagline"><span class="en">read model: derived in the browser by
+          <code>viewer/dashboard.js</code>, never emitted</span>
+          <span class="zh">讀取模型：由 <code>viewer/dashboard.js</code> 在瀏覽器內推導，不寫入產出</span></div>
+        <ul><li><code>status</code> <code>idle_years</code></li>
+          <li><code>review_years</code> <span class="zh">自申請至首次核定</span></li>
+          <li><code>review2_years</code> <span class="zh">自申請至建照核發前之核定</span></li></ul>
+      </div>
+      <div class="ent">
+        <div class="name">ReviewYear <span class="role zh">年度審議分布</span></div>
+        <div class="tagline"><span class="en">per year of first approval and per interval;
+          the review chart draws it as its 中位數 or its 完整 view</span>
+          <span class="zh">依首次核定年度、逐期間；審議圖表畫成「中位數」或「完整」檢視</span></div>
+        <ul><li><code>min</code> <code>q1</code> <code>median</code> <code>q3</code> <code>max</code></li>
+          <li><code>projects</code> <span class="zh">該年度專案數</span></li></ul>
+      </div>
     </div>
 
     <div class="layer">
@@ -276,6 +293,14 @@
       <tr><td>ProjectGraph → Edge</td><td class="num">1 : N</td>
         <td><span class="en">revision · track · section</span>
           <span class="zh">版本 · 事業種類 · 區段</span></td></tr>
+      <tr><td>ProjectGraph ⇢ DashboardRow</td><td class="num">1 : 1</td>
+        <td><span class="en">one flat row per project, derived in the browser — not in the payload</span>
+          <span class="zh">每個專案一列，在瀏覽器內推導 — 不在 payload 裡</span></td></tr>
+      <tr><td>DashboardRow → ReviewYear</td><td class="num">N : 1</td>
+        <td><span class="en">grouped by the first approval's year, per interval: shortest, 25th percentile,
+          median, 75th percentile, longest, count — percentiles by linear interpolation between the two nearest ranks</span>
+          <span class="zh">依首次核定年度分組、逐期間：最短、第 25 百分位、中位數、第 75 百分位、最長、專案數 —
+          百分位以相鄰兩個排序位置之間的線性內插計算</span></td></tr>
     </tbody>
   </table>
 </section>

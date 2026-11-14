@@ -424,11 +424,17 @@ check("the deep link read path is registered",
   // (3 badges built, 1 visible). The stub has no layout, so the pin is on the
   // emitted geometry: every row's width covers its badges (>= 18 each + 2
   // between) and the row sets overflow:visible. Run on every project that
-  // has a node with two or more cases, or a 國 beside a 北.
+  // has a node with at least one badge.
+  // A dataset with no case links at all (a degraded payload) has nothing to
+  // badge; the live payload must check some rows or the pin proves nothing.
+  const anyBadgeable = doc.projects.some((pp) => (pp.nodes || []).some((n) =>
+    (((n.links || {}).taipei || []).length > 0)
+    || (n.national_badges && pp.links && pp.links.twur)));
   let rowFailures = 0, rowsChecked = 0, worst = "";
   for (const pp of doc.projects) {
     const multi = (pp.nodes || []).some((n) =>
-      (((n.links || {}).taipei || []).length + (n.national_badges ? 1 : 0)) >= 2);
+      (((n.links || {}).taipei || []).length
+       + ((n.national_badges && pp.links && pp.links.twur) ? 1 : 0)) >= 1);
     if (!multi) continue;
     renderDetailApp(pp);
     const svgHtml = String(detailEl.innerHTML || "");
@@ -446,8 +452,8 @@ check("the deep link read path is registered",
     }
   }
   check("badge row: no node's badges are clipped by a fixed-width box",
-    rowsChecked > 0 && rowFailures === 0,
-    `${rowsChecked} badge rows checked, ${rowFailures} too narrow${worst ? " — " + worst : ""}`);
+    rowFailures === 0 && (rowsChecked > 0 || !anyBadgeable),
+    `${rowsChecked} badge rows checked, ${rowFailures} too narrow${worst ? " — " + worst : ""}${rowsChecked === 0 && !anyBadgeable ? " (the dataset carries no case links to badge)" : ""}`);
 
   // ── national-badge-by-registration: the badge reads the payload field ──────
   // The pipeline resolves the rule once (registration OR exact twur_name OR

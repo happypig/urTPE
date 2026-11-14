@@ -1,11 +1,13 @@
-# Project inspection — Batch F · collected 2026-11-15 (F1–F7)
+# Project inspection — Batch F · collected 2026-11-15 (F1–F9)
 
-Seven items. F1–F3 are the user's three follow-up points after the
+Nine items. F1–F3 are the user's three follow-up points after the
 `section8-gate-anchor-parcel-drift` change (2026-11-15): one decision with two
 implementations, a cross-route test, and an explicit dependency. F4–F6 are the
 three items that change left open (懷生16's missing case, 市府220-2's land core,
 the limit of the rejected-id count). F7 records what the exploration found
-**against the change that just shipped**. The board follows the
+**against the change that just shipped**. F8 and F9 came from the user's next
+two questions the same day: the 北 badges against the 相關連結 list, and the
+section labels of 文山區-木柵段三小段-623. The board follows the
 `docs/inspection-batchE.md` structure: findings, then the plan, then the
 decisions that gate execution.
 
@@ -351,6 +353,142 @@ count; it does not support more.
 
 ---
 
+## F8 — the 北 badges and the 相關連結 list disagree (user, 2026-11-15)
+
+**The question.** Does every case in a project's 相關連結 list have a 北
+badge on the graph, and the reverse? The viewer builds the list from
+`links.taipei` and draws one badge per case in each node's `links.taipei`
+(plus one per drawn orphan node). Measured on all 675 projects: the list holds
+**2,015** entries, the graph badges **1,990** distinct cases.
+
+| Check | Result |
+| --- | --- |
+| A badged case missing from the list | **1** — `09609301` (市府220-2). A node still carries it; the project's list does not. This is F5's land-core defect. |
+| One case badged on two nodes | 0 |
+| A badge's `[X區]` label differs from the list's name | 0. Both read `candidate_names`, so they agree by construction. |
+| A list entry with no badge | **26** |
+
+The 26 split two ways.
+
+| By structure | Entries |
+| --- | --- |
+| superseded: the list says "已由 … 取代" and no node is expected | 5 (expected) |
+| no node and no orphan record | 17 |
+| an orphan record with no name, so the viewer draws no node | 4 (`11412011`, `10203261`, `10203262`, `09210151`) |
+
+All 17 with no node carry the payload flag 孤兒案件未達相似度門檻: the
+system names them (F1, S5). The 4 nameless orphan records carry **no flag**.
+That is the silent part: a case in the list, no node, no flag. Example of the
+17: 華中247's `09305080`, the 概要 case, refused by the orphan-name branch at
+0.45.
+
+**Nine case ids are listed under two projects.**
+
+| Ids | Projects | Cause |
+| --- | --- | --- |
+| `10908271`–`10908274`, `11411016`, `11411017` (6) | 大龍265-7 (2 parcels) and 大龍265 (27 parcels) | **Verified.** The 265-7 unit's first parcel is `265-7`. The search guard's legacy stem rule accepts a case that names the stem (`265地號等27筆`). The cases belong to the larger unit. |
+| `10405043` | 玉成253-1 and 玉成253 | **Verified**, same stem rule (`253地號等9筆`). |
+| `10203261`, `10203262` | 玉成166 and 玉成253-1 | **Not established.** 253-1's cache holds no name for them. |
+
+The 大龍265-7 list shows six cases of the larger unit, each with no badge on
+265-7. A reader sees links that the graph does not explain.
+
+**What this means for F1.** The stem rule is one more variant of the
+membership decision inside S1 (`_case_name_carries_parcel`, the "legacy mono
+form"). It admits a larger neighbour's cases into a smaller unit. F1 phase 1
+must pin it as its own named policy before any unification.
+
+**Options:**
+
+| Option | What |
+| --- | --- |
+| A | Draw a node for each held case (a ghost node for the 17 and the 4), so the list and the graph agree. Moves the graph; needs F1's decision on the orphan branch first. |
+| B | Keep the list as the honest record of what the city returned, and mark a list entry that has no node ("no node: below the similarity gate") in the 相關連結 debug section. Viewer only. |
+| C | Remove a cross-listed case from the wrong holder by decision (stem rule scoped by declared count, or a ledger entry per pair) |
+
+**Recommendation: B now, C through F1.** B costs one viewer change and removes
+the unexplained links. C removes the cause, but the stem rule's population is
+**not measured**: only the 9 duplicated ids are visible, and a stem-admitted
+case that no other project lists does not show as a duplicate.
+
+**Not measured:** how many cases the stem rule admits in total, and the graph
+effect of option A.
+
+---
+
+## F9 — section label drift in 文山區-木柵段三小段-623 (user, 2026-11-15)
+
+**The project.** 4 gazette approvals, 9 city cases, 39 parcels in every
+approval. The city names the sections in three different ways over time.
+Each approval's city case was paired with its gazette record by the 核定日期
+(the dates match exactly: 2021/04/15, 2023/12/21, 2026/07/29).
+
+| Gazette approval | Gazette suffix | City case(s) | City label | 基地 |
+| --- | --- | --- | --- | --- |
+| 833 · 擬訂 事業計畫 · 2019-01-31 | none | `09907221`, `09907222`, `09907223` | A區, B區, C區 | A1, B, A2 |
+| 588 · 擬訂 權利變換 · 2021-04-15 | (甲區段) | `10804121` | A區 | A1 |
+| 285 · 變更 事業計畫、權利變換 · 2023-12-21 | (乙區段) | `10907091` | C區 | A2 |
+| 29 · 變更 權利變換 · 2026-07-29 | (甲區段) | `11502011` | 甲區段 | A1 + B |
+| not approved: 變更(第二次), under review | (甲區段) | `11509002`, `11509003`, `11509004` | none (基地 only) | A1 / A2 / B |
+
+**Four kinds of drift, each measured.**
+
+1. **The area letter is not the 基地 letter.** A區 = A1基地, B區 = B基地,
+   C區 = A2基地. The gazette and the city both print a letter, and the two
+   letters do not match for C區.
+2. **The label 甲區段 names a different land set in each approval.** In 2021
+   it is A1. In 2026-07 it is A1 + B. In the 2026-09 filings (under review) the
+   three cases all read 甲區段 and cover A1, A2 and B. The label 乙區段 was A2
+   in 2023. By 2026-09 A2 sits inside 甲區段. The section scheme was
+   reorganised, and the label did not change with it.
+3. **The vocabulary switches.** The city used `X區` (A to C) until 2023, then
+   `甲區段` in 2026-07, then 基地 names alone in 2026-09. The gazette uses
+   甲/乙區段 from 2021.
+4. **The viewer reads only `X區`.** The badge label parser accepts one token
+   shape (`[A-E北南東西]區`). The 2026-07 approval shows a plain 北 although it
+   merges two sections. The 2026-09 approval shows **three identical plain 北
+   badges**; only the tooltip's case id tells them apart.
+
+The 國 badges follow the data: the national page names 5 of the 9 cases and
+none of the 4 newest, and node 29 carries no 國. That is consistent.
+
+**How common is it?** Measured over every case name in all 675 projects:
+
+| Vocabulary | Projects |
+| --- | --- |
+| `X區` (A to E, 北南東西) | 20 |
+| 基地 as a section token | 2 (木柵623 and 寶清353-2) |
+| 甲乙…區段 | **1** (木柵623 only) |
+| mixing two vocabularies across cases | **2** (木柵623, 寶清353-2) |
+
+寶清353-2 shows the same last step: A區/B區 through 2025, then
+`(A基地及道路用地)` and `(B基地)` on the 2026-10 filings (`11510014`,
+`11510015`). In both projects the 基地 names sit only on the newest filings
+(case ids `11509…` and `11510…`). That suggests a change in the city's
+convention in late 2026. It is **not proven**: it rests on two projects. A
+third project with a 基地 token (逸仙34) uses a historical site name
+(原基隆路整宅B基地), not a section label.
+
+**Not measured:** how the 區段 edges link the sections across these four
+approvals, and what the graph shows for 甲區段 lineage. The label drift means
+no single letter can follow one section through the project.
+
+**Options:**
+
+| Option | What |
+| --- | --- |
+| A | Extend the viewer's badge parser to read 基地 and 甲/乙區段 tokens (`[A1基地]`, `[甲區段]`). Viewer only; fixes the identical-badge problem for 2 projects. |
+| B | Leave it. The population is 2 projects and the city's convention may settle. |
+| C | The pipeline resolves a `section_label` per case once (the way `national_badges` is resolved), with a mapping table for the drifted projects. The viewer renders the field. |
+
+**Recommendation: A now, C if the city keeps the new vocabulary.** A is small
+and removes the three identical badges. C adds a mapping that someone must
+maintain by hand, and the population does not yet pay for it. A mapping from
+甲區段 to 基地 sets must also say which approval it speaks about, because the
+set changes (finding 2).
+
+---
+
 ## Order
 
 | Step | Item | Priority | Form | Depends on | Notes |
@@ -362,6 +500,8 @@ count; it does not support more.
 | 5 | **F1 phase 1** — one predicate, behaviour-preserving, golden table | **P2** | refactor + tests, no spec change | F3 | Lands F2's tier 1 |
 | 6 | **F1 phase 2** — each unification, one decision at a time | **P3** | one openspec change per unification | F1 phase 1, the user | Each moves up to 86 pairs and needs its own measurement |
 | 7 | **F2** tier 2 — the live pinned-list test | **P3** | pytest | F1 phase 2 | Lands with the list as the honest record |
+| 8 | **F9** — the badge parser reads 基地 and 甲/乙區段 tokens | **P3** | direct `fix:` (viewer) + harness case | the user's decision (D10) | 2 projects; no pipeline change |
+| 9 | **F8** option B — mark list entries that have no node | **P3** | direct `fix:` (viewer) | the user's decision (D9) | Removes the unexplained links; C waits for F1 |
 | — | **F6** — re-run the unrecorded-id scan after each sweep | — | a command | E13's sweep | No change |
 
 ---
@@ -381,6 +521,8 @@ cost and a recommendation.
 | D6 | F1: phase the merge? | A refactor first, then each unification · B one big merge | **A** |
 | D7 | F2: which tiers, in what order? | A tier 1 with F1 phase 1, tier 2 last · B tier 2 first with the 93-pair list | **A** |
 | D8 | F3: widen the backfill and name the empty list? | A yes, all 675 plus a live pin · B only the view-holders (today) | **A** |
+| D9 | F8: a list entry that has no node | A draw a node for each · B mark it in the debug list · C remove a cross-listed case from the wrong holder | **B** now, **C** through F1 |
+| D10 | F9: section labels that are not `X區` | A the viewer reads 基地 and 甲/乙區段 · B leave · C a pipeline `section_label` with a mapping | **A** now, **C** if the new vocabulary stays |
 
 ---
 
@@ -412,3 +554,16 @@ and `viewer/projects.data.js`. The scripts were ad-hoc and are not kept.
   `view_verified_case_ids` or `view_rejected`.
 - **Day-one claim (F2):** the old gate is `verify_view_verified_ids` called
   without `own_parcels`, which is exactly its pre-change behaviour.
+- **List against badges (F8):** the list is `links.taipei`. The badges are every
+  node's `links.taipei` plus every orphan record that has a `case_name`, a
+  `stage` and a `track` (the viewer draws a node only for those). A list entry
+  with neither is "unbadged". Superseded ids are `links.superseded_by`.
+- **Cross-listed ids (F8):** ids that appear in the `links.taipei` of two or
+  more projects. The stem rule was tested by running the guard's three
+  branches on the unit's first parcel: exact, legacy stem (`<mono>地號` or
+  `<mono>等`), and the unit's own parcels.
+- **Label drift (F9):** the gazette suffix is the `案名` of each node; the city
+  label is the suffix of `candidate_names`. The pairing is by the 核定日期 of
+  the case's milestones against the node's date. Vocabularies are three
+  regexes: `X區` (`[-(（]\s*[A-E北南東西]區`), `[甲乙丙丁戊]區段`, and
+  `[A-Za-z]\d?基地`.

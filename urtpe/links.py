@@ -348,6 +348,14 @@ class DiscoveryResult:
     # viewer labels 國 with it (452 of 632 projects showed the wrong name under
     # the current-node rule). Parsed from the cached view.html, no request.
     twur_name: str = ""
+    # section8-gate-anchor-parcel-drift D2: the unit's own parcels (its 地號
+    # cell). The §8 gate needs them to tell a case of this unit that the 案名
+    # starts at another parcel (華中247: cell starts 247, 案名 names 201-2、352,
+    # land cores score 0.45) from a foreign case. Six scripts call
+    # refresh_project and only one passes the parcel list in its search key, so
+    # the cache is the one place every call path reaches. Empty = no evidence:
+    # the land-core rule alone decides, as before.
+    own_parcels: list[str] = field(default_factory=list)
     status: str = "unresolved"  # resolved, unresolved, multi-case, error
     error: str = ""
 
@@ -624,7 +632,8 @@ def discover_project_links(
     if cache_dir and fresh:
         prior = load_project_cache(cache_dir, project.project_id)
 
-    result = DiscoveryResult(project_id=project.project_id, land_core=land_core)
+    result = DiscoveryResult(project_id=project.project_id, land_core=land_core,
+                             own_parcels=own_parcels_of(anchor))
     if prior is not None:
         result.case_headers = dict(prior.case_headers)
         result.superseded_by = dict(prior.superseded_by)
@@ -1387,6 +1396,40 @@ def _link_threshold() -> float:
     return LINK_THRESHOLD
 
 
+def own_parcels_of(record) -> list[str]:
+    """The unit's own parcels as the gazette's 地號 cell lists them."""
+    return [str(p) for p in (getattr(record, "parcels", None) or []) if str(p)]
+
+
+def _section_text(land_core: str) -> str:
+    """The district + 段/小段 text of a land core: everything before the first
+    digit (`萬華區華中段一小段201-2地號等26筆` -> `萬華區華中段一小段`)."""
+    return re.sub(r"\d.*$", "", land_core or "")
+
+
+def _names_an_own_parcel_in_the_own_section(own_land_core: str, city_name: str,
+                                            city_lc: str, own_parcels) -> bool:
+    """section8-gate-anchor-parcel-drift D1: the case is the unit's own although
+    its land core differs, when its name declares the SAME district+section and
+    one of the unit's OWN parcels.
+
+    The gazette prints two parcel lists for one unit and they can start at
+    different parcels (華中247: the 地號 cell starts 247, the 案名 names
+    201-2、352), so the land core, which keys on the first parcel, scores 0.45.
+    The parcel test is the one the city search already trusts
+    (``_case_name_carries_parcel``, own_parcels). The section test is new: the
+    search gets it from its query, the gate has none. The parcel test cannot be
+    dropped either: 09608220 sits in 犁和段一小段, the same section as its
+    project, and names parcel 165, which is not the unit's.
+    """
+    parcels = [str(p) for p in (own_parcels or ()) if str(p)]
+    if not parcels or not city_lc:
+        return False
+    if _section_text(city_lc) != _section_text(own_land_core):
+        return False
+    return _case_name_carries_parcel(city_name, parcels[0], parcels)
+
+
 class ViewVerifiedDecision:
     """Outcome of the §8 decision pass over one cache's view-verified ids.
 
@@ -1406,7 +1449,8 @@ class ViewVerifiedDecision:
 
 
 def verify_view_verified_ids(own_land_core: str, ids: list[str],
-                             city_names: dict, labels: dict) -> ViewVerifiedDecision:
+                             city_names: dict, labels: dict,
+                             own_parcels=()) -> ViewVerifiedDecision:
     """§8 decision 1 (docs/viewer-UX.md §8): the city's own case name decides.
 
     | label (check 1) | city name (check 2) | result | reason |
@@ -1423,6 +1467,11 @@ def verify_view_verified_ids(own_land_core: str, ids: list[str],
     does NOT reject. A missing city name is no evidence and does NOT reject;
     with a mismatching label the id is reported as "label not confirmed" — the
     label alone never rejects.
+
+    A name whose land core does not match is still kept when it declares the
+    unit's own district+section and one of ``own_parcels`` (anchor-parcel
+    drift, section8-gate-anchor-parcel-drift). Without ``own_parcels`` the
+    land-core rule alone decides.
     """
     out = ViewVerifiedDecision()
     for cid in ids:
@@ -1446,7 +1495,9 @@ def verify_view_verified_ids(own_land_core: str, ids: list[str],
                 out.not_confirmed.append(cid)
             continue
         city_ok = (city_lc == own_land_core
-                   or compute_landcore_similarity(own_land_core, city_lc) >= threshold)
+                   or compute_landcore_similarity(own_land_core, city_lc) >= threshold
+                   or _names_an_own_parcel_in_the_own_section(
+                       own_land_core, city_name, city_lc, own_parcels))
         if city_ok:
             out.kept.append(cid)
             if not label_ok:
@@ -2287,13 +2338,26 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                     "view_rejected_ids": [], "view_label_errors": [],
                     "view_not_confirmed": [], "labelled_wu": [],
                     "implementation_refetched": [], "payload_sizes": [],
-                    "unconfirmed": [],
+                    "unconfirmed": [], "view_rejection_lifted": [],
                     "error": ""}
     if cached is None:
         report["error"] = "no cache"
         return report
     changed = False
     report_error = ""
+
+    # ── the unit's own parcels (section8-gate-anchor-parcel-drift D2) ───────
+    # A key that carries the parcel list is the freshest reading; it
+    # overwrites the cache's. A key without one (three of the six callers) or
+    # no key at all leaves the cache's own list in place, so the §8 gate gives
+    # the same answer on every call path.
+    if search_key and len(search_key) > 3 and search_key[3]:
+        first = str(search_key[1] or "")
+        key_parcels = ([first] if first else []) + [
+            str(x) for x in search_key[3] if str(x) and str(x) != first]
+        if key_parcels and key_parcels != cached.own_parcels:
+            cached.own_parcels = key_parcels
+            changed = True
 
     # ── the parcel search, before anything is read or written ───────────────
     search_status: dict[str, str] = {}
@@ -2592,6 +2656,28 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
     # absorb so a backfilled cache gains view_verified_case_ids (and any case id
     # the page names that the parcel search missed). Once per project — it ran
     # once per case before supersede-headerless-cases (§36 residual).
+    # section8-gate-anchor-parcel-drift D3: a rejection the gate wrote under an
+    # older rule stands only while the current rule still rejects the id. Re-
+    # decide each gate-written (shape A/B) rejection whose city name is held,
+    # BEFORE the absorb: the absorb skips ids in view_rejected (S3a), so a
+    # lifted id is re-added with its milestones and the merge below no longer
+    # drops it. Offer-step records (shape "offer") are not the gate's and
+    # stand. An id the rule still rejects keeps its record and is not fetched.
+    for cid, rec in list(cached.view_rejected.items()):
+        if (rec or {}).get("shape") not in ("A", "B"):
+            continue
+        held_name = (cached.case_case_names.get(cid) or "").strip()
+        if not held_name:
+            continue  # no evidence to change the record
+        again = verify_view_verified_ids(
+            own_land_core=cached.land_core, ids=[cid],
+            city_names={cid: held_name}, labels={},
+            own_parcels=cached.own_parcels)
+        if cid in again.kept:
+            del cached.view_rejected[cid]
+            report["view_rejection_lifted"].append(cid)
+            changed = True
+
     view_id = cached.twur_view_id or ""
     if not view_id and cached.twur_url:
         m = re.search(r"view/(\d+)", cached.twur_url)
@@ -2657,6 +2743,7 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             ids=cached.view_verified_case_ids,
             city_names=cached.case_case_names,
             labels=labels,
+            own_parcels=cached.own_parcels,
         )
         if decision.rejected:
             cached.view_verified_case_ids = list(decision.kept)

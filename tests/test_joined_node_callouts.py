@@ -69,8 +69,13 @@ def test_the_joined_node_counters_on_the_live_payload():
                 area_pairs += 1
             if n.get("implementation_by_case"):
                 with_by_case += 1
-    assert joined == 30, f"joined nodes moved: {joined} (board says 30)"
-    assert area_pairs == 28, f"area pairs moved: {area_pairs} (board says 28)"
+    # 2026-11-15 (section8-gate-anchor-parcel-drift): 華中247's two A區/B區
+    # nodes joined (09305081+09305082, 09407301+09407302): 30 -> 32, 28 -> 30.
+    # Neither has implementation payloads, so with_by_case stays 30 and no new
+    # section callout renders.
+    assert joined == 32, f"joined nodes moved: {joined} (board says 32 since the 2026-11-15 correction)"
+    assert area_pairs == 30, f"area pairs moved: {area_pairs} (board says 30 since the 2026-11-15 correction)"
+    assert with_by_case == 30, f"by_case nodes moved: {with_by_case} (board says 30)"
 
 
 # --- the round trip (task 1.2) -------------------------------------------------

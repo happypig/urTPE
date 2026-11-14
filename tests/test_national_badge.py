@@ -172,7 +172,10 @@ def test_the_counters_on_the_live_payload():
     rule; 451 lose it; 0 gain it. Re-pinned 2026-11-13 to 1,192 / 801 after the
     ledger merges gave five reunified families their national pages; re-pinned
     2026-11-14 to 1,197 / 806 after the nightly sweep matched five twur-less
-    projects (one node each: 通化202, 康寧811, 光華761, 三玉482, 臨沂412). Re-measured against the current payload —
+    projects (one node each: 通化202, 康寧811, 光華761, 三玉482, 臨沂412);
+    re-pinned 2026-11-15 to 1,197 / 808 after section8-gate-anchor-parcel-drift
+    returned 華中247's 09305081 and 09407302 (two nodes gain the registration
+    badge; the per-label binding count does not move). Re-measured against the current payload —
     the figures move when the payload does, and the test names the drift."""
     doc = json.loads(PAYLOAD.read_text(encoding="utf-8"))
     def roc_iso(v):
@@ -231,7 +234,7 @@ def test_the_counters_on_the_live_payload():
     # drift instead of passing silently. The board's 735 was the
     # pre-fallback measure (registration + exact name only).
     assert today == 1197, f"today's badged population moved: {today} (board says 1186; 1197 since the 2026-11-14 sweep)"
-    assert new == 806, f"the narrowed rule's population moved: {new} (board says 800; 806 since the 2026-11-14 sweep)"
+    assert new == 808, f"the narrowed rule's population moved: {new} (board says 800; 808 since the 2026-11-15 anchor-parcel-drift correction)"
 
 
 def _name_matches_core(node, twur_name):

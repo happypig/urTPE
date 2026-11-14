@@ -513,6 +513,28 @@ parcel), which is the C9 merge decision. 懷生16 is a different case: its id
 is in no view page. The two shapes need two changes. Open neither without the
 user's word.
 
+**Corrected by `section8-gate-anchor-parcel-drift` (2026-11-15, archived).** The
+§8 gate now keeps a view-named case whose city name declares the project's own
+district+section and one of the unit's own parcels. The cache carries
+`own_parcels` (569 caches backfilled from the payload; backup
+`data/.link_cache_backup_20261115_045523_ownparcels`). A rejection the gate
+wrote under the old rule is re-decided on the next refresh. Measured result:
+
+| Id | Project | Outcome |
+| --- | --- | --- |
+| 09305081, 09407302 | 華中247 | returned; the project holds all seven cases; two nodes gain the 國 badge (national_badges 806 → 808) and join as A區/B區 pairs (joined nodes 30 → 32) |
+| 09102220 | 吳興163-2 | returned (it was held in `city_case_ids` and also recorded as rejected; the record is gone) |
+| 09609301 | 大同區 市府220-2 | **stays rejected, by design**: the cache's land core says 中正區, the project and the case say 大同區. A separate defect: repair the cache's land core in its own change |
+| 7 ids | 7 projects | stay rejected (another district or section, or the same section with another parcel: 09608220) |
+
+`view_rejected` is now 8 ids in 8 projects (was 11 in 10). The two new joined
+華中247 nodes have no implementation payloads, so no section callout renders
+for them (`implementation_by_case` stays at 30 nodes). The refresh made 26 city
+requests and 0 failed. **Limit of the count:** it covers recorded rejections
+only. A view-named id that no cache ever recorded is not in it. 懷生16's
+`09503201` is still open: it appears in no view page, so this change does not
+reach it.
+
 **The user's finding (item 6).** 大安區-懷生段二小段-16地號等6筆 shows a case in
 the platform's own 相關連結 that this dataset has never held: **`09503201`** —
 擬訂…事業計畫案-A區 (and, on the platform, re-titled 變更…事業計畫案-A區; one id,

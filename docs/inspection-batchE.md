@@ -487,9 +487,24 @@ and city name name another project). The gate compares the 案名's land core
 (first parcel `201-2`) with the project's own land core (`247`). The score is
 0.45, below `LINK_THRESHOLD` 0.7. The same cause is on record: batch BC C4/S5
 ("華中247's 6 cases parse but score 0.45 < 0.7 — a merge decision, not a
-parse failure"). The five sibling cases that are held reached the project by
-another route. No other project holds the two rejected ids, so the offer step
-had no owner to move them to. They are orphaned.
+parse failure"). No other project holds the two rejected ids, so the offer
+step had no owner to move them to. They are orphaned.
+
+**Why only those two (measured 2026-11-15).** The seven cases have the same
+land core (`201-2`) and score the same 0.45. The score does not split them.
+The route splits them:
+
+| Route | Ids | Rule that admits or drops |
+| --- | --- | --- |
+| The city parcel search (`201-2` and `352`, the 案名's parcels) | 09305080, 09305082, 09407301, 09407303, 09407304 | The parcel guard: the case name carries the searched parcel. No land-core score is read. Held. |
+| The national view page's 相關連結 | 09305081, 09407302 (the only two ids the page names) | The §8 gate (`verify_view_verified_ids`): land-core score 0.45 < 0.7. Rejected. |
+
+Live checks: the city search for `201-2` returns 80, 81, 301, 302, 303, 304; for
+`352` it returns 80, 81, 82, 302, 303, 304; for `247` it returns nothing. So
+the search also returns 81 and 302. They are dropped because the view page
+names them and the §8 gate then rejects them. One id gets two different rules
+depending on the route it arrived by. I did not replay the discovery to see
+the exact order of the drop.
 
 **What this means for E10's change.** A new sibling-page source would not fix
 華中247. It already finds both ids. The fix is in the §8 gate (compare the

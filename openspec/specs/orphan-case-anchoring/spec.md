@@ -25,7 +25,7 @@ A case recorded in `superseded_by` — the city re-filed it under a new id — S
 
 ### Requirement: Portal-verified orphans bypass the landcore gate
 
-Case_ids listed in `DiscoveryResult.view_verified_case_ids` — extracted from the project's own national view page 相關連結 — SHALL become ghost nodes regardless of landcore similarity **only when the city's own case name for the id confirms the unit**: the land core of the platform's `CASE_NAME` (get_project168_top) SHALL match the project's land core at `LINK_THRESHOLD = 0.7`, or the name SHALL be parcel-less (a settlement-named unit like 崇仁新村 carries no 地號 and is not decidable by land core — it does not reject). A view-verified id whose city name names another project SHALL NOT become a ghost node: it SHALL move to the project's `view_rejected` record with its reason — shape A (the 相關連結 label and the city name both name another project) or shape B (the label is right, the id is wrong — only the city's own case name shows this). A 相關連結 label that names another project while the city name matches SHALL NOT reject the id: the portal's label error is logged in the run report instead. A city name the refresh could not read SHALL NOT reject the id (a missing header is no evidence); the id stays view-verified and, when its label also mismatches, is reported as "label not confirmed".
+Case_ids listed in `DiscoveryResult.view_verified_case_ids` — extracted from the project's own national view page 相關連結 — SHALL become ghost nodes regardless of landcore similarity **only when the city's own case name for the id confirms the unit**: the land core of the platform's `CASE_NAME` (get_project168_top) SHALL match the project's land core at `LINK_THRESHOLD = 0.7`, or the name SHALL be parcel-less (a settlement-named unit like 崇仁新村 carries no 地號 and is not decidable by land core — it does not reject), or the name SHALL declare the **same district and section** as the project and **one of the unit's own parcels** (anchor-parcel drift: the 地號 cell and the 案名 start at different parcels, so the land cores differ although the case is the unit's own). A view-verified id whose city name names another project SHALL NOT become a ghost node: it SHALL move to the project's `view_rejected` record with its reason — shape A (the 相關連結 label and the city name both name another project) or shape B (the label is right, the id is wrong — only the city's own case name shows this). A 相關連結 label that names another project while the city name matches SHALL NOT reject the id: the portal's label error is logged in the run report instead. A city name the refresh could not read SHALL NOT reject the id (a missing header is no evidence); the id stays view-verified and, when its label also mismatches, is reported as "label not confirmed".
 
 #### Scenario: Parcel-less portal-verified orphan becomes ghost
 
@@ -54,6 +54,18 @@ Case_ids listed in `DiscoveryResult.view_verified_case_ids` — extracted from t
 - **WHEN** the header fetch returned no row (or the cache holds no CASE_NAME) for a view-verified id whose label names another project
 - **THEN** the id stays view-verified
 - **AND** the run report marks it "label not confirmed" instead of rejecting it
+
+#### Scenario: A drifted case anchors on the node of its date
+
+- **WHEN** 華中247's view-verified id 09305081 (擬訂 A區, 核定 2014-04-25) is kept by the own-parcel rule and the node 1131 (2014-04-25) already carries 09305082
+- **THEN** 09305081 anchors on node 1131 and no ghost node is created for it
+- **AND** node 1131 carries both cases in its `links.taipei`
+
+#### Scenario: A same-section case of another unit still does not anchor
+
+- **WHEN** a view-verified id's city name is in the project's own section but declares none of the unit's own parcels
+- **THEN** no ghost node is created for it
+- **AND** the id moves to the project's `view_rejected` with reason "label and city name name another project (shape A)"
 
 ### Requirement: Attribution-provenance fallback when no case_name exists
 

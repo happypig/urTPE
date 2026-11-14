@@ -32,5 +32,5 @@
 
 ## 5. Archive
 
-- [ ] 5.1 Copy `openspec/` to a temporary directory and run `openspec archive section8-gate-anchor-parcel-drift --yes` there. Read the report (`+ 1, ~ 2`) and compare the synced specs with the delta.
-- [ ] 5.2 Run the real archive, then `openspec validate --specs`. Commit with path-scoped paths: `openspec: archive section8-gate-anchor-parcel-drift and sync its two spec deltas`.
+- [x] 5.1 Copy `openspec/` to a temporary directory and run `openspec archive section8-gate-anchor-parcel-drift --yes` there. Read the report (`+ 1, ~ 2`) and compare the synced specs with the delta.
+- [x] 5.2 Run the real archive, then `openspec validate --specs`. Commit with path-scoped paths: `openspec: archive section8-gate-anchor-parcel-drift and sync its two spec deltas`.

@@ -1,28 +1,18 @@
 ## Why
 
-The §8 gate (batch D, `reject-foreign-view-cases`) decides whether a case id
-that a project's national view page names really belongs to that project. It
-compares the land core of the city's case name with the land core of the
-project, at `LINK_THRESHOLD = 0.7`. A land core keys on the **first parcel**.
+The §8 gate decides whether a case id that a project's national view page names
+belongs to that project. It compares land cores at `LINK_THRESHOLD = 0.7`, and a
+land core keys on the **first parcel**. The gazette prints two parcel lists for
+one unit, and they can start at different parcels. In 萬華區-華中段一小段-247地號等26筆
+the 地號 cell starts at `247` and the 案名 names `201-2、352` (編號 14, 1084,
+1131). The two land cores score 0.45, so the gate says "another project".
 
-The gazette prints two parcel lists for one unit, and they can start with
-different parcels. 萬華區-華中段一小段-247地號等26筆 is the measured case. The
-地號 cell lists 26 parcels and starts at `247`. The 案名 names `201-2、352`.
-All three gazette rows (編號 14, 1084, 1131) show this. The project's land core
-keys on `247`. The city's case names key on `201-2`. The two cores score 0.45
-and the gate says "another project" (shape A).
-
-The effect is visible. The city's parcel search finds seven cases for this unit
-by the parcel guard, which accepts a case when its name carries one of the
-unit's **own** parcels. The five ids it finds without the view page stay in
-相關連結. The two ids that the view page names — `09305081` (擬訂, A區) and
-`09407302` (變更, B區) — go through the gate, fail at 0.45, and leave the
-project. The gate rejects the five held ids as well when it is run on them
-(replayed 2026-11-15). Only the route decides which ids it sees. One id gets
-two rules.
-
-The user found this on 2026-11-15 and asked for a full change. The evidence is
-in `docs/inspection-batchE.md`, section E10.
+The city's parcel search holds five of the unit's seven cases, because its guard
+accepts a name that carries one of the unit's **own** parcels. The two ids the
+view page names, `09305081` and `09407302`, go through the gate and leave. The
+gate also rejects the five held ids when it is run on them (replayed
+2026-11-15). Only the route decides which ids it sees. The user found this on
+2026-11-15; the evidence is in `docs/inspection-batchE.md`, section E10.
 
 ## What Changes
 

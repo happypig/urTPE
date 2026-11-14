@@ -418,6 +418,37 @@ check("the deep link read path is registered",
   check("overlap guard: every named orphan has a dotted edge orphan line", missingOrphanEdges === 0,
     `${missingOrphanEdges} missing orphan edges`);
 
+  // ── the badge row is not clipped (2026-11-15, 華中247) ──────────────────────
+  // The row sits in an SVG <foreignObject>, which CLIPS what overflows its
+  // width. A fixed 34 px hid the second 北 badge and the 國 of a joined node
+  // (3 badges built, 1 visible). The stub has no layout, so the pin is on the
+  // emitted geometry: every row's width covers its badges (>= 18 each + 2
+  // between) and the row sets overflow:visible. Run on every project that
+  // has a node with two or more cases, or a 國 beside a 北.
+  let rowFailures = 0, rowsChecked = 0, worst = "";
+  for (const pp of doc.projects) {
+    const multi = (pp.nodes || []).some((n) =>
+      (((n.links || {}).taipei || []).length + (n.national_badges ? 1 : 0)) >= 2);
+    if (!multi) continue;
+    renderDetailApp(pp);
+    const svgHtml = String(detailEl.innerHTML || "");
+    const rowRe = /<foreignObject x="14" y="-27" width="([\d.]+)" height="15"([^>]*)>([\s\S]*?)<\/foreignObject>/g;
+    let m;
+    while ((m = rowRe.exec(svgHtml))) {
+      rowsChecked++;
+      const w = parseFloat(m[1]);
+      const n = (m[3].match(/node-milestone-badge/g) || []).length;
+      const need = 18 * n + 2 * Math.max(0, n - 1);
+      if (w < need || !/overflow:\s*visible/.test(m[2])) {
+        rowFailures++;
+        if (!worst) worst = `${pp.project_id}: width ${w} for ${n} badges (need ${need})`;
+      }
+    }
+  }
+  check("badge row: no node's badges are clipped by a fixed-width box",
+    rowsChecked > 0 && rowFailures === 0,
+    `${rowsChecked} badge rows checked, ${rowFailures} too narrow${worst ? " — " + worst : ""}`);
+
   // ── national-badge-by-registration: the badge reads the payload field ──────
   // The pipeline resolves the rule once (registration OR exact twur_name OR
   // the 擬訂 section+parcel fallback) and emits `national_badges` per node.

@@ -924,3 +924,18 @@ def test_the_milestone_cards_national_badges_are_links():
         "the taipei card block moved")
     assert 'href="${escapeHtml(twurUrl)}" target="_blank" rel="noopener" title=' not in taipei_block, (
         "the 階段辦理過程 card's 北 badge must stay a span")
+
+
+def test_the_node_badge_row_is_sized_from_its_badges_and_never_clipped():
+    """華中247 (2026-11-15): three badges were built for a joined node and one
+    was visible. The row sits in an SVG foreignObject, which clips what
+    overflows its width, and the width was a fixed 34 — enough for 北 + 國
+    until each 北 carried its [A區] label. The width now comes from the row's
+    own badges and the row sets overflow:visible."""
+    js = APP_JS.read_text(encoding="utf-8")
+    m = re.search(r'<foreignObject x="14" y="-27" width="([^"]+)" height="15"([^>]*)>', js)
+    assert m, "the node badge row's foreignObject was not found"
+    assert m.group(1) != "34", "the badge row is a fixed 34 wide again"
+    assert "nodeBadgeRowWidth(" in m.group(1), m.group(1)
+    assert re.search(r"overflow:\s*visible", m.group(2)), m.group(2)
+    assert "function nodeBadgeRowWidth(" in js

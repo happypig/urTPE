@@ -145,6 +145,28 @@ function getNodeMilestoneBadges(node, project) {
   return badges.join("");
 }
 
+// The width the node's badge row needs, in SVG user units. The row sits in a
+// <foreignObject>, and an SVG foreignObject CLIPS what overflows its width:
+// the old fixed 34 px fit "北" + "國" and hid the second 北 badge and the 國
+// badge of a joined node once each 北 carried its [A區] label (華中247, seen
+// 2026-11-15: three badges built, one visible). Widths are generous
+// estimates at font-size 8: a bare 北 badge 18, the [A區] label 22 more, 國 18,
+// 2 between badges. The row also sets overflow:visible as the second guard.
+const BADGE_W = 18, BADGE_LABEL_W = 22, BADGE_GAP = 2;
+function nodeBadgeRowWidth(node, project) {
+  const cases = (node.links || {}).taipei || [];
+  const names = (project && project.links && project.links.candidate_names) || {};
+  const widths = cases.map((cid) => {
+    const cn = names[cid] || "";
+    const has = /[-(（]\s*([A-E北南東西])區/.test(cn);
+    return BADGE_W + (has ? BADGE_LABEL_W : 0);
+  });
+  const twur = project && project.links && project.links.twur;
+  if (twur && node.national_badges) widths.push(BADGE_W);
+  if (!widths.length) return 0;
+  return widths.reduce((a, b) => a + b, 0) + BADGE_GAP * (widths.length - 1);
+}
+
 // Portal field labels captured from r_progress_detail.aspx DOM (id="detail_<field>")
 const IMPL_LABELS = {
   Eng_Start_Date: "開工日期",
@@ -1390,7 +1412,7 @@ function init() {
         <circle r="9"></circle>
         <text class="title" x="14" y="3">${escapeHtml(label)}${escapeHtml(schedTxt)}</text>
         <text class="sub" x="14" y="15">${escapeHtml(n.track)}${areaTxt}</text>
-        ${badges ? `<foreignObject x="14" y="-27" width="34" height="15"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;gap:2px;">${badges}</div></foreignObject>` : ""}
+        ${badges ? `<foreignObject x="14" y="-27" width="${nodeBadgeRowWidth(n, p)}" height="15" style="overflow:visible"><div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;gap:2px;white-space:nowrap;">${badges}</div></foreignObject>` : ""}
       </g>`;
     });
 

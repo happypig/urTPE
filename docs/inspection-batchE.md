@@ -467,6 +467,37 @@ arrives with the nightly phase-2 sweep, which reads case pages for the 53
 twur-less projects. The 懷生16 fix (09503201 joins) rides the change when
 the sweep-scale evidence is in.
 
+**Re-measured 2026-11-15 (after the nightly sweep: 39 processed, 5 matched,
+0 failed, 0 WAF rejections).** Two corrections to the probe above:
+
+1. **The premise was wrong.** The city case page's 相關連結 modal holds five
+   static government links (臺北市政府, 都發局, 都更處, 建管處, 地號查詢). It
+   names no sibling case. The sibling ids come from the **national view
+   page's** 相關連結 — a source the pipeline already reads and caches.
+2. **The gap is measurable offline from that source.** A scan of all 653
+   cached `view.html` files for case ids that no cache holds found **2 ids in
+   1 project**: `09305081` (擬訂, A區) and `09407302` (變更, B區), both in
+   華中247. The city header API confirms both are live cases. This is a lower
+   bound — it sees only ids a view page names. `09503201` (懷生16) appears in
+   no view page, so this source cannot reach it.
+
+**Why those two are absent.** They are not a discovery gap. They are
+discovered and then rejected: `view_rejected` holds both as "shape A" (label
+and city name name another project). The gate compares the 案名's land core
+(first parcel `201-2`) with the project's own land core (`247`). The score is
+0.45, below `LINK_THRESHOLD` 0.7. The same cause is on record: batch BC C4/S5
+("華中247's 6 cases parse but score 0.45 < 0.7 — a merge decision, not a
+parse failure"). The five sibling cases that are held reached the project by
+another route. No other project holds the two rejected ids, so the offer step
+had no owner to move them to. They are orphaned.
+
+**What this means for E10's change.** A new sibling-page source would not fix
+華中247. It already finds both ids. The fix is in the §8 gate (compare the
+案名's land core against the project's **family** of land cores, not one
+parcel), which is the C9 merge decision. 懷生16 is a different case: its id
+is in no view page. The two shapes need two changes. Open neither without the
+user's word.
+
 **The user's finding (item 6).** 大安區-懷生段二小段-16地號等6筆 shows a case in
 the platform's own 相關連結 that this dataset has never held: **`09503201`** —
 擬訂…事業計畫案-A區 (and, on the platform, re-titled 變更…事業計畫案-A區; one id,

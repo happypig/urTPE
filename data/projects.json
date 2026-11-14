@@ -65216,19 +65216,23 @@
             "StateLand1_Area": "665.99",
             "StateLand2_Area": "375.0",
             "case_id": "10305021"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
       "links": {
-        "twur": "",
+        "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/1172",
         "taipei": [
           "10010221",
           "10205151",
           "10305021",
           "11410026"
         ],
-        "milestones_national": {},
+        "milestones_national": {
+          "事業計畫申請日期": "103.06.03",
+          "事業計畫核定日期": "114.07.22"
+        },
         "milestones_taipei": {
           "概要公聽會日期": "2011/10/22",
           "申請概要日期": "2011/11/11",
@@ -65326,6 +65330,7 @@
           "10305021": "已核定",
           "11410026": "審查中"
         },
+        "twur_name": "擬訂臺北市中正區臨沂段三小段412地號等12筆(原11筆)土地都市更新事業計畫案",
         "view_verified_case_ids": [],
         "orphan_nodes": [
           {
@@ -93796,16 +93801,22 @@
             "StateLand1_Owner": "臺北市/台北自來水事業處",
             "StateLand1_Area": "246.0",
             "case_id": "11406017"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
       "links": {
-        "twur": "",
+        "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/1258",
         "taipei": [
           "11406017"
         ],
-        "milestones_national": {},
+        "milestones_national": {
+          "事業計畫申請日期": "112.07.19",
+          "事業計畫核定日期": "115.07.07",
+          "權利變換計畫申請日期": "112.07.19",
+          "權利變換計畫核定日期": "115.07.07"
+        },
         "milestones_taipei": {
           "計畫公聽會日期": "2023/05/30",
           "權變公聽會日期": "2023/05/30",
@@ -93896,6 +93907,7 @@
         "case_schedules": {
           "11406017": "已核准"
         },
+        "twur_name": "擬訂臺北市內湖區康寧段三小段811地號等4筆土地都市更新事業計畫及權利變換計畫案",
         "view_verified_case_ids": []
       },
       "published_date": "2026-10-28",
@@ -162106,16 +162118,22 @@
             "Landkind1_Area": "1592.0",
             "Landkind2_Area": "243.0",
             "case_id": "11407008"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
       "links": {
-        "twur": "",
+        "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/1261",
         "taipei": [
           "11407008"
         ],
-        "milestones_national": {},
+        "milestones_national": {
+          "事業計畫申請日期": "112.08.16",
+          "事業計畫核定日期": "115.07.01",
+          "權利變換計畫申請日期": "112.08.16",
+          "權利變換計畫核定日期": "115.07.01"
+        },
         "milestones_taipei": {
           "計畫公聽會日期": "2023/07/09",
           "權變公聽會日期": "2023/07/09",
@@ -162202,6 +162220,7 @@
         "case_schedules": {
           "11407008": "已核准"
         },
+        "twur_name": "擬訂臺北市士林區三玉段二小段482地號等2筆(原1筆)土地都市更新事業計畫及權利變換計畫案",
         "view_verified_case_ids": []
       },
       "published_date": "2026-10-28",
@@ -164905,16 +164924,20 @@
             "Landkind1_Area": "1349.0",
             "Landkind2_Area": "232.0",
             "case_id": "11202081"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
       "links": {
-        "twur": "",
+        "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/1257",
         "taipei": [
           "11202081"
         ],
-        "milestones_national": {},
+        "milestones_national": {
+          "事業計畫申請日期": "112.02.08",
+          "事業計畫核定日期": "115.07.07"
+        },
         "milestones_taipei": {
           "計畫公聽會日期": "2023/01/06",
           "申請計畫日期": "2023/02/08",
@@ -164959,6 +164982,7 @@
         "case_schedules": {
           "11202081": "已核准"
         },
+        "twur_name": "擬訂臺北市士林區光華段二小段761地號等2筆土地都市更新事業計畫案",
         "view_verified_case_ids": []
       },
       "published_date": "2026-10-28",
@@ -240939,16 +240963,20 @@
             "Landkind1": "第三種住宅區",
             "Landkind1_Area": "1139.0",
             "case_id": "11304171"
-          }
+          },
+          "national_badges": true
         }
       ],
       "edges": [],
       "links": {
-        "twur": "",
+        "twur": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/1256",
         "taipei": [
           "11304171"
         ],
-        "milestones_national": {},
+        "milestones_national": {
+          "事業計畫申請日期": "113.05.07",
+          "事業計畫核定日期": "115.07.14"
+        },
         "milestones_taipei": {
           "計畫公聽會日期": "2024/04/29",
           "申請計畫日期": "2024/05/07",
@@ -240993,6 +241021,7 @@
         "case_schedules": {
           "11304171": "已核准"
         },
+        "twur_name": "擬訂臺北市大安區通化段六小段202地號等7筆土地都市更新事業計畫案",
         "view_verified_case_ids": []
       },
       "published_date": "2026-10-28",

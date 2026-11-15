@@ -847,10 +847,10 @@ emission path, and the emission path SHALL issue no request because of it.
 A probed case SHALL join the project only on positive evidence: the city's own case
 name carries a land core that matches the unit's land core at the link threshold, or
 the name declares the unit's own district and 段/小段 text, one of the unit's own
-parcels, and a declared parcel count equal to the unit's. A case with no name, or a
+parcels, and a declared count that passes the count rule (the name's `等N筆`, or one of its `原N筆`, equals the unit's count at any approval). A case with no name, or a
 name with no parcel, SHALL NOT join. A case that
 joins SHALL be added in place, append-only, with its name, header and milestones.
-The §8 view-page gate SHALL use the same land-core and own-parcel test, without the count condition, so its verdicts do not change.
+The §8 view-page gate SHALL decide a city name by the same rule.
 
 #### Scenario: A sibling of the unit joins
 - **WHEN** a unit holds cases `…201` and `…208` of one stem, `…203` is a case whose
@@ -866,9 +866,13 @@ The §8 view-page gate SHALL use the same land-core and own-parcel test, without
 
 #### Scenario: A name with an unequal declared count is held back
 - **WHEN** the probed case's name declares one of the unit's own parcels in the unit's
-  own section, but its declared parcel count differs from the unit's and its land core
-  does not match at the link threshold
+  own section, but its declared count (and any `原N筆`) is none of the unit's counts at any
+  approval, and its land core does not match at the link threshold
 - **THEN** the case is not added by the walk
+
+#### Scenario: A count of an earlier approval joins
+- **WHEN** the probed case's name declares the unit's own parcel in its own section and a count that the unit declared at an earlier approval
+- **THEN** the walk adds the case
 
 #### Scenario: A case with no parcel in its name is refused
 - **WHEN** the probed case has a name that declares no parcel, or no name at all
@@ -909,4 +913,28 @@ nothing.
 #### Scenario: An old cache loads
 - **WHEN** a cache written before the record existed is loaded
 - **THEN** its record of probed ids is empty and loading raises no error
+
+### Requirement: A case the search refused is admitted only by the count rule
+
+The system SHALL offer a command that admits a case recorded in a project's `search_rejected` when its city name passes the same acceptance rule as the §8 gate, no project holds the id, and the project has not recorded it in `view_rejected`. The command SHALL run as a dry run unless told to apply, SHALL list the ids it would admit without a request, SHALL take the single-writer lock to apply, and SHALL copy each changed cache to a backup first. An admitted case SHALL join the cache in place with its header and milestones. A case the rule refuses SHALL stay in `search_rejected` unchanged. A second run SHALL change nothing.
+
+#### Scenario: A held-back predecessor is admitted
+
+- **WHEN** 文山區-華興段一小段-8地號等4筆 records `09708111` (`…華興段一小段18-1地號等13筆…`) in `search_rejected`, 13 is a count the unit declared at its 2013 approval, and no project holds the id
+- **THEN** the command admits `09708111` into the project's cases
+
+#### Scenario: A held or refused case is left alone
+
+- **WHEN** an id in `search_rejected` is held by another project, or its name fails the rule
+- **THEN** the command leaves it in `search_rejected` and adds nothing
+
+#### Scenario: The dry run changes nothing
+
+- **WHEN** the command runs without being told to apply
+- **THEN** it lists the ids it would admit, issues no request and writes no file
+
+#### Scenario: A second run changes nothing
+
+- **WHEN** the command has applied and runs again
+- **THEN** it admits nothing and issues no request
 

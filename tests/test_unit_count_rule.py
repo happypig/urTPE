@@ -389,3 +389,39 @@ def test_the_walk_s_held_back_case_stays_refused_by_the_single_rule():
     assert 69 not in c["own_counts"]
     assert not L.unit_accepts_case_name(c["land_core"], name, c["own_parcels"], c["own_counts"])
     assert c["sibling_probed"]["09012312"] == "other_unit"
+
+
+# ── the S1 / D2 conflict (advisor, 2026-11-15): pin it, do not resolve it ─────
+
+S1_PAIRS = json.loads((ROOT / "tests" / "fixtures" / "s1_accepts_count_rule_refuses.json")
+                      .read_text(encoding="utf-8"))["pairs"]
+
+
+def _s1_accepts_rule_refuses():
+    out = {}
+    for pid, c, cnt, views, names in _live_pairs():
+        core, own = c.get("land_core") or "", c.get("own_parcels") or []
+        if not own:
+            continue
+        for cid, nm in names.items():
+            lc = L.extract_landcore_from_case_name(nm)
+            if (L._section_text(lc) == L._section_text(core)
+                    and L._case_name_carries_parcel(nm, own[0], own)
+                    and not L.unit_accepts_case_name(core, nm, own, c.get("own_counts") or [])):
+                out[(pid, cid)] = ("held_here" if cid in (c.get("city_case_ids") or [])
+                                   else None)
+    return out
+
+
+def test_the_search_guard_accepts_62_pairs_the_count_rule_refuses_and_may_only_shrink():
+    """F3 made discovery pass own_parcels to the search guard (S1); S1's own-parcel
+    form has no count test, so a FRESH discovery (or a refresh with a 5-part key)
+    re-accepts the held_none pairs below, the 'other 46' that D2 left out. This is
+    the conflict between D8 item 2 and D2, awaiting the user (docs/inspection-
+    batchF.md, D11): S1 adopts the count rule, or discovery stops passing the
+    parcels. Until then the set is pinned: it may shrink, never grow."""
+    frozen = {(a, b) for a, b, _ in S1_PAIRS}
+    live = set(_s1_accepts_rule_refuses())
+    assert live <= frozen, f"new S1-only pairs: {sorted(live - frozen)}"
+    assert len(S1_PAIRS) == 62
+    assert sum(1 for _, _, st in S1_PAIRS if st == "held_none") == 46

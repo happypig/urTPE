@@ -191,7 +191,8 @@ function nodeBadgeRowWidth(node, project) {
   const widths = cases.map((cid) => {
     const label = nodeAreaLabel(names[cid] || "");
     // a CJK character is about 8 wide at font-size 8, an ASCII one about 4.5;
-    // [A區] keeps its 22, a longer label ([A1基地]) gets what it needs
+    // [A區] estimates 24 (23.5 rounded up; the old fixed 22 is the floor), a longer
+    // label ([A1基地]) gets what it needs
     const est = [...label].reduce((w, ch) => w + (ch.charCodeAt(0) > 255 ? 8 : 4.5), 2);
     return BADGE_W + (label ? Math.max(BADGE_LABEL_W, Math.ceil(est)) : 0);
   });

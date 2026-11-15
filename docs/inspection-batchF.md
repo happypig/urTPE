@@ -750,7 +750,28 @@ The table below keeps the options and the original recommendation as asked.
 | D7 | F2: which tiers, in what order? | A tier 1 with F1 phase 1, tier 2 last · B tier 2 first with the 93-pair list | **A** |
 | D8 | F3: widen the backfill and name the empty list? | A yes, all 675 plus a live pin · B only the view-holders (today) | **A** |
 | D9 | F8: a list entry that has no node | A draw a node for each · B mark it in the debug list · C remove a cross-listed case from the wrong holder | **B** now, **C** through F1 |
+| D11 | **New 2026-11-15 (advisor):** the search guard S1 accepts 62 pairs the count rule refuses, and a fresh discovery would re-accept the 46 held by no project (D8 item 2 against D2) | A S1's own-parcel form adopts the count rule (the first F1 phase 2 unification) · B discovery stops passing `own_parcels` to the guard (undoes part of F3) · C leave it, pinned | **A** |
 | D10 | F9: section labels that are not `X區` | A the viewer reads 基地 and 甲/乙區段 · B leave · C a pipeline `section_label` with a mapping | **A** now, **C** if the new vocabulary stays |
+
+---
+
+### D11 — the search guard against the count rule (found 2026-11-15)
+
+F3 made discovery pass `own_parcels` to the search guard (S1). S1's own-parcel form
+has no count test. The 46 held-by-no-project pairs that D2 left out sit in
+`search_rejected` only because discovery once ran without parcels. A **fresh**
+discovery, or a refresh with a 5-part search key, would re-accept them. Measured
+offline: of 1,085 `search_rejected` names, 72 pass S1's own-parcel form; the count
+rule refuses 53 of those (46 held by no project, 7 held by another). Over all names
+the pair set is 62 (46 held by no project, 9 held here, 7 held elsewhere), frozen in
+`tests/fixtures/s1_accepts_count_rule_refuses.json`; a pin lets it shrink and never
+grow. Nothing re-accepts them today: no fresh discovery has run since F3.
+
+Options: **A** S1's own-parcel form adopts the count rule (the first F1 phase 2
+unification; it moves the 9 held-here pairs only on a future fresh run, because a
+refresh appends and never removes); **B** discovery stops passing the parcels to the
+guard (undoes part of F3); **C** leave it, pinned. Recommendation: **A**. It is the
+user's decision.
 
 ---
 

@@ -360,20 +360,21 @@ def _payload():
 
 
 def test_the_view_rejected_population_on_the_live_payload():
-    """Before the correction: 11 ids in 10 projects. After: 8 ids in 8
-    projects — 7 foreign ids and 市府220-2 (a wrong district in its cache's
-    land core, a separate defect). The three drifted ids returned."""
+    """Before the correction: 11 ids in 10 projects. After the anchor-parcel
+    correction: 8 in 8 (7 foreign ids and 市府220-2, whose cache land core read
+    the wrong district). After F5's land-core repair (2026-11-15) 09609301
+    returned: 7 foreign ids in 7 projects. The three drifted ids returned."""
     ids = {}
     for p in _payload()["projects"]:
         vr = (p.get("links") or {}).get("view_rejected") or {}
         if vr:
             ids[p["project_id"]] = set(vr)
     n_ids = sum(len(v) for v in ids.values())
-    assert (n_ids, len(ids)) == (8, 8), (
+    assert (n_ids, len(ids)) == (7, 7), (
         f"the rejected population moved: {n_ids} ids in {len(ids)} projects "
-        "(8 in 8 after the 2026-11-15 correction; 11 in 10 before it)")
-    assert "09609301" in ids.get("大同區-市府段二小段-220-2地號等54筆", set())
-    for returned in ("09305081", "09407302", "09102220"):
+        "(7 in 7 after the 2026-11-15 land-core repair; 8 in 8 before it; "
+        "11 in 10 before the anchor-parcel correction)")
+    for returned in ("09305081", "09407302", "09102220", "09609301"):
         assert not any(returned in v for v in ids.values()), returned
 
 

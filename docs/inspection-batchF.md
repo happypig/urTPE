@@ -335,6 +335,18 @@ twins of a payload project, and only this one disagrees with its project.
 B stops the next wrong copy from deciding a case. After A, `09609301` returns on
 the next refresh, because the gate's re-decision step already lifts it.
 
+**Part A done 2026-11-15 (Order step 3, direct fix, D5 = C).**
+`scripts/repair_land_cores.py` rewrote the 3 land cores from the project id (dry
+run named exactly the 3; backup `data/.link_cache_backup_20261115_085523_landcore`).
+One `refresh_project` call on 市府220-2 lifted the rejection of `09609301` (the
+re-decision step worked as predicted). A live pin now holds: every payload
+project's cache `land_core` equals its project id's parts (the script skips ids
+that are not unit ids: `-2` twins, `未解析-N`, `地號等?筆`; the pin skips them too).
+Re-emit effect: 相關連結 list 2,022 → 2,023; node badge ids 1,484 (the node
+already carried the badge: F8's one badged-but-unlisted case is closed);
+rejected ids in the payload 8 in 8 projects → 7 in 7. **Part B** (the gate reads
+the core from the project id, not the cache copy) follows as a small change.
+
 ---
 
 ## F6 — the limit of the rejected-id count (open item 3)
@@ -606,7 +618,7 @@ set changes (finding 2).
 | --- | --- | --- | --- | --- | --- |
 | 1 | **F3** — the residuals of the explicit dependency | **P1** | direct `fix:` + live pin | — | **Done 2026-11-15.** Everything below reads `own_parcels`; the pin is the guard |
 | 2 | **F4** — the id-stem sibling sweep (懷生16 +7 ids) | **P1** | openspec change (`official-link-discovery`) | F3 | **Done 2026-11-15** (`unit-sibling-id-walk`): 7 ids added; `09012312` held for F7 (clear its `sibling_probed` record) |
-| 3 | **F5** — repair 3 land cores; the gate reads the payload's core | **P2** | direct `fix:` + live pin, then a small change for the gate | — | Independent; `09609301` returns on the next refresh |
+| 3 | **F5** — repair 3 land cores; the gate reads the payload's core | **P2** | direct `fix:` + live pin, then a small change for the gate | — | Part A **done 2026-11-15** (3 cores repaired, `09609301` returned). Part B pending |
 | 4 | **F7** — the count condition | **P2** | openspec change (a delta on the shipped requirement) | decided (single count rule); **needs D8 and D5 first** | Adds the count test to the live rule; also admits 華興8 and the 6 equal-count pairs (D2) |
 | 5 | **F1 phase 1** — one predicate, behaviour-preserving, golden table | **P2** | refactor + tests, no spec change | F3 | Lands F2's tier 1 |
 | 6 | **F1 phase 2** — each unification, one decision at a time | **P3** | one openspec change per unification | F1 phase 1, the user | Each moves up to 86 pairs and needs its own measurement |

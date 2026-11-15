@@ -510,3 +510,103 @@ def test_every_payload_project_cache_holds_the_anchor_s_parcels():
         f"own_parcels drifted: {len(missing)} caches have none ({missing[:5]}), "
         f"{len(stale)} differ from the payload anchor ({stale[:5]}). "
         "Run scripts/backfill_own_parcels.py.")
+
+
+# ── 1.7 F5 part B: the refresh decides against the core its project id spells ─
+
+SF_PID = "大同區-市府段二小段-220-2地號等54筆"
+SF_GOOD = "大同區市府段二小段220-2地號等54筆"
+SF_BAD = "中正區市府段二小段220-2地號等54筆"
+SF_NAME = "擬訂臺北市大同區市府段二小段220-2地號等54筆土地都市更新事業計畫案"
+
+
+def _sf_cache(root, pid=SF_PID, core=SF_BAD):
+    d = root / pid
+    d.mkdir(parents=True)
+    payload = {
+        "project_id": pid, "land_core": core, "status": "resolved",
+        "twur_url": "https://twur.nlma.gov.tw/zh/urban/rebuild/view/300",
+        "twur_view_id": "300", "twur_name": SF_NAME,
+        "city_case_ids": ["09609300", "09609301"],
+        "case_milestones": {c: {"核定日期": "2007/09/01"} for c in ("09609300", "09609301")},
+        "national_milestones": {}, "taipei_milestones": {}, "milestones_source": {},
+        "implementation": {}, "rewards": {}, "search_rejected": {},
+        "candidate_names": {}, "case_schedules": {},
+        "case_case_names": {"09609300": SF_NAME, "09609301": SF_NAME},
+        "view_verified_case_ids": ["09609301"], "view_rejected": {},
+        "own_parcels": ["220-2"], "error": "",
+    }
+    (d / "result.json").write_text(json.dumps(payload, ensure_ascii=False),
+                                   encoding="utf-8")
+    return d
+
+
+class TestTheCoreTheIdSpells:
+    @pytest.fixture(autouse=True)
+    def _header_names(self, city):
+        """The header stub must return the city's name for these ids, or the gate
+        keeps them on no-evidence grounds and the tests pass vacuously."""
+        city["names"].update({"09609300": SF_NAME, "09609301": SF_NAME})
+
+    def _refresh(self, root, monkeypatch, pid=SF_PID):
+        monkeypatch.setattr(links_mod, "fetch_view_page",
+                            lambda vid, cache_dir=None, fresh=False:
+                            _view_html({"09609301": SF_NAME}))
+        return refresh_project(root, pid)
+
+    def _saved(self, root, pid=SF_PID):
+        return json.loads((root / pid / "result.json").read_text(encoding="utf-8"))
+
+    def test_a_wrong_district_keeps_the_case_and_heals_the_core(
+            self, tmp_path, monkeypatch, city):
+        _sf_cache(tmp_path)
+        report = self._refresh(tmp_path, monkeypatch)
+        assert report["error"] == "", report["error"]
+        saved = self._saved(tmp_path)
+        assert "09609301" in saved["view_verified_case_ids"]
+        assert saved["view_rejected"] == {}
+        assert saved["land_core"] == SF_GOOD
+
+    def test_the_report_names_the_heal_and_a_correct_core_reports_nothing(
+            self, tmp_path, monkeypatch, city):
+        _sf_cache(tmp_path)
+        report = self._refresh(tmp_path, monkeypatch)
+        assert report["land_core_healed"] == [SF_BAD, SF_GOOD]
+        again = self._refresh(tmp_path, monkeypatch)
+        assert again["land_core_healed"] == []
+
+    def test_a_recorded_rejection_is_re_decided_against_the_id_s_core(
+            self, tmp_path, monkeypatch, city):
+        d = _sf_cache(tmp_path)
+        data = json.loads((d / "result.json").read_text(encoding="utf-8"))
+        data["view_verified_case_ids"] = []
+        data["city_case_ids"] = ["09609300"]
+        data["view_rejected"] = {"09609301": _shape_a()}
+        (d / "result.json").write_text(json.dumps(data, ensure_ascii=False),
+                                       encoding="utf-8")
+        report = self._refresh(tmp_path, monkeypatch)
+        assert report["view_rejection_lifted"] == ["09609301"]
+        assert self._saved(tmp_path)["view_rejected"] == {}
+
+    def test_a_twin_id_keeps_the_cache_s_own_core(self, tmp_path, monkeypatch, city):
+        twin = SF_PID + "-2"
+        _sf_cache(tmp_path, pid=twin, core=SF_BAD)
+        monkeypatch.setattr(links_mod, "fetch_view_page",
+                            lambda vid, cache_dir=None, fresh=False: _view_html({}))
+        report = refresh_project(tmp_path, twin)
+        assert report["land_core_healed"] == []
+        assert self._saved(tmp_path, twin)["land_core"] == SF_BAD
+
+    def test_an_empty_core_is_filled_from_a_unit_id(self, tmp_path, monkeypatch, city):
+        _sf_cache(tmp_path, core="")
+        report = self._refresh(tmp_path, monkeypatch)
+        assert report["land_core_healed"] == ["", SF_GOOD]
+        assert self._saved(tmp_path)["land_core"] == SF_GOOD
+
+    def test_one_derivation_serves_the_refresh_and_the_repair_script(self):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import repair_land_cores as rl
+        ids = [p["project_id"] for p in _payload()["projects"]]
+        ids += [SF_PID + "-2", "未解析-1354", "內湖區-東湖段一小段-地號等?筆"]
+        for pid in ids:
+            assert links_mod.expected_land_core_of_project_id(pid) == rl.expected_core(pid), pid

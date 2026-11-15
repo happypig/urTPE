@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import shutil
 import sys
 import time
@@ -31,15 +30,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from urtpe.links import expected_land_core_of_project_id  # noqa: E402
 from urtpe.lock import LockHeld, SingleWriterLock  # noqa: E402
-
-_UNIT_ID = re.compile(r"^(.+?區)-([^-]+)-(\d[\d-]*地號等\d+筆)$")
 
 
 def expected_core(project_id: str) -> str:
-    """The land core a unit id spells, or "" when the id is not a unit id."""
-    m = _UNIT_ID.match(project_id or "")
-    return "".join(m.groups()) if m else ""
+    """The land core a unit id spells, or "" when the id is not a unit id (the
+    refresh's own derivation: one definition, gate-reads-project-land-core)."""
+    return expected_land_core_of_project_id(project_id)
 
 
 def repair(cache_dir: Path, projects: dict, backup_dir: Path,

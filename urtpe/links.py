@@ -1411,6 +1411,21 @@ def _link_threshold() -> float:
     return LINK_THRESHOLD
 
 
+_UNIT_ID = re.compile(r"^(.+?區)-([^-]+)-(\d[\d-]*地號等\d+筆)$")
+
+
+def expected_land_core_of_project_id(project_id: str) -> str:
+    """The land core a unit's project id spells, or "" when it is not a unit id.
+
+    A project id is the slug of its unit's land core (`{district}-{section}-
+    {first parcel}地號等{count}筆`), so the core is the id's three parts joined.
+    A `-N` twin, `未解析-N` and an id with an unknown count (`地號等?筆`) are not
+    unit ids. One definition for the refresh and scripts/repair_land_cores.py
+    (gate-reads-project-land-core, docs/inspection-batchF.md F5)."""
+    m = _UNIT_ID.match(project_id or "")
+    return "".join(m.groups()) if m else ""
+
+
 def own_parcels_of(record) -> list[str]:
     """The unit's own parcels: the record's first_parcel first, then the other
     parcels of its 地號 cell in cell order.
@@ -2400,13 +2415,25 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                     "view_not_confirmed": [], "labelled_wu": [],
                     "implementation_refetched": [], "payload_sizes": [],
                     "unconfirmed": [], "view_rejection_lifted": [],
-                    "view_gate_no_parcels": [],
+                    "view_gate_no_parcels": [], "land_core_healed": [],
                     "error": ""}
     if cached is None:
         report["error"] = "no cache"
         return report
     changed = False
     report_error = ""
+
+    # ── the unit's land core (gate-reads-project-land-core) ─────────────────
+    # The §8 gate and the re-decision compare a city name with cached.land_core.
+    # 市府220-2's copy read 中正區 for two months and refused a correct case. The
+    # project id spells the core, so a core that contradicts a unit id is healed
+    # here, before either decision reads it, and named in the report. An id that
+    # is not a unit id (a -N twin, 未解析-N) keeps the cache's own core.
+    expected_core = expected_land_core_of_project_id(project_id)
+    if expected_core and cached.land_core != expected_core:
+        report["land_core_healed"] = [cached.land_core, expected_core]
+        cached.land_core = expected_core
+        changed = True
 
     # ── the unit's own parcels (section8-gate-anchor-parcel-drift D2) ───────
     # A key that carries the parcel list is the freshest reading; it

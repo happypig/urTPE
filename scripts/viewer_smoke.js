@@ -431,6 +431,14 @@ check("the deep link read path is registered",
     (((n.links || {}).taipei || []).length > 0)
     || (n.national_badges && pp.links && pp.links.twur)));
   let rowFailures = 0, rowsChecked = 0, worst = "";
+  // F9 (D10 = A): sibling cases of one stage and date must show different
+  // labels. 木柵623's three 2026-09 filings are three orphan nodes of one stage;
+  // their names end `(甲區段)(A1基地)`, `…A2基地`, `…B基地`, and the old parser
+  // gave all three a bare 北. Checked on the rendered title (案<id>[label]).
+  // The counts are derived from the data, so a stripped payload (no links) has
+  // nothing to check and passes; that the LIVE payload does have groups and
+  // entries is pinned in tests/test_viewer_labels.py.
+  let dupLabelGroups = 0, dupGroupsChecked = 0, dupWorst = "";
   for (const pp of doc.projects) {
     const multi = (pp.nodes || []).some((n) =>
       (((n.links || {}).taipei || []).length
@@ -438,6 +446,34 @@ check("the deep link read path is registered",
     if (!multi) continue;
     renderDetailApp(pp);
     const svgHtml = String(detailEl.innerHTML || "");
+    {
+      const groups = {};
+      for (const g of ((pp.links || {}).orphan_nodes || [])) {
+        if (!(g.case_name && g.stage && g.track)) continue;
+        (groups[`${g.stage}|${g.track}|${g.node_date || ""}`] ||= []).push(g);
+      }
+      for (const members of Object.values(groups)) {
+        if (members.length < 2) continue;
+        // only a group whose names carry a section token (X區, 甲/乙區段 or 基地 in
+        // the tail after the last 案) is the F9 shape; plain siblings with no
+        // suffix at all have nothing to label
+        const tokenRe = /[-(（]\s*[A-E北南東西]區|[甲乙丙丁戊]區段|[A-Za-z]\d?基地/;
+        const tokened = members.filter((g) => {
+          const nm = String(g.case_name || "");
+          return tokenRe.test(nm.slice(nm.lastIndexOf("案") + 1));
+        });
+        // a base case with no suffix beside an A區 and a B區 has no token to
+        // label: only the members that carry one are held to a distinct label
+        if (tokened.length < 2) continue;
+        const ids = tokened.map((g) => g.case_id);
+        dupGroupsChecked++;
+        const labs = ids.map((cid) => ((svgHtml.match(new RegExp(`title="案${cid}([^"]*)"`)) || [])[1] || ""));
+        if (labs.some((l) => !l) || new Set(labs).size !== labs.length) {
+          dupLabelGroups++;
+          if (!dupWorst) dupWorst = `${pp.project_id}: ${JSON.stringify(labs)}`;
+        }
+      }
+    }
     const rowRe = /<foreignObject x="14" y="-27" width="([\d.]+)" height="15"([^>]*)>([\s\S]*?)<\/foreignObject>/g;
     let m;
     while ((m = rowRe.exec(svgHtml))) {
@@ -454,6 +490,33 @@ check("the deep link read path is registered",
   check("badge row: no node's badges are clipped by a fixed-width box",
     rowFailures === 0 && (rowsChecked > 0 || !anyBadgeable),
     `${rowsChecked} badge rows checked, ${rowFailures} too narrow${worst ? " — " + worst : ""}${rowsChecked === 0 && !anyBadgeable ? " (the dataset carries no case links to badge)" : ""}`);
+
+  check("badge labels: sibling orphan nodes of one stage and date each show a different label",
+    dupLabelGroups === 0,
+    `${dupGroupsChecked} sibling groups checked, ${dupLabelGroups} with a repeated or empty label${dupWorst ? " — " + dupWorst : ""}`);
+
+  // ── F8 option B (D9): the 相關連結 list names an entry the graph draws no node for ──
+  // The expected set comes from the data (a node or a drawn orphan anchors a case;
+  // a superseded entry is named by its successor), independently of the renderer.
+  let noNodeExpected = 0, noNodeRendered = 0, noNodeProjects = 0;
+  for (const pp of doc.projects) {
+    const L = pp.links || {};
+    if (!(L.taipei && L.taipei.length)) continue;
+    const anchored = new Set();
+    for (const n of (pp.nodes || [])) for (const c of ((n.links || {}).taipei || [])) anchored.add(c);
+    for (const g of (L.orphan_nodes || [])) if (g.case_name && g.stage && g.track) anchored.add(g.case_id);
+    const sup = L.superseded_by || {};
+    const expect = L.taipei.filter((c) => !anchored.has(c) && !sup[c]).length;
+    renderDetailApp(pp);
+    const html = String(detailEl.innerHTML || "");
+    const got = (html.match(/link-no-node/g) || []).length;
+    noNodeExpected += expect;
+    noNodeRendered += got;
+    if (expect !== got) noNodeProjects++;
+  }
+  check("related-links list: every entry with no graph node is marked, no other",
+    noNodeProjects === 0,
+    `${noNodeExpected} entries expected, ${noNodeRendered} marked, ${noNodeProjects} projects differ`);
 
   // ── national-badge-by-registration: the badge reads the payload field ──────
   // The pipeline resolves the rule once (registration OR exact twur_name OR

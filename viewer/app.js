@@ -115,6 +115,40 @@ function byDateNodes(nodes) {
 // pipeline's resolved `national_badges` field — the rule lives in one place
 // (urtpe/graph.py), not re-implemented here.
 
+// The section label a case name carries, for the 北 badge ("[A區]"), or "".
+// docs/inspection-batchF.md F9 (D10 = A): the city's section vocabulary changed
+// in late 2026. Until then a case ended `-A區` (the area letter, kept first and
+// unchanged); the newest 木柵623 and 寶清353-2 filings end `(甲區段)(A1基地)` or
+// `(A基地及道路用地)`, so three cases of one node showed three identical 北
+// badges. The 基地 name is the more specific token, then 甲/乙區段. Both are read
+// from the TAIL after the last 案 only: 逸仙34's `(原基隆路整宅B基地)` is a
+// historical site name that sits before it, not a section label.
+function nodeAreaLabel(name) {
+  const cn = String(name || "");
+  const am = cn.match(/[-(（]\s*([A-E北南東西])區\s*[）)]?\s*$/) || cn.match(/[-(（]\s*([A-E北南東西])區(?=[^區]*$)/);
+  if (am) return `[${am[1]}區]`;
+  const i = cn.lastIndexOf("案");
+  const tail = i < 0 ? "" : cn.slice(i + 1);
+  const bases = [];
+  for (const m of tail.matchAll(/([A-Za-z]\d?)基地/g)) if (!bases.includes(m[1])) bases.push(m[1]);
+  if (bases.length) return `[${bases.join("、")}基地]`;
+  const sec = tail.match(/([甲乙丙丁戊])區段/);
+  return sec ? `[${sec[1]}區段]` : "";
+}
+
+// Does the graph draw a node for this case? A node's own 北 badge anchors it, or a
+// named orphan with a stage and a track is drawn as a virtual node (the same
+// filter the graph uses). docs/inspection-batchF.md F8 (D9 = B): 相關連結 lists
+// every case the city returned; 28 entries have no node (the orphan branch
+// refused them below the similarity gate, or the case has no name) and read as
+// unexplained links, so the list names them.
+function caseHasGraphNode(cid, project) {
+  const nodes = (project && project.nodes) || [];
+  if (nodes.some((n) => (((n.links || {}).taipei) || []).includes(cid))) return true;
+  const orphans = ((project && project.links) || {}).orphan_nodes || [];
+  return orphans.some((g) => g.case_id === cid && g.case_name && g.stage && g.track);
+}
+
 function getNodeMilestoneBadges(node, project) {
   // Portal links live on the nodes (相關連結 section retired): 北 → anchored
   // Taipei case page; 國 → national view page on the nodes the pipeline
@@ -131,9 +165,7 @@ function getNodeMilestoneBadges(node, project) {
   const cases = (node.links || {}).taipei || [];
   const names = (project && project.links && project.links.candidate_names) || {};
   for (const cid of cases) {
-    const cn = names[cid] || "";
-    const am = cn.match(/[-(（]\s*([A-E北南東西])區\s*[）)]?\s*$/) || cn.match(/[-(（]\s*([A-E北南東西])區(?=[^區]*$)/);
-    const label = am ? `[${am[1]}區]` : "";
+    const label = nodeAreaLabel(names[cid] || "");
     badges.push(`<a class="node-milestone-badge taipei badge-link" href="https://gis.uro.taipei/r_progress_detail.aspx?case_id=${cid}" target="_blank" rel="noopener" title="案${cid}${label}">北${label ? `<span class="badge-area">${escapeHtml(label)}</span>` : ""}</a>`);
   }
   const twur = project && project.links && project.links.twur;
@@ -157,9 +189,11 @@ function nodeBadgeRowWidth(node, project) {
   const cases = (node.links || {}).taipei || [];
   const names = (project && project.links && project.links.candidate_names) || {};
   const widths = cases.map((cid) => {
-    const cn = names[cid] || "";
-    const has = /[-(（]\s*([A-E北南東西])區/.test(cn);
-    return BADGE_W + (has ? BADGE_LABEL_W : 0);
+    const label = nodeAreaLabel(names[cid] || "");
+    // a CJK character is about 8 wide at font-size 8, an ASCII one about 4.5;
+    // [A區] keeps its 22, a longer label ([A1基地]) gets what it needs
+    const est = [...label].reduce((w, ch) => w + (ch.charCodeAt(0) > 255 ? 8 : 4.5), 2);
+    return BADGE_W + (label ? Math.max(BADGE_LABEL_W, Math.ceil(est)) : 0);
   });
   const twur = project && project.links && project.links.twur;
   if (twur && node.national_badges) widths.push(BADGE_W);
@@ -1633,7 +1667,11 @@ function init() {
           const schedBadge = (succ || LINK_BADGE_SUPPRESSED.has(sched))
             ? "" : scheduleBadgeText(sched);
           const succNote = succ ? ` <span class="link-schedule">已由 ${escapeHtml(succ)} 取代</span>` : "";
-          s += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">臺北市都市更新審議服務平台 (case_id: ${cid})</a>${nm ? ` — <span class="link-case-name">${escapeHtml(nm)}</span>` : ""}${schedBadge ? ` <span class="link-schedule">${escapeHtml(schedBadge.trim())}</span>` : ""}${succNote}</li>`;
+          // F8 option B: a held case the graph draws no node for (a superseded one
+          // is already named by its successor and takes no second note)
+          const noNode = !succ && !caseHasGraphNode(cid, p)
+            ? ` <span class="link-schedule link-no-node" title="此案件已歸屬本案，但圖上沒有對應節點（案名相似度未達門檻，或案件無案名）">圖中無節點</span>` : "";
+          s += `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">臺北市都市更新審議服務平台 (case_id: ${cid})</a>${nm ? ` — <span class="link-case-name">${escapeHtml(nm)}</span>` : ""}${schedBadge ? ` <span class="link-schedule">${escapeHtml(schedBadge.trim())}</span>` : ""}${succNote}${noNode}</li>`;
         });
         // D4c (2026-11-05): the family "never approved" note is retired — a
         // gazette family holds a gazette approval by construction, and the 4

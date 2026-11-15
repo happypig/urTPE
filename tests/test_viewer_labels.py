@@ -939,3 +939,151 @@ def test_the_node_badge_row_is_sized_from_its_badges_and_never_clipped():
     assert "nodeBadgeRowWidth(" in m.group(1), m.group(1)
     assert re.search(r"overflow:\s*visible", m.group(2)), m.group(2)
     assert "function nodeBadgeRowWidth(" in js
+
+
+# ── F9 (docs/inspection-batchF.md, D10 = A): the badge label reads 基地 and 甲/乙區段 ──
+
+def _run_label_js(body: str) -> str:
+    import subprocess
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    jsn = _js().replace("\r\n", "\n")
+    parts = []
+    for pat, what in (
+        (r"function escapeHtml[\s\S]*?\n\}\n", "escapeHtml"),
+        (r"function nodeAreaLabel[\s\S]*?\n\}\n", "nodeAreaLabel"),
+        (r"function getNodeMilestoneBadges[\s\S]*?\n\}\n", "getNodeMilestoneBadges"),
+        (r"const BADGE_W = [^\n]*;", "BADGE_W"),
+        (r"function nodeBadgeRowWidth[\s\S]*?\n\}\n", "nodeBadgeRowWidth"),
+    ):
+        m = re.search(pat, jsn)
+        assert m, f"{what} not found in app.js"
+        parts.append(m.group(0))
+    r = subprocess.run([node, "-e", "\n".join(parts) + "\n" + body],
+                       capture_output=True, text=True, encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr
+    return r.stdout
+
+
+def test_the_badge_label_keeps_the_area_letter_and_reads_the_new_tokens():
+    out = _run_label_js(r"""
+const cases = [
+  ["擬訂臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫案-A區", "[A區]"],
+  ["擬訂臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫案-A區(A1基地)", "[A區]"],
+  ["擬訂臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫案-C區(A2基地)", "[C區]"],
+  ["變更臺北市文山區木柵段三小段623地號等39筆土地都市更新權利變換計畫案-甲區段(A1基地、B基地)", "[A1、B基地]"],
+  ["變更臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫及權利變換計畫案(甲區段)(A1基地)", "[A1基地]"],
+  ["變更臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫及權利變換計畫案(甲區段)A2基地", "[A2基地]"],
+  ["變更臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫及權利變換計畫案(甲區段)B基地", "[B基地]"],
+  ["變更臺北市松山區寶清段一小段353-2地號等10筆土地都市更新事業計畫案(A基地及道路用地)", "[A基地]"],
+  ["變更臺北市某區某段某小段1地號等3筆土地都市更新事業計畫案(乙區段)", "[乙區段]"],
+  // a historical site name sits BEFORE 案, not in the section suffix (逸仙34)
+  ["擬訂臺北市信義區逸仙段三小段32地號等5筆土地(原基隆路整宅B基地)都市更新事業概要案", ""],
+  ["擬訂臺北市中山區中山段一小段246地號等2筆土地都市更新事業計畫案", ""],
+  ["", ""],
+];
+for (const [name, want] of cases) {
+  const got = nodeAreaLabel(name);
+  if (got !== want) throw new Error(`label of ${name.slice(-18)}: got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
+}
+""")
+
+
+def test_three_cases_of_one_node_carry_three_different_labels_and_fit_the_row():
+    _run_label_js(r"""
+const names = {
+  "11509002": "變更臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫及權利變換計畫案(甲區段)(A1基地)",
+  "11509003": "變更臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫及權利變換計畫案(甲區段)A2基地",
+  "11509004": "變更臺北市文山區木柵段三小段623地號等39筆土地都市更新事業計畫及權利變換計畫案(甲區段)B基地",
+};
+const node = {links: {taipei: Object.keys(names)}};
+const project = {links: {candidate_names: names}};
+const html = getNodeMilestoneBadges(node, project);
+for (const lab of ["[A1基地]", "[A2基地]", "[B基地]"]) {
+  if (!html.includes(`<span class="badge-area">${lab}</span>`)) throw new Error("missing label " + lab);
+}
+const w = nodeBadgeRowWidth(node, project);
+// each badge needs at least 18 + its label; the old fixed label width (22) is too narrow for [A1基地]
+if (w < 3 * (18 + 30) + 2 * 2) throw new Error("row too narrow for three 基地 labels: " + w);
+const bare = nodeBadgeRowWidth({links: {taipei: ["x"]}}, {links: {candidate_names: {x: "某案"}}});
+if (bare !== 18) throw new Error("a bare badge must stay 18 wide: " + bare);
+const a = nodeBadgeRowWidth({links: {taipei: ["y"]}}, {links: {candidate_names: {y: "某案-A區"}}});
+if (a < 40) throw new Error("an [A區] badge must keep its label width: " + a);
+""")
+
+
+# ── F8 option B (docs/inspection-batchF.md, D9): the list marks an entry with no node ──
+
+def test_a_case_has_a_graph_node_when_a_node_or_a_drawn_orphan_anchors_it():
+    import subprocess
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    jsn = _js().replace("\r\n", "\n")
+    m = re.search(r"function caseHasGraphNode[\s\S]*?\n\}\n", jsn)
+    assert m, "caseHasGraphNode not found in app.js"
+    prog = m.group(0) + r"""
+const project = {
+  nodes: [{links: {taipei: ["a1", "a2"]}}, {links: {}}],
+  links: {orphan_nodes: [
+    {case_id: "b1", case_name: "某案", stage: "擬訂", track: "事業計畫"},
+    {case_id: "c1"},                                   // nameless: the viewer draws no node
+    {case_id: "d1", case_name: "某案", stage: "", track: "事業計畫"},   // no stage: no node
+  ]},
+};
+const want = {a1: true, a2: true, b1: true, c1: false, d1: false, zz: false};
+for (const [cid, w] of Object.entries(want)) {
+  if (caseHasGraphNode(cid, project) !== w) throw new Error(`${cid}: want ${w}`);
+}
+if (caseHasGraphNode("a1", {}) !== false) throw new Error("an empty project anchors nothing");
+"""
+    r = subprocess.run([node, "-e", prog], capture_output=True, text=True,
+                       encoding="utf-8", timeout=60)
+    assert r.returncode == 0, r.stderr
+
+
+def test_the_list_marks_an_unanchored_entry_and_never_a_superseded_one():
+    jsn = _js()
+    i = jsn.index("links.taipei.forEach(cid =>")
+    block = jsn[i:i + 2500]
+    assert "caseHasGraphNode(cid, p)" in block, "the list must ask caseHasGraphNode"
+    assert "link-no-node" in block and "圖中無節點" in block
+    # a superseded entry is already named by its successor: it takes no second note
+    assert re.search(r"!succ\s*&&\s*!caseHasGraphNode", block), \
+        "the no-node note must skip a superseded entry"
+
+
+def test_the_unanchored_list_entries_on_the_live_payload_are_28():
+    """F8 (26 + the walk's and the admission's 7 = 33 with 5 superseded): 28
+    entries get the note. A change names the drift."""
+    import json
+    doc = json.loads((APP_JS.parents[1] / "data" / "projects.json").read_text(encoding="utf-8"))
+    n = 0
+    for p in doc["projects"]:
+        links = p.get("links") or {}
+        anchored = {c for nd in p["nodes"] for c in (nd.get("links") or {}).get("taipei") or []}
+        anchored |= {g["case_id"] for g in links.get("orphan_nodes") or []
+                     if g.get("case_name") and g.get("stage") and g.get("track")}
+        sup = set((links.get("superseded_by") or {}).keys())
+        n += sum(1 for c in links.get("taipei") or [] if c not in anchored and c not in sup)
+    assert n == 28, f"unanchored list entries moved: {n} (28 on 2026-11-15)"
+
+
+def test_the_live_payload_has_sibling_label_groups_for_the_smoke_check_to_judge():
+    """The smoke check derives its groups from the data, so it passes on a stripped
+    payload; this keeps it from proving nothing on the live one (6 groups of two or
+    more orphan nodes of one stage and date whose names carry a section token)."""
+    import json
+    doc = json.loads((APP_JS.parents[1] / "data" / "projects.json").read_text(encoding="utf-8"))
+    tok = re.compile(r"[-(（]\s*[A-E北南東西]區|[甲乙丙丁戊]區段|[A-Za-z]\d?基地")
+    groups = 0
+    for p in doc["projects"]:
+        by = {}
+        for g in (p.get("links") or {}).get("orphan_nodes") or []:
+            if g.get("case_name") and g.get("stage") and g.get("track"):
+                nm = g["case_name"]
+                if tok.search(nm[nm.rfind("案") + 1:]):
+                    by.setdefault((g["stage"], g["track"], g.get("node_date") or ""), []).append(g)
+        groups += sum(1 for v in by.values() if len(v) >= 2)
+    assert groups == 6, f"sibling label groups moved: {groups} (6 on 2026-11-15)"

@@ -569,6 +569,16 @@ must pin it as its own named policy before any unification.
 | B | Keep the list as the honest record of what the city returned, and mark a list entry that has no node ("no node: below the similarity gate") in the 相關連結 debug section. Viewer only. |
 | C | Remove a cross-listed case from the wrong holder by decision (stem rule scoped by declared count, or a ledger entry per pair) |
 
+**Option B done 2026-11-15 (Order step 9, direct fix, D9 = B).** The 相關連結 list
+marks each entry the graph draws no node for with `圖中無節點` (a tooltip says the case
+belongs to the project but no node anchors it). A superseded entry takes no second
+note. `caseHasGraphNode` uses the graph's own filter (a node's badge, or a named
+orphan with a stage and a track). 28 entries are marked on the live payload (33
+without a badge, 5 of them superseded). Pins: a node test, a source test, a data pin
+(28) and a smoke check (expected from the data, rendered in 675 projects; red on the
+old viewer: 0 marked, 16 projects differ). Option C (remove a cross-listed case
+from the wrong holder) still waits for F1.
+
 **Recommendation: B now, C through F1.** B costs one viewer change and removes
 the unexplained links. C removes the cause, but the stem rule's population is
 **not measured**: only the 9 duplicated ids are visible, and a stem-admitted
@@ -644,6 +654,16 @@ no single letter can follow one section through the project.
 | B | Leave it. The population is 2 projects and the city's convention may settle. |
 | C | The pipeline resolves a `section_label` per case once (the way `national_badges` is resolved), with a mapping table for the drifted projects. The viewer renders the field. |
 
+**Option A done 2026-11-15 (Order step 8, direct fix, D10 = A).** `nodeAreaLabel` in
+`viewer/app.js` keeps the area letter first (`[A區]`, unchanged) and then reads the
+tail after the last 案: the 基地 name (`[A1基地]`, `[A1、B基地]`), then 甲/乙…區段
+(`[甲區段]`). A historical site name before the 案 (逸仙34's `原基隆路整宅B基地`)
+is not read. The row width follows the label. 木柵623's three 2026-09 filings (three
+orphan nodes of one stage) now show `[A1基地]`, `[A2基地]`, `[B基地]`. Pins: node
+tests of the label function and of the three-case row, a smoke check (green on the
+new parser, red on the old: 2 sibling groups with empty labels) and a live pin of
+the 6 sibling label groups. Option C stays open if the vocabulary stays.
+
 **Recommendation: A now, C if the city keeps the new vocabulary.** A is small
 and removes the three identical badges. C adds a mapping that someone must
 maintain by hand, and the population does not yet pay for it. A mapping from
@@ -663,8 +683,8 @@ set changes (finding 2).
 | 5 | **F1 phase 1** — one predicate, behaviour-preserving, golden table | **P2** | refactor + tests, no spec change | F3 | Lands F2's tier 1 |
 | 6 | **F1 phase 2** — each unification, one decision at a time | **P3** | one openspec change per unification | F1 phase 1, the user | Each moves up to 86 pairs and needs its own measurement |
 | 7 | **F2** tier 2 — the live pinned-list test | **P3** | pytest | F1 phase 2 | Lands with the list as the honest record |
-| 8 | **F9** — the badge parser reads 基地 and 甲/乙區段 tokens | **P3** | direct `fix:` (viewer) + harness case | the user's decision (D10) | 2 projects; no pipeline change |
-| 9 | **F8** option B — mark list entries that have no node | **P3** | direct `fix:` (viewer) | the user's decision (D9) | Removes the unexplained links; C waits for F1 |
+| 8 | **F9** — the badge parser reads 基地 and 甲/乙區段 tokens | **P3** | direct `fix:` (viewer) + harness case | the user's decision (D10) | **Done 2026-11-15**: `nodeAreaLabel`; 2 projects; no pipeline change |
+| 9 | **F8** option B — mark list entries that have no node | **P3** | direct `fix:` (viewer) | the user's decision (D9) | **Done 2026-11-15**: 28 entries marked `圖中無節點`; C waits for F1 |
 | — | **F6** — re-run the unrecorded-id scan after each sweep | — | a command | E13's sweep | No change |
 
 ---

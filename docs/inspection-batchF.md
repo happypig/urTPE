@@ -101,6 +101,32 @@ without phasing would move the payload and hide which change moved it.
    the own-parcel rule" changes up to 86 pairs. Each gets its own change, its
    own measured population and its own re-emit.
 
+**Phase 1 done 2026-11-15 (Order step 5, no spec change).** `Unit`, `Verdict` and
+`membership_verdict(case_name, unit, policy)` in `urtpe/links.py`. Five named
+policies: `search_guard` (S1, with its sub-rules `exact`, `stem`, `own_parcel` and
+`corroborated_area`; the legacy stem rule is now a named rule of its own, F8),
+`gate` (S2), `offer` (S3), `orphan_name` (S5) and `node_tier3` (S4, three call
+sites). S6 (shared dates) and S7 (shared area words) rest on different evidence,
+not a case name against a unit, and are left out on purpose. Each site calls the
+function with its own current rule: **no verdict moved**.
+
+| Proof | Result |
+| --- | --- |
+| Golden table (`tests/fixtures/membership_golden.json`, 1.1 MB, frozen inputs) | 3,094 (unit, name) pairs at S1, S2, S3, S5 and 7,328 (node, name) pairs at S4: every bit unchanged. S3 and S5 agree on all 3,094 pairs. |
+| One site at a time | The table was replayed after each move (S1, S3, S5, S4). |
+| End to end | A re-emit left `viewer/projects.data.js` and `data/projects.json` byte-identical (md5), which covers the attach-side sites. |
+| Source pins | S1, S3 and S4 call the function and hold no expression of their own; the orphan branch holds none. |
+
+The golden table is a **characterization test**: it was captured from the
+pre-refactor code, so it cannot go red first. The frozen inputs (not live caches)
+keep it from reading a data change as a refactor bug.
+
+**F2 tier 1 landed with it** (`tests/fixtures/membership_tier1.json`, three
+hand-checked units, 24 held cases). Disagreements today, each a strict xfail naming
+F1 phase 2: **S3 and S5 refuse all 7 cases of 華中247 and all 6 of 吳興163-2**
+(the F2 table named only 華中247; 吳興163-2 has the same anchor-parcel drift).
+S1, S2 and the node tier-3 agree on all of them; 懷生16 agrees everywhere.
+
 **Not measured:** how many of the 86 would create a *ghost node* if S5 adopted
 the rule (the graph effect). That is phase 2's measurement.
 
@@ -680,7 +706,7 @@ set changes (finding 2).
 | 2 | **F4** — the id-stem sibling sweep (懷生16 +7 ids) | **P1** | openspec change (`official-link-discovery`) | F3 | **Done 2026-11-15** (`unit-sibling-id-walk`): 7 ids added; `09012312` held for F7 (clear its `sibling_probed` record) |
 | 3 | **F5** — repair 3 land cores; the gate reads the payload's core | **P2** | direct `fix:` + live pin, then a small change for the gate | — | **Done 2026-11-15**: A repaired 3 cores (`09609301` returned); B `gate-reads-project-land-core` |
 | 4 | **F7** — the count condition | **P2** | openspec change (a delta on the shipped requirement) | decided (single count rule); **needs D8 and D5 first** | **Done 2026-11-15** (`unit-count-rule`): 22 pass, 62 refused, 7 admitted; S5 still refuses the 7 (flag, no node) |
-| 5 | **F1 phase 1** — one predicate, behaviour-preserving, golden table | **P2** | refactor + tests, no spec change | F3 | Lands F2's tier 1 |
+| 5 | **F1 phase 1** — one predicate, behaviour-preserving, golden table | **P2** | refactor + tests, no spec change | F3 | **Done 2026-11-15**: `membership_verdict`, 5 policies, golden table, F2 tier 1 (4 strict xfails) |
 | 6 | **F1 phase 2** — each unification, one decision at a time | **P3** | one openspec change per unification | F1 phase 1, the user | Each moves up to 86 pairs and needs its own measurement |
 | 7 | **F2** tier 2 — the live pinned-list test | **P3** | pytest | F1 phase 2 | Lands with the list as the honest record |
 | 8 | **F9** — the badge parser reads 基地 and 甲/乙區段 tokens | **P3** | direct `fix:` (viewer) + harness case | the user's decision (D10) | **Done 2026-11-15**: `nodeAreaLabel`; 2 projects; no pipeline change |

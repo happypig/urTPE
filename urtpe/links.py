@@ -1143,9 +1143,9 @@ def _search_taipei_raw(section: str, parcel: str, guard: bool = True,
                 continue
             seen.add(cid)
             case_name = e.get("case_name", "")
-            if guard and not (_case_name_carries_parcel(case_name, parcel,
-                                                        own_parcels)
-                              or _corroborated_area(anchor_name, case_name)):
+            if guard and not membership_verdict(
+                    case_name, Unit("", tuple(own_parcels or ()), (), anchor_name),
+                    "search_guard", searched_parcel=parcel).accept:
                 dropped[cid] = case_name
                 continue
             results.append({
@@ -1535,21 +1535,103 @@ def unit_accepts_case_name(own_land_core: str, case_name: str, own_parcels,
     gate keeps such a name on no-evidence grounds in its own branch BEFORE it calls
     this, but a walk or an admission needs evidence FOR the unit.
     """
+    return bool(_unit_membership_reason(own_land_core, case_name, own_parcels, own_counts))
+
+
+def _unit_membership_reason(own_land_core: str, case_name: str, own_parcels,
+                            own_counts=()) -> str:
+    """The rule that accepted a name for a unit: "land_core", "own_parcel", or ""
+    when none did. The body of ``unit_accepts_case_name``, split out so
+    ``membership_verdict`` can name the rule (F1 phase 1)."""
     name = (case_name or "").strip()
     city_lc = extract_landcore_from_case_name(name) if name else ""
     if not city_lc:
-        return False
+        return ""
     if (city_lc == own_land_core
             or compute_landcore_similarity(own_land_core, city_lc) >= _link_threshold()):
-        return True
+        return "land_core"
     if not _names_an_own_parcel_in_the_own_section(own_land_core, name, city_lc,
                                                    own_parcels):
-        return False
+        return ""
     unit_counts = {int(c) for c in (own_counts or ()) if c}
     core_count = _land_core_count(own_land_core)
     if core_count is not None:
         unit_counts.add(core_count)
-    return any(c in unit_counts for c in _name_counts(name))
+    return "own_parcel" if any(c in unit_counts for c in _name_counts(name)) else ""
+
+
+@dataclass(frozen=True)
+class Unit:
+    """What a membership decision knows about a unit (F1 phase 1)."""
+    land_core: str
+    own_parcels: tuple = ()
+    own_counts: tuple = ()
+    anchor_name: str = ""
+
+
+@dataclass(frozen=True)
+class Verdict:
+    """A membership decision and the rule behind it."""
+    accept: bool
+    reason: str
+
+
+MEMBERSHIP_POLICIES = ("search_guard", "gate", "offer", "orphan_name", "node_tier3")
+
+
+def membership_verdict(case_name: str, unit: Unit, policy: str, *,
+                       searched_parcel=None, node_name: str = "",
+                       node_landcore: str = "", node_parcels=None,
+                       alt_landcores=None) -> Verdict:
+    """F1 phase 1 (docs/inspection-batchF.md): does this case belong to this unit?
+
+    One function, named policies. Each name-based site calls it with its own
+    CURRENT rule, so the refactor changes no verdict (tests/test_membership_verdict.py
+    pins every site over frozen inputs). Unifying two policies is F1 phase 2, one
+    user decision at a time.
+
+    * ``search_guard`` (S1, the city parcel search): the name carries the searched
+      parcel (``exact``), the pre-subdivision stem (``stem``: also admits a larger
+      neighbour's cases, F8) or one of the unit's own parcels (``own_parcel``), or
+      the anchor name corroborates a parcel-less name (``corroborated_area``);
+      otherwise ``dropped``.
+    * ``gate`` (S2, the §8 view-page gate): ``unit_accepts_case_name`` with the
+      unit's own parcels and counts: ``land_core`` or ``own_parcel``, else ``refused``.
+    * ``offer`` (S3) and ``orphan_name`` (S5): the name's land core against the
+      unit's at LINK_THRESHOLD, with no parcel list: ``land_core``, else
+      ``no_land_core`` or ``below_threshold``.
+    * ``node_tier3`` (S4): equal stage and kind and a land core at 0.85 against a
+      node's: ``tier3``, else ``refused``.
+
+    S6 (shared dates) and S7 (shared area words) rest on different evidence and are
+    not case-name decisions; they are not policies here.
+    """
+    if policy == "search_guard":
+        own = tuple(unit.own_parcels or ())
+        parcel = searched_parcel if searched_parcel is not None else (own[0] if own else "")
+        rule = _parcel_rule(case_name, parcel, own)
+        if rule:
+            return Verdict(True, rule)
+        if _corroborated_area(unit.anchor_name, case_name):
+            return Verdict(True, "corroborated_area")
+        return Verdict(False, "dropped")
+    if policy == "gate":
+        rule = _unit_membership_reason(unit.land_core, case_name, unit.own_parcels,
+                                       unit.own_counts)
+        return Verdict(bool(rule), rule or "refused")
+    if policy in ("offer", "orphan_name"):
+        lc = extract_landcore_from_case_name(case_name or "")
+        if not lc:
+            return Verdict(False, "no_land_core")
+        if (lc == unit.land_core
+                or compute_landcore_similarity(unit.land_core, lc) >= _link_threshold()):
+            return Verdict(True, "land_core")
+        return Verdict(False, "below_threshold")
+    if policy == "node_tier3":
+        ok = _tier3_names_match(node_name, case_name, node_landcore,
+                                node_parcels=node_parcels, alt_landcores=alt_landcores)
+        return Verdict(ok, "tier3" if ok else "refused")
+    raise ValueError(f"unknown membership policy: {policy!r}")
 
 
 class ViewVerifiedDecision:
@@ -1672,8 +1754,7 @@ def offer_rejected_ids(cache_dir: Path, rejected: dict[str, dict[str, str]]) -> 
                 continue  # parcel-less name: not decidable, no offer
             hits = [pid for pid, core in cores.items()
                     if pid != src_pid
-                    and (core == lc
-                         or compute_landcore_similarity(core, lc) >= _link_threshold())]
+                    and membership_verdict(city_name or "", Unit(core), "offer").accept]
             if len(hits) != 1:
                 continue  # zero or ambiguous: never guess
             target_pid = hits[0]
@@ -1734,10 +1815,18 @@ def _case_name_carries_parcel(case_name: str, parcel: str,
     still drops a case of a DIFFERENT unit — the parcels it accepts are the
     unit's own.
     """
+    return bool(_parcel_rule(case_name, parcel, own_parcels))
+
+
+def _parcel_rule(case_name: str, parcel: str, own_parcels=None) -> str:
+    """The parcel rule that admits a case name, as a name: "exact", "stem",
+    "own_parcel", or "" when none does. ``_case_name_carries_parcel`` is
+    ``bool(_parcel_rule(...))``; the order is the rule's own (F1 phase 1 splits
+    S1 into its sub-rules; the legacy stem rule is pinned on its own, F8)."""
     name = normalize_parcel_token(case_name)
     parcel_n = normalize_parcel_token(str(parcel or ""))
     if not name or not parcel_n:
-        return False
+        return ""
 
     def _token_hit(token: str, declared_only: bool) -> bool:
         pattern = rf"(?<![0-9.\-]){re.escape(token)}"
@@ -1745,20 +1834,20 @@ def _case_name_carries_parcel(case_name: str, parcel: str,
         return re.search(pattern, name) is not None
 
     if _token_hit(parcel_n, declared_only=False):
-        return True
+        return "exact"
     mono = parcel_n.partition("-")[0]
     if mono != parcel_n and mono and _token_hit(mono, declared_only=True):
-        return True
+        return "stem"
     for own in (own_parcels or ()):
         own_n = normalize_parcel_token(str(own or ""))
         if not own_n:
             continue
         if _token_hit(own_n, declared_only=False):
-            return True
+            return "own_parcel"
         own_mono = own_n.partition("-")[0]
         if own_mono != own_n and own_mono and _token_hit(own_mono, declared_only=True):
-            return True
-    return False
+            return "own_parcel"
+    return ""
 
 
 # A 地號 / 等N筆 declaration anywhere in a case name. Its absence is what makes a
@@ -3502,6 +3591,15 @@ def _record_landcore(member) -> str:
     return core if parcel else ""
 
 
+def _node_tier3(node_name: str, case_name: str, node_landcore: str = "",
+                node_parcels=None, alt_landcores=None) -> bool:
+    """The S4 policy (``node_tier3``) of ``membership_verdict`` for a node and a
+    case name: the one call the three S4 sites share (F1 phase 1)."""
+    return membership_verdict(case_name, Unit(""), "node_tier3", node_name=node_name,
+                              node_landcore=node_landcore, node_parcels=node_parcels,
+                              alt_landcores=alt_landcores).accept
+
+
 def _probe_name_ok(case_name: str, node_name: str, node_landcore: str = "",
                    node_parcels: tuple | list | None = None,
                    alt_landcores: tuple | list | None = None) -> bool:
@@ -3509,9 +3607,8 @@ def _probe_name_ok(case_name: str, node_name: str, node_landcore: str = "",
     equal stage-with-ordinal, the kind subset and the land core (the board's
     S12 correction: case ids are a city-wide daily serial, so a same-day
     sibling may belong to another project — 10203252 = 中山111)."""
-    return _tier3_names_match(node_name, case_name, node_landcore,
-                              node_parcels=node_parcels,
-                              alt_landcores=alt_landcores)
+    return _node_tier3(node_name, case_name, node_landcore,
+                       node_parcels=node_parcels, alt_landcores=alt_landcores)
 
 
 def _cell_landcore(member) -> str:
@@ -3621,9 +3718,11 @@ def _name_tier_hits(names: dict, node_name: str,
     for label, fn in tiers:
         if fn is None:
             hits = [cid for cid, n in names.items() if n
-                    and _tier3_names_match(node_name, n, node_landcore,
+                    and membership_verdict(n, Unit(""), "node_tier3",
+                                           node_name=node_name,
+                                           node_landcore=node_landcore,
                                            node_parcels=node_parcels,
-                                           alt_landcores=alt_landcores)]
+                                           alt_landcores=alt_landcores).accept]
         else:
             want = fn(node_name)
             hits = [cid for cid, n in names.items() if n and fn(n) == want]
@@ -3918,7 +4017,7 @@ def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,
             # the name separates a same-day tie: the tier-3 rule (stage + kind
             # subset + land core) over the candidates
             named = [c for c in exact_hits
-                     if names.get(c) and _tier3_names_match(
+                     if names.get(c) and _node_tier3(
                          node_name, names[c], node_landcore,
                          node_parcels=node_parcels,
                          alt_landcores=alt_landcores)]
@@ -4553,10 +4652,12 @@ def attach_links_to_projects(projects: list[Project], discovered: dict,
                     # (parcel-less case names would score 0.0).
                     similar = True
                 elif case_name:
-                    orphan_landcore = extract_landcore_from_case_name(case_name)
-                    if orphan_landcore and compute_landcore_similarity(
-                        anchor_landcore_str, orphan_landcore
-                    ) >= 0.7:
+                    # F1 phase 1: the orphan name branch is the "orphan_name" policy of
+                    # membership_verdict (the land core against the anchor's at
+                    # LINK_THRESHOLD, no parcel list). Its refusal of an anchor-parcel
+                    # drifted case (華中247's 09305080, 0.45) is F1 phase 2's question.
+                    if membership_verdict(case_name, Unit(anchor_landcore_str),
+                                          "orphan_name").accept:
                         similar = True
                 elif cid in attributed_case_ids:
                     similar = True

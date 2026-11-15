@@ -43,28 +43,25 @@ class TestThePredicate:
 
     def test_a_matching_land_core_is_accepted(self):
         assert L.unit_accepts_case_name(CORE, SIB, PARCELS)
-        assert L.unit_accepts_case_name(CORE, SIB, PARCELS, require_equal_count=True)
+        assert L.unit_accepts_case_name(CORE, SIB, PARCELS)
 
     def test_an_own_parcel_in_the_own_section_with_an_equal_count_is_accepted(self):
         assert L.unit_accepts_case_name(CORE, SIB_DRIFT, PARCELS)
-        assert L.unit_accepts_case_name(CORE, SIB_DRIFT, PARCELS, require_equal_count=True)
+        assert L.unit_accepts_case_name(CORE, SIB_DRIFT, PARCELS)
 
-    def test_an_unequal_count_is_refused_by_the_walk_only(self):
-        """The walk holds the own-parcel form back until F7's count rule; the
-        gate keeps its verdict (the gate's behaviour must not move)."""
-        assert L.unit_accepts_case_name(CORE, SIB_COUNT, PARCELS)
-        assert not L.unit_accepts_case_name(CORE, SIB_COUNT, PARCELS,
-                                            require_equal_count=True)
+    def test_an_unequal_count_is_refused_by_the_single_rule(self):
+        """unit-count-rule: the walk's provisional hold-back became the rule for
+        every caller; the unit never had 12 parcels, so the gate refuses too."""
+        assert not L.unit_accepts_case_name(CORE, SIB_COUNT, PARCELS)
 
     def test_a_name_of_another_section_is_refused(self):
         assert not L.unit_accepts_case_name(CORE, FOREIGN, PARCELS)
-        assert not L.unit_accepts_case_name(CORE, FOREIGN, PARCELS, require_equal_count=True)
+        assert not L.unit_accepts_case_name(CORE, FOREIGN, PARCELS)
 
     def test_a_nameless_or_parcel_less_name_is_refused(self):
         for name in ("", "   ", NO_PARCEL):
             assert not L.unit_accepts_case_name(CORE, name, PARCELS), repr(name)
-            assert not L.unit_accepts_case_name(CORE, name, PARCELS,
-                                                require_equal_count=True), repr(name)
+            assert not L.unit_accepts_case_name(CORE, name, PARCELS), repr(name)
 
     def test_no_own_parcels_leaves_the_land_core_rule_alone(self):
         assert L.unit_accepts_case_name(CORE, SIB, [])
@@ -83,36 +80,23 @@ def _old_city_ok(own_core, name, own_parcels):
 
 
 def test_the_gate_keeps_every_verdict_on_the_fixtures():
-    for name in (SIB, SIB_DRIFT, SIB_COUNT, FOREIGN):
+    for name in (SIB, SIB_DRIFT, FOREIGN):
         got = L.verify_view_verified_ids(CORE, ["09500001"], {"09500001": name}, {},
                                          own_parcels=PARCELS)
         assert (("09500001" in got.kept)
                 == _old_city_ok(CORE, name, PARCELS)), name
+    # the one verdict that moves: an own-parcel name with a count the unit never had
+    got = L.verify_view_verified_ids(CORE, ["09500001"], {"09500001": SIB_COUNT}, {},
+                                     own_parcels=PARCELS)
+    assert "09500001" not in got.kept
     # a parcel-less name stays kept on no-evidence grounds (the gate's own branch)
     got = L.verify_view_verified_ids(CORE, ["09500001"], {"09500001": NO_PARCEL}, {},
                                      own_parcels=PARCELS)
     assert "09500001" in got.kept
 
 
-def test_the_predicate_equals_the_old_gate_expression_on_every_cached_name():
-    """Pair by pair over the live caches: the refactor moves no verdict."""
-    cache = ROOT / "data" / ".link_cache"
-    if not cache.is_dir():
-        pytest.skip("no live caches")
-    pairs = moved = 0
-    for rf in sorted(cache.glob("*/result.json")):
-        c = json.loads(rf.read_text(encoding="utf-8"))
-        core = c.get("land_core") or ""
-        own = c.get("own_parcels") or []
-        for key in ("candidate_names", "search_rejected", "case_case_names"):
-            for name in (c.get(key) or {}).values():
-                if not isinstance(name, str) or not L.extract_landcore_from_case_name(name):
-                    continue
-                pairs += 1
-                if L.unit_accepts_case_name(core, name, own) != _old_city_ok(core, name, own):
-                    moved += 1
-    assert pairs > 1000
-    assert moved == 0, f"{moved} of {pairs} verdicts moved by the refactor"
+# (the live pair-by-pair parity moved to tests/test_unit_count_rule.py: the count
+# rule newly refuses the own-parcel pairs with a count the unit never had.)
 
 
 # ── 1.3 the walk ──────────────────────────────────────────────────────────────

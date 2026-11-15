@@ -412,6 +412,40 @@ against 四小段) that the exact test rightly refuses. It is a known gap of the
 tolerance (C) would add before widening. The measured evidence supports an equal
 count; it does not support more.
 
+### F7 outcome — the single count rule landed (2026-11-15, change `unit-count-rule`)
+
+**Order step 4, D1 and D2.** One predicate, `unit_accepts_case_name(own_land_core,
+case_name, own_parcels, own_counts)`, serves the §8 gate, the sibling walk and the
+admission command. The walk's provisional `require_equal_count` keyword is gone.
+`own_counts` is a persisted, required cache field (backfilled for all 675 caches,
+backup `data/.link_cache_backup_20261115_090919_ownparcels`; discovery sets it on
+both paths; a live pin keeps it equal to the payload's). An empty list is named in
+the refresh report (`view_gate_no_counts`) and means the narrower equal-count rule.
+
+| Measure | Result |
+| --- | --- |
+| Guard-only pairs | 84 now (86 when measured; F5's repair moved 寶清51-13's two cases to a land-core match) |
+| Pass the single rule | **22** (24 when measured) |
+| Newly refused by the count rule | **62**; none of them reaches the gate |
+| Gate-visible guard-only pairs | 3, all pass: no gate verdict changed |
+| Admitted by `scripts/admit_unit_cases.py` | **7** in 6 projects (潭美579-2, 光華508-6, 雙連197 ×2, 雙連407, 大安590, 華興8's `09708111`); 14 read-only requests; backup `…_090954_admitcases` |
+| `09012312` (長春559-5) | still refused: 69 is not among 80 and 83. The walk's `other_unit` record stays valid. |
+
+**Payload effect of the 7 admissions** (re-emit):
+
+| Measure | Before | After |
+| --- | --- | --- |
+| 相關連結 list entries | 2,023 | 2,030 |
+| Node 北 badge ids | 1,484 | 1,484 (**no admitted case has a node**) |
+| Nodes with two or more cases | 37 | 37 |
+| Orphan-flag mentions (孤兒案件未達相似度門檻) | 17 | **24** (+7: one per admitted case) |
+
+**What this shows.** The count rule and the orphan branch (S5) still disagree:
+S5 refuses every admitted case at the 0.7 similarity gate, so each shows in the
+list with a flag and no node. That is F2's open disagreement, now with 7 more
+live instances. It is F1 phase 2's question (S5 adopts the rule or keeps its
+own), not this change's. List entries with no badge (F8's count, superseded entries included): 26 before, **33** after (the sibling walk's 7 and 市府220-2's case all have a badge).
+
 ### F7 addendum — the D1 measurement (2026-11-15)
 
 D1 chose rule C (equal count, or the name's `原N筆` equals the unit's count).
@@ -625,7 +659,7 @@ set changes (finding 2).
 | 1 | **F3** — the residuals of the explicit dependency | **P1** | direct `fix:` + live pin | — | **Done 2026-11-15.** Everything below reads `own_parcels`; the pin is the guard |
 | 2 | **F4** — the id-stem sibling sweep (懷生16 +7 ids) | **P1** | openspec change (`official-link-discovery`) | F3 | **Done 2026-11-15** (`unit-sibling-id-walk`): 7 ids added; `09012312` held for F7 (clear its `sibling_probed` record) |
 | 3 | **F5** — repair 3 land cores; the gate reads the payload's core | **P2** | direct `fix:` + live pin, then a small change for the gate | — | **Done 2026-11-15**: A repaired 3 cores (`09609301` returned); B `gate-reads-project-land-core` |
-| 4 | **F7** — the count condition | **P2** | openspec change (a delta on the shipped requirement) | decided (single count rule); **needs D8 and D5 first** | Adds the count test to the live rule; also admits 華興8 and the 6 equal-count pairs (D2) |
+| 4 | **F7** — the count condition | **P2** | openspec change (a delta on the shipped requirement) | decided (single count rule); **needs D8 and D5 first** | **Done 2026-11-15** (`unit-count-rule`): 22 pass, 62 refused, 7 admitted; S5 still refuses the 7 (flag, no node) |
 | 5 | **F1 phase 1** — one predicate, behaviour-preserving, golden table | **P2** | refactor + tests, no spec change | F3 | Lands F2's tier 1 |
 | 6 | **F1 phase 2** — each unification, one decision at a time | **P3** | one openspec change per unification | F1 phase 1, the user | Each moves up to 86 pairs and needs its own measurement |
 | 7 | **F2** tier 2 — the live pinned-list test | **P3** | pytest | F1 phase 2 | Lands with the list as the honest record |

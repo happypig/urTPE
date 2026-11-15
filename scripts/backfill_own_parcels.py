@@ -1,4 +1,4 @@
-"""Backfill `own_parcels` into every cache.
+"""Backfill `own_parcels` and `own_counts` into every cache.
 
 section8-gate-anchor-parcel-drift D2: the §8 gate keeps a view-named case of
 the unit's own parcels although its 案名 starts at another parcel (華中247).
@@ -43,6 +43,18 @@ def anchor_parcels(project: dict) -> list[str]:
     return ([first] if first else []) + [p for p in parcels if p != first]
 
 
+def anchor_counts(project: dict) -> list[int]:
+    """The parcel counts the unit declared at every approval: each node's
+    land_count and orig_count, positive, distinct, sorted (unit-count-rule)."""
+    counts = set()
+    for node in project.get("nodes") or ():
+        for key in ("land_count", "orig_count"):
+            v = node.get(key)
+            if isinstance(v, int) and v > 0:
+                counts.add(v)
+    return sorted(counts)
+
+
 def select(cache_dir: Path) -> list[Path]:
     """Every cache directory that holds a readable result.json.
 
@@ -80,7 +92,8 @@ def backfill(cache_dir: Path, projects: dict[str, dict], backup_dir: Path,
         if not parcels:
             report["no_parcels"].append(pid)
             continue
-        if data.get("own_parcels") == parcels:
+        counts = anchor_counts(project)
+        if data.get("own_parcels") == parcels and (data.get("own_counts") or []) == counts:
             report["unchanged"].append(pid)
             continue
         if not dry_run:
@@ -88,6 +101,7 @@ def backfill(cache_dir: Path, projects: dict[str, dict], backup_dir: Path,
             dest.mkdir(parents=True, exist_ok=True)
             shutil.copy2(rf, dest / "result.json")
             data["own_parcels"] = parcels
+            data["own_counts"] = counts       # unit-count-rule: required input of the count rule
             rf.write_text(json.dumps(data, ensure_ascii=False, indent=2),
                           encoding="utf-8")
         report["written"].append(pid)

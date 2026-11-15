@@ -361,6 +361,13 @@ class DiscoveryResult:
     # a recorded id. A failed request is never recorded. Append-only; the gate
     # and the viewer do not read it.
     sibling_probed: dict[str, str] = field(default_factory=dict)
+    # unit-count-rule: the parcel counts the unit declared at every approval (each
+    # record's land_count and orig_count), sorted distinct. The §8 gate's
+    # own-parcel form needs them: a case names the unit's parcel and a count, and
+    # the count must be one the unit had at SOME approval (F7). Required input,
+    # like own_parcels: discovery writes it on both paths, the backfill covers old
+    # caches, and an empty list is a named report state (view_gate_no_counts).
+    own_counts: list[int] = field(default_factory=list)
     status: str = "unresolved"  # resolved, unresolved, multi-case, error
     error: str = ""
 
@@ -627,8 +634,15 @@ def discover_project_links(
             # can be missing (a cache older than the field) or stale (the anchor
             # changed with a new approval). Follow the anchor; write only on change.
             anchor_parcels = own_parcels_of(anchor)
+            counts = own_counts_of(project)
+            moved = False
             if anchor_parcels and cached.own_parcels != anchor_parcels:
                 cached.own_parcels = anchor_parcels
+                moved = True
+            if counts and cached.own_counts != counts:
+                cached.own_counts = counts      # unit-count-rule: same follow-the-payload rule
+                moved = True
+            if moved:
                 save_project_cache(cache_dir, project.project_id, cached)
             return cached
 
@@ -645,7 +659,8 @@ def discover_project_links(
         prior = load_project_cache(cache_dir, project.project_id)
 
     result = DiscoveryResult(project_id=project.project_id, land_core=land_core,
-                             own_parcels=own_parcels_of(anchor))
+                             own_parcels=own_parcels_of(anchor),
+                             own_counts=own_counts_of(project))
     if prior is not None:
         result.case_headers = dict(prior.case_headers)
         result.superseded_by = dict(prior.superseded_by)
@@ -1426,6 +1441,18 @@ def expected_land_core_of_project_id(project_id: str) -> str:
     return "".join(m.groups()) if m else ""
 
 
+def own_counts_of(project) -> list[int]:
+    """The parcel counts a unit declared at every approval: each member record's
+    land_count and orig_count, positive, distinct, sorted (unit-count-rule)."""
+    counts = set()
+    for rec in getattr(project, "members", None) or ():
+        for attr in ("land_count", "orig_count"):
+            v = getattr(rec, attr, None)
+            if isinstance(v, int) and v > 0:
+                counts.add(v)
+    return sorted(counts)
+
+
 def own_parcels_of(record) -> list[str]:
     """The unit's own parcels: the record's first_parcel first, then the other
     parcels of its 地號 cell in cell order.
@@ -1473,25 +1500,40 @@ def _land_core_count(land_core: str):
     return int(m.group(1)) if m else None
 
 
-def unit_accepts_case_name(own_land_core: str, case_name: str, own_parcels,
-                           *, require_equal_count: bool = False) -> bool:
-    """unit-sibling-id-walk D1: does the city's own case name belong to the unit?
+def _name_counts(case_name: str) -> list[int]:
+    """The counts a case name declares: its `等N筆` and every `(原N筆)`."""
+    import unicodedata
+    n = unicodedata.normalize("NFKC", case_name or "")
+    n = re.sub(r"(?<=\d) +(?=(?:地號|筆))", "", n)
+    out = []
+    cur = re.search(r"等(\d+)筆", n)
+    if cur:
+        out.append(int(cur.group(1)))
+    out += [int(x) for x in re.findall(r"\(原(\d+)筆\)", n)]
+    return out
 
-    One predicate for the §8 gate and the sibling walk (docs/inspection-batchF.md
-    F1 phase 1 starts here). True when the name's land core equals the unit's or
-    scores at least LINK_THRESHOLD, or the name declares the unit's own
-    district+section and one of its own parcels (anchor-parcel drift).
+
+def unit_accepts_case_name(own_land_core: str, case_name: str, own_parcels,
+                           own_counts=()) -> bool:
+    """unit-sibling-id-walk D1 + unit-count-rule: does the city's own case name
+    belong to the unit?
+
+    One predicate for the §8 gate, the sibling walk and the admission command
+    (docs/inspection-batchF.md F1 phase 1 starts here). True when the name's land
+    core equals the unit's or scores at least LINK_THRESHOLD, or the name declares
+    the unit's own district+section and one of its own parcels (anchor-parcel
+    drift) AND passes the count rule.
+
+    The count rule (F7, decided by the user 2026-11-15): the name's declared count
+    (`等N筆`), or one of its `(原N筆)`, equals the unit's count at ANY approval,
+    that is a member of ``own_counts`` or the unit's own land-core count. It guards
+    the own-parcel form only; a land-core match needs no count. With no
+    ``own_counts`` the land-core count is the only count: the narrower rule, never
+    a silent widening (the caller names that state in its report).
 
     A name with no land core (missing, or parcel-less like 崇仁新村) is False: the
     gate keeps such a name on no-evidence grounds in its own branch BEFORE it calls
-    this, but a walk needs evidence FOR the unit, never the absence of evidence
-    against it.
-
-    ``require_equal_count`` is the walk's provisional hold-back: the own-parcel
-    form also needs the name's declared count (`等N筆`) to equal the unit's, so an
-    unproven pair (長春559-5's 09012312, counts 69 against 80) stays out until F7's
-    single count rule replaces this keyword for both callers. The gate calls with
-    the default, so its verdicts do not move.
+    this, but a walk or an admission needs evidence FOR the unit.
     """
     name = (case_name or "").strip()
     city_lc = extract_landcore_from_case_name(name) if name else ""
@@ -1503,10 +1545,11 @@ def unit_accepts_case_name(own_land_core: str, case_name: str, own_parcels,
     if not _names_an_own_parcel_in_the_own_section(own_land_core, name, city_lc,
                                                    own_parcels):
         return False
-    if require_equal_count:
-        count = _land_core_count(city_lc)
-        return count is not None and count == _land_core_count(own_land_core)
-    return True
+    unit_counts = {int(c) for c in (own_counts or ()) if c}
+    core_count = _land_core_count(own_land_core)
+    if core_count is not None:
+        unit_counts.add(core_count)
+    return any(c in unit_counts for c in _name_counts(name))
 
 
 class ViewVerifiedDecision:
@@ -1529,7 +1572,7 @@ class ViewVerifiedDecision:
 
 def verify_view_verified_ids(own_land_core: str, ids: list[str],
                              city_names: dict, labels: dict,
-                             own_parcels=()) -> ViewVerifiedDecision:
+                             own_parcels=(), own_counts=()) -> ViewVerifiedDecision:
     """§8 decision 1 (docs/viewer-UX.md §8): the city's own case name decides.
 
     | label (check 1) | city name (check 2) | result | reason |
@@ -1573,7 +1616,8 @@ def verify_view_verified_ids(own_land_core: str, ids: list[str],
             if not label_ok:
                 out.not_confirmed.append(cid)
             continue
-        city_ok = unit_accepts_case_name(own_land_core, city_name, own_parcels)
+        city_ok = unit_accepts_case_name(own_land_core, city_name, own_parcels,
+                                         own_counts)
         if city_ok:
             out.kept.append(cid)
             if not label_ok:
@@ -2415,7 +2459,8 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                     "view_not_confirmed": [], "labelled_wu": [],
                     "implementation_refetched": [], "payload_sizes": [],
                     "unconfirmed": [], "view_rejection_lifted": [],
-                    "view_gate_no_parcels": [], "land_core_healed": [],
+                    "view_gate_no_parcels": [], "view_gate_no_counts": [],
+                    "land_core_healed": [],
                     "error": ""}
     if cached is None:
         report["error"] = "no cache"
@@ -2761,7 +2806,7 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
         again = verify_view_verified_ids(
             own_land_core=cached.land_core, ids=[cid],
             city_names={cid: held_name}, labels={},
-            own_parcels=cached.own_parcels)
+            own_parcels=cached.own_parcels, own_counts=cached.own_counts)
         if cid in again.kept:
             del cached.view_rejected[cid]
             report["view_rejection_lifted"].append(cid)
@@ -2831,12 +2876,17 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
             # F3 (docs/inspection-batchF.md): an empty list silently meant "use
             # the land-core rule alone". The verdict stays; the silence goes.
             report["view_gate_no_parcels"] = list(cached.view_verified_case_ids)
+        if not cached.own_counts:
+            # unit-count-rule: no counts means the land core's own count is the
+            # only count (the narrower rule). The verdict stands; the state is named.
+            report["view_gate_no_counts"] = list(cached.view_verified_case_ids)
         decision = verify_view_verified_ids(
             own_land_core=cached.land_core,
             ids=cached.view_verified_case_ids,
             city_names=cached.case_case_names,
             labels=labels,
             own_parcels=cached.own_parcels,
+            own_counts=cached.own_counts,
         )
         if decision.rejected:
             cached.view_verified_case_ids = list(decision.kept)
@@ -3622,6 +3672,20 @@ def sibling_candidates(disc, held_elsewhere=()) -> list[str]:
     return out
 
 
+def _join_unit_case(disc, cid: str, name: str, row: dict, milestones: dict) -> None:
+    """Join one probed case to ``disc`` in place, append-only: the one join the
+    sibling walk and the admission command (unit-count-rule) both use."""
+    disc.city_case_ids = list(getattr(disc, "city_case_ids", None) or []) + [cid]
+    disc.candidate_names[cid] = name
+    disc.case_case_names[cid] = name
+    disc.case_milestones[cid] = milestones
+    hdr = {"NAME": str(row.get("NAME", "") or "")}
+    for key in ("uro_chk_date", "uro_chk_date2"):
+        if row.get(key):
+            hdr[key] = str(row[key])
+    disc.case_headers[cid] = hdr
+
+
 def walk_unit_siblings(disc, own_land_core: str, own_parcels, *, held_elsewhere=(),
                        fetch_header=None, fetch_milestones=None, sleep=None,
                        delay: float = 1.0, max_requests=None) -> dict:
@@ -3629,7 +3693,7 @@ def walk_unit_siblings(disc, own_land_core: str, own_parcels, *, held_elsewhere=
 
     Probes each ``sibling_candidates`` id by its case header and joins a case to
     ``disc`` in place, append-only, only when its own case name passes
-    ``unit_accepts_case_name(..., require_equal_count=True)``. An id that does
+    ``unit_accepts_case_name`` with the unit's ``own_counts``. An id that does
     not join is recorded in ``disc.sibling_probed`` ("none": the header names no
     case; "other_unit": it names a case the unit does not own), so no later run
     repeats the request. A failed request (header or milestones) is reported in
@@ -3676,7 +3740,7 @@ def walk_unit_siblings(disc, own_land_core: str, own_parcels, *, held_elsewhere=
             continue
         report["names"][cid] = name
         if not unit_accepts_case_name(own_land_core, name, own_parcels,
-                                      require_equal_count=True):
+                                      getattr(disc, "own_counts", None) or ()):
             probed[cid] = "other_unit"
             report["other_unit"].append(cid)
             continue
@@ -3685,15 +3749,7 @@ def walk_unit_siblings(disc, own_land_core: str, own_parcels, *, held_elsewhere=
         except Exception:
             report["errors"].append(cid)
             continue
-        disc.city_case_ids = list(getattr(disc, "city_case_ids", None) or []) + [cid]
-        disc.candidate_names[cid] = name
-        disc.case_case_names[cid] = name
-        disc.case_milestones[cid] = ms
-        hdr = {"NAME": str(row.get("NAME", "") or "")}
-        for key in ("uro_chk_date", "uro_chk_date2"):
-            if row.get(key):
-                hdr[key] = str(row[key])
-        disc.case_headers[cid] = hdr
+        _join_unit_case(disc, cid, name, row, ms)
         report["added"].append(cid)
     return report
 

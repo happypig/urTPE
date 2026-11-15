@@ -480,7 +480,8 @@ class TestTheDependencyIsExplicit:
     def test_the_cached_path_leaves_an_equal_field_unwritten(self, tmp_path):
         project = _hz_project()
         same = DiscoveryResult(project_id=HZ_PID, land_core=HZ_CORE,
-                               own_parcels=["247", "248", "201-2", "352"])
+                               own_parcels=["247", "248", "201-2", "352"],
+                               own_counts=[4])        # the fixture record declares 4
         save_project_cache(tmp_path, HZ_PID, same)
         f = tmp_path / HZ_PID / "result.json"
         before = f.stat().st_mtime_ns

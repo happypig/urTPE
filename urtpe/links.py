@@ -618,6 +618,13 @@ def discover_project_links(
                             save_project_cache(cache_dir, project.project_id, cached)
                     except OSError:
                         pass
+            # F3: the anchor's parcel list is the payload's, and the cache's copy
+            # can be missing (a cache older than the field) or stale (the anchor
+            # changed with a new approval). Follow the anchor; write only on change.
+            anchor_parcels = own_parcels_of(anchor)
+            if anchor_parcels and cached.own_parcels != anchor_parcels:
+                cached.own_parcels = anchor_parcels
+                save_project_cache(cache_dir, project.project_id, cached)
             return cached
 
     # B3 (Batch B): a fresh re-discovery starts from a bare DiscoveryResult, so
@@ -663,6 +670,9 @@ def discover_project_links(
                     # its Taipei cases stay rejected.
                     anchor_name=anchor.name,
                     extra_sections=extra_sections,
+                    # F3: the refresh passes the unit's parcels to this same guard;
+                    # discovery must too, or one predicate gives two answers.
+                    own_parcels=own_parcels_of(anchor),
                 )
             except TypeError:
                 # an adapter that does not take the extra forms (a test double)
@@ -2339,6 +2349,7 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                     "view_not_confirmed": [], "labelled_wu": [],
                     "implementation_refetched": [], "payload_sizes": [],
                     "unconfirmed": [], "view_rejection_lifted": [],
+                    "view_gate_no_parcels": [],
                     "error": ""}
     if cached is None:
         report["error"] = "no cache"
@@ -2738,6 +2749,10 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                                           cached.view_verified_case_ids)
         except OSError:
             labels = {}
+        if not cached.own_parcels:
+            # F3 (docs/inspection-batchF.md): an empty list silently meant "use
+            # the land-core rule alone". The verdict stays; the silence goes.
+            report["view_gate_no_parcels"] = list(cached.view_verified_case_ids)
         decision = verify_view_verified_ids(
             own_land_core=cached.land_core,
             ids=cached.view_verified_case_ids,

@@ -61,13 +61,16 @@ def test_a_second_run_changes_nothing(tmp_path):
     assert not (tmp_path / "bak2").exists()
 
 
-def test_only_caches_that_hold_view_ids_are_touched(tmp_path):
+def test_every_cache_is_backfilled_not_only_the_view_holders(tmp_path):
+    """F3/D8: a cache that holds no view id today is gated by the old rule the
+    day a view id lands in it, silently. The backfill covers all caches."""
     cache = tmp_path / "cache"
     other = _cache(cache, "乙", city_case_ids=["09100001"])
-    before = (other / "result.json").read_text(encoding="utf-8")
     rep = bf.backfill(cache, {"乙": PROJECT}, tmp_path / "bak")
-    assert rep["candidates"] == 0
-    assert (other / "result.json").read_text(encoding="utf-8") == before
+    assert rep["candidates"] == 1 and rep["written"] == ["乙"]
+    saved = json.loads((other / "result.json").read_text(encoding="utf-8"))
+    assert saved["own_parcels"] == ["247", "248", "201-2", "352"]
+    assert (tmp_path / "bak" / "乙" / "result.json").is_file()
 
 
 def test_a_cache_with_no_project_in_the_payload_is_named_and_skipped(tmp_path):

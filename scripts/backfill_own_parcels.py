@@ -1,4 +1,4 @@
-"""Backfill `own_parcels` into the caches that hold view ids.
+"""Backfill `own_parcels` into every cache.
 
 section8-gate-anchor-parcel-drift D2: the §8 gate keeps a view-named case of
 the unit's own parcels although its 案名 starts at another parcel (華中247).
@@ -6,8 +6,8 @@ It reads the unit's parcels from the cache's `own_parcels`. Discovery writes the
 field for a new cache; the 675 existing caches have none, so the gate would
 decide on the land core alone for them.
 
-This script writes the field from the emitted payload's anchor record, for the
-caches the gate reads: those holding `view_verified_case_ids` or `view_rejected`.
+This script writes the field from the emitted payload's anchor record, for every
+cache (F3/D8: the first run covered only the caches holding view ids).
 It copies each `result.json` it will change into a dated backup directory first
 (the cache is the durable middle layer — AGENTS.md), never deletes, and writes
 nothing else. A cache whose project is not in the payload is named and skipped.
@@ -44,18 +44,21 @@ def anchor_parcels(project: dict) -> list[str]:
 
 
 def select(cache_dir: Path) -> list[Path]:
-    """Cache directories whose result.json holds view ids."""
+    """Every cache directory that holds a readable result.json.
+
+    F3/D8 (docs/inspection-batchF.md): the first run covered only the caches
+    holding view ids. A later absorb that adds a view id to any other cache
+    would gate it with an empty list, silently, by the land-core rule alone."""
     out = []
     for entry in sorted(cache_dir.iterdir()):
         rf = entry / "result.json"
         if not rf.is_file():
             continue
         try:
-            data = json.loads(rf.read_text(encoding="utf-8"))
+            json.loads(rf.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        if data.get("view_verified_case_ids") or data.get("view_rejected"):
-            out.append(entry)
+        out.append(entry)
     return out
 
 
@@ -122,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
         finally:
             lock.release()
 
-    print(f"candidates (caches holding view ids): {report['candidates']}")
+    print(f"candidates (readable caches): {report['candidates']}")
     print(f"{'would write' if args.dry_run else 'wrote'}: {len(report['written'])}")
     print(f"unchanged: {len(report['unchanged'])}")
     for label in ("no_project", "no_parcels"):

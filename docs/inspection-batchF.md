@@ -179,6 +179,21 @@ the user wants the spec to state it):**
 4. A live pin: for every payload project, the cache's `own_parcels` equals the
    anchor's parcels (first parcel first). It names the project on a mismatch.
 
+**Done 2026-11-15 (Order step 1, direct fix, D8 = A).**
+
+| Item | Result |
+| --- | --- |
+| Backfill | `scripts/backfill_own_parcels.py` now selects every cache. Run: 727 readable caches, **106 written**, 569 unchanged, 52 non-payload caches named and skipped. Backup `data/.link_cache_backup_20261115_083540_ownparcels`. |
+| Discovery's search call | passes `own_parcels` (the refresh already did) |
+| Discovery's cached path | follows the anchor: it writes the field when it is missing or differs, and writes nothing when equal |
+| Empty list | the refresh report names the ids the gate decided without parcels (`view_gate_no_parcels`). The verdict is unchanged. |
+| Live pin | `test_every_payload_project_cache_holds_the_anchor_s_parcels`: 0 missing, 0 stale across 675 caches |
+| Tests | 8 new, 1 renamed. Full run: 1368 passed, 1 skipped. |
+
+The earlier counts for the single count rule are **not** stored yet. They need
+no new backfill: the F7 change reads them from the payload's nodes (condition 2
+of the single count rule) and gets its own pin.
+
 **Not measured:** how often the anchor's parcel list changes between two
 approvals of one unit. A change makes a cached list stale; the live pin catches
 it but does not size it.
@@ -351,6 +366,74 @@ against 四小段) that the exact test rightly refuses. It is a known gap of the
 tolerance (C) would add before widening. The measured evidence supports an equal
 count; it does not support more.
 
+### F7 addendum — the D1 measurement (2026-11-15)
+
+D1 chose rule C (equal count, or the name's `原N筆` equals the unit's count).
+The change's first task was to measure what C adds. Same population as F1: all
+675 projects, 3,080 case-name pairs, the **86 guard-only pairs** (the own-parcel
+test accepts, the 0.7 similarity refuses). The count of the unit is the
+`等N筆` of the cache's `land_core`. Reproduced first: 86 pairs, 49 projects, and 7
+similarity-only pairs, as in F1.
+
+| Question | Result |
+| --- | --- |
+| Pairs with an equal count (rule A) | **19** (13 held here, 6 held by no project) |
+| Pairs that rule C adds: `原N筆` equals the unit's count | **0** |
+| Guard-only pairs with a `原N筆` in the name | 7. Their `原N` is 25, 27, 23. The units hold 2 and 33. None equals. |
+| Pairs the §8 gate can see (the id is named by a cached view page or recorded in `view_rejected`) | **3 of 86**. All 3 have an equal count, and all 3 are right (華中247 ×2, 吳興163-2). |
+| Unequal-count pairs the gate can see | **0** of 67 |
+
+**What this means.**
+
+1. **On today's data, A and C give the same verdicts.** The `原N筆` tolerance
+   adds 0 pairs to the own-parcel rule. The shipped three ids keep passing. No
+   current verdict flips under A or C.
+2. **The count condition guards the future, not the present.** The own-parcel
+   rule runs only inside the §8 gate, and the gate sees only ids that a national
+   view page names. 83 of the 86 pairs reach the graph by the search guard (S1)
+   or the orphan branch (S5). Neither has a count test. A count condition
+   changes them only if F1 phase 2 moves S5 onto this rule.
+3. **`原N筆` is a real shape, but similarity already carries it.** In all 3,080
+   pairs, 249 names have a `原N筆`. In 15 of them `原N` equals the unit's count:
+   a later case of the same unit (大龍265's `30筆(原27筆)`, 振興707's
+   `59筆(原57筆)`). All 15 pass the similarity route, because the first parcel
+   matches. They are not guard-only, so rule C has nothing to add for them.
+4. **The 6 大龍265-7 cases are not admitted by C.** Their `原25` and `原27`
+   describe the 27-parcel unit, not the 2-parcel unit. C keeps them out. They
+   stay cross-listed through the search guard's stem rule (F8), which has no
+   count test.
+
+**One variant C did not choose, measured for the record.** "The name's count
+equals the count of *any approval* of the unit" adds **5** pairs (24 in all):
+
+| Pair | Held | Reading |
+| --- | --- | --- |
+| 臨沂412 `10010221` (`414地號等11筆`, 概要; unit now 12) | here | A real earlier scope. The unit had 11 parcels. |
+| 金華455-3 `09201071` (`508地號等11筆`; unit now 12) | here | Same shape. |
+| 華興8 `09708111` (`18-1地號等13筆`; unit now 4) | **no project** | **Verified by one read-only header request (2026-11-15):** a **withdrawn 2008 predecessor**, not the 2013 case. State `事業計畫階段─實施者自行撤回`, 申請 2008/08/18, implementer 鴻愷建設 (the unit's implementer). The name's 13 parcels match the 2013 擬訂 node (node 1191: 13 parcels, `18-1` among them). The project holds `09902263` (擬訂, 2010 filing, approved 2013-07-05) and `09902264`. The search guard already rejected `09708111` (it sits in `search_rejected`). **Not one of the 6 equal-count pairs.** |
+| 寶清51-13 `09906201`, `09906202` (`等1筆`) | here | An artifact: the cache's `land_core` lacks `地號等1筆` (F5), so the unit's count reads as none. |
+
+**Effect on the decisions.**
+
+- **D1 stays C, and C is safe.** It changes no verdict today. The change may
+  state C as the rule and pin the 19 / 0 / 3 numbers above.
+- **D2 gains a candidate.** 華興8's `09708111` is a seventh pair with a
+  count the unit had at an earlier approval. It is not in the equal-count set of
+  6, and no rule chosen so far admits it. The user may widen D2 to "equal to the
+  count of any approval of the unit" (+1 held by no project, +4 already held,
+  2 of them F5 artifacts). That is a new option (D2-D). The user chose it on
+  2026-11-15. The case is a withdrawn predecessor filing. That is not a new
+  kind: the caches already hold 139 cases in a 撤回 state, all in
+  `city_case_ids`.
+- **F5 blocks one reading.** Two caches whose `land_core` lacks the count
+  (寶清51-13, 崇仁新村711-3) read as "no count". The third F5 cache has the wrong
+  district, not a missing count. Repair them first (D5), or the count test refuses a correct
+  case.
+
+**Not measured:** the 53 held-by-no-project pairs were not sampled by hand (D2
+says to sample 47). Names of cases that no route has fetched are not in this
+population.
+
 ---
 
 ## F8 — the 北 badges and the 相關連結 list disagree (user, 2026-11-15)
@@ -493,10 +576,10 @@ set changes (finding 2).
 
 | Step | Item | Priority | Form | Depends on | Notes |
 | --- | --- | --- | --- | --- | --- |
-| 1 | **F3** — the residuals of the explicit dependency | **P1** | direct `fix:` + live pin | — | Everything below reads `own_parcels`; the pin is the guard |
+| 1 | **F3** — the residuals of the explicit dependency | **P1** | direct `fix:` + live pin | — | **Done 2026-11-15.** Everything below reads `own_parcels`; the pin is the guard |
 | 2 | **F4** — the id-stem sibling sweep (懷生16 +7 ids) | **P1** | openspec change (`official-link-discovery`) | F3 | User-visible; the gap is 8 ids in 5 projects, a lower bound |
 | 3 | **F5** — repair 3 land cores; the gate reads the payload's core | **P2** | direct `fix:` + live pin, then a small change for the gate | — | Independent; `09609301` returns on the next refresh |
-| 4 | **F7** — the count condition | **P2** | openspec change (a delta on the shipped requirement) | the user's decision | Narrows a rule already live |
+| 4 | **F7** — the count condition | **P2** | openspec change (a delta on the shipped requirement) | decided (single count rule); **needs D8 and D5 first** | Adds the count test to the live rule; also admits 華興8 and the 6 equal-count pairs (D2) |
 | 5 | **F1 phase 1** — one predicate, behaviour-preserving, golden table | **P2** | refactor + tests, no spec change | F3 | Lands F2's tier 1 |
 | 6 | **F1 phase 2** — each unification, one decision at a time | **P3** | one openspec change per unification | F1 phase 1, the user | Each moves up to 86 pairs and needs its own measurement |
 | 7 | **F2** tier 2 — the live pinned-list test | **P3** | pytest | F1 phase 2 | Lands with the list as the honest record |
@@ -508,13 +591,58 @@ set changes (finding 2).
 
 ## Decisions to make
 
-The standing rule holds: none of these is decided. Each shows the options, the
-cost and a recommendation.
+**Decided by the user, 2026-11-15** (all ten, by the options below). A decision
+is not an order to open a change: each change still opens on the user's word.
+
+| # | Decision | Differs from the recommendation? |
+| --- | --- | --- |
+| D1 | **Superseded 2026-11-15 by the single count rule (see below).** First choice was C — equal count, or `原N筆` equals the unit's count. The single rule contains C. | **Yes** (recommended A). **Measured 2026-11-15 (F7 addendum): C adds 0 pairs over A; 3 of 86 pairs reach the gate and all 3 are equal-count and right. C is safe and flips no verdict today.** |
+| D2 | **C, widened (D2-D)** — admit the 6 equal-count pairs **and 華興8's `09708111`**, after D1: 7 pairs, 6 projects. The admission count test is the single count rule below (same as D1). | **Widened by the user, 2026-11-15** (after the F7 addendum measurement). Sample the other 46 by hand before any more. |
+| D3 | **A** — extend the step-2 walk into a unit-level sibling sweep | No |
+| D4 | **A** — accept a sibling by the §8 gate rule | No |
+| D5 | **C** — rewrite 3 land cores, add a pin, the gate reads the payload's core | No |
+| D6 | **A** — behaviour-preserving refactor first, then each unification | No |
+| D7 | **A** — tier 1 with F1 phase 1, tier 2 last | No |
+| D8 | **A** — backfill all 675, name the empty list, add a live pin | No |
+| D9 | **B** now (viewer marks a list entry that has no node), **C** through F1 | No |
+| D10 | **A** now (viewer reads 基地 and 甲/乙區段 tokens), **C** if the vocabulary stays | No |
+
+**The single count rule (D1 and D2), decided by the user on 2026-11-15, on the
+advisor's recommendation.** One rule serves the §8 gate (D1) and the admission
+of held-by-no-project pairs (D2):
+
+> A case name passes the count test when its count (`等N筆`), or one of its
+> `原N筆` values, equals the unit's count at **any approval** of the unit.
+
+Conditions that go with the rule:
+
+1. **It contains rule C.** The latest approval's count is one of the unit's
+   counts. Checked on all 675 caches: 673 pass. The 2 that fail (寶清51-13,
+   崇仁新村711-3) have a `land_core` with no count (F5, D5).
+2. **The earlier counts are required input, never optional.** The gate had an
+   optional parcel list that 5 of 6 callers did not pass (華中247). The counts
+   must not repeat that. Store them next to `own_parcels` in the D8 backfill, or
+   read them from the payload (as D5 reads the land core).
+3. **An empty count list is a named report state**, like `view_gate_no_parcels`
+   (for example `view_gate_no_counts`). It is not a silent fallback to
+   "equal count".
+4. **Pin the measured numbers in a test:** 24 guard-only pairs pass, 3 of them
+   reach the gate, and no gate verdict changes. A later widening then fails the
+   test and names the pair.
+5. **Known cost:** the rule is weaker for a unit with many approvals and many
+   different counts.
+6. **Order:** D8 (backfill with the counts) and D5 (the 2 caches with no count)
+   come before this change.
+7. **華興8's `09708111`** is admitted only by this rule. It is a verified
+   withdrawn 2008 predecessor (F7 addendum). The admission is part of D2's
+   change, not of D1's.
+
+The table below keeps the options and the original recommendation as asked.
 
 | # | Question | Options | Recommendation |
 | --- | --- | --- | --- |
 | D1 | F7: add a declared-count condition to the own-parcel rule? | A equal count · B keep · C equal count or `原N筆` | **A**, measure C first |
-| D2 | F1: the 53 held-by-no-project candidates | A leave unheld · B admit through discovery passing `own_parcels` · C admit only the 6 equal-count pairs | **C** after D1, then look at the other 47 by sample |
+| D2 | F1: the 53 held-by-no-project candidates | A leave unheld · B admit through discovery passing `own_parcels` · C admit only the 6 equal-count pairs · **D (added by F7 addendum)** the 6 plus 華興8, by "equal to the count of any approval of the unit" | **C** after D1, then look at the other 47 by sample. **Decided: D.** |
 | D3 | F4: the sibling source | A extend the step-2 walk · B new script · C ledger the 8 ids | **A** |
 | D4 | F4: the probe's acceptance for a sibling | A the §8 gate rule (city name vs the unit) · B name plus date as today | **A** |
 | D5 | F5: the land core | A rewrite 3 · B read the payload's core · C both | **C** |
@@ -562,6 +690,12 @@ and `viewer/projects.data.js`. The scripts were ad-hoc and are not kept.
   more projects. The stem rule was tested by running the guard's three
   branches on the unit's first parcel: exact, legacy stem (`<mono>地號` or
   `<mono>等`), and the unit's own parcels.
+- **Count test (F7 addendum):** the guard-only pairs of F1, each with the name's
+  `等N筆` (the first count), its `(原N筆)` values, and the unit's count from the
+  cache's `land_core`. "Any approval" counts are the `land_count` and
+  `orig_count` of every node of the project. "Gate can see" means the case id
+  is in `view_verified_case_ids`, in `view_rejected`, or named as `case_id=` in
+  the cached `view.html`. The script is ad hoc (scratchpad `d1_measure.py`).
 - **Label drift (F9):** the gazette suffix is the `案名` of each node; the city
   label is the suffix of `candidate_names`. The pairing is by the 核定日期 of
   the case's milestones against the node's date. Vocabularies are three

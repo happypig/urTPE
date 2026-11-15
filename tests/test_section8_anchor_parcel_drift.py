@@ -381,3 +381,118 @@ def test_the_two_hua_zhong_nodes_each_carry_both_of_their_cases():
             by_date[n["date"]] = set((n.get("links") or {}).get("taipei") or [])
     assert by_date.get("2014-04-25") == {"09305081", "09305082"}, by_date
     assert by_date.get("2015-10-02") == {"09407301", "09407302"}, by_date
+
+
+# ── 1.6 F3: the dependency is explicit (docs/inspection-batchF.md F3, D8) ─────
+# The gate failed on 華中247 because the parcel list was optional and five of
+# six callers did not pass it. F3 closes the residuals: every cache carries the
+# field, discovery passes it and refreshes it, an empty list is named in the
+# report, and a live pin keeps the cache equal to the payload's anchor.
+
+def _hz_project():
+    from urtpe.cleanse import cleanse
+    from urtpe.models import RawRecord
+    raw = RawRecord(1131, "103/4/25", "萬華區",
+                    NAME_81.replace("-A區", ""),
+                    "臺北市萬華區華中段一小段247、248、201-2、352地號等4筆土地",
+                    "某建設", "某規劃")
+    return Project(project_id=HZ_PID, anchor_recno=1131, members=[cleanse(raw)])
+
+
+class TestTheDependencyIsExplicit:
+    def test_the_gate_names_the_ids_it_decided_without_parcels(
+            self, tmp_path, monkeypatch, city):
+        both = {"09305081": NAME_81}
+        _hz_cache(tmp_path, rejected={}, names=both, verified=list(both),
+                  city_ids=HZ_HELD + list(both))          # no own_parcels
+        monkeypatch.setattr(links_mod, "fetch_view_page",
+                            lambda vid, cache_dir=None, fresh=False: _view_html(both))
+        report = refresh_project(tmp_path, HZ_PID)
+        assert report["error"] == "", report["error"]
+        assert report["view_gate_no_parcels"] == ["09305081"]
+
+    def test_the_gate_with_parcels_names_nothing(self, tmp_path, monkeypatch, city):
+        both = {"09305081": NAME_81}
+        _hz_cache(tmp_path, rejected={}, names=both, verified=list(both),
+                  city_ids=HZ_HELD + list(both), own_parcels=HZ_PARCELS)
+        monkeypatch.setattr(links_mod, "fetch_view_page",
+                            lambda vid, cache_dir=None, fresh=False: _view_html(both))
+        report = refresh_project(tmp_path, HZ_PID)
+        assert report["error"] == "", report["error"]
+        assert report["view_gate_no_parcels"] == []
+
+    def test_naming_the_empty_list_does_not_change_the_verdict(
+            self, tmp_path, monkeypatch, city):
+        """The silence goes; the old-rule answer stays (09305081 is rejected)."""
+        both = {"09305081": NAME_81}
+        _hz_cache(tmp_path, rejected={}, names=both, verified=list(both),
+                  city_ids=HZ_HELD + list(both))
+        monkeypatch.setattr(links_mod, "fetch_view_page",
+                            lambda vid, cache_dir=None, fresh=False: _view_html(both))
+        refresh_project(tmp_path, HZ_PID)
+        saved = json.loads((tmp_path / HZ_PID / "result.json").read_text(encoding="utf-8"))
+        assert "09305081" in saved["view_rejected"]
+
+    def test_discovery_passes_the_unit_s_parcels_to_the_search(self, tmp_path, monkeypatch):
+        seen = {}
+
+        def search(section, parcel, dropped_out=None, anchor_name="", **kw):
+            seen.update(kw)
+            return []
+
+        monkeypatch.setattr(links_mod, "search_taipei_cases_api", search)
+        monkeypatch.setattr(links_mod, "_post_taipei_api", lambda *a, **k: "[]")
+        links_mod.discover_project_links(_hz_project(), tmp_path, fresh=True, delay=0)
+        assert seen.get("own_parcels") == ["247", "248", "201-2", "352"], seen
+
+    def test_the_cached_path_of_discovery_refreshes_a_missing_field(self, tmp_path):
+        project = _hz_project()
+        stale = DiscoveryResult(project_id=HZ_PID, land_core=HZ_CORE)   # no parcels
+        save_project_cache(tmp_path, HZ_PID, stale)
+        got = links_mod.discover_project_links(project, tmp_path, delay=0)
+        assert got.own_parcels == ["247", "248", "201-2", "352"]
+        saved = json.loads((tmp_path / HZ_PID / "result.json").read_text(encoding="utf-8"))
+        assert saved["own_parcels"] == ["247", "248", "201-2", "352"]
+
+    def test_the_cached_path_follows_a_changed_anchor(self, tmp_path):
+        """project_id churn / a new approval changes the anchor's parcels."""
+        project = _hz_project()
+        old = DiscoveryResult(project_id=HZ_PID, land_core=HZ_CORE,
+                              own_parcels=["247", "999"])
+        save_project_cache(tmp_path, HZ_PID, old)
+        got = links_mod.discover_project_links(project, tmp_path, delay=0)
+        assert got.own_parcels == ["247", "248", "201-2", "352"]
+
+    def test_the_cached_path_leaves_an_equal_field_unwritten(self, tmp_path):
+        project = _hz_project()
+        same = DiscoveryResult(project_id=HZ_PID, land_core=HZ_CORE,
+                               own_parcels=["247", "248", "201-2", "352"])
+        save_project_cache(tmp_path, HZ_PID, same)
+        f = tmp_path / HZ_PID / "result.json"
+        before = f.stat().st_mtime_ns
+        links_mod.discover_project_links(project, tmp_path, delay=0)
+        assert f.stat().st_mtime_ns == before
+
+
+def test_every_payload_project_cache_holds_the_anchor_s_parcels():
+    """F3 live pin: the cache's own_parcels equals the payload anchor's parcels,
+    first parcel first. A mismatch names the project. A cache with no field at
+    all is the silent state F3 removes (106 caches before the backfill)."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import backfill_own_parcels as bf
+    cache_dir = ROOT / "data" / ".link_cache"
+    missing, stale = [], []
+    for p in _payload()["projects"]:
+        rf = cache_dir / p["project_id"] / "result.json"
+        if not rf.is_file():
+            continue
+        have = json.loads(rf.read_text(encoding="utf-8")).get("own_parcels")
+        want = bf.anchor_parcels(p)
+        if not have:
+            missing.append(p["project_id"])
+        elif have != want:
+            stale.append(p["project_id"])
+    assert not missing and not stale, (
+        f"own_parcels drifted: {len(missing)} caches have none ({missing[:5]}), "
+        f"{len(stale)} differ from the payload anchor ({stale[:5]}). "
+        "Run scripts/backfill_own_parcels.py.")

@@ -258,8 +258,36 @@ case name against the unit) fits.
 **Recommendation: A**, after F3. It lands one candidate rule instead of a
 second one.
 
-**Not measured:** the effect of the 8 ids on the payload (nodes, badges,
-callouts). That is the change's own re-emit measurement.
+**Done 2026-11-15 (Order step 2, change `unit-sibling-id-walk`, D3 = A, D4 = A).**
+`walk_unit_siblings` and the shared predicate `unit_accepts_case_name` landed;
+`scripts/walk_unit_siblings.py` ran live once. The dry run listed **63** ids in
+52 projects, the same as the F4 probe pass.
+
+| Measure | Before | After |
+| --- | --- | --- |
+| Requests (read-only headers, 1 s apart) | — | 63, 0 errors, cap not hit |
+| Ids added | — | **7** in 4 projects (懷生16 ×3, 萬隆463 ×2, 百齡342, 雙園505) |
+| Recorded in `sibling_probed` | — | 56 (`none` and `other_unit`) |
+| 相關連結 list entries | 2,015 | 2,022 |
+| Node 北 badge ids | 1,478 | 1,484 (the 7th id, `10405264`, is a drawn orphan node) |
+| Nodes carrying two or more cases | 32 | **37** (area pairs 30 → 35; with by-case payloads 30, unchanged) |
+| Orphan-flag mentions (孤兒案件未達相似度門檻) | 17 | 17 |
+| Ids listed under two projects | 9 | 9 |
+| 國 badged nodes | 808 | 808 |
+
+The walk held `09012312` (長春559-5, counts 69 against 80) back by the
+equal-count keyword, as designed: the walk recorded it `other_unit`. **F7 must
+clear that record**, or the walk will never retry the id under the single count
+rule. The 40 other refused ids are foreign cases (other sections and districts).
+
+**A second definition of `own_parcels` surfaced.** F3's live pin failed after the
+re-emit: discovery's `own_parcels_of` kept the 地號 cell's order, and the backfill
+and the pin put `first_parcel` first. 40 caches flipped on the re-emit. The fix
+is one definition (first parcel first); both writers use it and the payload is
+byte-identical across two re-emits.
+
+**Not measured:** ids beyond a stem's lowest or highest held digit, and other
+stems of the same filing day.
 
 ---
 
@@ -577,7 +605,7 @@ set changes (finding 2).
 | Step | Item | Priority | Form | Depends on | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 1 | **F3** — the residuals of the explicit dependency | **P1** | direct `fix:` + live pin | — | **Done 2026-11-15.** Everything below reads `own_parcels`; the pin is the guard |
-| 2 | **F4** — the id-stem sibling sweep (懷生16 +7 ids) | **P1** | openspec change (`official-link-discovery`) | F3 | User-visible; the gap is 8 ids in 5 projects, a lower bound |
+| 2 | **F4** — the id-stem sibling sweep (懷生16 +7 ids) | **P1** | openspec change (`official-link-discovery`) | F3 | **Done 2026-11-15** (`unit-sibling-id-walk`): 7 ids added; `09012312` held for F7 (clear its `sibling_probed` record) |
 | 3 | **F5** — repair 3 land cores; the gate reads the payload's core | **P2** | direct `fix:` + live pin, then a small change for the gate | — | Independent; `09609301` returns on the next refresh |
 | 4 | **F7** — the count condition | **P2** | openspec change (a delta on the shipped requirement) | decided (single count rule); **needs D8 and D5 first** | Adds the count test to the live rule; also admits 華興8 and the 6 equal-count pairs (D2) |
 | 5 | **F1 phase 1** — one predicate, behaviour-preserving, golden table | **P2** | refactor + tests, no spec change | F3 | Lands F2's tier 1 |

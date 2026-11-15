@@ -73,8 +73,13 @@ def test_the_joined_node_counters_on_the_live_payload():
     # nodes joined (09305081+09305082, 09407301+09407302): 30 -> 32, 28 -> 30.
     # Neither has implementation payloads, so with_by_case stays 30 and no new
     # section callout renders.
-    assert joined == 32, f"joined nodes moved: {joined} (board says 32 since the 2026-11-15 correction)"
-    assert area_pairs == 30, f"area pairs moved: {area_pairs} (board says 30 since the 2026-11-15 correction)"
+    # 2026-11-15 (unit-sibling-id-walk): the walk added 7 same-unit ids; five
+    # nodes now carry two or three cases (懷生16 nodes 1381/1124/314 with
+    # 09503201/2/7 beside 09503203/4/8, 萬隆463 node 1386 with 09205141/2 beside
+    # 09205143, 雙園505 node 1113 with 09610232 beside 09610234): 32 -> 37,
+    # 30 -> 35. None has implementation payloads (with_by_case stays 30).
+    assert joined == 37, f"joined nodes moved: {joined} (board says 37 since the 2026-11-15 sibling walk)"
+    assert area_pairs == 35, f"area pairs moved: {area_pairs} (board says 35 since the 2026-11-15 sibling walk)"
     assert with_by_case == 30, f"by_case nodes moved: {with_by_case} (board says 30)"
 
 

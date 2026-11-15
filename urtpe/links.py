@@ -356,6 +356,11 @@ class DiscoveryResult:
     # the cache is the one place every call path reaches. Empty = no evidence:
     # the land-core rule alone decides, as before.
     own_parcels: list[str] = field(default_factory=list)
+    # unit-sibling-id-walk: ids the unit-level sibling walk probed and did not
+    # add, {case_id: "none" | "other_unit"}. A later walk issues no request for
+    # a recorded id. A failed request is never recorded. Append-only; the gate
+    # and the viewer do not read it.
+    sibling_probed: dict[str, str] = field(default_factory=dict)
     status: str = "unresolved"  # resolved, unresolved, multi-case, error
     error: str = ""
 
@@ -1407,8 +1412,15 @@ def _link_threshold() -> float:
 
 
 def own_parcels_of(record) -> list[str]:
-    """The unit's own parcels as the gazette's 地號 cell lists them."""
-    return [str(p) for p in (getattr(record, "parcels", None) or []) if str(p)]
+    """The unit's own parcels: the record's first_parcel first, then the other
+    parcels of its 地號 cell in cell order.
+
+    One definition for every writer (discovery, the backfill, the search key and
+    the live pin). The cell's own order differs from this in 40 payload projects,
+    and a second order flipped their caches on a re-emit (F3 live pin)."""
+    first = str(getattr(record, "first_parcel", "") or "")
+    cell = [str(p) for p in (getattr(record, "parcels", None) or []) if str(p)]
+    return ([first] if first else []) + [p for p in cell if p != first]
 
 
 def _section_text(land_core: str) -> str:
@@ -1438,6 +1450,48 @@ def _names_an_own_parcel_in_the_own_section(own_land_core: str, city_name: str,
     if _section_text(city_lc) != _section_text(own_land_core):
         return False
     return _case_name_carries_parcel(city_name, parcels[0], parcels)
+
+
+def _land_core_count(land_core: str):
+    """The declared parcel count of a land core (`…地號等N筆`), or None."""
+    m = re.search(r"等(\d+)筆", land_core or "")
+    return int(m.group(1)) if m else None
+
+
+def unit_accepts_case_name(own_land_core: str, case_name: str, own_parcels,
+                           *, require_equal_count: bool = False) -> bool:
+    """unit-sibling-id-walk D1: does the city's own case name belong to the unit?
+
+    One predicate for the §8 gate and the sibling walk (docs/inspection-batchF.md
+    F1 phase 1 starts here). True when the name's land core equals the unit's or
+    scores at least LINK_THRESHOLD, or the name declares the unit's own
+    district+section and one of its own parcels (anchor-parcel drift).
+
+    A name with no land core (missing, or parcel-less like 崇仁新村) is False: the
+    gate keeps such a name on no-evidence grounds in its own branch BEFORE it calls
+    this, but a walk needs evidence FOR the unit, never the absence of evidence
+    against it.
+
+    ``require_equal_count`` is the walk's provisional hold-back: the own-parcel
+    form also needs the name's declared count (`等N筆`) to equal the unit's, so an
+    unproven pair (長春559-5's 09012312, counts 69 against 80) stays out until F7's
+    single count rule replaces this keyword for both callers. The gate calls with
+    the default, so its verdicts do not move.
+    """
+    name = (case_name or "").strip()
+    city_lc = extract_landcore_from_case_name(name) if name else ""
+    if not city_lc:
+        return False
+    if (city_lc == own_land_core
+            or compute_landcore_similarity(own_land_core, city_lc) >= _link_threshold()):
+        return True
+    if not _names_an_own_parcel_in_the_own_section(own_land_core, name, city_lc,
+                                                   own_parcels):
+        return False
+    if require_equal_count:
+        count = _land_core_count(city_lc)
+        return count is not None and count == _land_core_count(own_land_core)
+    return True
 
 
 class ViewVerifiedDecision:
@@ -1504,10 +1558,7 @@ def verify_view_verified_ids(own_land_core: str, ids: list[str],
             if not label_ok:
                 out.not_confirmed.append(cid)
             continue
-        city_ok = (city_lc == own_land_core
-                   or compute_landcore_similarity(own_land_core, city_lc) >= threshold
-                   or _names_an_own_parcel_in_the_own_section(
-                       own_land_core, city_name, city_lc, own_parcels))
+        city_ok = unit_accepts_case_name(own_land_core, city_name, own_parcels)
         if city_ok:
             out.kept.append(cid)
             if not label_ok:
@@ -3512,6 +3563,112 @@ def _bind_from_name_step(node_name: str, live: list[str], names: dict) -> list[s
     if len(live) >= 2 and "" not in suffixes and len(suffixes) == len(live):
         return sorted(live)
     return []
+
+
+def sibling_candidates(disc, held_elsewhere=()) -> list[str]:
+    """unit-sibling-id-walk D3: the ids the walk would probe for one cache.
+
+    City case ids are a filing day's 7-digit stem plus one digit, so a unit's
+    cases sit in the stems it already holds. For each stem take the lowest and
+    highest held last digit (`city_case_ids`, `view_verified_case_ids` and
+    `view_rejected` all count as held evidence of the stem) and return each id
+    strictly between them that is not held, not held elsewhere and not already
+    probed. Nothing outside a stem's held range, and no other stem, is a
+    candidate (F4's measured lower bound).
+    """
+    held = {str(c) for c in (getattr(disc, "city_case_ids", None) or [])}
+    held |= {str(c) for c in (getattr(disc, "view_verified_case_ids", None) or [])}
+    held |= {str(c) for c in (getattr(disc, "view_rejected", None) or {})}
+    skip = held | {str(c) for c in held_elsewhere} \
+        | set(getattr(disc, "sibling_probed", None) or {})
+    digits: dict[str, list[int]] = {}
+    for cid in held:
+        if len(cid) == 8 and cid.isdigit():
+            digits.setdefault(cid[:7], []).append(int(cid[7]))
+    out = []
+    for stem in sorted(digits):
+        lo, hi = min(digits[stem]), max(digits[stem])
+        for d in range(lo + 1, hi):
+            cid = f"{stem}{d}"
+            if cid not in skip:
+                out.append(cid)
+    return out
+
+
+def walk_unit_siblings(disc, own_land_core: str, own_parcels, *, held_elsewhere=(),
+                       fetch_header=None, fetch_milestones=None, sleep=None,
+                       delay: float = 1.0, max_requests=None) -> dict:
+    """unit-sibling-id-walk D3/D4: find a unit's sibling cases by id stem.
+
+    Probes each ``sibling_candidates`` id by its case header and joins a case to
+    ``disc`` in place, append-only, only when its own case name passes
+    ``unit_accepts_case_name(..., require_equal_count=True)``. An id that does
+    not join is recorded in ``disc.sibling_probed`` ("none": the header names no
+    case; "other_unit": it names a case the unit does not own), so no later run
+    repeats the request. A failed request (header or milestones) is reported in
+    ``errors`` and NOT recorded, so the next run tries it again. A joined case
+    always has its milestones: a milestone failure keeps the id out.
+
+    The adapters default to the live ones, as in ``resolve_node_cases``; the
+    emission path never calls this (design D7): only the driver script does.
+    Returns ``{added, none, other_unit, errors, skipped_held_elsewhere,
+    requests, capped, names}`` (``names``: the case name of each probed id that
+    had one, so a refused id is named once in the driver's report).
+    """
+    if fetch_header is None:
+        fetch_header = fetch_taipei_case_header_api
+    if fetch_milestones is None:
+        fetch_milestones = fetch_taipei_milestones_api
+    if sleep is None:
+        sleep = time.sleep
+    elsewhere = {str(c) for c in held_elsewhere}
+    report: dict = {"added": [], "none": [], "other_unit": [], "errors": [],
+                    "skipped_held_elsewhere": [], "requests": 0, "capped": False,
+                    "names": {}}
+    probed = disc.sibling_probed if isinstance(
+        getattr(disc, "sibling_probed", None), dict) else {}
+    disc.sibling_probed = probed
+    for cid in sibling_candidates(disc):
+        if cid in elsewhere:
+            report["skipped_held_elsewhere"].append(cid)
+            continue
+        if max_requests is not None and report["requests"] >= max_requests:
+            report["capped"] = True
+            break
+        sleep(delay)
+        report["requests"] += 1
+        try:
+            row = fetch_header(cid) or {}
+        except Exception:
+            report["errors"].append(cid)
+            continue
+        name = str(row.get("CASE_NAME", "") or "").strip()
+        if not name:
+            probed[cid] = "none"
+            report["none"].append(cid)
+            continue
+        report["names"][cid] = name
+        if not unit_accepts_case_name(own_land_core, name, own_parcels,
+                                      require_equal_count=True):
+            probed[cid] = "other_unit"
+            report["other_unit"].append(cid)
+            continue
+        try:
+            ms = fetch_milestones(cid) or {}
+        except Exception:
+            report["errors"].append(cid)
+            continue
+        disc.city_case_ids = list(getattr(disc, "city_case_ids", None) or []) + [cid]
+        disc.candidate_names[cid] = name
+        disc.case_case_names[cid] = name
+        disc.case_milestones[cid] = ms
+        hdr = {"NAME": str(row.get("NAME", "") or "")}
+        for key in ("uro_chk_date", "uro_chk_date2"):
+            if row.get(key):
+                hdr[key] = str(row[key])
+        disc.case_headers[cid] = hdr
+        report["added"].append(cid)
+    return report
 
 
 def resolve_node_cases(member, disc, fetch_header=None, fetch_milestones=None,

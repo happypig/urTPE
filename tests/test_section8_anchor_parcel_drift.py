@@ -310,6 +310,19 @@ class TestOwnParcelsInTheCache:
         rec = cleanse(raw)
         assert links_mod.own_parcels_of(rec) == ["247", "248", "201-2", "352"]
 
+    def test_the_first_parcel_comes_first_whatever_the_cell_order(self):
+        """F3 live pin, caught after the unit-sibling-id-walk re-emit: discovery
+        wrote the 地號 cell's order while the backfill and the pin put the
+        record's first_parcel first, so 40 caches flipped on the next re-emit.
+        One definition: first_parcel first, then the other cell parcels."""
+        from types import SimpleNamespace
+        rec = SimpleNamespace(first_parcel="247", parcels=["201-2", "247", "248", "352"])
+        assert links_mod.own_parcels_of(rec) == ["247", "201-2", "248", "352"]
+        rec = SimpleNamespace(first_parcel="", parcels=["9", "8"])
+        assert links_mod.own_parcels_of(rec) == ["9", "8"]
+        rec = SimpleNamespace(first_parcel="5", parcels=[])
+        assert links_mod.own_parcels_of(rec) == ["5"]
+
     def test_a_record_without_parcels_gives_an_empty_list(self):
         rec = make_record(1, "103/4/25", "萬華區", "x", "y", "某", "某")
         assert links_mod.own_parcels_of(rec) == []

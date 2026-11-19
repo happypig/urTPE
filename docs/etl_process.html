@@ -822,35 +822,34 @@
 <!-- ============================================================= -->
 <section>
   <h2><span class="n">9</span><span class="en">Operating the pipeline</span><span class="zh">操作管線</span></h2>
-  <p class="lead"><span class="en">Full ingest of a new gazette:</span><span class="zh">完整匯入一份新公報：</span></p>
+  <p class="lead"><span class="en">Manual PDF-to-publication runbook. The scheduled <code>urtpe-poll</code> task only acquires inputs and publishes the release-diff report; it never ingests.</span><span class="zh">手動 PDF 至發布 runbook。排程 <code>urtpe-poll</code> 工作只取得輸入並發布 release-diff 報告，絕不匯入。</span></p>
   <table>
     <tbody>
-      <tr><td class="num">1.</td><td><span class="en">Run <code>python scripts/poll_gazette.py</code> — it archives on <code>new_gazette</code>.</span><span class="zh">執行 <code>python scripts/poll_gazette.py</code> — 遇 <code>new_gazette</code> 時封存。</span></td></tr>
-      <tr><td class="num">2.</td><td><span class="en">Ingest: <code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links --recover-truncated</code></span><span class="zh">匯入：<code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links --recover-truncated</code></span></td></tr>
-      <tr><td class="num">3.</td><td><span class="en">Read the run output — tripwire PASS, reconcile, ledger, exclusion count.
-        Any <code>[CENSUS]</code>/<code>[EMISSION]</code> line names a real defect.</span><span class="zh">讀執行輸出 — 絆線 PASS、對帳、帳本、排除數。
-        任何 <code>[CENSUS]</code>/<code>[EMISSION]</code> 列都指出真實缺陷。</span></td></tr>
-      <tr><td class="num">4.</td><td><span class="en">Exit 0 commits the dataset (mind the ~24 MB diff). Exit 2/3/4/5 is a refusal —
-        diagnose, never bypass with a flag.</span><span class="zh">exit 0 收入資料集（注意約 24 MB 的差異）。exit 2/3/4/5 是拒絕 —
-        先診斷，絕不用旗標繞過。</span></td></tr>
-      <tr><td class="num">5.</td><td><span class="en">Run <code>python scripts/post_ingest_check.py</code>. It validates the emission, refreshes both documentation pages and both dependent reports, then stops for review.</span><span class="zh">執行 <code>python scripts/post_ingest_check.py</code>。它驗證輸出、更新兩份文件與兩份附屬報告，然後停下來供複核。</span></td></tr>
-      <tr><td class="num">6.</td><td><span class="en">Push <code>main</code> so Pages serves the new payload; verify with
-        <code>python scripts/check_deploy.py</code>.</span><span class="zh">推送 <code>main</code> 讓 Pages 供應新 payload；以
-        <code>python scripts/check_deploy.py</code> 驗證。</span></td></tr>
+      <tr><td class="num">1.</td><td><span class="en">Check <code>git status --short</code> and confirm no other writer owns the output tree. Run <code>python scripts/poll_gazette.py</code> and <code>python scripts/poll_p168.py</code>. Only <code>new_gazette</code> supplies a new archived PDF.</span><span class="zh">檢查 <code>git status --short</code>，確認沒有其他寫入者占用輸出樹。執行 <code>python scripts/poll_gazette.py</code> 與 <code>python scripts/poll_p168.py</code>。只有 <code>new_gazette</code> 提供新的封存 PDF。</span></td></tr>
+      <tr><td class="num">2.</td><td><span class="en">Ingest the dated archived PDF, not the repointed live link: <code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links --recover-truncated</code>. Without recovery, publisher-truncated rows remain excluded.</span><span class="zh">匯入有日期的封存 PDF，不使用重新指向的即時連結：<code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links --recover-truncated</code>。不復原時，發布者截斷的紀錄仍會被排除。</span></td></tr>
+      <tr><td class="num">3.</td><td><span class="en">Read the tripwire, reconcile, ledger, recovery and exclusion output. Exit 0 means the CLI wrote output, not that git committed it. Exit 2/3/4/5 is a refusal: diagnose it and never use a bypass flag.</span><span class="zh">閱讀絆線、對帳、帳本、復原與排除輸出。exit 0 表示 CLI 已寫入輸出，不表示 git 已 commit。exit 2/3/4/5 是拒絕：診斷原因，絕不用繞過旗標。</span></td></tr>
+      <tr><td class="num">4.</td><td><span class="en">Run <code>python scripts/post_ingest_check.py</code>. It compares recnos across all five layers, runs standing checks, permits only the named bounded recovery or rebuild, and rechecks. Only then does it refresh both documentation pages, both dependent reports and the configured dataset count.</span><span class="zh">執行 <code>python scripts/post_ingest_check.py</code>。它比較五層 recno、執行既定檢查，只允許指名的有界復原或重建，然後重新檢查。全部通過後才更新兩份文件、兩份附屬報告與設定的資料集計數。</span></td></tr>
+      <tr><td class="num">5.</td><td><span class="en">Use <code>python scripts/post_ingest_check.py --check-only</code> for later read-only verification. Run <code>python -m pytest</code> when code or tests changed; the post-ingest command runs focused tests, not the full suite.</span><span class="zh">後續唯讀驗證使用 <code>python scripts/post_ingest_check.py --check-only</code>。程式或測試改變時執行 <code>python -m pytest</code>；post-ingest 命令執行指定測試，不是完整測試套件。</span></td></tr>
+      <tr><td class="num">6.</td><td><span class="en">Review the generated pages and the large dataset diff. Commit only this run's owned paths with a path-limited commit. <code>publish_release_diff.py</code> is not a substitute: it publishes only <code>docs/release-diff.html</code>.</span><span class="zh">複核產生的頁面與大型資料集差異。以路徑限定 commit 只提交本次執行擁有的路徑。<code>publish_release_diff.py</code> 不能替代此步驟：它只發布 <code>docs/release-diff.html</code>。</span></td></tr>
+      <tr><td class="num">7.</td><td><span class="en">Run <code>git push origin main</code> and confirm the remote holds the commit. After the Pages build, run <code>python scripts/check_deploy.py</code>. Require every listed artifact to be fresh; recheck propagation delay after a confirmed push.</span><span class="zh">執行 <code>git push origin main</code>，確認遠端持有該 commit。Pages 建置後執行 <code>python scripts/check_deploy.py</code>。每個列出的 artifact 都必須是 fresh；確認推送後若遇傳播延遲，重新檢查。</span></td></tr>
     </tbody>
   </table>
+  <div class="callout note">
+    <div class="h"><span class="en">Runbook detail and generated regions</span><span class="zh">Runbook 細節與產生區域</span></div>
+    <span class="en">The full command contract and coverage-evidence limits are in <code>docs/etl_process.md</code> §11. The two documentation synchronisers own only their marked <code>data-doc-field</code> regions; preserve historical examples and bilingual prose.</span><span class="zh">完整命令約定與 coverage 證據界限見 <code>docs/etl_process.md</code> §11。兩個文件同步工具只更新標記的 <code>data-doc-field</code> 區域；保留歷史範例與雙語文字。</span>
+  </div>
   <div class="callout note">
     <div class="h"><span class="en">Rules that outlast any single run</span><span class="zh">比任何單次執行都長久的規則</span></div>
     <span class="en">One run per output tree (the lock is stale after 6 h or a dead PID — check the PID
     before deleting it) · never key anything durable on 編號 · manual corrections go in
     the ledger, not a dated script · <code>data/.link_cache/</code> is durable state —
     five backup dirs from past incidents exist because it was once lost ·
-    tests: <code>python -m pytest</code> (<span data-doc-field="test-count-en">1,497</span> collected; one deliberate skip at
+    tests: <code>python -m pytest</code> (<span data-doc-field="test-count-en">1,498</span> collected; one deliberate skip at
     <code>tests/test_idempotent_flags.py:117</code>).</span><span class="zh">每個輸出樹一次執行（鎖在 6 小時後或 PID 已死即過期 — 刪除前先確認 PID）·
     絕不以 編號 作為任何持久鍵 · 人工更正進帳本，不寫日期版的一次性腳本 ·
     <code>data/.link_cache/</code> 是持久狀態 —
     過去事故留下的五個備份目錄就是因為它曾經被清掉 ·
-    測試：<code>python -m pytest</code>（蒐集 <span data-doc-field="test-count-zh">1,497</span> 項；一項刻意 skip 於
+    測試：<code>python -m pytest</code>（蒐集 <span data-doc-field="test-count-zh">1,498</span> 項；一項刻意 skip 於
     <code>tests/test_idempotent_flags.py:117</code>）。</span>
   </div>
 </section>

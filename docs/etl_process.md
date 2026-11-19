@@ -61,7 +61,7 @@ Two regimes run the stages:
 
 | Regime | Command | Stages run |
 | --- | --- | --- |
-| Full ingest | `python -m urtpe.cli <pdf> -o data --viewer viewer --links` | all of them, from the PDF |
+| Full ingest | `python -m urtpe.cli <pdf> -o data --viewer viewer --links --recover-truncated` | all of them, from the PDF |
 | Rebuild | `python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --links` | reload payload → links → graph → viewer |
 
 A full rebuild takes ~45 s and is the only way a reader change reaches
@@ -560,22 +560,85 @@ renderDetail()` path against the payload in a stub DOM.
 
 ---
 
-## 11. Operating the pipeline
+## 11. Operating the pipeline — the update runbook
 
-Full ingest of a new gazette:
+The scheduled `urtpe-poll` task runs `scripts/poll_gazette.py`,
+`scripts/poll_p168.py` and `scripts/publish_release_diff.py`. The task does
+not ingest a PDF or update the viewer. `publish_release_diff.py` regenerates,
+commits and pushes only `docs/release-diff.html`. Do not use it to publish a
+new payload: its path-limited commit excludes the dataset, viewer and other
+reports.
 
-1. Run `python scripts/poll_gazette.py`. It archives on `new_gazette`.
-2. Ingest: `python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links --recover-truncated`
-3. Read the run output: tripwire PASS, reconcile report, ledger report,
-   exclusion count. Any `[CENSUS]`/`[EMISSION]` line names a real defect.
-4. Run `python scripts/post_ingest_check.py`. It validates the emission, refreshes
-   `docs/etl_process.html`, `docs/domain-model.html`, `docs/release-diff.html` and
-   `docs/coverage-report.html`, and does not commit or push. Use `--check-only`
-   for a read-only check. A residual recovery or a non-zero CLI exit is a refusal.
-5. Exit 0 commits the dataset (mind the ~23 MB diff). Exit 2/3/4/5 is a
-   refusal — diagnose, never bypass with a flag.
-6. Push `main` so Pages serves the new `projects.data.js`; verify with
-   `python scripts/check_deploy.py`.
+A manual PDF-to-publication run follows these steps.
+
+### 11.1 Acquire the inputs
+
+1. Run `git status --short` and check that no other writer owns this output
+   tree. Leave another session's changed and staged files alone.
+2. Run `python scripts/poll_gazette.py`. A `new_gazette` result archives a
+   content-hashed PDF under `D:\project\urtpe-gazettes\`. `unchanged` or
+   `reuploaded` means there is no new PDF to ingest.
+3. Run `python scripts/poll_p168.py` to refresh the archived 168-list snapshot.
+   The post-ingest command verifies and copies that snapshot for the coverage
+   report; neither poller ingests.
+4. Read the archived PDF's date from the poller output and archive index. Use
+   that archived path for ingestion, not the publisher's repointed live link.
+
+### 11.2 Ingest the archived PDF
+
+1. Run `python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links --recover-truncated`.
+   Include `--recover-truncated`: without it the CLI excludes publisher-truncated
+   rows and sends no recovery request. On 2026-11-12 the flag recovered all
+   four excluded rows and changed the emission from 1,444 / 674 to 1,448 / 676.
+2. Read the tripwire, reconcile, ledger, recovery and exclusion output. Any
+   `[CENSUS]` or `[EMISSION]` line names a real defect. Unmatched ledger entries
+   need investigation, not an assumed successful correction.
+3. Stop on CLI exit 2, 3, 4 or 5. These are refusals, not transient failures.
+   Diagnose the named cause; never pass `--allow-reconcile-block` or
+   `--no-archive` to get past it. Exit 0 means the CLI wrote its output; it
+   does not mean that git committed it.
+
+### 11.3 Verify, repair and generate
+
+1. Run `python scripts/post_ingest_check.py` from the repository root. It
+   compares recno sets and duplicates across `raw.tsv` (編號), `clean.tsv`,
+   `merged.tsv`, graph nodes and the viewer payload. It then checks graph and
+   viewer equality, project ids, graph structure, the viewer smoke harness,
+   standing silent-failure checks, coverage proofs and offline consistency tests.
+2. Let the command apply only its named bounded repairs. Named truncation
+   residuals permit one re-ingest of the same hash-verified archived PDF with
+   `--recover-truncated`. A sole graph/viewer mismatch permits the existing
+   `--from-js ... --links` rebuild. Any other fault stops the command. A broken
+   record partition never qualifies for a viewer-only repair.
+3. Require a successful recheck. Only then does the command update, in order,
+   `docs/etl_process.html`, `docs/domain-model.html`, `docs/release-diff.html`
+   and `docs/coverage-report.html`. It also updates the current-dataset sentence
+   in `openspec/config.yaml` and refreshes `data/p168_all.json` from the verified
+   archived snapshot. A final validation checks the generated state.
+4. Run `python scripts/post_ingest_check.py --check-only` for a later read-only
+   verification. It writes nothing and generates no reports. It checks the two
+   documentation pages for stale fields; it does not compare release or coverage
+   report freshness.
+5. Run `python -m pytest` when code or tests changed. The post-ingest command
+   runs its named focused tests, not the full suite.
+
+### 11.4 Review and publish
+
+1. Review the generated pages and `git diff`. Check the payload date and counts,
+   dated historical examples, bilingual passages and coverage evidence. Review
+   the large dataset diff rather than staging the whole tree blindly.
+2. Commit only this run's owned paths, with a path-limited commit. Include the
+   tracked TSVs, `data/projects.json`, `data/review_report.txt`, the viewer files
+   changed by the emission, `openspec/config.yaml`, all four generated HTML
+   reports and any intentionally changed tests or source files. The post-ingest
+   command deliberately performs no git operation.
+3. Push `main` with `git push origin main`. Confirm that the remote holds the
+   commit; a detached `HEAD` can otherwise leave the remote unchanged.
+4. Run `python scripts/check_deploy.py` after Pages builds. Every artifact in
+   `viewer/deploy.json`, including both documentation pages and both dependent
+   reports, must be `fresh`. `stale` after a confirmed push can be propagation
+   delay: check the Pages build, then run the comparison again. Never call a
+   pushed commit a deployed build before this check passes.
 
 Rules that outlast any single run:
 
@@ -585,5 +648,6 @@ Rules that outlast any single run:
 - The ledger, not a dated script, is where manual corrections go.
 - `data/.link_cache/` is durable state — five backup dirs from past incidents
   exist because it was once lost. Do not delete it casually.
-- Tests: `python -m pytest` (1,231 collected; one deliberate skip at
-  `tests/test_idempotent_flags.py:117`).
+- Tests: `python -m pytest` (measured after the runbook regression test: 1,493
+  passed, 1 skipped, 4 xfailed from 1,498 collected; the deliberate skip is at
+  `tests/test_idempotent_flags.py:117`). `AGENTS.md` names the strict xfails.

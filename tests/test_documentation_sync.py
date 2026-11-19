@@ -101,6 +101,30 @@ def test_real_documentation_pages_have_current_marked_facts():
     assert "83b7b2e" in domain
 
 
+def test_operating_runbook_keeps_acquisition_repair_and_publication_distinct():
+    """The runbook must not turn acquisition or a successful CLI into publication."""
+    source = (dm.ROOT / "docs" / "etl_process.md").read_text(encoding="utf-8")
+    runbook = source.split("## 11. Operating the pipeline", 1)[1]
+    steps = [
+        "python scripts/poll_gazette.py",
+        "python scripts/poll_p168.py",
+        "--recover-truncated",
+        "python scripts/post_ingest_check.py",
+        "python scripts/post_ingest_check.py --check-only",
+        "git push origin main",
+        "python scripts/check_deploy.py",
+    ]
+    positions = [runbook.index(command) for command in steps]
+    assert positions == sorted(positions)
+    assert "`publish_release_diff.py` regenerates,\ncommits and pushes only `docs/release-diff.html`" in runbook
+    assert "Exit 0 means the CLI wrote its output; it\n   does not mean that git committed it." in runbook
+    assert "--allow-reconcile-block" in runbook
+    assert "never qualifies for a viewer-only repair" in runbook
+    assert "path-limited commit" in runbook
+    assert "does not compare release or coverage\n   report freshness" in runbook
+    assert "1,493\n  passed, 1 skipped, 4 xfailed from 1,498 collected" in runbook
+
+
 def test_configured_count_is_updated_only_in_the_current_dataset_sentence():
     source = ("context: |\n"
               "    Project: urTPE — list (臺北市都市更新核定案件一覽表, 1,444 approvals as emitted from the 2026-10-28\n"

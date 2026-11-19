@@ -279,9 +279,9 @@
         <td><span class="en">similarity join, never equality</span>
           <span class="zh">以相似度合併，絕不以相等</span></td></tr>
       <tr><td>CleanRecord ⇢ TaipeiCase</td><td class="num">1 : N</td>
-        <td data-doc-field="record-cases"><span class="en">the record's own cases, via links.taipei; 38 records name more than one</span><span class="zh">該筆自身的案，經 links.taipei；38 筆紀錄掛在不只一個案上</span></td></tr>
+        <td data-doc-field="record-cases"><span class="en">the record's own cases, via links.taipei; 39 records name more than one</span><span class="zh">該筆自身的案，經 links.taipei；39 筆紀錄掛在不只一個案上</span></td></tr>
       <tr><td>TaipeiCase ⇠ CleanRecord</td><td class="num">1 : 1</td>
-        <td data-doc-field="case-binding"><span class="en">every bound case sits on one record (1,488 bindings, 1,488 cases; measured 2026-11-19 — 344 cases covered more than one on the 2026-10-15 payload)</span><span class="zh">每個已綁定的案只掛在一筆紀錄上（1,488 個綁定、1,488 個案；2026-11-19 量測 — 在 2026-10-15 payload 上曾有 344 個案涵蓋不只一筆）</span></td></tr>
+        <td data-doc-field="case-binding"><span class="en">every bound case sits on one record (1,489 bindings, 1,489 cases; measured 2026-11-20 — 344 cases covered more than one on the 2026-10-15 payload)</span><span class="zh">每個已綁定的案只掛在一筆紀錄上（1,489 個綁定、1,489 個案；2026-11-20 量測 — 在 2026-10-15 payload 上曾有 344 個案涵蓋不只一筆）</span></td></tr>
       <tr><td>Project ⇢ DiscoveryResult</td><td class="num">1 : 1</td>
         <td><span class="en">keyed on land core</span>
           <span class="zh">以地號核心為鍵</span></td></tr>
@@ -357,12 +357,12 @@
       </div>
     </div>
   </div>
-  <p style="margin:6px 0 0" data-doc-field="asymmetry-current"><span class="en">Drawing a virtual case is reading one object; drawing a real case is joining four. That asymmetry is why the viewer handles them differently. It cost 342 ambiguously anchored progress markers on the 2026-10-15 payload. Measured 2026-11-19 on the 2026-11-12 payload, 0 markers are ambiguous; 4 name a source case on no record.</span><span class="zh">畫一個虛擬案是讀一個物件，畫一個真實案要 join 四處。這個不對稱正是 viewer 對兩者處理方式不同的原因。在 2026-10-15 payload 上，它造成 342 個進度標記錨定有歧義。2026-11-19 以 2026-11-12 payload 量測：0 個標記有歧義；另有 4 個所指的源案不在任何紀錄上。</span></p>
+  <p style="margin:6px 0 0" data-doc-field="asymmetry-current"><span class="en">Drawing a virtual case is reading one object; drawing a real case is joining four. That asymmetry is why the viewer handles them differently. It cost 342 ambiguously anchored progress markers on the 2026-10-15 payload. Measured 2026-11-20 on the 2026-11-12 payload, 0 markers are ambiguous; 4 name a source case on no record.</span><span class="zh">畫一個虛擬案是讀一個物件，畫一個真實案要 join 四處。這個不對稱正是 viewer 對兩者處理方式不同的原因。在 2026-10-15 payload 上，它造成 342 個進度標記錨定有歧義。2026-11-20 以 2026-11-12 payload 量測：0 個標記有歧義；另有 4 個所指的源案不在任何紀錄上。</span></p>
 
   <div class="callout gap">
     <div class="h"><span class="en">Two integrity problems this shape would expose.</span>
       <span class="zh">這個形狀會暴露出的兩個完整性問題。</span></div>
-    <p style="margin:6px 0 0" data-doc-field="virtual-integrity-current"><span class="en">On the 2026-10-15 payload <b>20</b> virtual cases were listed more than once and <b>9</b> case ids appeared <i>both</i> as virtual and as real. Measured 2026-11-19 on the 2026-11-12 payload: <b>0</b> are listed more than once (516 entries, 516 distinct ids) and <b>2</b> appear on both sides. The total distinct set is 2,002. The shape still hides either problem because the virtual set is a flat list.</span><span class="zh">在 2026-10-15 payload 上，<b>20</b> 個虛擬案被重複列出，另有 <b>9</b> 個案同時出現在虛擬與真實兩邊。2026-11-19 以 2026-11-12 payload 量測：<b>0</b> 個被重複列出（516 筆、516 個不同 id），<b>2</b> 個同時出現在兩邊。不同案總數為 2,002。這個形狀仍會藏起問題，因為虛擬集合是一個沒有鍵的扁平清單。</span></p>
+    <p style="margin:6px 0 0" data-doc-field="virtual-integrity-current"><span class="en">On the 2026-10-15 payload <b>20</b> virtual cases were listed more than once and <b>9</b> case ids appeared <i>both</i> as virtual and as real. Measured 2026-11-20 on the 2026-11-12 payload: <b>0</b> are listed more than once (521 entries, 521 distinct ids) and <b>2</b> appear on both sides. The total distinct set is 2,008. The shape still hides either problem because the virtual set is a flat list.</span><span class="zh">在 2026-10-15 payload 上，<b>20</b> 個虛擬案被重複列出，另有 <b>9</b> 個案同時出現在虛擬與真實兩邊。2026-11-20 以 2026-11-12 payload 量測：<b>0</b> 個被重複列出（521 筆、521 個不同 id），<b>2</b> 個同時出現在兩邊。不同案總數為 2,008。這個形狀仍會藏起問題，因為虛擬集合是一個沒有鍵的扁平清單。</span></p>
   </div>
 
   <h3><span class="en">Fields</span><span class="zh">欄位</span></h3>
@@ -416,7 +416,7 @@
     <div class="h">1 · <span class="en">The joined case set is the only relation between a
       case and the gazette.</span>
       <span class="zh">join 後的案集合是案與公報之間唯一的關係。</span></div>
-    <p style="margin:6px 0 0" data-doc-field="invariant-current"><span class="en">Measured 2026-11-19: 1,488 bindings via <code>links.taipei</code> on 1,488 cases; 0 cover more than one record; <b>38</b> records name more than one case. The relation is many-to-many by design: <code>recovery.cases</code> may select a subset of the discovery candidates, and the landed <code>case-record-join</code> spec fixes recovery-wins precedence with <code>ambiguous-zone</code> provenance.</span><span class="zh">2026-11-19 量測：經 <code>links.taipei</code> 計 1,488 個綁定、1,488 個案；0 個案涵蓋不只一筆紀錄；<b>38</b> 筆紀錄掛在不只一個案上。這個關係依設計是多對多：<code>recovery.cases</code> 可以只選發現候選的子集，而已落地的 <code>case-record-join</code> 規格明定以 recovery 綁定為準，並攜帶 <code>ambiguous-zone</code> 來源標記。</span></p>
+    <p style="margin:6px 0 0" data-doc-field="invariant-current"><span class="en">Measured 2026-11-20: 1,489 bindings via <code>links.taipei</code> on 1,489 cases; 0 cover more than one record; <b>39</b> records name more than one case. The relation is many-to-many by design: <code>recovery.cases</code> may select a subset of the discovery candidates, and the landed <code>case-record-join</code> spec fixes recovery-wins precedence with <code>ambiguous-zone</code> provenance.</span><span class="zh">2026-11-20 量測：經 <code>links.taipei</code> 計 1,489 個綁定、1,489 個案；0 個案涵蓋不只一筆紀錄；<b>39</b> 筆紀錄掛在不只一個案上。這個關係依設計是多對多：<code>recovery.cases</code> 可以只選發現候選的子集，而已落地的 <code>case-record-join</code> 規格明定以 recovery 綁定為準，並攜帶 <code>ambiguous-zone</code> 來源標記。</span></p>
   </div>
   <div class="callout gap">
     <div class="h">2 · <span class="en"><code>case_name</code> is parsed, never compared.</span>
@@ -449,7 +449,7 @@
           — not the last one iterated.</span>
         <span class="zh"><b>錨定解析。</b>當一個案掛在不只一筆紀錄上，里程碑應附到
           <b>在該里程碑日期當日或之前最近一次核定的那筆紀錄</b> — 而不是最後被迭代到的那筆。</span></td>
-        <td data-doc-field="anchor-resolution"><span class="en">0 ambiguous markers on the 2026-11-12 payload (measured 2026-11-19); 342 on the 2026-10-15 payload, where 320 resolved and 22 had no prior approval. 4 markers name a source case on no record</span><span class="zh">2026-11-12 payload 上有 0 個錨定有歧義的標記（2026-11-19 量測）；2026-10-15 payload 上有 342 個，其中 320 可解、22 沒有更早的核定。另有 4 個所指的源案不在任何紀錄上</span></td></tr>
+        <td data-doc-field="anchor-resolution"><span class="en">0 ambiguous markers on the 2026-11-12 payload (measured 2026-11-20); 342 on the 2026-10-15 payload, where 320 resolved and 22 had no prior approval. 4 markers name a source case on no record</span><span class="zh">2026-11-12 payload 上有 0 個錨定有歧義的標記（2026-11-20 量測）；2026-10-15 payload 上有 342 個，其中 320 可解、22 沒有更早的核定。另有 4 個所指的源案不在任何紀錄上</span></td></tr>
       <tr><td><span class="en"><b>Discriminator.</b> When several cases share 段 and 首宗地號,
           separate them by declared count and stage. Where identical on both, <b>attach none</b>
           and report the group as ambiguous.</span>
@@ -465,13 +465,13 @@
 
   <h3><span class="en">Open question</span><span class="zh">待決問題</span></h3>
   <div class="callout note">
-    <p style="margin:0" data-doc-field="undated-current"><span class="en">280 of 516 distinct virtual cases carry no date at all (measured 2026-11-19). They are retained today because <code>orphan_nodes</code> holds them, but a class with no position on the time axis needs a stated home — a gutter column, or listed beneath the graph. That is a decision, not a default.</span><span class="zh">516 個不同虛擬案中有 280 個完全沒有日期（2026-11-19 量測）。它們今天被保留下來是因為 <code>orphan_nodes</code> 留著它們，但一個在時間軸上沒有位置的類別需要一個明確的歸屬 — 一個側欄欄位，或是列在圖的下方。這是一個決定，不是一個預設值。</span></p>
+    <p style="margin:0" data-doc-field="undated-current"><span class="en">281 of 521 distinct virtual cases carry no date at all (measured 2026-11-20). They are retained today because <code>orphan_nodes</code> holds them, but a class with no position on the time axis needs a stated home — a gutter column, or listed beneath the graph. That is a decision, not a default.</span><span class="zh">521 個不同虛擬案中有 281 個完全沒有日期（2026-11-20 量測）。它們今天被保留下來是因為 <code>orphan_nodes</code> 留著它們，但一個在時間軸上沒有位置的類別需要一個明確的歸屬 — 一個側欄欄位，或是列在圖的下方。這是一個決定，不是一個預設值。</span></p>
   </div>
 </section>
 
 <section>
   <h2><span class="n">§5</span><span class="en">Measured facts</span> <span class="zh">量測事實</span></h2>
-  <p class="note-line" data-doc-field="measurement-source"><span class="en">One measurement pass over the 2026-11-12 payload (<code>viewer/projects.data.js</code>, 676 units; measured 2026-11-19 with <code>scripts/probe_tab2_numbers.py</code> and <code>scripts/probe_tab1_numbers.js</code>, the second running the real <code>buildConstructionChain</code> of <code>viewer/app.js</code>). The previous pass — 2026-11-01, the 2026-10-15 payload, 694 units — is in git history at <code>83b7b2e</code>.</span><span class="zh">對 2026-11-12 payload（<code>viewer/projects.data.js</code>，676 個單元）做一次量測（2026-11-19；以 <code>scripts/probe_tab2_numbers.py</code> 與 <code>scripts/probe_tab1_numbers.js</code> 量測，後者執行 <code>viewer/app.js</code> 真實的 <code>buildConstructionChain</code>）。前一次量測（2026-11-01，2026-10-15 payload，694 個單元）留在 git 歷史的 <code>83b7b2e</code>。</span></p>
+  <p class="note-line" data-doc-field="measurement-source"><span class="en">One measurement pass over the 2026-11-12 payload (<code>viewer/projects.data.js</code>, 676 units; measured 2026-11-20 with <code>scripts/probe_tab2_numbers.py</code> and <code>scripts/probe_tab1_numbers.js</code>, the second running the real <code>buildConstructionChain</code> of <code>viewer/app.js</code>). The previous pass — 2026-11-01, the 2026-10-15 payload, 694 units — is in git history at <code>83b7b2e</code>.</span><span class="zh">對 2026-11-12 payload（<code>viewer/projects.data.js</code>，676 個單元）做一次量測（2026-11-20；以 <code>scripts/probe_tab2_numbers.py</code> 與 <code>scripts/probe_tab1_numbers.js</code> 量測，後者執行 <code>viewer/app.js</code> 真實的 <code>buildConstructionChain</code>）。前一次量測（2026-11-01，2026-10-15 payload，694 個單元）留在 git 歷史的 <code>83b7b2e</code>。</span></p>
   <table>
     <thead><tr><th><span class="en">Fact</span><span class="zh">事實</span></th>
       <th class="num"><span class="en">Value</span><span class="zh">數值</span></th></tr></thead>
@@ -479,18 +479,18 @@
       <tr><td><span class="en">records per unit, median</span><span class="zh">每單元紀錄數中位數</span></td><td class="num">2</td></tr>
       <tr><td><span class="en">units with ≤2 records</span><span class="zh">≤2 筆紀錄的單元</span></td><td class="num">465 (69%)</td></tr>
       <tr><td><span class="en">units with ≥3 records</span><span class="zh">≥3 筆紀錄的單元</span></td><td class="num">211 (31%)</td></tr>
-      <tr><td><span class="en">case→record bindings</span><span class="zh">案→紀錄 綁定數</span></td><td class="num">1,488</td></tr>
-      <tr><td><span class="en">distinct cases on ≥1 record</span><span class="zh">掛在 ≥1 筆紀錄上的不同案</span></td><td class="num">1,488</td></tr>
+      <tr><td><span class="en">case→record bindings</span><span class="zh">案→紀錄 綁定數</span></td><td class="num">1,489</td></tr>
+      <tr><td><span class="en">distinct cases on ≥1 record</span><span class="zh">掛在 ≥1 筆紀錄上的不同案</span></td><td class="num">1,489</td></tr>
       <tr><td><span class="en">cases covering >1 record</span><span class="zh">涵蓋 >1 筆紀錄的案</span></td><td class="num">0</td></tr>
       <tr><td><span class="en">— most records on one case</span><span class="zh">— 單一案最多紀錄數</span></td><td class="num">1</td></tr>
-      <tr><td><span class="en">records naming >1 case</span><span class="zh">掛在不只一個案上的紀錄</span></td><td class="num">38</td></tr>
+      <tr><td><span class="en">records naming >1 case</span><span class="zh">掛在不只一個案上的紀錄</span></td><td class="num">39</td></tr>
       <tr><td><span class="en">recovered nodes</span><span class="zh">復原的節點</span></td><td class="num">4</td></tr>
-      <tr><td><span class="en">distinct virtual cases</span><span class="zh">不同的虛擬案</span></td><td class="num">516</td></tr>
-      <tr><td><span class="en">— dated / undated</span><span class="zh">— 有日期 / 無日期</span></td><td class="num">236 / 280</td></tr>
+      <tr><td><span class="en">distinct virtual cases</span><span class="zh">不同的虛擬案</span></td><td class="num">521</td></tr>
+      <tr><td><span class="en">— dated / undated</span><span class="zh">— 有日期 / 無日期</span></td><td class="num">240 / 281</td></tr>
       <tr><td><span class="en">virtual cases listed >once</span><span class="zh">被列出不只一次的虛擬案</span></td><td class="num">0</td></tr>
       <tr><td><span class="en">cases both virtual and real</span><span class="zh">同時是虛擬與真實的案</span></td><td class="num">2</td></tr>
-      <tr><td><span class="en">total distinct real and virtual cases</span><span class="zh">真實與虛擬案的不同總數</span></td><td class="num">2,002</td></tr>
-      <tr><td><span class="en">construction events rendered</span><span class="zh">渲染的施工事件</span></td><td class="num">1,364</td></tr>
+      <tr><td><span class="en">total distinct real and virtual cases</span><span class="zh">真實與虛擬案的不同總數</span></td><td class="num">2,008</td></tr>
+      <tr><td><span class="en">construction events rendered</span><span class="zh">渲染的施工事件</span></td><td class="num">1,365</td></tr>
       <tr><td><span class="en">progress markers ambiguously anchored</span><span class="zh">錨定有歧義的進度標記</span></td><td class="num">0</td></tr>
       <tr><td><span class="en">markers whose source case is on no record</span><span class="zh">源案不在任何紀錄上的標記</span></td><td class="num">4</td></tr>
       <tr><td><span class="en">rendered row pairs date-inverted</span><span class="zh">渲染列 日期倒置</span></td><td class="num">48 (46 單元)</td></tr></tbody>

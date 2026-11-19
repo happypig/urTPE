@@ -648,6 +648,6 @@ Rules that outlast any single run:
 - The ledger, not a dated script, is where manual corrections go.
 - `data/.link_cache/` is durable state — five backup dirs from past incidents
   exist because it was once lost. Do not delete it casually.
-- Tests: `python -m pytest` (measured after the runbook regression test: 1,493
-  passed, 1 skipped, 4 xfailed from 1,498 collected; the deliberate skip is at
+- Tests: `python -m pytest` (measured after the cache-refresh regression: 1,494
+  passed, 1 skipped, 4 xfailed from 1,499 collected; the deliberate skip is at
   `tests/test_idempotent_flags.py:117`). `AGENTS.md` names the strict xfails.

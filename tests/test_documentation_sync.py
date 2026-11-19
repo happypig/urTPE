@@ -122,7 +122,7 @@ def test_operating_runbook_keeps_acquisition_repair_and_publication_distinct():
     assert "never qualifies for a viewer-only repair" in runbook
     assert "path-limited commit" in runbook
     assert "does not compare release or coverage\n   report freshness" in runbook
-    assert "1,493\n  passed, 1 skipped, 4 xfailed from 1,498 collected" in runbook
+    assert "1,494\n  passed, 1 skipped, 4 xfailed from 1,499 collected" in runbook
 
 
 def test_configured_count_is_updated_only_in_the_current_dataset_sentence():

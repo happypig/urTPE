@@ -40,6 +40,26 @@ def test_a_joined_node_emits_both_sections():
     assert by_case["10906102"]["Ulic_Date"] == "2025/05/06"
 
 
+def test_the_refreshed_rights_case_joins_its_area_sibling():
+    """木柵623's B case was absent from the cached parcel search.
+
+    The awaiting-approval refresh searches every parcel, so 10804122 joins
+    10804121 on the 2021-04-15 rights-plan record. Both keep their own
+    implementation snapshot; neither is inferred from its sibling.
+    """
+    doc = json.loads(PAYLOAD.read_text(encoding="utf-8"))
+    p = next(x for x in doc["projects"]
+             if x["project_id"] == "文山區-木柵段三小段-623地號等39筆")
+    node = next(n for n in p["nodes"] if n["recno"] == 592)
+    assert (node.get("links") or {}).get("taipei") == ["10804121", "10804122"]
+    by_case = node.get("implementation_by_case") or {}
+    assert set(by_case) >= {"10804121", "10804122"}
+    assert by_case["10804121"]["Base_Area"] == "4749.86"
+    assert by_case["10804122"]["Base_Area"] == "7174.86"
+    assert by_case["10804121"]["case_id"] == "10804121"
+    assert by_case["10804122"]["case_id"] == "10804122"
+
+
 def test_a_single_case_node_stays_as_it_is():
     """One anchored case with a payload → the single snapshot, no by_case."""
     doc = json.loads(PAYLOAD.read_text(encoding="utf-8"))
@@ -84,9 +104,12 @@ def test_the_joined_node_counters_on_the_live_payload():
     # 30 -> 35. None has implementation payloads (with_by_case stays 30).
     # 2026-11-18 (--from-js rebuild): measured over all 1,448 records:
     # 38 joined nodes, 36 area pairs, 31 by_case nodes.
-    assert joined == 38, f"joined nodes moved: {joined} (38 on the 2026-11-18 rebuilt payload)"
+    # 2026-11-19 (refresh-awaiting-approval-caches): the city parcel search
+    # returned 木柵623's missing B case, 10804122. It joins 10804121 on the
+    # 2021-04-15 record and carries its own implementation payload.
+    assert joined == 39, f"joined nodes moved: {joined} (39 after the cache refresh)"
     assert area_pairs == 36, f"area pairs moved: {area_pairs} (36 on the 2026-11-18 rebuilt payload)"
-    assert with_by_case == 31, f"by_case nodes moved: {with_by_case} (31 on the rebuilt payload)"
+    assert with_by_case == 32, f"by_case nodes moved: {with_by_case} (32 after the cache refresh)"
 
 
 # --- the round trip (task 1.2) -------------------------------------------------

@@ -83,9 +83,9 @@
   `docs/etl_process.html`, `docs/domain-model.html`,
   `docs/release-diff.html`, and `docs/coverage-report.html` regenerate
   successfully. Re-run `--check-only` to verify a clean result.
-- [ ] 5.4 Review `git diff` and report owned paths separately from other
+- [x] 5.4 Review `git diff` and report owned paths separately from other
   sessions' files. Commit only reviewed owned paths, push `main`, and verify
   all 12 artifacts with `python scripts/check_deploy.py`.
-- [ ] 5.5 Validate the OpenSpec change strictly; archive it on a temporary
+- [x] 5.5 Validate the OpenSpec change strictly; archive it on a temporary
   copy first, compare synced specs, then archive the real change and run the
   final test/deploy checks. Report the test-first gate result.

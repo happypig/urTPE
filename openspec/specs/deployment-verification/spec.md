@@ -119,7 +119,9 @@ are never compared against the committed build, so it can serve superseded
 content indefinitely while every check passes.
 
 The release-diff report SHALL be listed, so a report that was regenerated and
-not pushed — or pushed and not regenerated — is reported as stale.
+not pushed — or pushed and not regenerated — is reported as stale. The ETL
+documentation page SHALL also be listed, so a payload synchronisation that
+was generated but not published is visible rather than silent.
 
 #### Scenario: The release-diff report is listed
 
@@ -138,4 +140,10 @@ not pushed — or pushed and not regenerated — is reported as stale.
 - **WHEN** the committed report differs from the served bytes
 - **THEN** the report is reported stale
 - **AND** the check exits non-zero, because the site is showing a superseded report
+
+#### Scenario: The ETL page is listed
+
+- **WHEN** the deploy record is read
+- **THEN** it names `docs/etl_process.html` among the artifacts
+- **AND** the deployment check compares that page's served bytes against the committed blob
 

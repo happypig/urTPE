@@ -16,9 +16,9 @@
   modules, flags, exit codes — stay verbatim in both.
 
   Self-contained: no external requests, no CDN, opens offline from file:// like
-  the viewer and docs/domain-model.html. Measured figures were taken from the
-  2026-10-28 gazette emission on 2026-11-12; the project count was re-measured
-  on 2026-11-13 (675 projects, after five more ledger merges took it from 680).
+  the viewer and docs/domain-model.html. Current-payload fields are maintained
+  by scripts/sync_etl_process.py. Edit authored prose here; do not hand-edit a
+  data-doc-field region. Historical measurements stay outside those regions.
 -->
 <style>
   /* The site's one design system: the cream palette the dashboard and the
@@ -248,9 +248,9 @@
       <a href="release-diff.html">release-diff report</a>.</span><span class="zh">文字版的 source of truth：<a href="etl_process.md"><code>docs/etl_process.md</code></a> ·
       附頁：<a href="domain-model.html">領域模型</a> ·
       <a href="release-diff.html">歷次公報差異報告</a>。</span>
-      <span class="en">Measured on the 2026-10-28 gazette: <strong>1,444 records → 675 projects</strong>,
-      2002-03-21 → 2026-10-28.</span><span class="zh">量測自 2026-10-28 公報：<strong>1,444 筆紀錄 → 675 個專案</strong>，
-      2002-03-21 → 2026-10-28。</span>
+      <span class="en" data-doc-field="dataset-summary-en">Measured on the 2026-11-12 gazette: <strong>1,448 records → 676 projects</strong>,
+      2002-03-21 → 2026-11-12.</span><span class="zh" data-doc-field="dataset-summary-zh">量測自 2026-11-12 公報：<strong>1,448 筆紀錄 → 676 個專案</strong>，
+      2002-03-21 → 2026-11-12。</span>
       </p>
     </div>
   <label class="switch"><input type="checkbox" id="lang"> <span>English</span></label>
@@ -263,11 +263,11 @@
 <section>
   <h2><span class="n">1</span><span class="en">Pipeline overview</span><span class="zh">管線總覽</span></h2>
   <p class="lead"><span class="en">One command runs the whole flow:
-    <code class="cmd">python -m urtpe.cli source.pdf -o data --viewer viewer --links</code>.
-    Stages 2–7 run inside the single-writer lock; every gate (§6) evaluates
+    <code class="cmd">python -m urtpe.cli source.pdf -o data --viewer viewer --links --recover-truncated</code>.
+    Stages 2–8 run inside the single-writer lock; every gate (§6) evaluates
     before the first artifact is written.</span><span class="zh">一行命令跑完整條流程：
-    <code class="cmd">python -m urtpe.cli source.pdf -o data --viewer viewer --links</code>。
-    第 2–7 階段在單一寫入者鎖內執行；每一道關卡（§6）都在第一份產出寫入之前評估。</span></p>
+    <code class="cmd">python -m urtpe.cli source.pdf -o data --viewer viewer --links --recover-truncated</code>。
+    第 2–8 階段在單一寫入者鎖內執行；每一道關卡（§6）都在第一份產出寫入之前評估。</span></p>
 
   <div class="pipe">
     <div class="stage s-acq">
@@ -300,7 +300,7 @@
       <div class="what"><span class="en">Append-only manual corrections, keyed on land core + approval date,
         applied on every ingest.</span><span class="zh">僅追加的人工更正，以地號核心 + 核定日期為鍵，
         每次匯入時套用。</span>
-        <span class="out"><span class="en">→ corrected CleanRecords (4 entries live)</span><span class="zh">→ 更正後的 CleanRecord（現有 4 筆）</span></span></div>
+        <span class="out"><span class="en">→ corrected CleanRecords (<span data-doc-field="ledger-count-en">14</span> entries live)</span><span class="zh">→ 更正後的 CleanRecord（現有 <span data-doc-field="ledger-count-zh">14</span> 筆）</span></span></div>
     </div>
     <div class="stage s-mrg">
       <div class="rail"><div class="dot">5</div><div class="bar"></div></div>
@@ -345,7 +345,7 @@
   <div class="regimes">
     <div class="regime">
       <div class="h"><span class="en">Full ingest</span><span class="zh">完整匯入</span></div>
-      <div class="cmd"><code>python -m urtpe.cli <pdf> -o data --viewer viewer --links</code></div>
+      <div class="cmd"><code>python -m urtpe.cli <pdf> -o data --viewer viewer --links --recover-truncated</code></div>
       <div class="stages"><span class="en">Stages 1–8, from the PDF. ~45 s; the only way a reader change
         reaches historical records uniformly.</span><span class="zh">第 1–8 階段，從 PDF 開始。約 45 秒；讀取器改變要一致地
         觸及歷史紀錄，只有這一條路。</span></div>
@@ -422,10 +422,10 @@
   <p><span class="en">A cell is publisher-truncated when it ends in a tail pattern
     (<code>、，,</code> / digit / sub-parcel hyphen) or lost its closing phrase while
     showing fewer parcels than its 案名 declares. A completed closing phrase
-    (<code>地號等N筆土地</code>) is never count-checked — 48 rows per Gregorian gazette
+    (<code>地號等N筆土地</code>) is never count-checked — <span data-doc-field="count-disagreements-en">70</span> rows in the current Gregorian gazette
     disagree with their 案名 and are complete as published.</span><span class="zh">儲存格以尾部模式結尾
     （<code>、，,</code>／數字／子地號連字號）、或顯示的地號數少於案名宣告且失去結尾語時，即為出版方截斷。
-    完整的結尾語（<code>地號等N筆土地</code>)永不做筆數檢查 — 每份西元曆公報有 48 列與其案名
+    完整的結尾語（<code>地號等N筆土地</code>)永不做筆數檢查 — 現行西元曆公報有 <span data-doc-field="count-disagreements-zh">70</span> 列與其案名
     不一致，但照原樣是完整的。</span></p>
 
   <h3><span class="en">3.2 Two bounded repairs, both audited</span><span class="zh">3.2 兩種有界修補，都有稽核</span></h3>
@@ -456,10 +456,10 @@
 <section>
   <h2><span class="n">4</span><span class="en">Cleanse & merge — one meaning, one word</span><span class="zh">淨化與合併 — 一個意思，一個詞</span></h2>
   <p class="lead"><span class="en">Cleansing normalizes known errors into <code>auto_fixes</code>, derives
-    the identity fields, and routes ambiguity into <code>review_flags</code> — 321 flagged
+    the identity fields, and routes ambiguity into <code>review_flags</code> — <span data-doc-field="flagged-nodes-en">322</span> flagged
     nodes on the current corpus. The ledger applies manual corrections keyed on
     land core + approval date, never 編號.</span><span class="zh">淨化把已知錯誤正規化並記入 <code>auto_fixes</code>，衍生
-    身分欄位，並把歧義送進 <code>review_flags</code> — 現行語料有 321 個
+    身分欄位，並把歧義送進 <code>review_flags</code> — 現行語料有 <span data-doc-field="flagged-nodes-zh">322</span> 個
     帶旗標的節點。帳本以地號核心 + 核定日期為鍵套用人工更正，
     絕不用 編號。</span></p>
 
@@ -493,8 +493,8 @@
   </div>
 
   <h3><span class="en">4.1 The similarity score — one weighted sum decides a family</span><span class="zh">4.1 相似度分數 — 一個加權總和決定家族</span></h3>
-  <p class="lead"><span class="en">~70% of records are repeat stage approvals of the same 更新單元.
-    <code>score(r1, r2)</code> in [0,1], <code>urtpe/merge.py:40</code>:</span><span class="zh">約 70% 的紀錄是同一更新單元的重複階段核定。
+  <p class="lead"><span class="en">~<span data-doc-field="repeat-percent-en">53</span>% of records are repeat stage approvals of the same 更新單元.
+    <code>score(r1, r2)</code> in [0,1], <code>urtpe/merge.py:40</code>:</span><span class="zh">約 <span data-doc-field="repeat-percent-zh">53</span>% 的紀錄是同一更新單元的重複階段核定。
     <code>score(r1, r2)</code> 在 [0,1]，<code>urtpe/merge.py:40</code>：</span></p>
   <div class="scorebar">
     <div class="sb-sec"><span class="en">section .35</span><span class="zh">段 .35</span></div>
@@ -535,16 +535,16 @@
 <!-- ============================================================= -->
 <section>
   <h2><span class="n">5</span><span class="en">Links — the durable cache, not the network, is the state</span><span class="zh">Links — 持久快取才是狀態，不是網路</span></h2>
-  <p class="lead"><span class="en"><code>urtpe/links.py</code> (4,450 lines, both portal adapters) runs
+  <p class="lead"><span class="en"><code>urtpe/links.py</code> (<span data-doc-field="links-lines-en">4,907</span> lines, both portal adapters) runs
     cache-first: a <code>result.json</code> hit means zero HTTP calls for that project.
-    <code>--links</code> is recommended and advisory by design (D5).</span><span class="zh"><code>urtpe/links.py</code>（4,450 行，兩個門戶介接器）以
+    <code>--links</code> is recommended and advisory by design (D5).</span><span class="zh"><code>urtpe/links.py</code>（<span data-doc-field="links-lines-zh">4,907</span> 行，兩個門戶介接器）以
     快取優先執行：<code>result.json</code> 命中即表示該專案零 HTTP 呼叫。
     <code>--links</code> 是建議且設計上僅供參考（D5）。</span></p>
   <table>
     <thead><tr><th><span class="en">Step</span><span class="zh">步驟</span></th><th><span class="en">Source</span><span class="zh">來源</span></th><th><span class="en">Yields</span><span class="zh">產出</span></th></tr></thead>
     <tbody>
       <tr><td class="nowrap"><span class="en">1 · Cache check</span><span class="zh">1 · 快取檢查</span></td>
-        <td><code>data/.link_cache/<project_id>/result.json</code> (<span class="en">~727 project dirs</span><span class="zh">約 727 個專案目錄</span>)</td>
+        <td><code>data/.link_cache/<project_id>/result.json</code> (<span class="en">~<span data-doc-field="cache-dirs-en">729</span> project dirs</span><span class="zh">約 <span data-doc-field="cache-dirs-zh">729</span> 個專案目錄</span>)</td>
         <td><span class="en">previous DiscoveryResult — no network</span><span class="zh">上一次的 DiscoveryResult — 不碰網路</span></td></tr>
       <tr><td class="nowrap"><span class="en">2 · Taipei platform</span><span class="zh">2 · 北市平台</span></td>
         <td><span class="en"><code>Get_updcase_list.ashx</code> by section + first parcel, then
@@ -647,8 +647,8 @@
     2026-10-06 的資料集曾經帶著同一旗標的 1,162 份副本。</span></p>
   <pre><code>{
   "schema_version": 2,
-  "generated_at": "…", "source": "…", "published_date": "2026-10-28",
-  "counts": { "projects": 675, "records": 1444 },
+  "generated_at": "…", "source": "…", "published_date": "<span data-doc-field="schema-date">2026-11-12</span>",
+  "counts": { "projects": <span data-doc-field="schema-projects">676</span>, "records": <span data-doc-field="schema-records">1448</span> },
   "projects": [
     { "project_id": "中山區-中山段一小段-246地號等2筆",
       "anchor_recno": 785,
@@ -687,7 +687,7 @@
       <span class="vtitle">臺北市都市更新核定案件 · 專案歷史圖</span>
       <a href="dashboard.html" style="color:var(--acq);font-size:11.5px">政策儀表板</a>
       <a href="about.html" style="color:var(--acq);font-size:11.5px">關於</a>
-      <span class="vmeta">675 個專案 / 1444 筆記錄 · 統計至 2026-10-28</span>
+      <span class="vmeta" data-doc-field="viewer-badge">676 個專案 / 1448 筆記錄 · 統計至 2026-11-12</span>
       <span class="vsearch">搜尋專案（地號、行政區、實施者…）</span>
     </div>
     <div class="vfilters">
@@ -826,14 +826,15 @@
   <table>
     <tbody>
       <tr><td class="num">1.</td><td><span class="en">Run <code>python scripts/poll_gazette.py</code> — it archives on <code>new_gazette</code>.</span><span class="zh">執行 <code>python scripts/poll_gazette.py</code> — 遇 <code>new_gazette</code> 時封存。</span></td></tr>
-      <tr><td class="num">2.</td><td><span class="en">Ingest: <code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links</code></span><span class="zh">匯入：<code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links</code></span></td></tr>
+      <tr><td class="num">2.</td><td><span class="en">Ingest: <code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links --recover-truncated</code></span><span class="zh">匯入：<code>python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links --recover-truncated</code></span></td></tr>
       <tr><td class="num">3.</td><td><span class="en">Read the run output — tripwire PASS, reconcile, ledger, exclusion count.
         Any <code>[CENSUS]</code>/<code>[EMISSION]</code> line names a real defect.</span><span class="zh">讀執行輸出 — 絆線 PASS、對帳、帳本、排除數。
         任何 <code>[CENSUS]</code>/<code>[EMISSION]</code> 列都指出真實缺陷。</span></td></tr>
       <tr><td class="num">4.</td><td><span class="en">Exit 0 commits the dataset (mind the ~24 MB diff). Exit 2/3/4/5 is a refusal —
         diagnose, never bypass with a flag.</span><span class="zh">exit 0 收入資料集（注意約 24 MB 的差異）。exit 2/3/4/5 是拒絕 —
         先診斷，絕不用旗標繞過。</span></td></tr>
-      <tr><td class="num">5.</td><td><span class="en">Push <code>main</code> so Pages serves the new payload; verify with
+      <tr><td class="num">5.</td><td><span class="en">Run <code>python scripts/post_ingest_check.py</code>. It validates the emission, refreshes both documentation pages and both dependent reports, then stops for review.</span><span class="zh">執行 <code>python scripts/post_ingest_check.py</code>。它驗證輸出、更新兩份文件與兩份附屬報告，然後停下來供複核。</span></td></tr>
+      <tr><td class="num">6.</td><td><span class="en">Push <code>main</code> so Pages serves the new payload; verify with
         <code>python scripts/check_deploy.py</code>.</span><span class="zh">推送 <code>main</code> 讓 Pages 供應新 payload；以
         <code>python scripts/check_deploy.py</code> 驗證。</span></td></tr>
     </tbody>
@@ -844,12 +845,12 @@
     before deleting it) · never key anything durable on 編號 · manual corrections go in
     the ledger, not a dated script · <code>data/.link_cache/</code> is durable state —
     five backup dirs from past incidents exist because it was once lost ·
-    tests: <code>python -m pytest</code> (1,231 collected; one deliberate skip at
+    tests: <code>python -m pytest</code> (<span data-doc-field="test-count-en">1,497</span> collected; one deliberate skip at
     <code>tests/test_idempotent_flags.py:117</code>).</span><span class="zh">每個輸出樹一次執行（鎖在 6 小時後或 PID 已死即過期 — 刪除前先確認 PID）·
     絕不以 編號 作為任何持久鍵 · 人工更正進帳本，不寫日期版的一次性腳本 ·
     <code>data/.link_cache/</code> 是持久狀態 —
     過去事故留下的五個備份目錄就是因為它曾經被清掉 ·
-    測試：<code>python -m pytest</code>（蒐集 1,231 項；一項刻意 skip 於
+    測試：<code>python -m pytest</code>（蒐集 <span data-doc-field="test-count-zh">1,497</span> 項；一項刻意 skip 於
     <code>tests/test_idempotent_flags.py:117</code>）。</span>
   </div>
 </section>
@@ -865,8 +866,7 @@
   Companion to <code>docs/etl_process.md</code>, which remains the prose source of truth;
   companion pages <a href="domain-model.html">domain-model.html</a> and
   <a href="release-diff.html">release-diff.html</a>.
-  Self-contained — no external requests. Measured figures from the 2026-10-28 gazette
-  emission, 2026-11-12.</span>
+  Self-contained — no external requests. <span data-doc-field="footer-provenance-en">Measured figures from the 2026-11-12 payload, synchronised 2026-11-19.</span></span>
   <span class="zh">來源：<code>urtpe/cli.py</code>、<code>urtpe/extract.py</code>、<code>urtpe/cleanse.py</code>、
   <code>urtpe/ledger.py</code>、<code>urtpe/merge.py</code>、<code>urtpe/links.py</code>、
   <code>urtpe/graph.py</code>、<code>urtpe/viewer.py</code>、<code>urtpe/tripwire.py</code>、
@@ -875,7 +875,7 @@
   本檔為 <code>docs/etl_process.md</code> 的附頁，後者仍為文字上的 source of truth；
   附頁 <a href="domain-model.html">domain-model.html</a> 與
   <a href="release-diff.html">release-diff.html</a>。
-  完全獨立，不連任何外部資源。量測數字取自 2026-10-28 公報輸出，2026-11-12。</span>
+  完全獨立，不連任何外部資源。<span data-doc-field="footer-provenance-zh">量測數字取自 2026-11-12 payload，於 2026-11-19 同步。</span></span>
 </footer>
 
 <script>

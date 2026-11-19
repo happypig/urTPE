@@ -5,7 +5,7 @@ gazette (臺北市都市更新核定案件一覽表) into a per-project history 
 static HTML viewer. One command runs it:
 
 ```powershell
-python -m urtpe.cli source.pdf -o data --viewer viewer --links
+python -m urtpe.cli source.pdf -o data --viewer viewer --links --recover-truncated
 ```
 
 This document describes each stage: what it reads, what it writes, and the gate
@@ -13,12 +13,14 @@ that protects it. The domain rules behind the stages live in
 `openspec/config.yaml`; the companion docs are `docs/cli_flow_v2.md` (CLI flow
 and link discovery) and `docs/domain_model.md` (entity model).
 
-Measured on the 2026-10-28 gazette: **1,444 records → 675 projects**, dates
-2002-03-21 to 2026-10-28, calendar mixed (Gregorian), 318 nodes flagged for
-review, 13 auto-fixes applied. (Re-measured 2026-11-13; the ledger merges —
-萬隆519 and 河堤399, then the five split families reunified on 2026-11-13 —
-moved the project count from 682 to 680 to 675. The rule did not change; the
-population did.)
+Current-payload facts in `docs/etl_process.html` carry `data-doc-field` markers.
+Run `python scripts/sync_etl_process.py` after an ingest or rebuild. Use `--check`
+to detect stale fields without writing. The script also updates the current-dataset
+sentence in `openspec/config.yaml`. Do not hand-edit marked regions.
+
+The 2026-10-28 measurement below is historical. It is not the current payload.
+It recorded **1,444 records → 675 projects** on 2026-11-13. The current source of
+truth is the emitted payload and the marked HTML fields, not this historical sample.
 
 ---
 
@@ -563,12 +565,16 @@ renderDetail()` path against the payload in a stub DOM.
 Full ingest of a new gazette:
 
 1. Run `python scripts/poll_gazette.py`. It archives on `new_gazette`.
-2. Ingest: `python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links`
+2. Ingest: `python -m urtpe.cli "D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf" -o data --viewer viewer --links --recover-truncated`
 3. Read the run output: tripwire PASS, reconcile report, ledger report,
    exclusion count. Any `[CENSUS]`/`[EMISSION]` line names a real defect.
-4. Exit 0 commits the dataset (mind the ~23 MB diff). Exit 2/3/4/5 is a
+4. Run `python scripts/post_ingest_check.py`. It validates the emission, refreshes
+   `docs/etl_process.html`, `docs/domain-model.html`, `docs/release-diff.html` and
+   `docs/coverage-report.html`, and does not commit or push. Use `--check-only`
+   for a read-only check. A residual recovery or a non-zero CLI exit is a refusal.
+5. Exit 0 commits the dataset (mind the ~23 MB diff). Exit 2/3/4/5 is a
    refusal — diagnose, never bypass with a flag.
-5. Push `main` so Pages serves the new `projects.data.js`; verify with
+6. Push `main` so Pages serves the new `projects.data.js`; verify with
    `python scripts/check_deploy.py`.
 
 Rules that outlast any single run:

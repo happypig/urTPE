@@ -1,107 +1,90 @@
-import json, re
+"""Measure case/record and virtual-case facts over the ENTIRE payload.
+
+The post-ingest documentation sync imports measure_payload(); the command-line
+printer remains available for archaeology. No network or live file is touched
+on import: a probe that reads production state at import time cannot be tested.
+"""
+import json
+import re
+import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
-ROOT = Path(r"D:\project\urTPE")
-t = (ROOT / "viewer" / "projects.data.js").read_text(encoding="utf-8")
-d = json.loads(t[t.find("{"):t.rfind("}") + 1])
-
+ROOT = Path(__file__).resolve().parents[1]
 PLAN, RIGHTS, OUTLINE, OLDPLAN = (re.compile("事業計畫"), re.compile("權利變換"),
                                   re.compile("事業概要"), re.compile("都市更新計畫"))
 RFORM = re.compile(r"^R\d{6}-\d{2}$")
 
+
 def lane(nm):
+    # cleanse.py repairs this known source typo before deriving track. Counting
+    # the raw name without that repair invents a second lane for one record.
+    nm = str(nm or "").replace("事業換計畫", "事業計畫")
     p, r, o = bool(PLAN.search(nm)), bool(RIGHTS.search(nm)), bool(OUTLINE.search(nm))
-    if p and r: return "事業計畫、權利變換"
-    if p: return "事業計畫"
-    if r: return "權利變換"
-    if o: return "事業概要"
+    if p and r:
+        return "事業計畫、權利變換"
+    if p:
+        return "事業計畫"
+    if r:
+        return "權利變換"
+    if o:
+        return "事業概要"
     return OLDPLAN.search(nm).group(0) if OLDPLAN.search(nm) else "(none)"
 
-print("published_date : %s" % d.get("published_date"))
-recs = sum(len(p["nodes"]) for p in d["projects"])
-print("records / units: %d / %d" % (recs, len(d["projects"])))
 
-per_unit = sorted(len(p["nodes"]) for p in d["projects"])
-print("units >=3 records: %d (%.0f%%)   <=2: %d (%.0f%%)" % (
-    sum(1 for v in per_unit if v >= 3), 100 * sum(1 for v in per_unit if v >= 3) / len(per_unit),
-    sum(1 for v in per_unit if v <= 2), 100 * sum(1 for v in per_unit if v <= 2) / len(per_unit)))
-
-# cases & bindings
-bindings, real = 0, Counter()
-multi_case_rows = 0
-rec_lanes = Counter()
-no_lane = []
-rform_cases, num_cases = set(), set()
-recovered = []
-for p in d["projects"]:
-    for n in p["nodes"]:
-        rec_lanes[lane(n.get("name_raw") or "")] += 1
-        if rec_lanes and lane(n.get("name_raw") or "") not in (
-                "事業計畫、權利變換", "事業計畫", "權利變換", "事業概要") and len(no_lane) < 12:
-            no_lane.append(n.get("name_raw"))
-        cs = ((n.get("links") or {}).get("taipei") or [])
-        if len(cs) > 1: multi_case_rows += 1
-        for cid in cs:
-            bindings += 1
-            real[cid] += 1
-            (rform_cases if RFORM.match(cid) else num_cases).add(cid)
-        rc = n.get("recovery")
-        if rc:
-            recovered.append({
-                "recno": n.get("recno"),
-                "cases": rc.get("cases"), "api_cases": rc.get("api_cases"),
-                "links_taipei": cs,
-                "flags": {k: v for k, v in (rc.get("flags") or {}).items() if v},
-            })
-
-multi1 = sum(1 for v in real.values() if v > 1)
-print("\n--- cases & bindings ---")
-print("bindings: %d  distinct on >=1 record: %d  covering >1 record: %d (max %d)" % (
-    bindings, len(real), multi1, max(real.values())))
-print("records naming >1 case (links.taipei): %d" % multi_case_rows)
-print("case ids by space: R-form %d, numeric %d" % (len(rform_cases), len(num_cases)))
-
-# recovered rows + the 1005 conflict
-print("\n--- recovered rows (%d) ---" % len(recovered))
-conflicts = 0
-for r in recovered:
-    mismatch = set(r["cases"] or []) != set(r["links_taipei"] or [])
-    if mismatch: conflicts += 1
-    print("  recno=%-5s cases=%-24s links=%-16s flags=%s%s" % (
-        r["recno"], ",".join(r["cases"] or []), ",".join(r["links_taipei"] or []),
-        sorted(r["flags"]), "   <-- DISAGREE" if mismatch else ""))
-print("recovered rows where recovery.cases != links.taipei: %d" % conflicts)
-
-# virtual cases
-vent = [g for p in d["projects"] for g in ((p.get("links") or {}).get("orphan_nodes") or [])]
-vids = {g["case_id"] for g in vent}
-vd = Counter(bool(g.get("node_date")) for g in vent)
-both = vids & set(real)
-print("\n--- virtual cases ---")
-print("entries: %d  distinct: %d  listed>once: %d" % (len(vent), len(vids), len(vent) - len(vids)))
-print("dated / undated: %d / %d" % (vd[True], vd[False]))
-print("cases BOTH virtual and real: %d   total distinct cases: %d" % (len(both), len(vids | set(real))))
-vt = Counter(g.get("track") for g in vent)
-print("virtual by track: %s" % dict(vt.most_common()))
-
-# lanes
-print("\n--- lanes (records parsed by name + virtual by track) ---")
-tot = Counter(rec_lanes)
-for k, v in vt.items(): tot[k] += v
-for k, v in tot.most_common(): print("   %-22s records=%-5d total=%d" % (k, rec_lanes.get(k, 0), v))
-print("   TOTAL nodes: %d" % sum(tot.values()))
-
-# multi-track cases: one case_id cited by records whose lanes differ
-case_lanes = defaultdict(set)
-for p in d["projects"]:
-    for n in p["nodes"]:
-        L = lane(n.get("name_raw") or "")
+def measure_payload(d):
+    """Return facts over every project, record and virtual case in ``d``."""
+    projects = d.get("projects") or []
+    nodes = [n for p in projects for n in (p.get("nodes") or [])]
+    real = Counter(cid for n in nodes
+                   for cid in ((n.get("links") or {}).get("taipei") or []))
+    recovered = [{"recno": n.get("recno"),
+                  "cases": (n.get("recovery") or {}).get("cases"),
+                  "links_taipei": (n.get("links") or {}).get("taipei") or [],
+                  "flags": {k: v for k, v in ((n.get("recovery") or {}).get("flags") or {}).items() if v}}
+                 for n in nodes if n.get("recovery")]
+    vent = [g for p in projects for g in ((p.get("links") or {}).get("orphan_nodes") or [])]
+    vids = {g["case_id"] for g in vent}
+    lanes = Counter(lane(n.get("name_raw") or "") for n in nodes)
+    case_lanes = defaultdict(set)
+    for n in nodes:
         for cid in ((n.get("links") or {}).get("taipei") or []):
-            case_lanes[cid].add(L)
-mt = {c: ls for c, ls in case_lanes.items() if len(ls - {"(none)", "都市更新計畫"}) > 1}
-print("\ncases spanning >1 track: %d" % len(mt))
+            case_lanes[cid].add(lane(n.get("name_raw") or ""))
+    multi_track = {c: ls for c, ls in case_lanes.items()
+                   if len(ls - {"(none)", "都市更新計畫"}) > 1}
+    per_unit = [len(p.get("nodes") or []) for p in projects]
+    return {
+        "published_date": d.get("published_date") or "",
+        "records": len(nodes), "projects": len(projects),
+        "units_le2": sum(v <= 2 for v in per_unit),
+        "units_ge3": sum(v >= 3 for v in per_unit),
+        "median_records": statistics.median(per_unit) if per_unit else 0,
+        "bindings": sum(real.values()), "distinct_real_cases": len(real),
+        "cases_multiple_records": sum(v > 1 for v in real.values()),
+        "max_records_per_case": max(real.values(), default=0),
+        "records_multiple_cases": sum(
+            len((n.get("links") or {}).get("taipei") or []) > 1 for n in nodes),
+        "recovered_nodes": len(recovered), "recovered": recovered,
+        "recovery_disagreements": sum(
+            set(r["cases"] or []) != set(r["links_taipei"]) for r in recovered),
+        "virtual_entries": len(vent), "distinct_virtual_cases": len(vids),
+        "virtual_duplicates": len(vent) - len(vids),
+        "virtual_dated": sum(bool(g.get("node_date")) for g in vent),
+        "virtual_undated": sum(not g.get("node_date") for g in vent),
+        "cases_virtual_and_real": len(vids & set(real)),
+        "total_distinct_cases": len(vids | set(real)),
+        "cases_multiple_tracks": len(multi_track),
+        "lanes": dict(lanes),
+        "virtual_by_track": dict(Counter(g.get("track") for g in vent)),
+    }
 
-# undated virtual with no track filter = gutter question
-print("\nno-lane record names (sample):")
-for nm in no_lane[:6]: print("   %s" % (nm or "(empty)")[:70])
+
+def main():
+    text = (ROOT / "viewer" / "projects.data.js").read_text(encoding="utf-8")
+    d = json.loads(text[text.find("{"):text.rfind("}") + 1])
+    m = measure_payload(d)
+    print(json.dumps(m, ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    main()

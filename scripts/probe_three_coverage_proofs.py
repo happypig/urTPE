@@ -33,6 +33,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 PROJECTS = ROOT / "data" / "projects.json"
 CLEAN = ROOT / "data" / "clean.tsv"
@@ -129,15 +130,16 @@ def main() -> int:
     print("=" * 72)
     print("Q2  are there recno not in any project?")
     print("=" * 72)
+    from scripts.coverage_checks import measure
+    checked = measure(ROOT)
     node_recnos = [n["recno"] for p in projects for n in p["nodes"]]
     clean = tsv_recnos(CLEAN)
     with MERGED.open(encoding="utf-8") as fh:
         merged_rows = list(csv.DictReader(fh, delimiter="\t"))
 
-    seen = set()
-    duplicates = sorted({r for r in node_recnos if r in seen or seen.add(r)})
-    lost = sorted(clean - set(node_recnos))
-    extra = sorted(set(node_recnos) - clean)
+    duplicates = checked["duplicates"]
+    lost = checked["lost"]
+    extra = checked["extra"]
 
     print()
     print("  the check is a partition: every cleansed record is in exactly one")
@@ -163,21 +165,9 @@ def main() -> int:
     print("=" * 72)
     print("Q3  is every recno attached to a 北 badge (case_id)?")
     print("=" * 72)
-    unbadged = []
-    flagged = 0
-    flagged_with_id = 0
-    for p in projects:
-        for node in p.get("nodes") or ():
-            has = bool((node.get("links") or {}).get("taipei"))
-            is_flagged = any("節點未能對應平台案件" in f
-                             for f in (node.get("review_flags") or []))
-            if is_flagged:
-                flagged += 1
-                if has:
-                    flagged_with_id += 1
-            if not has:
-                unbadged.append((p["project_id"], node["recno"], node.get("date", ""),
-                                 node.get("case_name", "")))
+    unbadged = checked["unbadged"]
+    flagged = checked["flagged"]
+    flagged_with_id = checked["flagged_with_id"]
 
     print()
     print("  the badge is drawn from a node's links.taipei (viewer/app.js,")
@@ -203,7 +193,7 @@ def main() -> int:
         print("           node carries a case id while the flag says it does not.")
         print("           Every badge-less node is named, not silently unbound.")
 
-    return 0
+    return 0 if ok2 and same else 1
 
 
 def _first_parcel_of(project: dict) -> str:

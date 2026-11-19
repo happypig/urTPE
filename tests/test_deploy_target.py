@@ -194,3 +194,9 @@ def test_the_recorded_record_count_matches_the_emitted_payload():
         "config.yaml says %d approvals, the emitted payload carries %d. That figure is the "
         "project context an analyst or an assistant reads before proposing a change."
         % (n, payload["counts"]["records"]))
+
+
+def test_the_etl_documentation_page_is_a_deploy_artifact():
+    _skip_if_absent()
+    assert "docs/etl_process.html" in _load_target()["artifacts"], (
+        "the ETL page can otherwise stay stale on Pages while every artifact check passes")

@@ -6,18 +6,21 @@ merged, per-project history graph plus a static viewer. Python, pymupdf, no web 
 ## Commands (verified on this machine)
 
 ```powershell
-python -m pytest                      # 1484 tests, ~5min, fully offline
+python -m pytest                      # 1497 collected, ~3min, fully offline
 python -m pytest tests/test_merge.py  # one file
 python -m pytest tests/test_merge.py::test_name -q
-python -m urtpe.cli source.pdf -o data --links
+python -m urtpe.cli source.pdf -o data --viewer viewer --links --recover-truncated
 python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --links
+python scripts/post_ingest_check.py   # verify, repair via existing commands, update docs/reports
+python scripts/sync_etl_process.py --check
+python scripts/sync_domain_model.py --check
 ```
 
 - Use the **system** interpreter (`C:\Python314\python.exe`, pytest 9.0.1, pymupdf 1.28.2).
   `.venv/` exists but contains only pip — activating it leaves you unable to run tests.
 - The count in that first line goes stale whenever tests change. Refresh it with
-  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1484 collected**
-  while a full run reports **1479 passed, 1 skipped, 4 xfailed** — the skip is deliberate, at
+  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1497 collected**
+  while the 2026-11-19 full run reports **1492 passed, 1 skipped, 4 xfailed** — the skip is deliberate, at
   `tests/test_idempotent_flags.py:117`, because the node payload builder is not exposed and
   the graph test below it covers the behaviour. The 4 xfails are strict and named: the
   offer step and the orphan name branch still refuse the anchor-parcel drifted cases of
@@ -201,6 +204,14 @@ Violating any of these corrupts output silently rather than raising.
 - `scripts/` — 172 files, of which 115 are `probe_*.py`. Undated ones (`poll_gazette.py`,
   `fetch_remaining_national_portal.py`, `build_project_aliases.py`, `stranded_report.py`)
   are durable tools; dated ones (`*_2026MMDD`) and `probe_*.py` are one-shot archaeology.
+  `post_ingest_check.py` validates all emitted layers, runs standing checks, and uses
+  the existing recovery/rebuild commands for named defects. It updates
+  `docs/etl_process.html`, `docs/domain-model.html`, `docs/release-diff.html` and
+  `docs/coverage-report.html` only after a successful recheck. It never commits,
+  pushes or bypasses a CLI refusal. Use `--check-only` for a read-only pass.
+  `sync_etl_process.py` and `sync_domain_model.py` own marked `data-doc-field`
+  regions; `--check` reports stale fields without writing. Historical prose stays
+  outside the markers.
 - `data/`, `data_test/` — generated output; gitignored except the six tracked files above.
 - `openspec/` — 26 specs, spec-driven workflow. **`openspec/config.yaml` holds the
   authoritative project context** (calendars, identity rules, the 編號 warning) plus
@@ -221,7 +232,9 @@ Violating any of these corrupts output silently rather than raising.
 - `docs/domain_model.md` — entity/mermaid model, in two blocks: the record→graph path, and
   the gazette cadence layer (archive, ledger, poller, change sets).
   `docs/domain-model.html` — its self-contained bilingual rendering (no CDN, opens from
-  `file://`). `docs/cli_flow.archive.md` — dead, archived.
+  `file://`). Current-payload facts carry `data-doc-field` markers; regenerate with
+  `python scripts/sync_domain_model.py`. `docs/etl_process.html` follows the same
+  rule via `python scripts/sync_etl_process.py`. `docs/cli_flow.archive.md` — dead, archived.
 - `docs/gazette-churn.md`, `docs/stranded-cache-dirs.md` — generated; do not hand-edit.
 - `docs/dataset_completeness_audit.md` — the 2026-10-26 post-`recover-truncated-rows-via-api`
   audit: per-gazette record→project binding, the 718→709→694 viewer-count history, and

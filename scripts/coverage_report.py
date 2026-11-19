@@ -32,6 +32,7 @@ MERGED = ROOT / "data" / "merged.tsv"
 P168 = ROOT / "data" / "p168_all.json"
 HEADER_PASS = ROOT / "data" / "p168_header_pass.json"
 PORTAL_INDEX = ROOT / "data" / ".link_cache" / "portal_index.json"
+P168_META = ROOT / "data" / "p168_all.meta.json"
 
 UNPLACED = "節點未能對應平台案件"
 
@@ -87,8 +88,16 @@ def gather() -> dict:
         header_pass = {r["case_id"]: r for r in load_json(HEADER_PASS)}
     in_pass = [m for m in missing if m in header_pass]
     not_in_pass = [m for m in missing if m not in header_pass]
-    revoked = [c for c, r in header_pass.items()
-               if "撤銷" in (r.get("NAME") or "")]
+    revoked = [c for c in in_pass if "撤銷" in (header_pass[c].get("NAME") or "")]
+    scanned_not_approved = [c for c in in_pass
+                            if c not in revoked and not (header_pass[c].get("uro_chk_date")
+                                                        or header_pass[c].get("uro_chk_date2"))]
+    # The header scan is a dated, partial observation. Never subtract a case
+    # the scan did not examine from its approval/revocation counts.
+    scanned_approved = [c for c in in_pass if header_pass[c].get("state") == "approved"]
+    header_mtime = (dt.datetime.fromtimestamp(HEADER_PASS.stat().st_mtime)
+                    .astimezone().isoformat(timespec="seconds")) if HEADER_PASS.exists() else ""
+    p168_meta = load_json(P168_META) if P168_META.exists() else {}
 
     # --- the national portal's list --------------------------------------
     portal = load_json(PORTAL_INDEX) if PORTAL_INDEX.exists() else []
@@ -148,6 +157,11 @@ def gather() -> dict:
             "in_pass": in_pass,
             "not_in_pass": not_in_pass,
             "revoked": revoked,
+            "scanned_not_approved": scanned_not_approved,
+            "scanned_approved": scanned_approved,
+            "header_scan_at": header_mtime,
+            "p168_checked_at": p168_meta.get("checked_at", ""),
+            "p168_sha256": p168_meta.get("sha256", ""),
             "portal_crawl": len(portal_ids),
             "payload_views": len(payload_views),
             "views_in_crawl": len(payload_views & portal_ids),
@@ -347,15 +361,16 @@ def render(f: dict) -> str:
       '<small>它收的是 168 專案；不在該專案裡而審查中的案件不會出現在上面</small></div>')
     w('<p style="margin:0;font-size:13.5px">清單有 %d 件，資料集命名了 %d 個案件編號，'
       '其中 %d 個在清單上。清單上資料集沒有的 %d 件，'
-      '其中 %d 件以案件標頭確認過（每件一次請求）：%d 件未核定，%d 件經本府撤銷核准。'
-      '其餘 %d 件在標頭掃描當時尚未查過，其中 %d 件是「業經本府撤銷核准」的案件'
-      '（核准後撤銷，從未列入公報），1 件是既有公報專案上的待審修訂案。</p>'
+      '其中 %d 件在現存標頭掃描中查過：%d 件未核定，%d 件經本府撤銷核准，%d 件已有核定日期。'
+      '其餘 %d 件未在現存掃描中查過，不能分類。'
+      '168 快照時間：%s；標頭掃描檔案時間：%s。'
+      '本段不把未掃描的案件算作未核定或撤銷。</p>'
       % (q1["p168_total"], q1["payload_ids"],
          q1["p168_total"] - len(q1["missing"]),
          len(q1["missing"]), len(q1["in_pass"]),
-         len(q1["in_pass"]) - len(q1["revoked"]),
-         len(q1["revoked"]), len(q1["not_in_pass"]),
-         len(q1["not_in_pass"]) - 1))
+         len(q1["scanned_not_approved"]), len(q1["revoked"]),
+         len(q1["scanned_approved"]), len(q1["not_in_pass"]),
+         e(q1["p168_checked_at"] or "未記錄"), e(q1["header_scan_at"] or "未記錄")))
     w("</div>")
 
     if q1["no_id"]:

@@ -22,15 +22,19 @@ PAYLOAD = ROOT / "data" / "projects.json"
 # --- the per-case emission (task 1.1, 1.3) -----------------------------------
 
 def test_a_joined_node_emits_both_sections():
-    """敦化363-1 node 537 anchors -A and -B whose payloads differ on
-    Ulic_Date. The node carries both, keyed by case id."""
+    """敦化363-1 anchors -A and -B whose payloads differ on Ulic_Date.
+
+    編號 is a coordinate: the 2026-11-12 publication moved this record from
+    537 to 541. Locate the two case ids, never a position in the gazette.
+    """
     doc = json.loads(PAYLOAD.read_text(encoding="utf-8"))
     p = next(x for x in doc["projects"]
              if x["project_id"] == "松山區-敦化段四小段-363-1地號等5筆")
-    node = next(n for n in p["nodes"] if n["recno"] == 537)
+    node = next(n for n in p["nodes"]
+                if {"10906101", "10906102"} <= set((n.get("links") or {}).get("taipei") or []))
     by_case = node.get("implementation_by_case")
     if by_case is None:
-        pytest.fail("node 537 carries no implementation_by_case (pre-re-emit)")
+        pytest.fail(f"node {node['recno']} carries no implementation_by_case (pre-re-emit)")
     assert set(by_case) >= {"10906101", "10906102"}, sorted(by_case)
     assert by_case["10906101"]["Ulic_Date"] == "2025/04/29"
     assert by_case["10906102"]["Ulic_Date"] == "2025/05/06"
@@ -78,9 +82,11 @@ def test_the_joined_node_counters_on_the_live_payload():
     # 09503201/2/7 beside 09503203/4/8, 萬隆463 node 1386 with 09205141/2 beside
     # 09205143, 雙園505 node 1113 with 09610232 beside 09610234): 32 -> 37,
     # 30 -> 35. None has implementation payloads (with_by_case stays 30).
-    assert joined == 37, f"joined nodes moved: {joined} (board says 37 since the 2026-11-15 sibling walk)"
-    assert area_pairs == 35, f"area pairs moved: {area_pairs} (board says 35 since the 2026-11-15 sibling walk)"
-    assert with_by_case == 30, f"by_case nodes moved: {with_by_case} (board says 30)"
+    # 2026-11-18 (--from-js rebuild): measured over all 1,448 records:
+    # 38 joined nodes, 36 area pairs, 31 by_case nodes.
+    assert joined == 38, f"joined nodes moved: {joined} (38 on the 2026-11-18 rebuilt payload)"
+    assert area_pairs == 36, f"area pairs moved: {area_pairs} (36 on the 2026-11-18 rebuilt payload)"
+    assert with_by_case == 31, f"by_case nodes moved: {with_by_case} (31 on the rebuilt payload)"
 
 
 # --- the round trip (task 1.2) -------------------------------------------------

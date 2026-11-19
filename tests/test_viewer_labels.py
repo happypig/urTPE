@@ -1086,4 +1086,4 @@ def test_the_live_payload_has_sibling_label_groups_for_the_smoke_check_to_judge(
                 if tok.search(nm[nm.rfind("案") + 1:]):
                     by.setdefault((g["stage"], g["track"], g.get("node_date") or ""), []).append(g)
         groups += sum(1 for v in by.values() if len(v) >= 2)
-    assert groups == 6, f"sibling label groups moved: {groups} (6 on 2026-11-15)"
+    assert groups == 5, f"sibling label groups moved: {groups} (5 on the 2026-11-18 rebuilt payload)"

@@ -61,11 +61,13 @@ for (const p of doc.projects) {
   if (inv > 0) invProjects++;
   datedApprovals += dated.length;
 }
+if (!process.argv.includes("--json")) {
 console.log("=== rendered-order date inversions (today's code + payload) ===");
 console.log("projects rendered                : %d", doc.projects.length);
 console.log("dated approvals rendered         : %d", datedApprovals);
 console.log("adjacent date-inverted pairs     : %d", invPairs);
 console.log("projects with >=1 inverted pair  : %d", invProjects);
+}
 
 // ---- 2. construction-chain anchoring ---------------------------------------
 let totEvents = 0;
@@ -104,6 +106,7 @@ for (const p of doc.projects) {
     }
   }
 }
+if (!process.argv.includes("--json")) {
 console.log("\n=== construction-chain anchoring (today's code + payload) ===");
 console.log("construction events total        : %d  %j", totEvents, perSlot);
 console.log("no provenance (national-only etc): %d", bucket.noProvenance);
@@ -114,6 +117,7 @@ console.log("  resolvable (prior approval)    : %d", bucket.ambiguousResolvable)
 console.log("  unresolved (no prior approval) : %d", bucket.ambiguousUnresolved);
 console.log("source-missing examples          : %j", noRecordExamples);
 console.log("unresolved examples              : %j", unresolvedExamples);
+}
 
 // ---- 3. twur 使用核發 vs city 使照 (§6 item 1) ------------------------------
 let twurUnits = 0, sameDay = 0;
@@ -126,6 +130,26 @@ for (const p of doc.projects) {
   const city = tai["使照核發日期"] || "";
   if (city && normDate(city) === normDate(u)) sameDay++;
 }
+if (!process.argv.includes("--json")) {
 console.log("\n=== twur 使用核發 ===");
 console.log("units carrying national 使用核發 : %d", twurUnits);
 console.log("  same day as city 使照核發       : %d", sameDay);
+}
+
+if (process.argv.includes("--json")) {
+  console.log(JSON.stringify({
+    projects_rendered: doc.projects.length,
+    dated_approvals_rendered: datedApprovals,
+    inverted_pairs: invPairs,
+    inverted_projects: invProjects,
+    construction_events: totEvents,
+    no_provenance: bucket.noProvenance,
+    source_case_missing: bucket.sourceCaseMissing,
+    unique_anchors: bucket.unique,
+    ambiguous_markers: bucket.ambiguous,
+    ambiguous_resolvable: bucket.ambiguousResolvable,
+    ambiguous_unresolved: bucket.ambiguousUnresolved,
+    national_occupancy_units: twurUnits,
+    occupancy_same_day: sameDay,
+  }));
+}

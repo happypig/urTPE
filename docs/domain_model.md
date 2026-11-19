@@ -1,5 +1,10 @@
 # Domain Model
 
+Current-payload measurements in `docs/domain-model.html` carry `data-doc-field`
+markers. Run `python scripts/sync_domain_model.py` after an ingest or rebuild.
+Use `--check` for a read-only stale-field check. Historical measurements remain
+in their dated prose and are not regenerated. Do not hand-edit marked regions.
+
 ```mermaid
 classDiagram
     direction LR

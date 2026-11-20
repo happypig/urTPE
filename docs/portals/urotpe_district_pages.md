@@ -382,9 +382,18 @@ pipeline output, and nothing in the repository reads it or writes to it.
 
 **What it holds.** The page is `files/index.html`, at version 2. Seven datasets feed it:
 `cp`, `p168`, `viewer`, `duplicates`, `special`, `fields` and `meta-source`. They are fixed
-copies, dated 2026-11-19. They do not refresh themselves. Its Viewer figures are the
-before-`6b97a83` figures of §3 (2,022 Viewer IDs). Rebuilding the data now gives 2,028.
-Uploading a rebuild is a manual step. Nobody has done it.
+copies. They do not refresh themselves. Six of them are dated 2026-11-19.
+
+The `viewer` dataset is the exception. On 2026-11-20 it was replaced with a rebuild from
+the payload at commit `6b97a83`. It now holds 2,028 case IDs, as in the "Current" column
+of §3. The first copy held 2,022. The Venn counts are computed in the browser from the
+datasets. The page text holds no fixed copy of them. The page was not checked after the
+replacement, so the figures it shows are not confirmed here.
+
+Any later change to the Viewer payload makes the `viewer` dataset old again. Updating it is
+a manual step: run the build script in §7, upload `viewer-ids.json` to the artifact, and
+point the `viewer` dataset at the new file. The first upload stays in the artifact until
+someone deletes it.
 
 **The 87 IDs.** The 168 + district-only region holds 87 IDs. This document does not list
 them, because a list goes stale with the next snapshot. The artifact shows the list for the

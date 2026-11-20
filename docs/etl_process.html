@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ETL Process · PDF to Viewer</title>
 <!--
-  Companion rendering of docs/etl_process.md. The Markdown file stays the prose
+  Companion rendering of docs/pipeline/etl_process.md. The Markdown file stays the prose
   source of truth; this page adds the pipeline diagram, the gate table, the
   merge-score anatomy and the viewer layout as visuals.
 
@@ -243,9 +243,9 @@
     <p class="sub"><span class="en">How the Taipei urban-renewal gazette (核定案件一覽表) becomes
       <code>viewer/projects.data.js</code> and the static HTML viewer.</span><span class="zh">臺北市都市更新公報（核定案件一覽表）如何變成
       <code>viewer/projects.data.js</code> 與靜態 HTML 檢視器。</span>
-      <span class="en">Prose source of truth: <a href="etl_process.md"><code>docs/etl_process.md</code></a> ·
+      <span class="en">Prose source of truth: <a href="pipeline/etl_process.md"><code>docs/pipeline/etl_process.md</code></a> ·
       Companion pages: <a href="domain-model.html">domain model</a> ·
-      <a href="release-diff.html">release-diff report</a>.</span><span class="zh">文字版的 source of truth：<a href="etl_process.md"><code>docs/etl_process.md</code></a> ·
+      <a href="release-diff.html">release-diff report</a>.</span><span class="zh">文字版的 source of truth：<a href="pipeline/etl_process.md"><code>docs/pipeline/etl_process.md</code></a> ·
       附頁：<a href="domain-model.html">領域模型</a> ·
       <a href="release-diff.html">歷次公報差異報告</a>。</span>
       <span class="en" data-doc-field="dataset-summary-en">Measured on the 2026-11-12 gazette: <strong>1,448 records → 676 projects</strong>,
@@ -836,7 +836,7 @@
   </table>
   <div class="callout note">
     <div class="h"><span class="en">Runbook detail and generated regions</span><span class="zh">Runbook 細節與產生區域</span></div>
-    <span class="en">The full command contract and coverage-evidence limits are in <code>docs/etl_process.md</code> §11. The two documentation synchronisers own only their marked <code>data-doc-field</code> regions; preserve historical examples and bilingual prose.</span><span class="zh">完整命令約定與 coverage 證據界限見 <code>docs/etl_process.md</code> §11。兩個文件同步工具只更新標記的 <code>data-doc-field</code> 區域；保留歷史範例與雙語文字。</span>
+    <span class="en">The full command contract and coverage-evidence limits are in <code>docs/pipeline/etl_process.md</code> §11. The two documentation synchronisers own only their marked <code>data-doc-field</code> regions; preserve historical examples and bilingual prose.</span><span class="zh">完整命令約定與 coverage 證據界限見 <code>docs/pipeline/etl_process.md</code> §11。兩個文件同步工具只更新標記的 <code>data-doc-field</code> 區域；保留歷史範例與雙語文字。</span>
   </div>
   <div class="callout note">
     <div class="h"><span class="en">Rules that outlast any single run</span><span class="zh">比任何單次執行都長久的規則</span></div>
@@ -862,7 +862,7 @@
   <code>urtpe/graph.py</code>, <code>urtpe/viewer.py</code>, <code>urtpe/tripwire.py</code>,
   <code>urtpe/reconcile.py</code>, <code>urtpe/emission.py</code>, <code>urtpe/coverage.py</code>,
   <code>scripts/poll_gazette.py</code>, <code>viewer/app.js</code>, <code>viewer/index.html</code>.
-  Companion to <code>docs/etl_process.md</code>, which remains the prose source of truth;
+  Companion to <code>docs/pipeline/etl_process.md</code>, which remains the prose source of truth;
   companion pages <a href="domain-model.html">domain-model.html</a> and
   <a href="release-diff.html">release-diff.html</a>.
   Self-contained — no external requests. <span data-doc-field="footer-provenance-en">Measured figures from the 2026-11-12 payload, synchronised 2026-11-20.</span></span>
@@ -871,7 +871,7 @@
   <code>urtpe/graph.py</code>、<code>urtpe/viewer.py</code>、<code>urtpe/tripwire.py</code>、
   <code>urtpe/reconcile.py</code>、<code>urtpe/emission.py</code>、<code>urtpe/coverage.py</code>、
   <code>scripts/poll_gazette.py</code>、<code>viewer/app.js</code>、<code>viewer/index.html</code>。
-  本檔為 <code>docs/etl_process.md</code> 的附頁，後者仍為文字上的 source of truth；
+  本檔為 <code>docs/pipeline/etl_process.md</code> 的附頁，後者仍為文字上的 source of truth；
   附頁 <a href="domain-model.html">domain-model.html</a> 與
   <a href="release-diff.html">release-diff.html</a>。
   完全獨立，不連任何外部資源。<span data-doc-field="footer-provenance-zh">量測數字取自 2026-11-12 payload，於 2026-11-20 同步。</span></span>

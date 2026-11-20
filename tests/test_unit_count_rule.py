@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""unit-count-rule (docs/inspection-batchF.md F7 addendum, D1 and D2).
+"""unit-count-rule (docs/inspections/inspection-batchF.md F7 addendum, D1 and D2).
 
 One declared-count rule for the §8 gate, the sibling walk and the admission of
 held-by-no-project pairs: a case name passes the own-parcel form when its
@@ -417,8 +417,8 @@ def test_the_search_guard_accepts_62_pairs_the_count_rule_refuses_and_may_only_s
     """F3 made discovery pass own_parcels to the search guard (S1); S1's own-parcel
     form has no count test, so a FRESH discovery (or a refresh with a 5-part key)
     re-accepts the held_none pairs below, the 'other 46' that D2 left out. This is
-    the conflict between D8 item 2 and D2, awaiting the user (docs/inspection-
-    batchF.md, D11): S1 adopts the count rule, or discovery stops passing the
+    the conflict between D8 item 2 and D2, awaiting the user (docs/inspections/
+    inspection-batchF.md, D11): S1 adopts the count rule, or discovery stops passing the
     parcels. Until then the set is pinned: it may shrink, never grow."""
     frozen = {(a, b) for a, b, _ in S1_PAIRS}
     live = set(_s1_accepts_rule_refuses())

@@ -14,7 +14,7 @@ Sources tried, in order:
 1. The publisher URLs the archive's own poll log implies — the poller fetched
    from one, and the stamp it recorded is the 資料更新 timestamp for the
    document that URL served.
-2. The URL the repository's history names (docs/urotpe_api_vs_pdf.md).
+2. The URL the repository's history names (docs/portals/urotpe_api_vs_pdf.md).
 3. The Wayback Machine's index of the publisher's PDF path.
 
     python scripts/record_publisher_urls.py [--dry-run]

@@ -6,7 +6,7 @@ exact name (the node's 案名 equals `links.twur_name`), or through the
 擬訂 section+parcel fallback. Never by a national label's date matching the
 node's date: a date matching is not the portal naming.
 
-The two named examples (docs/inspection-batchE.md E4):
+The two named examples (docs/inspections/inspection-batchE.md E4):
 - 文林838-1 node 433: two labels hit its exact date; its case unregistered;
   its 案名 differs from the title → NO badge.
 - 大安590: node 1257 (exact name) and node 884 (擬訂 fallback) keep the

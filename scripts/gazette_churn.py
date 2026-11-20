@@ -5,7 +5,7 @@ Covers 1150820 and 1150827 only.
 A record is identified by (核定日期, 正個 land string) because 編號 is not stable.
 Only the pre-cutoff set is compared, so newly approved rows are excluded.
 
-    python scripts/gazette_churn.py --out docs/gazette-churn.md
+    python scripts/gazette_churn.py --out docs/audits/gazette-churn.md
 """
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ def label(r) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=str(ROOT / "docs" / "gazette-churn.md"))
+    ap.add_argument("--out", default=str(ROOT / "docs" / "audits" / "gazette-churn.md"))
     args = ap.parse_args()
 
     data = {}

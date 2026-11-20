@@ -397,7 +397,7 @@ def test_the_two_hua_zhong_nodes_each_carry_both_of_their_cases():
     assert by_date.get("2015-10-02") == {"09407301", "09407302"}, by_date
 
 
-# ── 1.6 F3: the dependency is explicit (docs/inspection-batchF.md F3, D8) ─────
+# ── 1.6 F3: the dependency is explicit (docs/inspections/inspection-batchF.md F3, D8) ─────
 # The gate failed on 華中247 because the parcel list was optional and five of
 # six callers did not pass it. F3 closes the residuals: every cache carries the
 # field, discovery passes it and refreshes it, an empty list is named in the

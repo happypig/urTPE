@@ -1436,7 +1436,7 @@ def expected_land_core_of_project_id(project_id: str) -> str:
     {first parcel}地號等{count}筆`), so the core is the id's three parts joined.
     A `-N` twin, `未解析-N` and an id with an unknown count (`地號等?筆`) are not
     unit ids. One definition for the refresh and scripts/repair_land_cores.py
-    (gate-reads-project-land-core, docs/inspection-batchF.md F5)."""
+    (gate-reads-project-land-core, docs/inspections/inspection-batchF.md F5)."""
     m = _UNIT_ID.match(project_id or "")
     return "".join(m.groups()) if m else ""
 
@@ -1519,7 +1519,7 @@ def unit_accepts_case_name(own_land_core: str, case_name: str, own_parcels,
     belong to the unit?
 
     One predicate for the §8 gate, the sibling walk and the admission command
-    (docs/inspection-batchF.md F1 phase 1 starts here). True when the name's land
+    (docs/inspections/inspection-batchF.md F1 phase 1 starts here). True when the name's land
     core equals the unit's or scores at least LINK_THRESHOLD, or the name declares
     the unit's own district+section and one of its own parcels (anchor-parcel
     drift) AND passes the count rule.
@@ -1583,7 +1583,7 @@ def membership_verdict(case_name: str, unit: Unit, policy: str, *,
                        searched_parcel=None, node_name: str = "",
                        node_landcore: str = "", node_parcels=None,
                        alt_landcores=None) -> Verdict:
-    """F1 phase 1 (docs/inspection-batchF.md): does this case belong to this unit?
+    """F1 phase 1 (docs/inspections/inspection-batchF.md): does this case belong to this unit?
 
     One function, named policies. Each name-based site calls it with its own
     CURRENT rule, so the refactor changes no verdict (tests/test_membership_verdict.py
@@ -1655,7 +1655,7 @@ class ViewVerifiedDecision:
 def verify_view_verified_ids(own_land_core: str, ids: list[str],
                              city_names: dict, labels: dict,
                              own_parcels=(), own_counts=()) -> ViewVerifiedDecision:
-    """§8 decision 1 (docs/viewer-UX.md §8): the city's own case name decides.
+    """§8 decision 1 (docs/viewer/viewer-UX.md §8): the city's own case name decides.
 
     | label (check 1) | city name (check 2) | result | reason |
     | --- | --- | --- | --- |
@@ -1717,7 +1717,7 @@ def verify_view_verified_ids(own_land_core: str, ids: list[str],
 
 
 def offer_rejected_ids(cache_dir: Path, rejected: dict[str, dict[str, str]]) -> list[tuple[str, str, str]]:
-    """§8 decision 2 (docs/viewer-UX.md §8): offer a rejected id to its own project.
+    """§8 decision 2 (docs/viewer/viewer-UX.md §8): offer a rejected id to its own project.
 
     ``rejected`` maps {source_project_id: {case_id: city_case_name}}. For each
     rejected id, the land core of its city case name is matched against every
@@ -2962,7 +2962,7 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
         except OSError:
             labels = {}
         if not cached.own_parcels:
-            # F3 (docs/inspection-batchF.md): an empty list silently meant "use
+            # F3 (docs/inspections/inspection-batchF.md): an empty list silently meant "use
             # the land-core rule alone". The verdict stays; the silence goes.
             report["view_gate_no_parcels"] = list(cached.view_verified_case_ids)
         if not cached.own_counts:
@@ -3379,7 +3379,7 @@ def refreshed_schedule(cached: str, derived: str, milestones: dict | None,
     bare 業經本府核定). A header that reads 無 or empty states the case has no
     current state: the viewer labels it [無] / [NA] instead of showing 審查中.
     (The stand-alone rule was once reversed to silence 立農163-2's 11211211; that
-    decision is now overridden — see docs/viewer-UX.md §7 decision 2.)
+    decision is now overridden — see docs/viewer/viewer-UX.md §7 decision 2.)
     """
     cached = cached or ""
     if header_state == "無":

@@ -3,7 +3,7 @@
 The refresh re-derived every result.json from the partial portal index
 (110 entries) + fallback JSON (3 entries), dropping the targeted-fetch
 campaign's land-core -> view_id mappings that lived only inside the deleted
-files (docs/facts_2_portals.md §18).
+files (docs/portals/facts_2_portals.md §18).
 
 For each backup cache with a twur link whose live counterpart lost it, merge
 back exactly three fields — twur_view_id, twur_url, national_milestones —

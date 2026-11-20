@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""unit-sibling-id-walk (docs/inspection-batchF.md F4, D3=A, D4=A).
+"""unit-sibling-id-walk (docs/inspections/inspection-batchF.md F4, D3=A, D4=A).
 
 A unit's sibling cases sit in the interior of the id stems it already holds.
 `walk_unit_siblings` probes them by header and accepts a case on positive

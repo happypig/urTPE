@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """The curated fallback mapping file is tracked, rooted, and defined once.
 
-P2.3 (docs/inspection.md Wave 1 item 3): `data/taipei_case_ids.json` is a
+P2.3 (docs/inspections/inspection.md Wave 1 item 3): `data/taipei_case_ids.json` is a
 curated, human-verified land-core -> view/case mapping — the same category as
 the tracked `data/twur_overrides.json` — yet git did not track it and the path
 was CWD-relative, so a clone lost it silently. It is now tracked (`.gitignore`

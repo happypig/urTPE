@@ -91,7 +91,7 @@ line("=> can a total re-key pass the guard?",
 
 # --- 5. --links stays advisory (D5) -----------------------------------------
 print("\n[5] --links policy")
-flow = ROOT / "docs" / "cli_flow_v2.md"
+flow = ROOT / "docs" / "pipeline" / "cli_flow_v2.md"
 recmd = ""
 if flow.exists():
     for ln in flow.read_text(encoding="utf-8").split("\n"):

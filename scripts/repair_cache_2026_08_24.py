@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""One-off cache repair for bugs found on 2026-08-24 (see docs/facts_2_portals.md §16)."""
+"""One-off cache repair for bugs found on 2026-08-24 (see docs/portals/facts_2_portals.md §16)."""
 import json, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

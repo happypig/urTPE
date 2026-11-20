@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Structural regression tests for viewer/app.js field-label tables.
 
-Pins the official label inventory captured in docs/facts_2_portals.md §12.1
+Pins the official label inventory captured in docs/portals/facts_2_portals.md §12.1
 (r_progress_detail.aspx DOM, 2026-08-25) so every key observed in emitted
 implementation/rewards payloads renders with its portal label instead of a raw
 English key, plus the construction-phase graph annotation constants
@@ -941,7 +941,7 @@ def test_the_node_badge_row_is_sized_from_its_badges_and_never_clipped():
     assert "function nodeBadgeRowWidth(" in js
 
 
-# ── F9 (docs/inspection-batchF.md, D10 = A): the badge label reads 基地 and 甲/乙區段 ──
+# ── F9 (docs/inspections/inspection-batchF.md, D10 = A): the badge label reads 基地 and 甲/乙區段 ──
 
 def _run_label_js(body: str) -> str:
     import subprocess
@@ -1013,7 +1013,7 @@ if (a < 40) throw new Error("an [A區] badge must keep its label width: " + a);
 """)
 
 
-# ── F8 option B (docs/inspection-batchF.md, D9): the list marks an entry with no node ──
+# ── F8 option B (docs/inspections/inspection-batchF.md, D9): the list marks an entry with no node ──
 
 def test_a_case_has_a_graph_node_when_a_node_or_a_drawn_orphan_anchors_it():
     import subprocess

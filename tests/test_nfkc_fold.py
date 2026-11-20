@@ -6,8 +6,8 @@ payload): U+F901/F963/FA26 in 6 corpus 案名, U+F9DD in one city case name.
 Two readers break on them: the track reader (live — the F9DD sits inside
 權利變換) and parse_name_id (latent — 6 rows get no identity).
 
-The six pins follow the E1 test-first group (docs/inspection-batchE.md E1;
-docs/DashboardNUXUI.md §11.3). The corpus-only tests exist beside the live
+The six pins follow the E1 test-first group (docs/inspections/inspection-batchE.md E1;
+docs/viewer/DashboardNUXUI.md §11.3). The corpus-only tests exist beside the live
 one because the corpus's six characters sit in text no keyword touches —
 the live one sits inside a keyword. The difference is WHERE the character
 sits, not which character it is (batch D D16a).

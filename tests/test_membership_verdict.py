@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""F1 phase 1 (docs/inspection-batchF.md): one membership function, named policies.
+"""F1 phase 1 (docs/inspections/inspection-batchF.md): one membership function, named policies.
 
 The code answers "does this case belong to this unit?" in several places. Phase 1
 is a BEHAVIOUR-PRESERVING refactor: `membership_verdict(case_name, unit, policy)`

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """scripts/repair_land_cores.py and the live pin (F5, D5 = C part A).
 
-docs/inspection-batchF.md F5: 3 of 675 caches hold a land_core that disagrees
+docs/inspections/inspection-batchF.md F5: 3 of 675 caches hold a land_core that disagrees
 with their project id's parts (大同區-市府段二小段-220-2 reads 中正區; two others
 lack `地號等N筆`). The §8 gate decides a case by that field, so 09609301 was
 refused by a district typo.

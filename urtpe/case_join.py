@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 
 # The R-form: R + registry number, optionally suffixed with the application
 # attempt (R089213-02 = attempt 02 of registry case 089213). Documented pairing,
-# docs/urotpe_api.md §4.
+# docs/portals/urotpe_api.md §4.
 _RFORM_RE = re.compile(r"^R(\d+)(?:-\d+)?$")
 
 

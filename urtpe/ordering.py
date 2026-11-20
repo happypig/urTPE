@@ -89,7 +89,7 @@ def departures_from_descending(
     records these dates came from (first occurrence wins, extract.py), which is where the
     repeated-page-head guarantee lives since 2026-10-06. ``date_order_report`` — the
     PDF-level wrapper that deduplicated here — was deleted as dead code (2026-10-30
-    cleanup, docs/inspection.md F3): no live spec cites it and nothing in production
+    cleanup, docs/inspections/inspection.md F3): no live spec cites it and nothing in production
     called it.
     """
     parsed = [(i, date.fromisoformat(d)) for i, d in enumerate(dates)

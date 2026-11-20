@@ -1,6 +1,6 @@
 """Walk the id stems of each unit's held cases and add the sibling cases found.
 
-unit-sibling-id-walk (docs/inspection-batchF.md F4, D3 = A, D4 = A). A city case
+unit-sibling-id-walk (docs/inspections/inspection-batchF.md F4, D3 = A, D4 = A). A city case
 id is a filing day's 7-digit stem plus one digit, so a unit's cases sit in the
 stems it already holds. For every payload project this probes each id strictly
 between the lowest and highest held digit of a stem (not held, not held by

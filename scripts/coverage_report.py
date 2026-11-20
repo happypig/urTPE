@@ -518,7 +518,7 @@ def render(f: dict) -> str:
     w("</main>")
     w("<footer>由 <code>scripts/coverage_report.py</code> 產生。"
       "唯讀：不寫入管線產物、不動 viewer、不寫封存索引。"
-      "配套紀錄見 <code>docs/inspection-batchD.md</code> D18。</footer>")
+      "配套紀錄見 <code>docs/inspections/inspection-batchD.md</code> D18。</footer>")
     w("</body></html>")
     return "\n".join(out)
 

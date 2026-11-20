@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """§8 viewer-UX wave 3b: a view-verified case id must belong to the project.
 
-The defect these pin (docs/viewer-UX.md §8, inspection board B7 + B8): the
+The defect these pin (docs/viewer/viewer-UX.md §8, inspection board B7 + B8): the
 national view page's 相關連結 assertion was treated as unconditional, so case
 ids of OTHER projects entered a project's cache as view-verified and rendered
 as nameless 孤 anchors carrying the other project's 建照 / 開工 dates —

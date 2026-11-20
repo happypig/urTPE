@@ -1,6 +1,6 @@
 """Admit a case the city search refused, when the single count rule accepts it.
 
-unit-count-rule (docs/inspection-batchF.md F7 addendum, D2). Discovery's search
+unit-count-rule (docs/inspections/inspection-batchF.md F7 addendum, D2). Discovery's search
 guard dropped these cases into a cache's `search_rejected` before the cache knew
 the unit's own parcels. A name that declares the unit's own district+section, one
 of its own parcels, and a count the unit had at some approval (`own_counts`) passes

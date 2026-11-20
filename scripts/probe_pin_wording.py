@@ -20,8 +20,8 @@ sys.path.insert(0, str(ROOT))
 
 from probe_two_correction_tables import pins_of, plain  # noqa: E402
 
-BOARD = ROOT / "docs" / "inspection-batchD.md"
-DOC = ROOT / "docs" / "DashboardNUXUI.md"
+BOARD = ROOT / "docs" / "inspections" / "inspection-batchD.md"
+DOC = ROOT / "docs" / "viewer" / "DashboardNUXUI.md"
 
 
 def main() -> int:

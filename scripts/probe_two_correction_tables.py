@@ -1,7 +1,7 @@
 """Compare the board's correction table with the dashboard document's. Read-only.
 
-Two documents record the same six corrections: `docs/inspection-batchD.md`
-(the board) and `docs/DashboardNUXUI.md` (the dashboard exploration). They
+Two documents record the same six corrections: `docs/inspections/inspection-batchD.md`
+(the board) and `docs/viewer/DashboardNUXUI.md` (the dashboard exploration). They
 were written by two sessions and drifted: the board grew to six rows, the
 document still said four, and one row counted groups where the other counted
 things.
@@ -20,8 +20,8 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
-BOARD = ROOT / "docs" / "inspection-batchD.md"
-DOC = ROOT / "docs" / "DashboardNUXUI.md"
+BOARD = ROOT / "docs" / "inspections" / "inspection-batchD.md"
+DOC = ROOT / "docs" / "viewer" / "DashboardNUXUI.md"
 
 # The rows that make up each table, keyed by the correction they describe.
 BOARD_ROWS = [

@@ -21,7 +21,7 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-DOC = ROOT / "docs" / "DashboardNUXUI.md"
+DOC = ROOT / "docs" / "viewer" / "DashboardNUXUI.md"
 
 
 def run(script, *args):

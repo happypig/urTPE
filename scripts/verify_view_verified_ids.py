@@ -6,7 +6,7 @@ The national view page's 相關連結 assertion was treated as unconditional, so
 case ids of OTHER projects entered caches as view-verified and rendered as
 nameless 孤 anchors carrying the other project's 建照 / 開工 dates — measured:
 10202065 (中山254), 09511211 (大安557, shape B), 09807161 (大安龍泉169),
-09608220 (信義犁和102); docs/viewer-UX.md §8, inspection board B7+B8.
+09608220 (信義犁和102); docs/viewer/viewer-UX.md §8, inspection board B7+B8.
 
 This pass runs on every cache holding ``view_verified_case_ids`` — the defect
 does not depend on the awaiting state — under the single-writer lock, in two

@@ -1,6 +1,6 @@
 """Repair a cache's `land_core` that disagrees with its project id.
 
-docs/inspection-batchF.md F5 (D5 = C, part A). A unit's project id is the slug of
+docs/inspections/inspection-batchF.md F5 (D5 = C, part A). A unit's project id is the slug of
 its land core: `{district}-{section}-{first parcel}地號等{count}筆`, so the core is
 the id's three parts joined. Three payload caches held another core: 市府220-2
 reads 中正區 (the project is 大同區), and 寶清51-13 and 崇仁新村711-3 lack

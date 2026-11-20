@@ -103,7 +103,7 @@ def test_real_documentation_pages_have_current_marked_facts():
 
 def test_operating_runbook_keeps_acquisition_repair_and_publication_distinct():
     """The runbook must not turn acquisition or a successful CLI into publication."""
-    source = (dm.ROOT / "docs" / "etl_process.md").read_text(encoding="utf-8")
+    source = (dm.ROOT / "docs" / "pipeline" / "etl_process.md").read_text(encoding="utf-8")
     runbook = source.split("## 11. Operating the pipeline", 1)[1]
     steps = [
         "python scripts/poll_gazette.py",

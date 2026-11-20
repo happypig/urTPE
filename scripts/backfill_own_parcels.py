@@ -58,7 +58,7 @@ def anchor_counts(project: dict) -> list[int]:
 def select(cache_dir: Path) -> list[Path]:
     """Every cache directory that holds a readable result.json.
 
-    F3/D8 (docs/inspection-batchF.md): the first run covered only the caches
+    F3/D8 (docs/inspections/inspection-batchF.md): the first run covered only the caches
     holding view ids. A later absorb that adds a view id to any other cache
     would gate it with an empty list, silently, by the land-core rule alone."""
     out = []

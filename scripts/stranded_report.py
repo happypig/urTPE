@@ -4,7 +4,7 @@ For each unmatched project, show what each of the four gazettes actually
 contains for that unit, oldest publication first. This localises *when* a unit
 left the list, which is the one question the PDFs cannot answer on their own.
 
-    python scripts/stranded_report.py --out docs/stranded-cache-dirs.md
+    python scripts/stranded_report.py --out docs/audits/stranded-cache-dirs.md
 """
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def index_pdf(path: Path):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=str(ROOT / "docs" / "stranded-cache-dirs.md"))
+    ap.add_argument("--out", default=str(ROOT / "docs" / "audits" / "stranded-cache-dirs.md"))
     ap.add_argument("--threshold", type=float, default=0.2)
     args = ap.parse_args()
 

@@ -24,7 +24,7 @@ Two traps produced confidently wrong numbers first, and both are pinned below:
   available to a metric whose job is to detect an ordering change, because a broken metric
   is indistinguishable from a healthy one.
 
-2026-10-30 cleanup (docs/inspection.md F3): the PDF-level wrapper
+2026-10-30 cleanup (docs/inspections/inspection.md F3): the PDF-level wrapper
 `ordering.date_order_report` and its report class are deleted — no live spec cites
 them and nothing in production called them. The tests below pin the *wired* path:
 `departures_from_descending` (urtpe/cli.py) and `archive.record_ordering`. The two

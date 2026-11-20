@@ -308,23 +308,33 @@ other evidence resolves their identity.
 
 ## 6. Header verification and open issues
 
-The follow-up check called `get_project168_top.ashx` for 594 candidate rows: 497 active
-rows and 97 unknown-status rows. It measured:
+The follow-up check called `get_project168_top.ashx` once for each of 594 candidate rows, on
+2026-11-19. The candidates came from the screen of §5 as it ran then (497 active rows and 97
+unknown-status rows). Re-screening with `candidate_names` (§5) leaves 580 of those 594 as
+candidates: 493 active rows and 87 unknown-status rows. All 580 were already in the saved
+check, so the corrected figures below come from the saved replies. No new request was made.
 
-| Check | Result |
-|---|---:|
-| Candidate rows | 594 |
-| Successful header responses among active rows | 495 |
-| Failed checks | 4 |
-| Active rows with a different header status | 82 |
-| Active rows whose header already reported approval | 1 |
-| Active rows whose header reported a closed outcome | 3 |
-| Unknown-status rows whose header reported an active status | 2 |
+| Check | As run 2026-11-19 | Corrected set, 2026-11-20 |
+|---|---:|---:|
+| Candidate rows | 594 | 580 |
+| Successful header responses among active rows | 495 | 492 |
+| Successful header responses among unknown rows | 95 | 85 |
+| Failed checks | 4 | 3 |
+| Active rows with a different header status | 82 | 80 |
+| Active rows whose header already reported approval | 1 | 1 |
+| Active rows whose header reported a closed outcome | 3 | 3 |
+| Unknown-status rows whose header reported an active status | 2 | 2 |
+| Active rows with a different header name / place / applicant | 9 / 7 / 3 | 7 / 5 / 1 |
 
-The four failures were three `no header row` results and one connection reset. A failed
-check is unknown evidence, not proof that a case is absent or inactive.
+The 14 rows that left the candidate set fall in three groups. Four are the amendments of §5
+that the Viewer holds under another id. Six are `無` rows whose case name the Viewer holds under
+another id. Four are `無` rows that joined the Viewer in commit `6b97a83` under the same id
+(`11501012`, `11501044`, `11507015`, `11508008`). One of the four earlier failures, for
+`11505026`, left with the amendments. The three failures that remain are two `no header row`
+results (`10503041`, `11409034`) and one connection reset (`11410052`). A failed check is
+unknown evidence, not proof that a case is absent or inactive.
 
-The 82 status disagreements show that the district table and detail header are not
+The 80 status disagreements show that the district table and detail header are not
 interchangeable. Store both values with their observation times. Do not choose one silently
 as the universal current status.
 
@@ -404,9 +414,10 @@ pipeline output, and nothing in the repository reads it or writes to it.
 - The field comparison of §3.
 - The nine amendments and the three meeting-label records of §5.
 
-**What it holds.** The page is `files/index.html`, at version 2. Seven datasets feed it:
+**What it holds.** The page is `files/index.html`, at version 3. Seven datasets feed it:
 `cp`, `p168`, `viewer`, `duplicates`, `special`, `fields` and `meta-source`. They are fixed
-copies. They do not refresh themselves. Six of them are dated 2026-11-19.
+copies. They do not refresh themselves. Five of them are dated 2026-11-19. Two were
+replaced on 2026-11-20: `viewer` and `special`.
 
 The `viewer` dataset is the exception. On 2026-11-20 it was replaced with a rebuild from
 the payload at commit `6b97a83`. It now holds 2,028 case IDs, as in the "Current" column
@@ -434,6 +445,13 @@ difference. The artifact page does the subtraction in the browser.
 **One file has no script.** `special-records.json` (the nine amendments, the three
 meeting labels and the screening counts) was written by hand. It is a reading of the header
 evidence of §5 and §6, not a computation. The build script does not make it.
+
+**The 2026-11-20 corrections.** The page and `special-records.json` now carry the corrected
+screen of §5 and §6. The file keeps both sets of counts: `as_run_2026_11_19` (497, 421, 9)
+and `corrected_2026_11_20` (493, 417, 5). The page uses the corrected counts. It marks the
+four amendments that the Viewer holds under another id, and it no longer says that the city
+typed an id wrongly. `check` read `passed` after the change. The user has not yet looked at
+the new text, so what the page shows is not confirmed here.
 
 **One manual fact.** The header check never asked about `11510016`. It is a conflicting ID
 that the screen did not select. Its header was read once on 2026-11-19, and the build script

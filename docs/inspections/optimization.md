@@ -1,13 +1,13 @@
 # Optimization board — update automation, gen-1 membership, gen-2 viewer
 
 Collected 2026-11-15 to 2026-11-20. Item identifiers do not change: `U1–U8`, `A1–A7`,
-`U-D1–U-D5`, `M1–M4`, `D11` and `O1–O7`.
+`U-D1–U-D5`, `M1–M4`, `D11`, `O1–O9` and `O-D1–O-D6`.
 
 | Part | Subject | Items | Priority | Origin |
 |---|---|---|---|---|
 | I | Run the PDF and city-platform update as one deterministic cycle | U1–U8, A1–A7, U-D1–U-D5 | **P1** | exploration 2026-11-19 |
 | II | Gen-1 membership: measurements that follow decisions D11 and S3/S5 | M1–M4, D11 | **P2** | moved here from `docs/inspections/inspection-batchF.md` |
-| III | Gen-2 viewer: one `project_uid` for applications and approvals | O1–O7, O-D1–O-D3 | **P3** | exploration 2026-11-19, re-measured 2026-11-20 |
+| III | Gen-2 viewer: one `project_uid` for applications and approvals | O1–O9, O-D1–O-D6 | **P3** | exploration 2026-11-19, re-measured 2026-11-20 |
 
 **Why this order.** Part I depends on nothing in Parts II and III. It protects the data
 that both of them read. Part II decides how a city case joins a unit. Part III adds a new
@@ -49,11 +49,13 @@ Execute top to bottom. A row waits for every item in its "Depends on" column.
 | 11 | III | **O3** — keep meeting-label rows out of project counts | **P3** | filter rule | O1 |
 | 12 | III | **O5** — match amendments through `membership_verdict` | **P3** | match rule + manual review | O1, D11, M4 |
 | 13 | III | **O6** — separate pending dataset | **P3** | payload shape | O1–O3, O5 |
-| 14 | III | **O7** — prove on the nine matched units | **P3** | ledger entries, no graph change | O1–O3, O5, O6 |
-| 15 | III | **O4** — reuse the Viewer UI components | **P3** | direct fix after the payload exists | O6 |
-| 16 | I | **A7** — optional read-only diagnostic agent | **P3** | OpenSpec change | A4–A6, U-D5 |
+| 14 | III | **O9** — fit the pending lane into the ETL and the update cycle | **P3** | OpenSpec change | O6, A4–A6, O-D4–O-D6 |
+| 15 | III | **O7** — prove on the nine matched units | **P3** | ledger entries, no graph change | O1–O3, O5, O6 |
+| 16 | III | **O8** — what the gen-2 Viewer shows | **P3** | design, then a read-only page | O6, O7 |
+| 17 | III | **O4** — reuse the Viewer UI components | **P3** | direct fix after the payload exists | O6, O8 |
+| 18 | I | **A7** — optional read-only diagnostic agent | **P3** | OpenSpec change | A4–A6, U-D5 |
 
-Three dependencies cross Part boundaries:
+Four dependencies cross Part boundaries:
 
 1. **O5 depends on D11 and M4.** Matching an application to a unit is a membership
    decision. It must be one more named policy of `membership_verdict`, with its own golden
@@ -62,6 +64,9 @@ Three dependencies cross Part boundaries:
    gazette appears. A pending dataset that refreshes only with the PDF cycle is always old.
 3. **O1 reads what A1–A5 protect.** The identity layer reads the Viewer payload and the
    city cache. A4 and A5 keep those from being written by two runs at once.
+4. **O9 changes Part I.** A pending lane adds an acquisition step, a join step and three
+   state layers to the update cycle. Part I stays correct for the approved lane. O9 lists
+   the effect on U1–U7.
 
 ---
 
@@ -80,6 +85,9 @@ Three dependencies cross Part boundaries:
 | O-D1 | Where does the identity ledger live, and who may append? | a separate append-only file with the correction ledger's rules (keyed on land core and date, never on 編號 or `case_id` alone) | **undecided** |
 | O-D2 | What evidence assigns a record to a `project_uid`? | the `membership_verdict` land-core rule, the same district, and manual review for every ambiguous match (O5 measured one) | **undecided** |
 | O-D3 | Does any of the four conflicting IDs get a ledger correction? | no. Record the evidence; let the city correct its own ID | **undecided** |
+| O-D4 | Do the approved lane and the pending lane fail independently (O9)? | yes. A pending-lane failure stops that lane only. The old pending file stays and is marked stale with its observation time. | **undecided** |
+| O-D5 | Where does the pending lane write? | its own output tree with its own lock. It reads `data/projects.json` at one named revision and never writes `data/`. | **undecided** |
+| O-D6 | Does the district crawl have its own cadence? | yes. This answers U-D4 for the pending lane. Decide the interval after the change rate is measured. | **undecided** |
 
 ---
 
@@ -330,6 +338,9 @@ push. A6 and A7 are separate expansions, not hidden parts of the PDF-cycle imple
 U-D1 to U-D5 are in the "Decisions to make" table at the top of this board. All five are
 undecided.
 
+**If Part III goes ahead.** The district tables add a second lane to this cycle. See O9. Part I
+stays correct for the approved lane and is not rewritten.
+
 ---
 
 ## Part II — Gen-1 membership: measurements after decisions D11 and S3/S5 (M1–M4)
@@ -385,11 +396,12 @@ anchor record's built core; it covers S5 only, not S3 (the offer step); a node's
 
 ---
 
-## Part III — Gen-2 viewer: one `project_uid` for applications and approvals (O1–O7)
+## Part III — Gen-2 viewer: one `project_uid` for applications and approvals (O1–O9)
 
-Seven items. They explore whether the current Viewer interface can be reused for a
+Nine items. O1–O7 explore whether the current Viewer interface can be reused for a
 generation-2 Viewer that holds district-page applications and gazette approvals under one
-stable `project_uid`. Priority P3: it adds a source and an identity layer, and it waits for
+stable `project_uid`. O8 and O9 were added on 2026-11-20 from the design discussion. They
+are proposals, and each one says what was measured. Priority P3: it adds a source and an identity layer, and it waits for
 Part II. Everything below was measured offline unless it says it made requests. The
 2026-11-20 re-measurements read three live case headers (3 requests, read-only).
 
@@ -492,7 +504,7 @@ differs:
 - no edges until an amendment links to a base application by unit evidence
 
 **Recommendation: gen-2 needs its own payload and its own field handling.** Reuse the UI
-components, not the schema. This is the last step (O6 comes first).
+components, not the schema. This step comes after O6 and O8.
 
 ### O5 — attach amendments to units by land core, through `membership_verdict`
 
@@ -592,6 +604,104 @@ established. The other three conflict rows (大同 393, 大同 圓環184, 中正
 **Recommendation: prove gen-2 on these nine units first.** Add units only by user decision
 after each match is checked.
 
+### O8 — what the gen-2 Viewer shows
+
+**The question.** What does a reader see once one unit holds both pending applications and
+approvals?
+
+**Measured 2026-11-20.** The district table gives each application one of many statuses. The
+mix over the 3,655 rows is far wider than "pending":
+
+| Status in the district table | Rows |
+|---|---:|
+| 業經本府核定 / 業經本府核准 | 726 / 236 |
+| 事業概要業已失效 | 498 |
+| 實施者自行撤回 / 申請人自行撤回 | 364 / 75 |
+| 執行階段 (completed, finished, under construction) | 295 / 259 / 194 |
+| 業經本府駁回 | 236 |
+| 業已提出申請審查 | 178 |
+| 無 | 120 |
+| 業已辦理公開展覽 | 102 |
+| 業經幹事會審查 | 85 |
+| 業申請幹事會審查 | 45 |
+
+The 168 list holds 468 of the 3,651 district ids (12.8%). So an application can end
+approved, withdrawn, rejected or expired. A gen-2 page must show all of these. It must not
+call every district row "pending".
+
+**Proposed form (not measured).** One timeline per unit. Each application is one entry.
+Each approval is one entry. An entry carries its source: the district table, the live
+header, or the gazette. The reader sees:
+
+- a filter for pending only, approved only, or both;
+- a filter for the review stage (the eleven phrases of the screen) and for the closed
+  outcomes;
+- the district, applicant and location;
+- a link to `r_progress_detail.aspx?case_id=<id>`;
+- a flag on a conflicting id, a missing header or a status that the district table and the
+  header disagree on (82 of 495 active rows on 2026-11-19).
+
+A district status and a gazette approval stay on separate lines. A pending application must
+never read as an approval. The district table and the header are two observations. Store
+both with their times, and do not pick one as the single current status.
+
+**Limits.** An application can end withdrawn or rejected and never reach a gazette.
+Several applications can run in one unit at the same time (O5: A基地 and B基地). A wrong
+`project_uid` needs a split entry in the ledger, so the ledger must support split and merge.
+
+**Recommendation: design the page from the status mix, then build a read-only page on the
+pending dataset.** Do this after O6 and O7.
+
+### O9 — fit the pending lane into the ETL and the update cycle
+
+**The question.** If the district tables join gen-2, what changes in the full ETL and in the
+Part I cycle?
+
+**Proposed form.** Gen-2 adds a second lane. It does not change the first.
+
+```text
+Lane A (approved, unchanged)  poll_gazette → archive → ingest → refresh → rebuild → payload
+Lane B (pending, new)         district crawl → snapshot → parse + dedup → header check
+Join   (new, after rebuild)   identity ledger + membership policy → pending dataset
+Publish                       post_ingest_check → one commit → push → check_deploy
+```
+
+Lane B follows the existing rule that acquisition never ingests. The crawl saves a
+snapshot, as the 168 poller does. A separate step builds the pending dataset. The approved
+graph, `projects.json` and the four PDF-derived layers do not change.
+
+**Effect on Part I.**
+
+| Item | Effect |
+|---|---|
+| U1 | The cycle gains a second acquisition step (the district snapshot) and a join step after the rebuild. A new gazette hash or a new district hash can start a cycle. |
+| U2 | Three new layers: the district snapshot (owner: the crawler), the pending dataset (owner: the join step) and the identity ledger (owner: a person appends). |
+| U3 | The processed-state record names both hashes and the payload revision the join step read. The crawl needs a completeness gate: all 12 districts fetched, no rejected rows, and a row-count check against the last snapshot. On failure it writes nothing. |
+| U4 | A Lane B failure stops Lane B. Lane A may still publish. The old pending file stays and is marked stale (O-D4). |
+| U5 | The pending dataset joins the commit's owned paths. The commit records which payload revision the join step read. |
+| U6 | New proofs: an unchanged district hash causes no rebuild; Lane B writes nothing under `data/`; the pending file names its payload revision. |
+| U7 | The district hash is a better trigger for a city-only cycle than the 168 hash, which covers 12.8% of district ids. Option B then means a district-hash cycle that runs Lane B and the join only, with no PDF layers. |
+| U8 | No change. An ambiguous match goes to a person through the ledger. |
+
+**The identity ledger follows the correction ledger.** `correction-ledger` entries are
+append-only, keyed on land core and approval date, never on 編號, and a mistake is
+corrected by a superseding entry. The 14 entries on file carry `match_land_core`,
+`match_iso_date`, `field`, `to`, `why`, `by`, `at`, `supersedes` and the two merge
+flags. An identity entry needs different fields (a `project_uid`, the evidence and a
+split or merge action). Decide that in O-D1.
+
+**The full ETL from scratch** gains Lane B: crawl, parse, dedup, screen, header check,
+match, ledger, emit. `docs/pipeline/etl_process.md` §11 needs a matching section. It stays
+untouched until a change opens.
+
+**Measured 2026-11-20:** a re-run of the crawl gave the same counts as 2026-11-19: 3,655
+rows, 3,651 ids, 497 active-review rows. I compared counts only, not row content.
+**Not measured:** how often the district tables change, and how long a full header pass
+takes. O-D6 waits for the first.
+
+**Recommendation: build the pending lane as its own lane, with its own tree and lock.**
+Open it as one OpenSpec change after O6, because it extends `gazette-cadence`.
+
 ---
 
 ## Appendix — method
@@ -610,6 +720,9 @@ after each match is checked.
   `expected_land_core_of_project_id`, the anchor node's parcels and the counts of all nodes;
   `membership_verdict(name, unit, "gate")` over the active rows, same district only.
 - **Viewer graph fields:** `viewer/app.js` lines 147, 935 and 1359 and `viewer/index.html`.
+- **O8 status mix:** counted `status` over the 3,655 distinct district rows on 2026-11-20
+  (the rows of 2026-11-19; the re-run gave identical counts). The 12.8% is 468 of 3,651
+  ids. The existing ledger was read from `urtpe-gazettes/corrections.jsonl` (14 entries).
 - **Part I:** read the scripts and specs it names. It cites `scripts/refresh_awaiting_caches.py:39`,
   `urtpe/links.py:618` and `:2354`, `openspec/specs/gazette-cadence/spec.md` and
   `docs/pipeline/etl_process.md` §11. The 2026-11-19 refresh figures (101 and 94 projects,
@@ -632,6 +745,7 @@ No pipeline run, ingest or deployment happened for this board. No file under `ur
 | O7: seven units, "cover the four conflicts" | Nine units. They cover the amendments and one conflict. |
 | Source line: 1,444 records, 675 projects, 2026-10-28 | 1,448 records, 676 projects, 2026-11-12. |
 | Probe outputs "live in the session scratchpad" | Three scripts reproduce them. |
+| Items O8 and O9 | New on 2026-11-20. Proposals from the design discussion. The status mix, the 12.8% and the ledger shape were measured; the page design and the lane layout were not. |
 | Part I: `docs/etl_process.md`, `urtpe/links.py:617`, `SingleWriterLock("data")` | `docs/pipeline/etl_process.md`; `urtpe/links.py:618`; a lock over the `data` output tree, as `scripts/refresh_second_id_source.py:96` takes it. |
 
 ## Provenance

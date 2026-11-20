@@ -1,7 +1,7 @@
 # Project inspection — Batch E · collected 2026-11-12, extended twice the same day (E1–E13)
 
 Nine work items. E1–E3 were carried over from the dashboard exploration notes
-(`docs/DashboardNUXUI.md`); E4–E9 were collected the same day from the user's
+(`docs/viewer/DashboardNUXUI.md`); E4–E9 were collected the same day from the user's
 badge and callout findings. The board follows the
 `docs/inspections/inspection-batchD.md` structure: findings, then the integrated plan,
 then the decisions that gate execution.
@@ -31,7 +31,7 @@ items separate so one change's review never blocks the others.
 ## E1 — the compatibility ideographs: one folding, two readers
 
 The full measurements live in batch D (D16, D16a–D16d) and in
-`docs/DashboardNUXUI.md` §11; they are not repeated here. This section records
+`docs/viewer/DashboardNUXUI.md` §11; they are not repeated here. This section records
 only what execution needs, re-verified 2026-11-12 on the 680-project payload.
 
 **The defect.** CJK compatibility ideographs are distinct byte sequences that
@@ -76,7 +76,7 @@ which character it is.
 
 **Form:** openspec change (`case-merging` is not touched; the cleanse module
 and the `data-cleansing` spec carry it). Test-first group: the six pins from
-`docs/DashboardNUXUI.md` §11.3, re-verified verbatim on 2026-11-12:
+`docs/viewer/DashboardNUXUI.md` §11.3, re-verified verbatim on 2026-11-12:
 
 1. the live case reads both tracks after folding;
 2. the 6 corpus records are unchanged in track;
@@ -182,7 +182,7 @@ out; windowing removes most of the appends and most of the layout.
 harness automatically** — it runs by hand and reaches no network
 (`AGENTS.md`). A windowed list without harness support ships with no automated
 check at all. So the change's first task is harness geometry, and the
-test-first gate (`docs/DashboardNUXUI.md` §13.1) is satisfied by the harness
+test-first gate (`docs/viewer/DashboardNUXUI.md` §13.1) is satisfied by the harness
 cases, not by pytest.
 
 **The four details that decide the review:**
@@ -769,7 +769,7 @@ records which are cleared to open.
 
 ## Cross-references
 
-- The measurements: `docs/DashboardNUXUI.md` §6 (render cost), §7
+- The measurements: `docs/viewer/DashboardNUXUI.md` §6 (render cost), §7
   (accessibility), §8 (scope), §11 + batch D D16a–D16d (the ideographs), §13
   (the gate).
 - The probes: `scripts/probe_nfkc_effect.py`,
@@ -784,5 +784,5 @@ records which are cleared to open.
 - E13's tool: `scripts/fetch_remaining_national_portal.py` (the sweep; its
   header documents the pacing, the retry ladder and the 06:30 deadline).
 - The lesson that scopes this batch: **a scope is a claim about what was not
-  measured** (batch D D16d; `docs/DashboardNUXUI.md` §11.4; the memory
+  measured** (batch D D16d; `docs/viewer/DashboardNUXUI.md` §11.4; the memory
   `scope-is-a-claim-about-what-was-not-measured`).

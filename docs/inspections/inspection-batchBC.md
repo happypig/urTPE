@@ -8,7 +8,7 @@ executed work on the main board: read them in `docs/inspections/inspection.md`
 ### Batch B — the §37/§38 residuals, collected 2026-11-03 — **QUEUED, not started**
 
 Every item below is a residual that §37 or §38 left open. The viewer-UX waves
-(`docs/viewer-UX.md`) changed how the viewer draws a case. They did not close any
+(`docs/viewer/viewer-UX.md`) changed how the viewer draws a case. They did not close any
 item here. Measured at `2b96e5b`, on the payload emitted 2026-11-02
 (1,442 records / 693 projects) and the 726 cache dirs.
 
@@ -23,7 +23,7 @@ item here. Measured at `2b96e5b`, on the payload emitted 2026-11-02
 | B7 | A view-verified case may belong to another project | 4 of 189 view-verified ids have a label whose land core is another project (similarity < 0.7): 10202065, 10906092, 09608220, 09807161. Under §8 decision 1 (the city name decides) 10906092 is accepted and 09511211 is rejected instead — see C3. **DONE 2026-11-04** — see C3 | done (= C3) | — |
 | B8 | 3 nameless 孤 anchors carry another project's milestones | 10202065 (中山254), 09511211 (大安557, 施工中), 09807161 (龍泉169). **DONE 2026-11-04**: all 3 rejected and offered to their owners; the corpus has 0 nameless orphans | done | — |
 
-**B7 and B8 are `docs/viewer-UX.md` §8 (wave 3b).** They are listed here
+**B7 and B8 are `docs/viewer/viewer-UX.md` §8 (wave 3b).** They are listed here
 because §8 was not started when this batch was collected, and because the 國 badge
 of wave 4 reads `view_verified_case_ids` without checking the project's own case
 name. Wave 4 landed on 2026-11-03. B7 must land before the badge can be trusted.
@@ -45,7 +45,7 @@ It is the shape B of §8.
 **Measured, not guessed.** B5 shrank from the 4 that §36 recorded: one cleared.
 B2 shrank from 5 to 4: 萬華894's 11010191 has no orphan node, because its
 milestones carry an approval date, so it anchors to a recno node instead.
-B7 counts the same 4 defects that `docs/viewer-UX.md` §8 recorded. The ids differ
+B7 counts the same 4 defects that `docs/viewer/viewer-UX.md` §8 recorded. The ids differ
 between the two measurements only in what the id list holds: the payload has 189
 view-verified ids in 143 projects, and the cache has 193 in 146 caches. The 4
 defects are the same 4 in both.
@@ -54,7 +54,7 @@ defects are the same 4 in both.
 
 The viewer-UX waves 1–5 landed (`91699bb`…`370ddb2`): §5 centered, §1+§6 the
 gutter, §7 the [無]/[NA] labels, §2 the 國 binding, §3+§4 the event/orphan
-placement. C3 (wave 3b, `docs/viewer-UX.md` §8, `reject-foreign-view-cases`)
+placement. C3 (wave 3b, `docs/viewer/viewer-UX.md` §8, `reject-foreign-view-cases`)
 landed on 2026-11-04: 146 caches verified under the lock, 4 rejections, 4
 offers, 1 label error accepted, 3 not confirmed; the 3 nameless 孤 anchors
 are gone (596 → 592 orphan nodes, all named). The C2 ordering hazard is now
@@ -77,7 +77,7 @@ holds what the gate removed.
 
 **C1 in detail (corrected 2026-11-03).** The first version of this row said
 the code "binds 430 labels the design would leave unbound". That was wrong.
-In `docs/viewer-UX.md` §2 and in the change's `design.md` decision 1, the
+In `docs/viewer/viewer-UX.md` §2 and in the change's `design.md` decision 1, the
 date rule applies only "if more than one node matches". A label with one
 stage+track candidate binds it, whatever the date. So the 421
 single-candidate drifts comply with the spec. The real defect is in
@@ -603,7 +603,7 @@ similarity was computed with `compute_landcore_similarity` against the
 project's own anchor land core. 4 ids score below 0.7. Every one of the 189
 labels has a land core, so none is undecidable.
 
-Two ids that `docs/viewer-UX.md` §8 listed do not fail this test:
+Two ids that `docs/viewer/viewer-UX.md` §8 listed do not fail this test:
 
 - 09905191 on 文山興安628-1 — the label names 興安段二小段628-1地號等12筆, which
   is the project's own anchor. The cache also holds 09810242, whose name says

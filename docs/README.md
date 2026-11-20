@@ -9,11 +9,11 @@ document's status: **current**, **generated**, **historical** or **temporary**.
 
 | Document | Purpose | Link stability |
 |---|---|---|
-| `etl_process.md` | Full PDF-to-publication runbook (§11). Keeps polling, ingestion, bounded repair, report generation, path-limited commit and deployment verification separate. | Section numbers stable; append only. |
-| `cli_flow_v2.md` | Current CLI and link-discovery flow. Line numbers are cited externally. | Append only; do not insert above. |
-| `domain_model.md` | Entity and Mermaid model in two blocks: record→graph path, and gazette cadence layer (archive, ledger, poller, change sets). | Current-payload facts carry `data-doc-field` markers; regenerate with `sync_domain_model.py`. |
-| `sync_architecture.md` | PDF-heartbeat + two-portals sync design. | Design exploration; companion to `facts_2_portals.md`. |
-| `cli_enhancement.md` | Forward design for portal-discovery CLI consolidation (library-first). Retire when OpenSpec change lands. | Marked current; superseded by spec on landing. |
+| `pipeline/etl_process.md` | Full PDF-to-publication runbook (§11). Keeps polling, ingestion, bounded repair, report generation, path-limited commit and deployment verification separate. | Section numbers stable; append only. |
+| `pipeline/cli_flow_v2.md` | Current CLI and link-discovery flow. Line numbers are cited externally. | Append only; do not insert above. |
+| `pipeline/domain_model.md` | Entity and Mermaid model in two blocks: record→graph path, and gazette cadence layer (archive, ledger, poller, change sets). | Current-payload facts carry `data-doc-field` markers; regenerate with `sync_domain_model.py`. |
+| `pipeline/sync_architecture.md` | PDF-heartbeat + two-portals sync design. | Design exploration; companion to `portals/facts_2_portals.md`. |
+| `pipeline/cli_enhancement.md` | Forward design for portal-discovery CLI consolidation (library-first). Retire when OpenSpec change lands. | Marked current; superseded by spec on landing. |
 
 ---
 
@@ -21,13 +21,13 @@ document's status: **current**, **generated**, **historical** or **temporary**.
 
 | Document | Purpose | Link stability |
 |---|---|---|
-| `facts_2_portals.md` | Portal reference: endpoints, field maps, open issues, priorities. Points to `portal_operations_log.md` for dated narratives. | Table of contents and § anchors stable. |
-| `portal_operations_log.md` | Append-only operational record. Anchors `§6.x` and `§16–§19` are preserved for citations. | **Append only**; new sessions append at the bottom. |
-| `urotpe_api.md` | `gis.uro.taipei /ashx/` API inventory: 40 endpoints, 37 live, 3 dead, 5 used by pipeline. | Inventory is a dated probe; cross-references `urotpe_district_pages.md`. |
-| `urotpe_district_pages.md` | `uro.gov.taipei cp.aspx` district case tables: 12 pages, 3,655 rows, 3,651 IDs, four conflicting IDs, screening results. | Dated measurements; not a live contract. |
-| `urotpe_api_vs_pdf.md` | Comparison of API-derived data against PDF gazette records. | Dated comparison. |
-| `final_results_json_api.md` | Detailed JSON API endpoint documentation and merge findings. | Dated probe results. |
-| `gap_after_json_api.md` | Gaps between API data and pipeline needs. | Dated. |
+| `portals/facts_2_portals.md` | Portal reference: endpoints, field maps, open issues, priorities. Points to `portals/portal_operations_log.md` for dated narratives. | Table of contents and § anchors stable. |
+| `portals/portal_operations_log.md` | Append-only operational record. Anchors `§6.x` and `§16–§19` are preserved for citations. | **Append only**; new sessions append at the bottom. |
+| `portals/urotpe_api.md` | `gis.uro.taipei /ashx/` API inventory: 40 endpoints, 37 live, 3 dead, 5 used by pipeline. | Inventory is a dated probe; cross-references `portals/urotpe_district_pages.md`. |
+| `portals/urotpe_district_pages.md` | `uro.gov.taipei cp.aspx` district case tables: 12 pages, 3,655 rows, 3,651 IDs, four conflicting IDs, screening results. | Dated measurements; not a live contract. |
+| `portals/urotpe_api_vs_pdf.md` | Comparison of API-derived data against PDF gazette records. | Dated comparison. |
+| `portals/final_results_json_api.md` | Detailed JSON API endpoint documentation and merge findings. | Dated probe results. |
+| `portals/gap_after_json_api.md` | Gaps between API data and pipeline needs. | Dated. |
 
 ---
 
@@ -35,11 +35,11 @@ document's status: **current**, **generated**, **historical** or **temporary**.
 
 | Document | Purpose | Link stability |
 |---|---|---|
-| `viewer-UX.md` | Viewer improvement backlog, numbered entries (`viewer-UX §N`) with problem, design, trade-offs, spec impact. | Append; do not renumber. |
-| `viewer_sort_rules.md` | Decision record for sort order and cross-row filters. | Decision record; append only. |
-| `sorting_connecting_rules.md` | Sorting and graph-connection rules. | Decision record. |
-| `DashboardNUXUI.md` | Dashboard NUX/UI investigation with three open items. | Investigation record. |
-| `graph-tabs-decision.html` | Tab-design decision page. | Static page. |
+| `viewer/viewer-UX.md` | Viewer improvement backlog, numbered entries (`viewer-UX §N`) with problem, design, trade-offs, spec impact. | Append; do not renumber. |
+| `viewer/viewer_sort_rules.md` | Decision record for sort order and cross-row filters. | Decision record; append only. |
+| `viewer/sorting_connecting_rules.md` | Sorting and graph-connection rules. | Decision record. |
+| `viewer/DashboardNUXUI.md` | Dashboard NUX/UI investigation with three open items. | Investigation record. |
+| `viewer/graph-tabs-decision.html` | Tab-design decision page. | Static page. |
 
 ---
 
@@ -60,9 +60,9 @@ document's status: **current**, **generated**, **historical** or **temporary**.
 
 | Document | Purpose | Link stability |
 |---|---|---|
-| `dataset_completeness_audit.md` | 2026-10-26 post-recovery audit: per-gazette binding, 718→709→694 viewer-count history, record churn. | Dated audit. |
-| `gazette-churn.md` | Generated project-count churn between gazettes. | Generated; do not hand-edit. |
-| `stranded-cache-dirs.md` | Generated orphan cache directory report. | Generated; do not hand-edit. |
+| `audits/dataset_completeness_audit.md` | 2026-10-26 post-recovery audit: per-gazette binding, 718→709→694 viewer-count history, record churn. | Dated audit. |
+| `audits/gazette-churn.md` | Generated project-count churn between gazettes. | Generated; do not hand-edit. |
+| `audits/stranded-cache-dirs.md` | Generated orphan cache directory report. | Generated; do not hand-edit. |
 
 ---
 
@@ -86,13 +86,13 @@ All links are relative, so the chain also works from `file://`.
 
 | Document | Origin | Why historical |
 |---|---|---|
-| `cli_flow.archive.md` | v1 CLI flow diagram, replaced by `cli_flow_v2.md` | Dead; archived. |
-| `facts_2_portals.archive.md` | v1 portal reference, superseded by `facts_2_portals.md` | Closed. |
-| `ingest_0924_review_report.txt` | One-shot ingestion review | Dated output. |
-| `ingest_1001_rereview_report.txt` | One-shot re-review | Dated output. |
-| `信義區永吉段四小段44地號等26筆.md` | Case-specific investigation | Dated output. |
-| `gap_after_json_api.md` | Gaps after JSON API discovery | Superseded by portal docs. |
-| `final_results_json_api.md` | Detailed endpoint docs | Partially superseded; some findings still relevant. |
+| `history/cli_flow.archive.md` | v1 CLI flow diagram, replaced by `pipeline/cli_flow_v2.md` | Dead; archived. |
+| `history/facts_2_portals.archive.md` | v1 portal reference, superseded by `portals/facts_2_portals.md` | Closed. |
+| `history/ingest_0924_review_report.txt` | One-shot ingestion review | Dated output. |
+| `history/ingest_1001_rereview_report.txt` | One-shot re-review | Dated output. |
+| `history/信義區永吉段四小段44地號等26筆.md` | Case-specific investigation | Dated output. |
+| `portals/gap_after_json_api.md` | Gaps after JSON API discovery | Superseded by portal docs. |
+| `portals/final_results_json_api.md` | Detailed endpoint docs | Partially superseded; some findings still relevant. |
 
 ---
 
@@ -121,11 +121,11 @@ instead.
 
 ## Link maintenance
 
-- `cli_flow_v2.md` line numbers are cited from outside (`openspec/changes/archive/2026-10-05-no-silent-data-loss/proposal.md` pins line 83). Do not reorganize it without updating external citations.
-- `portal_operations_log.md` section anchors (`§6.x`, `§16–§19`) are durable citations. Preserve them on any edit.
+- `pipeline/cli_flow_v2.md` line numbers are cited from outside (`openspec/changes/archive/2026-10-05-no-silent-data-loss/proposal.md` pins line 83). Do not reorganize it without updating external citations.
+- `portals/portal_operations_log.md` section anchors (`§6.x`, `§16–§19`) are durable citations. Preserve them on any edit.
 - Inspection batches use fixed identifiers (F1–F9, O1–O7). Do not renumber.
 - Generated HTML files must keep their current paths for GitHub Pages and the Viewer.
-- `docs/inspection.md` is the master pointer. Update it when a batch is added.
+- `inspections/inspection.md` is the master pointer. Update it when a batch is added.
 
 ---
 

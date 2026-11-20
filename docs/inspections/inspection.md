@@ -66,7 +66,7 @@ openspec change), and its gate.
    residual family**; the remaining 32 dirs-without-live-projects are
    old-generation caches from identities that left the list long ago (the known
    portal-history churn, documented in the regenerated
-   `docs/stranded-cache-dirs.md`). The doc now says **1**, agreeing with the
+   `docs/audits/stranded-cache-dirs.md`). The doc now says **1**, agreeing with the
    aliases file. `data/project_aliases.json` regenerated (committed).
 2. **Rerun the 10-15 ingestion when gis.uro recovers** — **DONE 2026-11-01.**
    API probe passed (family returned 15 members instantly), ingestion exit 0:
@@ -123,7 +123,7 @@ New change, created when Waves 1–4 are done. Two requirements, one delta:
    wins; `ambiguous-zone` is part of the input, not a tiebreak by itself.
 2. **G2 — id-space normalisation.** `recovery.cases` carries both R-form
    (`R089213-02`) and numeric spellings across publications (documented
-   `docs/urotpe_api.md` §4); normalise before any join keyed on case id. Absent
+   `docs/portals/urotpe_api.md` §4); normalise before any join keyed on case id. Absent
    from the current payload (188 is the residual) but returns with item 2 of
    Wave 1.
 
@@ -176,7 +176,7 @@ key, D2 the ghost-date echo and the date-first sort revisit) live in
 
 ### Batch E — collected in `docs/inspections/inspection-batchE.md`
 
-The dashboard notes' (`docs/DashboardNUXUI.md`) three open items became a
+The dashboard notes' (`docs/viewer/DashboardNUXUI.md`) three open items became a
 batch on 2026-11-12: **E1** the compatibility-ideograph fix (one NFKC folding
 at the cleansing boundary; two readers — the live track break on case
 `11507018` and the 6-row identity break; the six-pin test group is specified),
@@ -359,7 +359,7 @@ case→record bindings, 981 distinct cases, 971 virtual entries / 951 distinct.
 - **G1** (join precedence; the peer's disjointness claim corrected — the sets
   overlap, `links.taipei` carries six ids including both recovery cases) → Wave 5
   (change D′).
-- **G2** (R-form/numeric dual id space, real per `docs/urotpe_api.md` §4; absent
+- **G2** (R-form/numeric dual id space, real per `docs/portals/urotpe_api.md` §4; absent
   from the current payload because 188 is the residual) → Wave 5 (change D′).
 - **G3** (stranded counts: doc 23 / aliases 27 / plan note 32 / live 31−2) →
   Wave 1 item 1.

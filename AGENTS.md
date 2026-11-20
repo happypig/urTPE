@@ -222,29 +222,29 @@ Violating any of these corrupts output silently rather than raising.
 
 ## Docs — which one answers your question
 
-- `docs/facts_2_portals.md` — portal reference: endpoints, field maps, open issues, priorities.
-- `docs/portal_operations_log.md` — append-only dated record; **new sessions append at the
+- `docs/portals/facts_2_portals.md` — portal reference: endpoints, field maps, open issues, priorities.
+- `docs/portals/portal_operations_log.md` — append-only dated record; **new sessions append at the
   bottom**, and it is what keeps citations like "§6.7" or "§18 rule 1" resolving.
-- `docs/cli_flow_v2.md` — current CLI/link-discovery flow. It grew by accretion and its
+- `docs/pipeline/cli_flow_v2.md` — current CLI/link-discovery flow. It grew by accretion and its
   line numbers are cited from outside (`openspec/changes/archive/2026-10-05-no-silent-data-loss/proposal.md`
   pins line 83, and `scripts/baseline_silent_failures.py` asserts that row still reads
   "recommended"). **Append; do not insert above it.**
-- `docs/domain_model.md` — entity/mermaid model, in two blocks: the record→graph path, and
+- `docs/pipeline/domain_model.md` — entity/mermaid model, in two blocks: the record→graph path, and
   the gazette cadence layer (archive, ledger, poller, change sets).
   `docs/domain-model.html` — its self-contained bilingual rendering (no CDN, opens from
   `file://`). Current-payload facts carry `data-doc-field` markers; regenerate with
   `python scripts/sync_domain_model.py`. `docs/etl_process.html` follows the same
   rule via `python scripts/sync_etl_process.py`. The full PDF-to-publication runbook is
-  `docs/etl_process.md` §11; it keeps polling, ingestion, bounded repair, report generation,
-  path-limited commit and deployment verification separate. `docs/cli_flow.archive.md` — dead, archived.
-- `docs/gazette-churn.md`, `docs/stranded-cache-dirs.md` — generated; do not hand-edit.
-- `docs/dataset_completeness_audit.md` — the 2026-10-26 post-`recover-truncated-rows-via-api`
+  `docs/pipeline/etl_process.md` §11; it keeps polling, ingestion, bounded repair, report generation,
+  path-limited commit and deployment verification separate. `docs/history/cli_flow.archive.md` — dead, archived.
+- `docs/audits/gazette-churn.md`, `docs/audits/stranded-cache-dirs.md` — generated; do not hand-edit.
+- `docs/audits/dataset_completeness_audit.md` — the 2026-10-26 post-`recover-truncated-rows-via-api`
   audit: per-gazette record→project binding, the 718→709→694 viewer-count history, and
   record churn between consecutive publications (only 1151002 churns). Generated scripts
   were ad-hoc; the method is reproduced in its Appendix A.
-- `docs/sync_architecture.md` — the PDF-heartbeat + two-portals sync design; was the design
+- `docs/pipeline/sync_architecture.md` — the PDF-heartbeat + two-portals sync design; was the design
   `gazette-ingest-cadence` was cut from.
-- `docs/viewer-UX.md` — viewer improvement backlog, one numbered entry (`viewer-UX §N`)
+- `docs/viewer/viewer-UX.md` — viewer improvement backlog, one numbered entry (`viewer-UX §N`)
   per proposal with problem, design, trade-offs and spec impact. Append; do not renumber.
   An entry is a candidate — open an openspec change before implementing it.
 - `docs/temp.*` — ignored paste pad, deliberately untracked.

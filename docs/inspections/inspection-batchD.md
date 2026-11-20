@@ -109,7 +109,7 @@ Measured shapes:
 label — the 寶清375 shape). A 概要-track case keeps 概要核准日期 as its own
 approval. Re-measure after: the 25 same-date pairs drop to ~7 (genuine
 same-day serials only); the "dead-track-leads" inversions disappear from
-the 51-project list (D12's known cost, `docs/viewer_sort_rules.md`).
+the 51-project list (D12's known cost, `docs/viewer/viewer_sort_rules.md`).
 
 **Form:** openspec change (`virtual-milestone-nodes` delta: ghost dates
 read only the case's own track approval; payload re-emit).
@@ -151,7 +151,7 @@ What it costs (all placement rules, not data):
 5. **D12 is a recorded user decision in the spec**
    (`virtual-milestone-nodes`, `openspec/changes/archive/2026-09-02-add-virtual-node-ordering-and-chain/design.md`
    D12 + Amendment 3). Overturning it needs the change + the re-measure
-   recorded on the board, with `docs/viewer_sort_rules.md` rewritten
+   recorded on the board, with `docs/viewer/viewer_sort_rules.md` rewritten
    (its "do not sort by date" section becomes the history).
 
 **Dependency: D2a first.** D2b's key reads the same fields D2a fixes. Run
@@ -2480,7 +2480,7 @@ So the finding is recorded as the **measurements** (D16a–D16c) with the probes
 that produced them, and a reader who wants to check the scope can re-run them
 instead of trusting a conclusion that has already been wrong six times. The
 same six corrections, in the same table, are recorded in
-`docs/DashboardNUXUI.md` §14.0 — and
+`docs/viewer/DashboardNUXUI.md` §14.0 — and
 `scripts/probe_two_correction_tables.py` compares the two tables cell for
 cell, so their agreement is measured rather than believed.
 

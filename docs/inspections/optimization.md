@@ -439,9 +439,10 @@ or merged later.
 
 **Measurement.** Four ids print two cases each on the district pages. The live header of
 the printed id names only one of the two. For three of the four, the other id is known.
-The Viewer holds `11510011`, `11510014` and `11510015` on the three 松山 projects. On
-2026-11-20 their live headers named the same 松山 cases that the district tables print under
-`11509011`, `11509014` and `11509015`.
+The Viewer holds `11510011`, `11510014` and `11510015` on the 松山 projects. On 2026-11-20
+their live headers named the same 松山 cases whose rows the district tables print under
+`11509011`, `11509014` and `11509015`. The case header answers under a different id than
+the one the district table prints. This board does not say why.
 
 | Printed `case_id` | Row A | Row B | Header of the printed id names | The id of Row B |
 |---|---|---|---|---|
@@ -451,8 +452,11 @@ The Viewer holds `11510011`, `11510014` and `11510015` on the three 松山 proje
 | `11510016` | 信義區 信義段二小段133地號等12筆 (友座建設) | 大安區 仁愛段五小段480地號等2筆(原1筆) (合作金庫資產管理) | Row B (大安) | not established for the 信義 row |
 
 The headers of `11510014` and `11510015` carry the same case name, with no A基地 or B基地
-suffix. Only the district rows tell the two apart. The Viewer holds both ids on one project,
-`松山區-寶清段二小段-353-2地號等21筆`.
+suffix, so the headers do not tell the two apart. The pairing comes from the Viewer's
+`candidate_names`: `11510014` is named `…(A基地及道路用地)` and `11510015` is named
+`…(B基地)`. The district rows carry `(A基地)` and `(B基地)`. For `11510015` the names are
+exactly equal. For `11510014` they differ by the suffix `及道路用地`. The Viewer holds both
+ids on one project, `松山區-寶清段二小段-353-2地號等21筆`.
 
 **Proposed form.** Each application keeps its own `application_id` and `case_id`.
 `case_id` links to `r_progress_detail.aspx?case_id=<id>` for status. `project_uid` groups
@@ -526,11 +530,17 @@ By district, section and first parcel, each of the nine amendments names a unit 
 Viewer already holds. Three of the nine (`11509011`, `11509014`, `11509015`) are the 松山
 rows of O2. The Viewer holds them under `11510011`, `11510014` and `11510015`. The district
 screen counted them as absent for two reasons. The printed id differs. The probe also
-compared names against node case names only, and it did not read `candidate_names`. On
-2026-11-20 the exact printed name of `11509011` and `11509015` is among the Viewer's
-candidate names. The name of `11509014` differs by a suffix (`A基地` against
-`A基地及道路用地`). So the 497 and the nine amendments are slightly overcounted by this
-screen. This board did not recompute them. Also, 387 of the 485 new applications sit in a section where the Viewer holds a
+compared names against node case names only, and it did not read `candidate_names`.
+
+**Recomputed 2026-11-20** on the saved distinct rows and the current payload, with the
+candidate names read. The active-review rows fall from 497 to **493**, and those outside the
+168 list from 421 to **417**. The new applications stay at 485. The amendments fall from
+nine to **five**. Four are held in the Viewer under another id and drop out: `11508005`
+(`10806012`), `11509011` (`11510011`), `11509015` (`11510015`) and `11505026`
+(`11510009`). `11509014` stays because its name differs by a suffix. So O5's population is
+five amendments that the Viewer lacks and four that it already holds under another id.
+The table above ran on the older screen, so its first row and third row are unchanged.
+Also, 387 of the 485 new applications sit in a section where the Viewer holds a
 unit, on other parcels. Those are separate units, not amendments.
 
 Two limits. The unit's land core came from the project id, not from the cache. The
@@ -727,7 +737,14 @@ Open it as one OpenSpec change after O6, because it extends `gazette-cadence`.
   `urtpe/links.py:618` and `:2354`, `openspec/specs/gazette-cadence/spec.md` and
   `docs/pipeline/etl_process.md` §11. The 2026-11-19 refresh figures (101 and 94 projects,
   8 dates, 14 statuses, 6 cases) come from the session that ran it. Their run output is not
-  kept, and this board did not re-measure them.
+  kept, and this board did not re-measure them. The 101 selections, the 94 later candidates
+  and the 96 still-awaiting cases are different populations and are not interchangeable.
+  The scheduled-task description comes from the runbook. This board did not inspect or
+  change the Windows task.
+- **Part I automation options:** work was classified against the existing acquisition-only
+  specification, the single-writer contract, the bounded repairs, path-limited publication
+  and the byte-for-byte deploy check. No automatic commit, push, scheduling or agent
+  invocation was performed.
 - **Part II:** the method of M1–M4 is the Batch F appendix
   (`docs/inspections/inspection-batchF.md`, "Appendix — method"). The scripts were ad hoc.
 
@@ -741,7 +758,7 @@ No pipeline run, ingest or deployment happened for this board. No file under `ur
 | O1: the three Viewer-only ids sit "in the 松山 conflict cluster" | They are the 松山 cases' own ids, read live. See O2. |
 | Order table: step labels did not match the section ids (O4 for the pending payload, O6 for the proof population, O7 for UI reuse) | The table names each item by its own section id. |
 | O4: `viewer/app.js` line 146 | Line 147. |
-| O5: nine amendments are "outside the Viewer" | Each of the nine names a unit the Viewer holds. Three are already held under another id. The screen that found nine did not read `candidate_names`, so the nine is an upper bound. |
+| O5: nine amendments are "outside the Viewer" | Each of the nine names a unit the Viewer holds. Recomputed with `candidate_names`: five amendments are absent from the Viewer; four are held under another id (`10806012`, `11510011`, `11510015`, `11510009`). The 497 active rows become 493. |
 | O7: seven units, "cover the four conflicts" | Nine units. They cover the amendments and one conflict. |
 | Source line: 1,444 records, 675 projects, 2026-10-28 | 1,448 records, 676 projects, 2026-11-12. |
 | Probe outputs "live in the session scratchpad" | Three scripts reproduce them. |
@@ -750,8 +767,18 @@ No pipeline run, ingest or deployment happened for this board. No file under `ur
 
 ## Provenance
 
-Parts I and II were written by other sessions on 2026-11-19 and kept uncommitted in this
-file. A `git checkout` on 2026-11-20 discarded them. They were rebuilt from the diff that
-this session had printed before the revert. Their text is unchanged except for the
-corrections in the last table, the labels `M1–M4`, and the new path names. A later edit by
-the other session after that diff, if any, is not in this copy.
+Parts I and II were written by another session (transcript `1db9b1d5…`, 2026-11-20) and kept
+uncommitted in this file. A `git checkout` run in this session discarded them. They were
+rebuilt from the diff that this session had printed before the revert.
+
+**Checked 2026-11-20.** The rebuilt text was compared line by line with the text of that
+session's own `Edit` calls on the file, read from its transcript. Part I differs in 0
+lines. Part II differs in 1 line, which is a trailing `## Order` heading that belongs to the
+next section. The edits this session made on purpose are the new part titles, the `docs/`
+path updates, `urtpe/links.py:617` corrected to `:618`, the labels `M1–M4`, the move of the
+five automation decisions into one table, and the corrections table above.
+
+That session also edited the top of the file and the appendix (edits 4113 to 4118). Those
+edits are carried in the reorganized header, the Rules for this board and the appendix. The
+appendix lines about the different refresh populations and the Windows task were first
+dropped in the rewrite and are restored.

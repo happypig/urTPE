@@ -36,6 +36,8 @@ the compatibility-ideograph fix, Part 1 URL+keyboard, the windowed list) →
 | Batch B + C plan | re-reviewed 2026-11-04: S0–S16 + R in 4 waves; S7, S8, S12, S14, S16 merged into other steps; S3 done; no user decision open — see `docs/inspections/inspection-batchBC.md` |
 | Batch D | collected 2026-11-04: D1 (orphan `milestones_national` holds Taipei data), D2 (ghost-date echo + the date-first sort revisit), D3 (國 key bug: 223 later-變更 labels never bind), D4 (list badges, filters, 使照 edge bug: 287 events drawn national, edges out of dead ends) — see `docs/inspections/inspection-batchD.md` |
 | Batch E | collected 2026-11-12: E1 (the compatibility ideographs — one NFKC folding, two readers), E2 (Part 1: URL write-back + keyboard, steps 1–4), E3 (the windowed list, harness first) — three openspec changes, all awaiting the user's word; see `docs/inspections/inspection-batchE.md` |
+| Batch F | collected 2026-11-15: F1–F9 (the membership predicate, the cross-route test, the id-stem walk, land cores, the count rule). D11 = A decided 2026-11-15; its follow-up measurements M1–M4 are in `docs/inspections/optimization.md` Part II — see `docs/inspections/inspection-batchF.md` |
+| Optimization board | 2026-11-20: Part I the deterministic PDF and city-platform update cycle (U1–U8, A1–A7), Part II gen-1 membership after D11 and S3/S5 (M1–M4), Part III the gen-2 viewer (O1–O9). No change is open; five update decisions and six gen-2 decisions are undecided — see `docs/inspections/optimization.md` |
 | openspec | 4 changes done but unarchived; 3 fail `openspec validate` (fixed by S0) |
 
 ## Execution order — the integrated plan

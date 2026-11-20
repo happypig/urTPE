@@ -799,6 +799,10 @@ refresh appends and never removes); **B** discovery stops passing the parcels to
 guard (undoes part of F3); **C** leave it, pinned. Recommendation: **A**. It is the
 user's decision.
 
+**Decided 2026-11-15: D11 = A**, with S3/S5 measure-first and F8 option C waiting. The
+three measurements that followed those decisions (M1–M4) and the open S3/S5 choice are
+now in `docs/inspections/optimization.md`, Part II. The change for D11 is not opened.
+
 ---
 
 ## Appendix — method

@@ -143,4 +143,4 @@ instead.
 
 This document uses no version number. Its date is the date of the last edit.
 
-**Last updated:** 2026-11-19
+**Last updated:** 2026-11-20

@@ -166,9 +166,14 @@ payload described the 2026-11-12 gazette.
 | 168 + district only | 87 |
 | District only | 1,545 |
 
-The three Viewer-only IDs were `11510011`, `11510014` and `11510015`. The district tables
-used those IDs for other cases as well. This is an ID conflict, not proof of three extra
-approved projects. See §4.
+The three Viewer-only IDs were `11510011`, `11510014` and `11510015`. They are not extra
+projects, and they are not themselves conflicts. On 2026-11-20 each one's live header
+named a 松山區 case. That case is the 松山區 row that the district tables print under
+`11509011`, `11509014` or `11509015`. The Viewer holds each 松山區 case under the
+`11510xxx` id. So the district tables print one id for it and the case header answers
+under another. The pairing rests on the case name, which matches exactly for `11510011`
+and for `11510015`. For `11510014` it matches but for a suffix (`A基地及道路用地` against
+`A基地`). Section 4 holds the conflicts themselves.
 
 The district set had 1,632 IDs absent from the Viewer set. Eighty-seven of those IDs were
 on the 168 list. These set counts differ from row counts because four IDs name two rows.
@@ -201,9 +206,16 @@ extra row. The live detail header names only one side of each conflict.
 | `11509015` | 中正區: 擬訂臺北市中正區臨沂段一小段357地號等16筆土地 都市更新事業計畫案. 松山區: 變更(第三次)臺北市松山區寶清段二小段353-2地號等21筆土地都市更新事業計畫及權利變換計畫案(B基地). | 中正區 row |
 | `11510016` | 信義區: 擬訂臺北市信義區信義段二小段133地號等12筆及信義段三小段4地號1筆土地都市更新事業計畫及權利變換計畫案. 大安區: 變更(第二次)臺北市大安區仁愛段五小段480地號等2筆(原1筆)土地都市更新權利變換計畫案. | 大安區 row |
 
-The evidence does not establish which published ID the city entered incorrectly. Preserve
-both rows, record the header evidence and flag the conflict. Do not repair an ID by
-inference. Do not group records by `case_id` alone.
+For three of the four conflicts, the 松山區 row has a second id. The Viewer holds it as
+`11510011` (for `11509011`), `11510014` (for `11509014`) and `11510015` (for `11509015`).
+The evidence is the Viewer's `candidate_names`, which pair each id with a case name. The
+live headers of `11510014` and `11510015` carry the same case name, with no A基地 or B基地
+suffix. So the headers do not tell those two apart. For `11510016` the 信義區 row has no
+second id and no Viewer unit.
+
+The evidence does not establish why the district tables print the `11509xxx` id for the
+松山區 rows. Preserve both rows, record the header evidence and flag the conflict. Do not
+repair an id by inference. Do not group records by `case_id` alone.
 
 ---
 
@@ -228,40 +240,52 @@ review-stage phrases:
 ```
 
 The allowlist is deliberate. `核定` alone is not a rejection rule because `申請報府核定中`
-is still pre-approval. The screen produced:
+is still pre-approval. The screen compared names against the node case names only. It did
+not read the Viewer's `candidate_names`. Re-run on 2026-11-20 on the saved distinct rows
+and the current payload, with and without them:
 
-| Result | Rows |
-|---|---:|
-| Active-review rows absent from the Viewer | 497 |
-| Of those, outside the 168 list | 421 |
-| New applications | 485 |
-| Amendments | 9 |
-| Meeting-label records | 3 |
-| Separate unknown-status rows (`無`, `其他` or blank) | 97 |
+| Result | As run 2026-11-19 | With `candidate_names`, 2026-11-20 |
+|---|---:|---:|
+| District rows absent from the Viewer | 1,610 | 1,598 |
+| Active-review rows among them | 497 | **493** |
+| Of those, outside the 168 list | 421 | **417** |
+| New applications (擬訂) | 485 | 485 |
+| Amendments (變更) | 9 | **5** |
+| Meeting-label records | 3 | 3 |
+| Unknown-status rows (`無`, `其他` or blank) | 93 | 87 |
 
-The 497 is a row-screen result, not a project count. It includes conflicting IDs and a row
-whose header was unavailable. A future gen-2 viewer must retain application identity and
-project identity separately.
+The 2026-11-19 run found 97 unknown-status rows on the older payload. It found 93 on the
+current payload.
 
-On the current payload the unknown-status count is 93, not 97. The four `無` rows named in
-§3 joined the Viewer. The 497 and the 421 do not move.
+The first column overstates the amendments. Four of the nine amendments are held in the
+Viewer under another id and drop out of the screen when `candidate_names` are read:
+`11508005`, `11509011`, `11509015` and `11505026`. The Viewer holds them as `10806012`,
+`11510011`, `11510015` and `11510009`. The five that stay are `11509024`, `10405044`,
+`11511010`, `11511007` and `11509014`. The last stays only because its case name differs by
+a suffix from the Viewer's.
+
+The 493 is a row-screen result, not a project count. It still includes conflicting ids and
+a row whose header was unavailable. A future gen-2 viewer must retain application identity
+and project identity separately. The 594 header candidates of §6 were drawn from the first
+column, so §6 also holds a few rows that this screen no longer names.
 
 ### The nine amendments
 
-All nine were absent from the Viewer screen and outside the 168 list. The statuses below
-are the district-page statuses unless noted.
+All nine were absent from the Viewer screen of 2026-11-19 and outside the 168 list. Four
+of the nine are in the Viewer under another id (see §5 above). They are marked below. The
+statuses are the district-page statuses unless noted.
 
 | `case_id` | District | Published case name | Evidence note |
 |---|---|---|---|
 | `11509024` | 北投區 | 變更(第二次)臺北市北投區大業段三小段184-1地號等10筆土地都市更新事業計畫及權利變換計畫案 | 業已提出申請審查; header application date 2026/09/22; no approval date |
 | `10405044` | 南港區 | 變更臺北市南港區玉成段二小段253-1地號等16筆土地都市更新事業計畫及權利變換計畫案 | District: 業申請幹事會審查; header had advanced to 業經幹事會審查 |
 | `11511010` | 內湖區 | 變更(第二次)臺北市內湖區文德段二小段232地號等4筆土地都市更新事業計畫及權利變換計畫案 | 業已提出申請審查 |
-| `11508005` | 內湖區 | 變更臺北市內湖區東湖段一小段14-2地號等1筆土地都市更新事業計畫及權利變換計畫案 | 業已提出申請審查; district row supplied no applicant or location |
+| `11508005` | 內湖區 | 變更臺北市內湖區東湖段一小段14-2地號等1筆土地都市更新事業計畫及權利變換計畫案 | 業已提出申請審查; district row supplied no applicant or location. Held in the Viewer as `10806012`. |
 | `11511007` | 大同區 | 變更臺北市大同區雙連段三小段98地號等25筆(原23筆)土地都市更新權利變換計畫案 | 權利變換計畫階段─業已提出申請審查 |
-| `11509015` | 松山區 | 變更(第三次)臺北市松山區寶清段二小段353-2地號等21筆土地都市更新事業計畫及權利變換計畫案(B基地) | ID conflict; header names the 中正區 case |
+| `11509015` | 松山區 | 變更(第三次)臺北市松山區寶清段二小段353-2地號等21筆土地都市更新事業計畫及權利變換計畫案(B基地) | ID conflict; header names the 中正區 case. Held in the Viewer as `11510015`. |
 | `11509014` | 松山區 | 變更(第三次)臺北市松山區寶清段二小段353-2地號等21筆土地都市更新事業計畫及權利變換計畫案(A基地) | ID conflict; header names the 大同區 case |
-| `11509011` | 松山區 | 變更臺北市松山區敦化段二小段449-12地號28筆(原25筆)土地都市更新事業計畫及變更(第二次)權利變換計畫案 | ID conflict; header names the 大同區 case |
-| `11505026` | 大安區 | 變更臺北市大安區仁愛段一小段92地號等11筆土地都市更新事業計畫及權利變換計畫案 | 業已提出申請審查; header check returned no header row |
+| `11509011` | 松山區 | 變更臺北市松山區敦化段二小段449-12地號28筆(原25筆)土地都市更新事業計畫及變更(第二次)權利變換計畫案 | ID conflict; header names the 大同區 case. Held in the Viewer as `11510011`. |
+| `11505026` | 大安區 | 變更臺北市大安區仁愛段一小段92地號等11筆土地都市更新事業計畫及權利變換計畫案 | 業已提出申請審查; header check returned no header row. Held in the Viewer as `11510009`. |
 
 The 大安 row prints the applicant as `德運建設股份有限公司 嗎`. Preserve that published
 text or record an explicit correction. Do not silently remove the trailing character.

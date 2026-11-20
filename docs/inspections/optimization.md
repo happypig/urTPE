@@ -1,13 +1,13 @@
 # Optimization board — update automation, gen-1 membership, gen-2 viewer
 
 Collected 2026-11-15 to 2026-11-20. Item identifiers do not change: `U1–U8`, `A1–A7`,
-`U-D1–U-D5`, `M1–M4`, `D11`, `O1–O9` and `O-D1–O-D6`.
+`U-D1–U-D5`, `M1–M4`, `D11`, `O1–O11` and `O-D1–O-D7`.
 
 | Part | Subject | Items | Priority | Origin |
 |---|---|---|---|---|
 | I | Run the PDF and city-platform update as one deterministic cycle | U1–U8, A1–A7, U-D1–U-D5 | **P1** | exploration 2026-11-19 |
 | II | Gen-1 membership: measurements that follow decisions D11 and S3/S5 | M1–M4, D11 | **P2** | moved here from `docs/inspections/inspection-batchF.md` |
-| III | Gen-2 viewer: one `project_uid` for applications and approvals | O1–O9, O-D1–O-D6 | **P3** | exploration 2026-11-19, re-measured 2026-11-20 |
+| III | Gen-2 viewer: one `project_uid` for applications and approvals | O1–O11, O-D1–O-D7 | **P3** | exploration 2026-11-19, re-measured 2026-11-20; O10 and O11 added 2026-11-21 |
 
 **Why this order.** Part I depends on nothing in Parts II and III. It protects the data
 that both of them read. Part II decides how a city case joins a unit. Part III adds a new
@@ -54,6 +54,8 @@ Execute top to bottom. A row waits for every item in its "Depends on" column.
 | 16 | III | **O8** — what the gen-2 Viewer shows | **P3** | design, then a read-only page | O6, O7 |
 | 17 | III | **O4** — reuse the Viewer UI components | **P3** | direct fix after the payload exists | O6, O8 |
 | 18 | I | **A7** — optional read-only diagnostic agent | **P3** | OpenSpec change | A4–A6, U-D5 |
+| 19 | III | **O10** — reconciliation page: release-diff count to Viewer count | **P3** | fix only (the 652 note), then design and a read-only page | fix: —; page: O6, O8 |
+| 20 | III | **O11** — marks on patched values, original value on hover | **P3** | OpenSpec change (sidecar, ledger field), then UI | O1, O6, O8, O-D7 |
 
 Four dependencies cross Part boundaries:
 
@@ -88,6 +90,7 @@ Four dependencies cross Part boundaries:
 | O-D4 | Do the approved lane and the pending lane fail independently (O9)? | yes. A pending-lane failure stops that lane only. The old pending file stays and is marked stale with its observation time. | **undecided** |
 | O-D5 | Where does the pending lane write? | its own output tree with its own lock. It reads `data/projects.json` at one named revision and never writes `data/`. | **undecided** |
 | O-D6 | Does the district crawl have its own cadence? | yes. This answers U-D4 for the pending lane. Decide the interval after the change rate is measured. | **undecided** |
+| O-D7 | Where does the original value of a patched field live (O11)? | a sidecar keyed by land core and approval date, written at apply time. It does not rewrite `projects.json`. | **undecided** |
 
 ---
 
@@ -398,10 +401,11 @@ anchor record's built core; it covers S5 only, not S3 (the offer step); a node's
 
 ## Part III — Gen-2 viewer: one `project_uid` for applications and approvals (O1–O9)
 
-Nine items. O1–O7 explore whether the current Viewer interface can be reused for a
+Eleven items. O1–O7 explore whether the current Viewer interface can be reused for a
 generation-2 Viewer that holds district-page applications and gazette approvals under one
-stable `project_uid`. O8 and O9 were added on 2026-11-20 from the design discussion. They
-are proposals, and each one says what was measured. Priority P3: it adds a source and an identity layer, and it waits for
+stable `project_uid`. O8 and O9 were added on 2026-11-20 from the design discussion. O10 and
+O11 were added on 2026-11-21 at the user's request. They are proposals, and each one says
+what was measured. Priority P3: it adds a source and an identity layer, and it waits for
 Part II. Everything below was measured offline unless it says it made requests. The
 2026-11-20 re-measurements read three live case headers (3 requests, read-only).
 
@@ -712,6 +716,111 @@ takes. O-D6 waits for the first.
 **Recommendation: build the pending lane as its own lane, with its own tree and lock.**
 Open it as one OpenSpec change after O6, because it extends `gazette-cadence`.
 
+### O10 — a reconciliation page: from the release-diff count to the Viewer count
+
+**The question.** The release-diff report and the Viewer give two counts for the same
+gazette. Which steps lie between them, and how does a reader see each step?
+
+**Measured 2026-11-21** (payload at `6b97a83`, report of 2026-11-20 02:06 +08:00):
+
+| Step | Projects | Records | Owner |
+|---|---:|---:|---|
+| `docs/release-diff.html` reads the 2026-11-12 PDF | 674 | 1,444 | `scripts/release_diff_report.py` |
+| The reader refuses 4 truncated rows (編號 194, 1011, 1137, 1212) | — | — | already inside the report as "excluded" |
+| Ingest completes those 4 rows from the city API (`recovery` nodes) | +2 | +4 | `--recover-truncated` |
+| The Viewer payload | 676 | 1,448 | `data/projects.json` |
+
+The four recovery nodes carry the same four 編號 that the report excludes. Two of them
+make a project that has no other record (`中正區-永昌段四小段-46-4地號等117筆`,
+`南港區-南港段一小段-720地號等105筆`). The other two join a family that the PDF already
+holds (萬華 雙園段二小段-505, 文山 萬隆段二小段-623). So +4 records and +2 projects.
+
+The 14 ledger entries do not move either count. The report applies the same ledger to every
+release, so both sides hold it.
+
+**A defect in the report, found while reading the step above.** The gap note on
+`docs/release-diff.html` says "652 個家族是復原列自行成立的". The right number is 2. The
+code (`scripts/release_diff_report.py:656-668`) builds the PDF-side key from the 案名's land
+core (`content_key()`) and the payload-side key from the normalized 地號 cell. The two keys
+have different shapes, so 652 of 676 projects find no match. The note then lists them as
+"created by recovery". The page names 652 families under a total that moves by 2. I read the
+code and the printed note. I did not re-run `_render_payload_note` with a corrected key.
+
+**Proposed form.** A page in the gen-2 Viewer, "數字從哪裡來", that walks the chain above for
+the current payload. Each row names its step, its owner, the count in, the delta, the count
+out, and the rows that make the delta (編號, land core, approval date). It reads the
+payload and the archive. It holds no copy of the numbers.
+
+It extends to the pending lane (O9) with a second chain: district rows (3,655) → distinct
+`case_id` (3,651) → active-review rows → rows outside the 168 list → pending units. The
+page shows each step with the same layout.
+
+**How the page mitigates the gap.**
+
+1. **Name the delta.** A reader who sees 674 and 676 finds the two projects and the four
+   rows that explain them.
+2. **Refuse a chain that does not sum.** `post_ingest_check.py` (or the page build) checks
+   that read count + recovered rows = the Viewer's record count, and read count +
+   recovery-only projects = its project count. A mismatch stops the page. It does not print
+   an estimate.
+3. **Fix the report first.** Use one key shape on both sides of the comparison. Add a test
+   that the "created by recovery" count equals the project delta.
+4. **Show what the report cannot see.** The report reads PDFs only. The page says so and
+   points at the stages after the PDF: recovery, targeted refresh, ledger.
+
+**Form.** Step 3 is **fix only** and independent of gen-2: it can land now. Steps 1, 2 and
+the pending chain are a design, then a read-only page, after O6 and O8.
+
+**Not measured:** whether the chain still sums for the older releases. The report re-reads
+them under today's reader, so recovery rows there are not tied to a payload.
+
+**Recommendation: fix the 652 note first. Then add the chain as the first page of gen-2.**
+
+### O11 — marks on patched values, with the original value on hover
+
+**The question.** The Viewer shows a value that a patch changed. How does a reader tell, and
+see what the city printed?
+
+**Measured 2026-11-21 on the 1,448 nodes of the payload at `6b97a83`:**
+
+| Patch | Where it is today | Count | Original value in the payload? |
+|---|---|---:|---|
+| API completion of a truncated row (`recovery`) | node field `recovery` | 4 nodes | no. The node holds the completed 地號 cell. The printed fragment is not kept. |
+| Cleanse fix (`auto_fixes`) | node field `auto_fixes` | 13 nodes | partly. `name_raw` keeps the printed 案名. It differs from `case_name` on 37 nodes, more than the 13 fixes. |
+| Manual correction (`corrections.jsonl`) | outside the repository | 14 entries | no. An entry holds `to` and `why`, not the old value. |
+| Review flag (`review_flags`) | node field | 322 nodes | not a patch. A flag names a doubt and changes no value. |
+
+So a hover with the original value needs data that the payload does not carry. `auto_fixes`
+holds a reason only, as text (for example "案名補事業(都市更新計畫案簡寫)", 10 nodes). The
+ledger records the new value and its reason, not the value that the PDF printed.
+
+**Proposed form.**
+
+- One mark per patched value, in three kinds that look different: 復原 (API), 自動修正
+  (cleanse) and 人工修正 (ledger). A fourth mark, 待查, is for a review flag. A flag must not
+  look like a patch.
+- On hover or focus: the original value, the new value, the reason, the source and the date.
+- A touch screen has no hover. The mark must also open on tap, and a `title` attribute alone
+  is not enough.
+- The mark goes on the field it changed (案名, 地號, stage, date), not on the whole node.
+
+**Where the original value lives (O-D7).** A sidecar file, keyed by land core and approval
+date (never 編號), built at emission from the three sources. It does not rewrite
+`projects.json`. A node field is the alternative. It changes the gen-1 payload shape, so it
+needs an OpenSpec change under `history-graph`.
+
+**Limits.** The ledger has no "old value" field, so an entry written before this change has
+no original on record. The emitter can read the PDF value at apply time for new entries. For
+the 14 old entries, a person must supply it, or the hover says "not recorded". It must not
+infer it. A patch that the cross-release completion makes in the release-diff report is not
+a payload patch. Whether the payload carries the same completion was not measured.
+
+**Form.** An OpenSpec change for the sidecar and for the ledger's new field. The mark and
+the hover are a UI step after O6 and O8.
+
+**Recommendation: record the original value at apply time, in a sidecar keyed by land core
+and date. Then draw the marks from it.**
+
 ---
 
 ## Appendix — method
@@ -733,6 +842,11 @@ Open it as one OpenSpec change after O6, because it extends `gazette-cadence`.
 - **O8 status mix:** counted `status` over the 3,655 distinct district rows on 2026-11-20
   (the rows of 2026-11-19; the re-run gave identical counts). The 12.8% is 468 of 3,651
   ids. The existing ledger was read from `urtpe-gazettes/corrections.jsonl` (14 entries).
+- **O10 and O11 (2026-11-21):** read `docs/release-diff.html` (text), `scripts/release_diff_report.py:616-708`
+  and `scripts/release_diff.py:69`. Counted `recovery`, `auto_fixes`, `review_flags` and
+  `name_raw != case_name` over the 1,448 nodes of `viewer/projects.data.js`; counted projects
+  made only of `recovery` nodes; read the 14 entries of `corrections.jsonl`. Ad hoc, not kept.
+  No request, no ingest.
 - **Part I:** read the scripts and specs it names. It cites `scripts/refresh_awaiting_caches.py:39`,
   `urtpe/links.py:618` and `:2354`, `openspec/specs/gazette-cadence/spec.md` and
   `docs/pipeline/etl_process.md` §11. The 2026-11-19 refresh figures (101 and 94 projects,
@@ -763,6 +877,7 @@ No pipeline run, ingest or deployment happened for this board. No file under `ur
 | Source line: 1,444 records, 675 projects, 2026-10-28 | 1,448 records, 676 projects, 2026-11-12. |
 | Probe outputs "live in the session scratchpad" | Three scripts reproduce them. |
 | Items O8 and O9 | New on 2026-11-20. Proposals from the design discussion. The status mix, the 12.8% and the ledger shape were measured; the page design and the lane layout were not. |
+| Items O10 and O11 | New on 2026-11-21, at the user's request. The two chains and the patch counts were measured; the page design, the sidecar and the hover were not. The report's "652" note is a defect found while measuring O10. |
 | Part I: `docs/etl_process.md`, `urtpe/links.py:617`, `SingleWriterLock("data")` | `docs/pipeline/etl_process.md`; `urtpe/links.py:618`; a lock over the `data` output tree, as `scripts/refresh_second_id_source.py:96` takes it. |
 
 ## Provenance

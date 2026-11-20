@@ -414,7 +414,7 @@ pipeline output, and nothing in the repository reads it or writes to it.
 - The field comparison of §3.
 - The nine amendments and the three meeting-label records of §5.
 
-**What it holds.** The page is `files/index.html`, at version 3. Seven datasets feed it:
+**What it holds.** The page is `files/index.html`, at version 4. Seven datasets feed it:
 `cp`, `p168`, `viewer`, `duplicates`, `special`, `fields` and `meta-source`. They are fixed
 copies. They do not refresh themselves. Five of them are dated 2026-11-19. Two were
 replaced on 2026-11-20: `viewer` and `special`.
@@ -448,9 +448,10 @@ evidence of §5 and §6, not a computation. The build script does not make it.
 
 **The 2026-11-20 corrections.** The page and `special-records.json` now carry the corrected
 screen of §5 and §6. The file keeps both sets of counts: `as_run_2026_11_19` (497, 421, 9)
-and `corrected_2026_11_20` (493, 417, 5). The page uses the corrected counts. It marks the
-four amendments that the Viewer holds under another id, and it no longer says that the city
-typed an id wrongly. `check` read `passed` after the change. The user has not yet looked at
+and `corrected_2026_11_20` (493, 417, 5). The page uses the corrected counts. It lists the
+nine amendments in two tables: five that the Viewer does not hold (5a) and four that it holds
+under another id (5b, with the Viewer id in its own column). It no longer says that the city
+typed an id wrongly. `check` read `passed` after each change. The user has not yet looked at
 the new text, so what the page shows is not confirmed here.
 
 **One manual fact.** The header check never asked about `11510016`. It is a conflicting ID

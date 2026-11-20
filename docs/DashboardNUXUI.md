@@ -924,7 +924,7 @@ caught by the other session. §14.0.2 carries all six.
   used to load as 1,443 members and be written back as a complete dataset. It is
   refused with exit 4 now. This matters for the dashboard: a build script that reads
   the payload can rely on the partition being complete.
-- **A separate session was editing `docs/inspection-batchD.md` and adding
+- **A separate session was editing `docs/inspections/inspection-batchD.md` and adding
   `scripts/check_*.py` files.** These notes do not touch them.
 
 ---
@@ -1406,7 +1406,7 @@ measuring the population rather than the sample, and five of the six were caught
 other session.
 
 **The board carries the same six in the same form**, in
-`docs/inspection-batchD.md` under "the general form: a scope is a claim about what was
+`docs/inspections/inspection-batchD.md` under "the general form: a scope is a claim about what was
 not measured". It is the board's own conclusion, with no attribution to either session,
 because the shape does not depend on who made the correction.
 

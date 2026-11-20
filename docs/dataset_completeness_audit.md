@@ -546,14 +546,14 @@ whole small families, not single rows.
 | Calendar boundary mis-stated | 09-24 is the first Gregorian-dated document held; "ROC until 1151002" (AGENTS.md, specs) is an artifact of the same gap | correct together with the restoration |
 | Acquisition stalled | `poll_state.json` last checked 2026-10-06; `核定案件-2026-10-30.pdf` on disk, never ingested; index and change_sets untouched since 10-26 | restart the poller or run an ingestion for 10-30 |
 | `corrections.jsonl` absent | the designed append-only ledger (AGENTS.md) exists nowhere in the repo or the archive | record as spec-vs-reality; wire it or annotate the design |
-| Link cache after the 10-26 re-keying | 724 cache dirs, 692 match current ids, 32 orphaned; 2 projects have no cache dir — both are the `等?筆` identities (寶清51-13, 崇仁711-3) | orphans → `scripts/stranded_report.py`; the 2 resolve with the V1 slug fix (`docs/inspection.md`) |
+| Link cache after the 10-26 re-keying | 724 cache dirs, 692 match current ids, 32 orphaned; 2 projects have no cache dir — both are the `等?筆` identities (寶清51-13, 崇仁711-3) | orphans → `scripts/stranded_report.py`; the 2 resolve with the V1 slug fix (`docs/inspections/inspection.md`) |
 | `index.jsonl` records 1,414 for 2026-08-11 | today's partition is 1,415 mergeable + 4 truncated = 1,419 printed | **1 row unexplained**, from the 2026-10-07 ingest; the other five entries match today's read or differ only by recovery |
 | `index.jsonl` records 1,439 for 2026-10-01 | 1,440 printed | consistent with **3 of 4** recovered rows landing at that publication; 10-06 and 10-15 match printed exactly |
 | 南港段一小段720, 萬隆段二小段519 | truncated in every publication examined — the six held ones and 09-24 | stable publisher blind spot; both carry partial `recovery` nodes |
 | 14 two-entry land cores | §3 | under-merge, not loss; 11 carry `(原N筆)`, 1 is a bare count change (吉林段四小段676), 1 is a slug collision, 1 is a recovery artefact |
 | 19 non-概要 deletions | §5 | no same-land-core partner under any date or name; a name-similarity screen cannot separate a re-keyed row from boilerplate (64 spurious pairs at ≥ 0.75), so no re-keying is claimed |
 
-Closed on 2026-10-30 by the companion inspection (`docs/inspection.md`, standing checks):
+Closed on 2026-10-30 by the companion inspection (`docs/inspections/inspection.md`, standing checks):
 **deploy freshness** — all four live artifacts match `HEAD` (`scripts/check_deploy.py`);
 **viewer render path** — `scripts/viewer_smoke.js` exercises the real render path and
 passes.

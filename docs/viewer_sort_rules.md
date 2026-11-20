@@ -72,7 +72,7 @@ order (95 pairs). Three shapes: same-day serials, orphans whose case id is
 late but approval early, and families whose filing order differs from their
 approval order.
 
-**The 2026-11-05 decision (board D2, `docs/inspection-batchD.md`).** Two
+**The 2026-11-05 decision (board D2, `docs/inspections/inspection-batchD.md`).** Two
 measurements removed the reasons against a date sort:
 
 1. The city echoes the family's 概要核准日期 into every descendant case

@@ -387,8 +387,9 @@ copies. They do not refresh themselves. Six of them are dated 2026-11-19.
 The `viewer` dataset is the exception. On 2026-11-20 it was replaced with a rebuild from
 the payload at commit `6b97a83`. It now holds 2,028 case IDs, as in the "Current" column
 of §3. The first copy held 2,022. The Venn counts are computed in the browser from the
-datasets. The page text holds no fixed copy of them. The page was not checked after the
-replacement, so the figures it shows are not confirmed here.
+datasets. The page text holds no fixed copy of them. After the replacement, the user opened
+the page and saw the new counts in the Venn diagram. This is a manual check, not a test. It
+was made on 2026-11-20 and records the page as it stood then.
 
 Any later change to the Viewer payload makes the `viewer` dataset old again. Updating it is
 a manual step: run the build script in §7, upload `viewer-ids.json` to the artifact, and

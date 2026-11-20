@@ -451,8 +451,8 @@ screen of §5 and §6. The file keeps both sets of counts: `as_run_2026_11_19` (
 and `corrected_2026_11_20` (493, 417, 5). The page uses the corrected counts. It lists the
 nine amendments in two tables: five that the Viewer does not hold (5a) and four that it holds
 under another id (5b, with the Viewer id in its own column). It no longer says that the city
-typed an id wrongly. `check` read `passed` after each change. The user has not yet looked at
-the new text, so what the page shows is not confirmed here.
+typed an id wrongly. `check` read `passed` after each change. This document records no review of the new text by
+a person. The only manual check on record is the Venn counts, described above.
 
 **One manual fact.** The header check never asked about `11510016`. It is a conflicting ID
 that the screen did not select. Its header was read once on 2026-11-19, and the build script

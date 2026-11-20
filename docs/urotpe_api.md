@@ -16,7 +16,10 @@ host the recovery adapter reads, is documented in §6.
 
 The integration narrative for the five used endpoints (why they were chosen, what they
 replaced) is in [`final_results_json_api.md`](final_results_json_api.md); this file is the
-complete inventory and does not repeat it.
+complete inventory and does not repeat it. The server-rendered district case tables on
+`uro.gov.taipei` are outside this 40-endpoint inventory; their request contract, comparison
+with `P_project168.aspx` and measured data-quality findings are in
+[`urotpe_district_pages.md`](urotpe_district_pages.md).
 
 ---
 

@@ -1,95 +1,461 @@
-# Project inspection — viewer gen-2 exploration · collected 2026-11-19 (O1–O7)
+# Optimization board — update automation, gen-1 membership, gen-2 viewer
 
-Seven items. They explore whether the current Viewer interface can be reused for
-a generation-2 Viewer that holds district-page applications and Viewer approval
-records under one stable `project_uid`. Everything below was measured offline on
-the current payload and on saved probe outputs, unless a section says it made
-live requests. No probe ran against the pipeline beyond the saved outputs.
+Collected 2026-11-15 to 2026-11-20. Item identifiers do not change: `U1–U8`, `A1–A7`,
+`U-D1–U-D5`, `M1–M4`, `D11` and `O1–O7`.
 
-**Source and state.** Payload `data/projects.json`: 1,448 records / 676 projects,
-統計至 2026-11-12. (An earlier version of this line said 1,444 / 675 and 2026-10-28.
-That was wrong. It was the payload of two gazettes ago.) District pages: 3,655 distinct rows / 3,651 distinct `case_id`
-values, read 2026-11-19. `P_project168.aspx` snapshot 2026-11-18T12:31:41Z,
-468 IDs, checked live 2026-11-19. Probe outputs live in the session scratchpad,
-not in the repo, and are named below where they matter.
+| Part | Subject | Items | Priority | Origin |
+|---|---|---|---|---|
+| I | Run the PDF and city-platform update as one deterministic cycle | U1–U8, A1–A7, U-D1–U-D5 | **P1** | exploration 2026-11-19 |
+| II | Gen-1 membership: measurements that follow decisions D11 and S3/S5 | M1–M4, D11 | **P2** | moved here from `docs/inspections/inspection-batchF.md` |
+| III | Gen-2 viewer: one `project_uid` for applications and approvals | O1–O7, O-D1–O-D3 | **P3** | exploration 2026-11-19, re-measured 2026-11-20 |
 
-**No change is open.** Each item below is a recommendation. The standing rule holds:
-an openspec change opens on the user's word, one item at a time. A recommended
-option is not a decision.
+**Why this order.** Part I depends on nothing in Parts II and III. It protects the data
+that both of them read. Part II decides how a city case joins a unit. Part III adds a new
+source and a new identity layer, and it must reuse the Part II decision. A second
+membership rule in Part III would repeat the seven-rule problem that Batch F measured (F1).
 
-**Scope.** This board only decides whether gen-2 is plausible and what its
-identity layer must prove. It does not design the Viewer UI, and it does not
-change `projects.json`, `urtpe/`, `viewer/` or any pipeline contract.
+**Rules for this board.**
+
+- Every figure names its date and its source. A figure that was not re-measured says so.
+- A recommendation is not a decision. An OpenSpec change opens on the user's word, one item
+  at a time. `openspec list` reported no active change on 2026-11-19.
+- This board changes no code, no payload and no spec. Part II keeps decisions that the user
+  already made on 2026-11-15; Part I and Part III hold none.
+
+**State at 2026-11-20.** Payload `data/projects.json` at commit `6b97a83`: 1,448 records,
+676 projects, 統計至 2026-11-12, 2,028 Viewer case ids that carry a name. District tables:
+3,655 distinct rows, 3,651 distinct `case_id` values (read 2026-11-19).
+`P_project168.aspx` snapshot 2026-11-18T12:31:41Z, 468 ids. The district-page measurements
+are in `docs/portals/urotpe_district_pages.md`; its scripts reproduce them (§7 there).
 
 ---
 
-## O1 — one `project_uid` for applications and approval records (the gen-2 identity)
+## Order and dependencies
+
+Execute top to bottom. A row waits for every item in its "Depends on" column.
+
+| Step | Part | Item | Priority | Form | Depends on |
+|---:|---|---|---|---|---|
+| 1 | I | **A1** — the refresh takes the single-writer lock | **P1** | fix only | — |
+| 2 | I | **A2** — offline candidate-only fast path | **P1** | fix only | A1 |
+| 3 | I | **A3** — structured poll adapter and failure logs | **P1** | fix only | — |
+| 4 | I | **A4** — deterministic PDF-cycle coordinator | **P1** | OpenSpec change | A1–A3, U-D1 |
+| 5 | I | **A5** — report ownership and publication mode | **P1** | OpenSpec change | A4, U-D2, U-D3 |
+| 6 | II | **D11 = A** — S1's own-parcel form adopts the count rule | **P2** | OpenSpec change (decided; not opened) | the user's word |
+| 7 | II | S3/S5 choice and F8 option C | **P2** | one OpenSpec change each | D11, M4 |
+| 8 | I | **A6** — independent city-only cadence | **P2** | OpenSpec change | A4, U-D4 |
+| 9 | III | **O1** — identity ledger and `project_uid` | **P3** | OpenSpec change | D11, O-D1, O-D2 |
+| 10 | III | **O2** — keep `case_id` per application; flag the four conflicts | **P3** | schema field | O1 |
+| 11 | III | **O3** — keep meeting-label rows out of project counts | **P3** | filter rule | O1 |
+| 12 | III | **O5** — match amendments through `membership_verdict` | **P3** | match rule + manual review | O1, D11, M4 |
+| 13 | III | **O6** — separate pending dataset | **P3** | payload shape | O1–O3, O5 |
+| 14 | III | **O7** — prove on the nine matched units | **P3** | ledger entries, no graph change | O1–O3, O5, O6 |
+| 15 | III | **O4** — reuse the Viewer UI components | **P3** | direct fix after the payload exists | O6 |
+| 16 | I | **A7** — optional read-only diagnostic agent | **P3** | OpenSpec change | A4–A6, U-D5 |
+
+Three dependencies cross Part boundaries:
+
+1. **O5 depends on D11 and M4.** Matching an application to a unit is a membership
+   decision. It must be one more named policy of `membership_verdict`, with its own golden
+   table, and not a second predicate.
+2. **O6 operates at the pace of A6.** A pending application changes more often than a
+   gazette appears. A pending dataset that refreshes only with the PDF cycle is always old.
+3. **O1 reads what A1–A5 protect.** The identity layer reads the Viewer payload and the
+   city cache. A4 and A5 keep those from being written by two runs at once.
+
+---
+
+## Decisions to make
+
+| # | Question | Recommendation | Status |
+|---|---|---|---|
+| U-D1 | May a scheduled coordinator initiate ingestion after hash acquisition? | yes, through an OpenSpec change and all existing gates | **undecided** |
+| U-D2 | Does the first coordinator stop before git publication? | **A: generate and stop first** | **undecided** |
+| U-D3 | If automatic publication is later approved, who owns `release-diff.html`? | one cycle owner; serialize or supersede the report-only publisher | **undecided** |
+| U-D4 | Should city-only refresh have its own cadence? | measure the need separately; do not couple it to PDF ingestion | **undecided** |
+| U-D5 | Should a diagnostic agent receive a failure bundle? | only after deterministic logs prove a triage need | **undecided** |
+| D11 | Does S1's own-parcel form adopt the count rule? | **A** | **decided 2026-11-15: A.** The change is not opened. |
+| S3/S5 | Does S5 adopt the gate rule? | measure first (M4), then decide | **decided 2026-11-15: measure first.** M4 is that measurement. The choice after it is open. |
+| F8-C | Remove a cross-listed case from the wrong holder? | wait for D11 and the S3/S5 choice | **decided 2026-11-15: wait** |
+| O-D1 | Where does the identity ledger live, and who may append? | a separate append-only file with the correction ledger's rules (keyed on land core and date, never on 編號 or `case_id` alone) | **undecided** |
+| O-D2 | What evidence assigns a record to a `project_uid`? | the `membership_verdict` land-core rule, the same district, and manual review for every ambiguous match (O5 measured one) | **undecided** |
+| O-D3 | Does any of the four conflicting IDs get a ledger correction? | no. Record the evidence; let the city correct its own ID | **undecided** |
+
+---
+
+## Part I — Run the PDF and city-platform update as one deterministic cycle (U1–U8)
+
+This section follows the gen-2 source exploration. It concerns the current approved-record
+pipeline. It does not depend on gen-2 and does not put district-page applications into the
+approved graph.
+
+**Source and state.** The measured payload at `6b97a83` holds 1,448 records and 676
+projects, 統計至 2026-11-12. A targeted refresh selected 101 projects and updated 8 approval
+dates, changed 14 statuses, added 6 cases and reported 0 failures. A later dry run selected
+94 projects. The rebuild preserved all 1,448 records and 676 project ids. The full suite
+reported 1,494 passed, 1 skipped, 4 xfailed. All 12 deployed artifacts matched the commit.
+
+**Current boundary.** The scheduled `urtpe-poll` task runs both pollers and
+`publish_release_diff.py`. It does not ingest a PDF or update the Viewer. The full manual
+runbook is `docs/pipeline/etl_process.md` §11. `openspec list --json` reported no active change on
+2026-11-19. This section records recommendations, not new decisions.
+
+### U1 — one deterministic cycle, not polling inside ingestion
+
+**The gap.** `poll_gazette.py` detects a new PDF by content hash. Normal `--links` discovery
+returns an existing cache without re-querying the city (`urtpe/links.py:618`). The refresh
+changes the cache, not the Viewer payload. Three successful commands can therefore leave
+three different layers current at different times.
+
+**Proposed full cycle:**
+
+1. Run `python scripts/poll_gazette.py`.
+2. Run `python scripts/poll_p168.py`.
+3. Detect a newly archived PDF by content hash and archive entry, not by timestamp or mtime.
+4. Ingest the archived PDF with `python -m urtpe.cli <archived.pdf> -o data --viewer viewer
+   --links --recover-truncated`.
+5. Run `python scripts/refresh_awaiting_caches.py` after a successful ingest when its
+   offline selector finds candidates.
+6. Rebuild with `python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer
+   viewer --links`.
+7. Run `python scripts/post_ingest_check.py`.
+8. Run `python -m pytest` and `node scripts/viewer_smoke.js`.
+9. Review the result, commit only the owned paths and push `main` only if publication was
+   approved for that cycle.
+10. Verify the remote commit and run `python scripts/check_deploy.py` after the Pages build.
+
+The cycle coordinator calls the existing commands. It does not move scheduling into
+`urtpe.cli`, the pollers, or `post_ingest_check.py`. A 168-list change alone does not trigger
+PDF ingestion. The separate city-only cadence remains undecided (U7).
+
+**Form: OpenSpec change.** `openspec/specs/gazette-cadence/spec.md` currently requires an
+unattended check never to initiate ingestion. The coordinator may initiate a later gated
+act, but the specification must say when that act is authorized and what evidence gates it.
+This is not a scheduler-only fix.
+
+### U2 — acquisition, cache state, emission and publication stay separate
+
+| Layer | Owner of the write | What success proves | What it does not prove |
+|---|---|---|---|
+| Archive | poller | the hash-identified PDF or 168 snapshot is held | the PDF was ingested |
+| City cache | targeted refresh | selected city replies were merged and reported | the Viewer contains the result |
+| Emission | CLI ingest/rebuild | the graph and payload were written | the city reply was current or the case join was correct |
+| Reports | `post_ingest_check.py` | checks passed and dependent artifacts regenerated | anything was committed or deployed |
+| Deployment | explicit publication step | `origin/main` holds the commit and served bytes match it | unresolved source semantics were reviewed |
+
+The selected refresh population is evidence-limited. It includes a payload project with an
+anchor search key when a cached case has an application date but no approval date. Terminal,
+superseded and `無` cases do not qualify. The 101 selections were not a count of stale caches,
+changed projects, or every project that might hold an undiscovered case. See
+`scripts/refresh_awaiting_caches.py:39` and `urtpe/links.py:2354`.
+
+A completely missing case cannot itself trigger this selector. The 木柵623 project qualified
+through existing pending cases; the refresh then found `10804122`. Gen-1 discovery coverage
+is not closed by running this refresh every week.
+
+**Form: fix only** to document these boundaries or add a machine-readable refresh candidate
+count to an existing report. **Form: OpenSpec change** to widen discovery, change case
+membership or claim citywide freshness.
+
+### U3 — make the small safety gaps executable before scheduling
+
+| Gap | Current evidence | Required boundary | Form |
+|---|---|---|---|
+| Structured gazette result | `poll_gazette.py` prints text; `poll_p168.py` has `--json` | preserve the poller contract; read the archive index for gazette id, SHA-256 and verified path | **fix only** adapter/tests |
+| Refresh lock | `refresh_awaiting_caches.py` warns about concurrent writers but takes no lock | acquire `SingleWriterLock` over the `data` tree, as `scripts/refresh_second_id_source.py:96` does; report `LockHeld` and write nothing | **fix only** existing safety contract |
+| Candidate-only refresh | `select_candidates()` is offline; 96 cases still awaiting does not mean 96 defects | select first; skip network and cache writes when no candidates exist | **fix only** if kept inside existing command semantics |
+| Processed hash | the archive records acquisition, not successful full-cycle publication | an idempotency record names the PDF hash and reached stage; it does not replace archive history | **OpenSpec change** with U1 |
+
+The coordinator must not parse a recno, current payload counts, or `new_gazette` text as
+proof that an archived PDF is ready for ingestion. It must use the archived path and verify
+its content against the archive entry. A previously processed hash must not be ingested again
+merely because a later run started.
+
+The processed-cycle state is operational state, not domain identity. It must not use recno
+or `project_id` as the PDF key. A failed cycle remains resumable, but no retry may cross a
+CLI refusal. Recovery starts with diagnosis of the recorded failed stage.
+
+### U4 — failure stops the cycle before publication
+
+**Required behavior:**
+
+- Stop immediately on a failed check or command refusal.
+- Never use `--allow-reconcile-block` or `--no-archive` to pass a refusal.
+- Keep the single-writer lock around cache mutation.
+- Publish no output from a failed cycle.
+- Leave the previously deployed Viewer untouched after a pre-commit failure.
+- Record the PDF hash, command, exit code, failed stage and observation time.
+- Do not call an unchanged payload proof that no city case changed.
+- Do not treat `post_ingest_check.py` as proof that a case-id binding is semantically right.
+
+A push failure differs from a generation failure. It can leave a local commit ahead of
+`origin/main`. The coordinator must report that state rather than discard the commit or
+claim deployment. `check_deploy.py` distinguishes fresh, stale and missing served artifacts.
+A failed deployment check must not trigger a new ingest or a payload rewrite.
+
+**Not measured:** whether a Pages build can remain green while one or more served artifacts
+still lag. `check_deploy.py` currently returns 1 for that state. A bounded deployment wait
+needs its own exit contract; it must not turn a failed ingest into a retryable condition.
+
+**Form: OpenSpec change** for cycle states and unattended retry policy. **Fix only** for
+structured logs and preservation of the existing refusal behavior.
+
+### U5 — publication needs an explicit mode and one report owner
+
+| Option | Behavior | Consequence |
+|---|---|---|
+| **A — generate and stop** | run acquisition through verification; write no git commit or push | safest first automation; an operator reviews and publishes |
+| **B — publish after all gates pass** | path-limited commit, verified push, Pages build and `check_deploy.py` | removes manual work; requires an explicit standing publication decision |
+| C — agent chooses repairs and publishes | model judgment can change the cycle | **rejected**; non-deterministic and outside the bounded repair contract |
+
+`publish_release_diff.py` regenerates, commits and pushes only `docs/release-diff.html`.
+`post_ingest_check.py` also regenerates that report. Running both publishers in one cycle
+can produce two commits with different timestamps and two Pages builds for unrelated payload
+states. Path-limited commits protect unrelated work; they do not merge concurrent commits to
+the same report.
+
+A full-cycle run must therefore have one publication owner. The scheduled report-only path
+must not commit the same report concurrently. A report-only run outside a full cycle keeps
+its existing narrow scope. The solution must state whether the full cycle suppresses,
+serializes or supersedes the report-only action. A simple flag that silently disables the
+third scheduled action is not enough.
+
+A path-limited commit includes only the cycle's declared paths. It must also protect against
+concurrent payload writers and same-path report changes. The commit must contain a coherent
+checked state, not files assembled from two different runs. A later successful push does not
+repair an earlier failed payload check.
+
+**Form: OpenSpec change** for automatic commit/push and shared report ownership.
+**Recommendation: A first; B only after an explicit user decision and failure drills.** No
+automatic commit, push or deployment is authorized by this board.
+
+### U6 — validation must cover the cycle, not only its commands
+
+The current commands already supply most gates. The coordinator must preserve their order
+and add cycle-level proofs:
+
+1. An unchanged PDF performs no ingest and creates no payload commit.
+2. A newly archived, hash-verified PDF reaches ingest exactly once.
+3. A refresh with no candidates performs no network calls or cache writes.
+4. A `LockHeld` result stops before any cache write.
+5. CLI exit 2, 3, 4 or 5 stops without bypass flags or publication.
+6. A failed refresh does not get hidden by a later successful rebuild.
+7. A rebuild preserves the recno partition and the payload's project ids.
+8. Generated reports describe the same payload revision that the Viewer carries.
+9. The commit excludes unrelated staged and modified paths.
+10. A push or deployment failure is reported separately from an ingest failure.
+11. Rerunning a completed PDF cycle does not ingest the same PDF again.
+12. A new PDF after a failed cycle cannot make the failed stage look successful.
+
+Test doubles simulate network, CLI refusals, locks and git results. The offline suite must
+stay offline. One read-only live smoke run can exercise a temporary archive and output tree.
+It must not mutate the real cache, repository or deployed site.
+
+**Form: OpenSpec change** with U1 and U5; test-first tasks precede implementation.
+
+### U7 — a city-platform change can need a different trigger
+
+The PDF cadence and city-platform cadence are independent. A pending case can gain approval
+before the next PDF publication. The 2026-11-19 refresh selected 101 projects and found
+changes that ordinary cached discovery would not fetch.
+
+A city-only scheduled refresh could run more often than PDF ingestion. It would still need
+the candidate selector, single-writer lock, rebuild, checks and publication policy. It must
+not re-read or rewrite the four PDF-derived layers as though a new gazette had arrived. The
+last rebuild left `raw.tsv`, `clean.tsv`, `merged.tsv` and `review_report.txt` unchanged.
+
+**Options:**
+
+| Option | Trigger | Limit |
+|---|---|---|
+| **A** | full refresh/rebuild only after successful PDF ingest | simple; pending city approvals wait for the next PDF |
+| **B** | PDF cycle plus a less frequent city-only cycle | fresher statuses; needs its own state, cadence and publication decision |
+| C | full city discovery for every project on every poll | broad and costly; changes cache semantics and is not justified by this measurement |
+
+**Form: OpenSpec change** for a city-only cadence. **Recommendation: decide it separately
+from the PDF coordinator.** The 168-list poller remains an archived programme snapshot; its
+change hash is not a complete pending-case change detector.
+
+### U8 — optional agent expansion belongs after deterministic failure logs
+
+**The question:** should an agent participate in periodic ingestion?
+
+**Recommendation: no agent in the normal path.** Poll, ingest, refresh, rebuild, verify and
+publish have fixed commands and success conditions. An agent must not decide whether a
+refusal is safe to bypass, infer missing data, edit the cache or emitted payload directly,
+or publish its own repair.
+
+An optional diagnostic agent can start only after the deterministic coordinator stops. It
+can classify the failed stage, compare the archived PDF, cache, payload and saved city reply,
+and propose an existing bounded repair or a code change. It must identify records by land
+core and approval date, not recno alone.
+
+| Agent permission | Recommendation |
+|---|---|
+| Read saved logs and source evidence | allowed in a future diagnostic mode |
+| Classify a failure and draft an incident report | allowed; not verification |
+| Propose an existing bounded repair | allowed; deterministic checks still decide the result |
+| Edit production cache or emitted payload | forbidden |
+| Add a case id, date or parcel by inference | forbidden |
+| Select `--allow-reconcile-block` or `--no-archive` | forbidden |
+| Commit, push or publish autonomously | forbidden |
+| Replace the coordinator's control flow | forbidden |
+
+Useful triggers are a changed PDF table structure, a repeated case-name mismatch, or a
+missing case outside the refresh selector's evidence. A routine pending approval needs no
+model judgment.
+
+**Form: fix only** to preserve structured failure bundles for manual diagnosis.
+**Form: OpenSpec change** for any agent invocation, tool permissions or repair handoff.
+Add this only if failure triage becomes frequent; it is not a prerequisite for U1–U6.
+
+### Automation items A1–A7
+
+| Step | Item | Priority | Form | Depends on | Notes |
+|---|---|---|---|---|---|
+| A1 | U3 — refresh takes the single-writer lock over `data` | **P1** | **fix only** | — | existing safety contract; test `LockHeld` before the first write |
+| A2 | U3 — offline candidate-only fast path | **P1** | **fix only** | A1 | no candidates means no network and no rebuild |
+| A3 | U3/U4 — structured poll adapter and failure logs | **P1** | **fix only** | — | no change to acquisition or refusal semantics |
+| A4 | U1/U3/U4/U6 — deterministic PDF-cycle coordinator | **P1** | **OpenSpec change** | A1–A3 | amend `gazette-cadence`; hash idempotency and failure drills required |
+| A5 | U5 — report ownership and publication mode | **P1** | **OpenSpec change** | A4; explicit user decision for automatic publication | start with generate-and-stop; one writer for `release-diff.html` |
+| A6 | U7 — independent city-only cadence | **P2** | **OpenSpec change** | A4; separate cadence decision | not triggered by a 168 hash alone |
+| A7 | U8 — optional read-only diagnostic agent | **P3** | **OpenSpec change** | A4–A6 and measured triage need | never in the normal ingest or publication path |
+
+A1–A3 can land independently without opening a periodic ingest change. They do not authorize
+A4. A4 without A5 can generate and verify but cannot publish. A5 decides who may commit and
+push. A6 and A7 are separate expansions, not hidden parts of the PDF-cycle implementation.
+
+### Automation decisions
+
+U-D1 to U-D5 are in the "Decisions to make" table at the top of this board. All five are
+undecided.
+
+---
+
+## Part II — Gen-1 membership: measurements after decisions D11 and S3/S5 (M1–M4)
+
+These measurements concern the gen-1 membership rules, not the district-page source.
+They moved here from `docs/inspections/inspection-batchF.md` without content changes. Their D11,
+S3/S5 and F8 decisions belong to the Batch F membership work. They are not gen-2
+implementation decisions.
+
+**Decided 2026-11-15: D11 = A** (S1's own-parcel form adopts the count rule). The change
+opens on the user's word (not yet opened). Also decided the same day: **S3/S5 —
+measure first** (below); **F8 option C waits** for D11 and S3/S5; the three read-only
+measurements below were ordered.
+
+### Measurements M1–M4 ordered with those decisions (2026-11-15, all read-only)
+
+**M1. The other 46 held-by-no-project pairs (33 projects).** Every one of the 46 names
+starts at a different parcel than its unit's and carries a different count; none is the
+unit's own parcel with the unit's count. Pattern: a same-section neighbour (`正義段三小段-418等10`
+vs `419等9`, 3 cases; `大安段一小段-421等16` vs `427等17`; `臨沂363等28` vs `403等25`), or a
+far larger or smaller unit (`永昌段四小段-46-4等117` vs `48等133` and `48等160`, 3 cases;
+`虎林38等138` vs `376等48`). A name's parcel can sit inside a unit that later grew, so a
+predecessor is possible (the 華興8 shape), but nothing in a name tells which. The hand
+sample **does not support admitting them as a group**; D2's "leave them out" stands.
+Each one would need its view page (or a user's look) to judge.
+
+**M2. Ids beyond a stem's held min and max (F4's lower bound).** The population is **not
+small**: 8,975 ids over all 10 digits of each held stem (7,932 distinct, 674 projects), or
+**1,937** (1,903 distinct, 665 projects) for only the id just below the lowest and just
+above the highest digit. The "about 60 requests" in the question was wrong. A pilot of
+**40 adjacent ids** (the first 40 by project name, **not a random sample**) found: 37 name
+no case, 3 name a case in another district, **0 accepted**. The full adjacent probe is
+about 32 minutes at one request a second; it was **not run**.
+
+**M3. The 4 nameless orphans have one cause.** The orphan branch reads the case name from
+`search_rejected`, then `candidate_names`, never `case_case_names` or the header. All 4
+have a name in `case_case_names`: `11412011` (南港玉成段二小段-166, its own unit's B區),
+`09210151` (文山萬隆段二小段-463, its own unit's A區, view-verified), and `10203261` /
+`10203262` under **玉成段二小段-253-1**, which are the `166地號等12筆` cases (held and badged
+by project 166; listed under 253-1 too, F8's "not established" pair, now established as the
+stem-rule cross-listing). A name fallback would draw nodes for `11412011` and `09210151`
+(2 new nodes) and give `10203261/2` under 253-1 the "未達相似度門檻" flag instead of a silent
+empty orphan (2 new flags). Not applied.
+
+**M4. S5 adopting the gate rule (the dry run you chose).** Over the 529 named,
+not-view-verified orphans on the payload: S5 accepts 505, both refuse 12, and **S5 refuses
+but the gate accepts 12**. Those 12 are exactly: the 7 F7-admitted cases, 華中247's
+`09305080`, 吳興163-2's 3 cases (`09102222`, `10103231`, `11510019`) and 臨沂412's `10010221`.
+So the effect would be 12 orphan flags cleared and **12 orphan nodes drawn** (24 flags
+become 12); nothing else moves. Caveats: the dry run uses the cache's land core, not the
+anchor record's built core; it covers S5 only, not S3 (the offer step); a node's
+"ghost" status is a viewer judgement, since each name carries a stage and a track.
+
+---
+
+## Part III — Gen-2 viewer: one `project_uid` for applications and approvals (O1–O7)
+
+Seven items. They explore whether the current Viewer interface can be reused for a
+generation-2 Viewer that holds district-page applications and gazette approvals under one
+stable `project_uid`. Priority P3: it adds a source and an identity layer, and it waits for
+Part II. Everything below was measured offline unless it says it made requests. The
+2026-11-20 re-measurements read three live case headers (3 requests, read-only).
+
+### O1 — one `project_uid` for applications and approval records
 
 **The question.** Can one Viewer show an application from the district pages and an
 approval from the gazette as entries of the same project history?
 
-**Measurement.** No repository code currently assigns a stable unit id across the two
-sources. The current Viewer keys on `project_id` (the slug of the latest approval's
-land core) and every node carries `recno`. District-page rows carry neither.
+**Measurement.** No repository code assigns a stable unit id across the two sources. The
+Viewer keys on `project_id` (the slug of the latest approval's land core), and every node
+carries `recno`. District-page rows carry neither. They carry `case_id`, `case_name`,
+`district`, `place`, `implementer` and a status.
 
-District pages do not ship `recno`. They ship `case_id`, `case_name`, `district`,
-`place`, `implementer` and status. Four `case_id` values name two different cases on
-two district pages. The Viewer has 3 `case_id` values absent from the district set,
-all of them in the 松山 conflict cluster (`11510011`, `11510014`, `11510015`).
-
-Therefore `project_uid` must be assigned by evidence — land-core similarity, parcel
-history and named anchors — never by `case_id`, `recno`, or `project_id` alone.
+The Viewer holds three ids that the district tables do not: `11510011`, `11510014` and
+`11510015`. They are not extra projects. They are the 松山 cases' own ids (O2).
 
 | Identifier | Meaning | Stable? | Safe as a durable key? |
 |---|---|---|---|
 | `project_uid` | Stable id of one renewal unit | yes, if assigned by evidence | **yes** |
-| `project_id` | Slug of latest approval's land core | churns (~11% of families moved) | no |
-| `case_id` | Taipei portal lookup key per application | conflicts exist | no |
+| `project_id` | Slug of the latest approval's land core | churns (~11% of families moved) | no |
+| `case_id` | Taipei portal lookup key per application | four printed ids conflict (O2) | no |
 | `recno` | Gazette row coordinate within one PDF | not assigned to district rows | no |
 
 **Proposed form.** Each pending application and each approval record points to one
-`project_uid`. One unit can hold several applications. A later `project_id` change
-never moves the UID. The identity assignment lives in an append-only ledger so a
-wrong match can be split or merged later.
+`project_uid`. One unit can hold several applications. A later `project_id` change never
+moves the UID. The assignment lives in an append-only ledger, so a wrong match can be split
+or merged later.
 
-**Recommendation: build gen-2 on a new identity layer.** Do not reuse `project_id`
-or `case_id` as the durable unit key.
+**Recommendation: build gen-2 on a new identity layer.** Do not reuse `project_id` or
+`case_id` as the durable unit key.
 
----
+### O2 — `case_id` is an application key, not a project key
 
-## O2 — `case_id` is an application key, not a project key (the four conflicts)
+**The question.** Can the Viewer's `links.taipei` set stay as it is under one `project_uid`?
 
-**The question.** Can the Viewer's `links.taipei` set stay as-is under one `project_uid`?
+**Measurement.** Four ids print two cases each on the district pages. The live header of
+the printed id names only one of the two. For three of the four, the other id is known.
+The Viewer holds `11510011`, `11510014` and `11510015` on the three 松山 projects. On
+2026-11-20 their live headers named the same 松山 cases that the district tables print under
+`11509011`, `11509014` and `11509015`.
 
-**Measurement.** Four IDs name two different cases each:
+| Printed `case_id` | Row A | Row B | Header of the printed id names | The id of Row B |
+|---|---|---|---|---|
+| `11509011` | 大同區 大同段一小段393地號等19筆 (品陽建設) | 松山區 敦化段二小段449-12地號28筆(原25筆) (金朋建設) | Row A | `11510011`; header application date 2026/08/31 |
+| `11509014` | 大同區 圓環段一小段184地號等30筆 (柏合投資) | 松山區 寶清段二小段353-2地號等21筆 (A基地) (北碁建設) | Row A | `11510014`; header application date 2026/10/08 |
+| `11509015` | 中正區 臨沂段一小段357地號等16筆 (璞永建設) | 松山區 寶清段二小段353-2地號等21筆 (B基地) (北碁建設) | Row A | `11510015`; header application date 2026/10/08 |
+| `11510016` | 信義區 信義段二小段133地號等12筆 (友座建設) | 大安區 仁愛段五小段480地號等2筆(原1筆) (合作金庫資產管理) | Row B (大安) | not established for the 信義 row |
 
-| `case_id` | Row A | Row B | Live header names |
-|---|---|---|---|
-| `11509011` | 大同區 大同段一小段393地號等19筆… (品陽建設) | 松山區 敦化段二小段449-12地號28筆(原25筆)… (金朋建設) | 大同區 row |
-| `11509014` | 大同區 圓環段一小段184地號等30筆… (柏合投資) | 松山區 寶清段二小段353-2地號等21筆…(A基地) (北碁建設) | 大同區 row |
-| `11509015` | 中正區 臨沂段一小段357地號等16筆… (璞永建設) | 松山區 寶清段二小段353-2地號等21筆…(B基地) (北碁建設) | 中正區 row |
-| `11510016` | 信義區 信義段二小段133地號等12筆… (友座建設) | 大安區 仁愛段五小段480地號等2筆(原1筆)… (合作金庫資產管理) | 大安區 row |
-
-`11509014` and `11509015` are the A基地 and B基地 amendments of one 寶清段 project
-under one implementer. `11510016` names cases in 信義區 and 大安區 with different
-implementers; its 2026/10/13 application date belongs to the 大安 amendment
-according to the Viewer cache.
+The headers of `11510014` and `11510015` carry the same case name, with no A基地 or B基地
+suffix. Only the district rows tell the two apart. The Viewer holds both ids on one project,
+`松山區-寶清段二小段-353-2地號等21筆`.
 
 **Proposed form.** Each application keeps its own `application_id` and `case_id`.
-`case_id` links to `r_progress_detail.aspx?case_id=<id>` for status. `project_uid`
-groups applications by unit evidence, not by `case_id`. The four conflicts stay
-unmerged until independent evidence decides which row each ID belongs to.
+`case_id` links to `r_progress_detail.aspx?case_id=<id>` for status. `project_uid` groups
+applications by unit evidence, not by `case_id`. The four conflicts stay flagged. The
+evidence above supports the three 11510xxx ids; this board corrects no id by inference.
 
-**Recommendation: treat `case_id` as one application's portal key.** One project can
-hold several `case_id` values. Do not group pending applications by `case_id` alone.
+**Recommendation: treat `case_id` as one application's portal key.** One project can hold
+several `case_id` values. Do not group pending applications by `case_id` alone.
 
----
-
-## O3 — meeting-label records cannot join projects
+### O3 — meeting-label records cannot join projects
 
 **The question.** Do the three `審議會` rows count as pending cases?
 
-**Measurement.** All three sit in 大安區:
+**Measurement.** All three sit in 大安區. Their headers repeat the label. They are not case
+names, and no land core parses from them.
 
 | `case_id` | 案名 | District status | Header status | Note |
 |---|---|---|---|---|
@@ -97,159 +463,181 @@ hold several `case_id` values. Do not group pending applications by `case_id` al
 | `11011021` | `511次審議會` | 事業計畫階段─業申請審議會審議 | same | same |
 | `11010261` | `第522次審議會` | 事業計畫階段─業申請審議會審議 | same | same |
 
-Their headers repeat the meeting label. They are not case names.
+**Proposed form.** Keep them out of project counts. Keep them as labelled rows if gen-2
+ever lists district rows verbatim.
 
-**Proposed form.** Keep them out of project counts. Keep them as labelled rows if
-gen-2 ever lists district rows verbatim.
+**Recommendation: exclude meeting-label records from pending-project counts.** They need
+separate review before any identity assignment.
 
-**Recommendation: exclude meeting-label records from pending-project counts.** They
-need separate review before any identity assignment.
-
----
-
-## O4 — the Viewer graph assumes `recno`; district pages have none
+### O4 — the Viewer graph assumes `recno`; district pages have none
 
 **The question.** Can `viewer/app.js` render district rows without changes?
 
-**Measurement.** `viewer/index.html` and `viewer/app.js` read `project_id`,
-`anchor_recno`, `member_recnos`, `nodes[].recno`, `published_date`,
-`implementation`, `rewards`, `edges`, `links.taipei`. The pipeline fills every
-node's `recno` and every project's `anchor_recno`. `viewer/app.js` line 146 checks
-`(node.links || {}).taipei` for badge membership; line 935 uses
-`p.member_recnos.length`; line 1359 prints `共 ${p.member_recnos.length} 筆`.
+**Measurement.** `viewer/index.html` and `viewer/app.js` read `project_id`, `anchor_recno`,
+`member_recnos`, `nodes[].recno`, `published_date`, `implementation`, `rewards`, `edges` and
+`links.taipei`. The pipeline fills every node's `recno` and every project's `anchor_recno`.
+`viewer/app.js:147` checks `(node.links || {}).taipei` for badge membership. Line 935 uses
+`p.member_recnos.length`. Line 1359 prints `共 ${p.member_recnos.length} 筆`. District rows
+carry none of `recno`, `anchor_recno`, `member_recnos`, a gazette date, an approval stage or
+an edge history.
 
-District rows carry none of `recno`, `anchor_recno`, `member_recnos`, gazette date,
-approval stage, or edge history.
-
-**Proposed form.** Gen-2 can reuse the list page layout and the graph drawing code,
-but its payload schema differs:
+**Proposed form.** Gen-2 can reuse the list layout and the graph drawing code. Its payload
+differs:
 
 - `application_id` instead of `recno` per row
-- `application_date` instead of `core gazette approval date`
-- pending-review stage vocabulary instead of gazette stage
+- `application_date` instead of the gazette approval date
+- a pending-review stage vocabulary instead of the gazette stage
 - `links.taipei` still works as a `case_id` set for the detail link
-- no `member_recnos`; use `member_applications` or leave it absent
-- no edges until amendments link to a base application by unit evidence
+- no `member_recnos`; use `member_applications`, or leave it absent
+- no edges until an amendment links to a base application by unit evidence
 
-**Recommendation: gen-2 needs its own payload and its own field handling.** Reuse
-the UI components, not the schema.
+**Recommendation: gen-2 needs its own payload and its own field handling.** Reuse the UI
+components, not the schema. This is the last step (O6 comes first).
 
----
+### O5 — attach amendments to units by land core, through `membership_verdict`
 
-## O5 — grouping amendments by land core, not by `case_id`
+**The question.** Can an amendment join an existing unit under one `project_uid`?
 
-**The question.** Can amendments join an existing unit under one `project_uid`?
+**Measurement (2026-11-20, offline dry run).** The existing `gate` policy of
+`membership_verdict` (`urtpe/links.py:1582`) ran over the 497 active-review rows of the
+district screen. Each of the 676 projects supplied one `Unit`: the land core from its
+project id, the parcels and counts from its nodes. Only units of the same district were
+tried.
 
-**Measurement.** Nine amendments were screened as active-review and outside the
-Viewer and outside the 168 list. `11509014` (A基地) and `11509015` (B基地) are
-amendments of one 寶清段 project; they share one implementer and one land segment.
-`11509011` is another amendment under the same `case_id` conflict as a 大同 case.
-None is on the 168 list.
+| Rows | Result |
+|---|---|
+| 485 new (擬訂) applications | 484 match no unit. 1 matches one unit by the own-parcel rule: `11510012` → `信義區-雅祥段一小段-6地號等21筆`. The counts are equal (21). It is not judged. |
+| 9 amendments (變更) | 8 match exactly one unit. 1 matches two: `11511010` matches `內湖區-文德段二小段-232地號等4筆` by land core and `…-231-3地號等4筆` by the own-parcel rule (equal count 4). |
+| 3 meeting labels | no land core parses |
 
-**Proposed form.** Pair each amendment with its base unit by:
+By district, section and first parcel, each of the nine amendments names a unit that the
+Viewer already holds. Three of the nine (`11509011`, `11509014`, `11509015`) are the 松山
+rows of O2. The Viewer holds them under `11510011`, `11510014` and `11510015`. The district
+screen counted them as absent for two reasons. The printed id differs. The probe also
+compared names against node case names only, and it did not read `candidate_names`. On
+2026-11-20 the exact printed name of `11509011` and `11509015` is among the Viewer's
+candidate names. The name of `11509014` differs by a suffix (`A基地` against
+`A基地及道路用地`). So the 497 and the nine amendments are slightly overcounted by this
+screen. This board did not recompute them. Also, 387 of the 485 new applications sit in a section where the Viewer holds a
+unit, on other parcels. Those are separate units, not amendments.
 
-1. land-core text similarity,
-2. shared implementer where present,
-3. shared section and nearby parcels,
-4. manual review for the conflicting `case_id` values.
+Two limits. The unit's land core came from the project id, not from the cache. The
+own-parcel rule is the one whose width Batch F measured (F7, M-series below): it can admit
+a neighbour. The ambiguous row `11511010` shows it.
 
-Do not use `case_id` equality. A and B zones remain separate applications inside one
-unit's pending history.
+**Proposed form.** Add one named policy to `membership_verdict` for "application to unit".
+Add a golden table over the nine amendments and the one new application. Pair an
+amendment with its base unit by:
 
-**Recommendation: group amendments by land-core evidence.** Keep A基地 and B基地
-as separate applications under one `project_uid` only when the land core and other
-evidence agree.
+1. the land-core rule of the `gate` policy,
+2. the same district and section,
+3. a shared implementer where the district row carries one,
+4. manual review for every ambiguous match and for the conflicting ids.
 
----
+Do not use `case_id` equality. A基地 and B基地 stay separate applications inside one unit's
+pending history.
 
-## O6 — a separate pending dataset is the safe first shape
+**Recommendation: match by land-core evidence, through the one membership function.** Wait
+for D11 and M4: if S5 moves onto the gate rule, this policy moves with it.
+
+### O6 — a separate pending dataset is the safe first shape
 
 **The question.** Should pending applications merge into the approved-project graph?
 
-**Measurement.** The approved graph has strict invariants: every node has `recno`,
-every project has `anchor_recno`, stages are gazette-approval stages, and the
-tripwire and coverage guards run over the emitted caches. Mixing applications with
-no `recno` into that graph corrupts it silently rather than raising.
+**Measurement.** The approved graph has strict invariants. Every node has `recno`. Every
+project has `anchor_recno`. Stages are gazette-approval stages. The tripwire and coverage
+guards run over the emitted caches. A row with no `recno` in that graph corrupts it
+silently rather than raising.
 
-**Proposed form.** A separate dataset, e.g. `projects.pending.json` (name to be
+**Proposed form.** A separate dataset, for example `projects.pending.json` (name to be
 decided), keyed by `project_uid`, holding:
 
 - one entry per pending unit,
-- one entry per application with `application_id`, `case_id`, status, district,
-  applicant, location, application date,
-- links to any approved Viewer project only where evidence supports it,
-- flags for conflicting IDs, missing headers, meeting-label names,
-- observation time so status age is visible.
+- one entry per application: `application_id`, `case_id`, status, district, applicant,
+  location, application date,
+- links to an approved Viewer project only where evidence supports it,
+- flags for conflicting ids, missing headers and meeting-label names,
+- the observation time, so the age of a status is visible.
 
-The Viewer can render both datasets from one shell page, but they remain two
-payloads with two contracts.
+The Viewer can render both datasets from one shell page. They remain two payloads with two
+contracts. Acquisition stays separate from ingestion (`gazette-cadence`): the poller of
+district pages must not write the emitted dataset.
 
-**Recommendation: keep a separate pending dataset.** Merge only after the identity
-ledger and the count rule have been exercised on known approvals.
+**Recommendation: keep a separate pending dataset.** Merge only after the identity ledger
+and the membership rule have run on known approvals. Refresh it at the pace of A6.
 
----
+### O7 — gen-2 proof population: the nine matched units
 
-## O7 — gen-2 proof population
+**The question.** Which units prove the UID design without guessing?
 
-**The question.** Which projects prove the UID design without guessing?
+**Measurement (2026-11-20).** The nine amendments of O5 name nine applications on eight
+units, plus one conflicting id on a ninth unit. Each unit exists in the Viewer.
 
-**Measurement.** Use units where both sources name the same land core:
-
-| Project | District | Evidence |
+| Viewer project | Application | Note |
 |---|---|---|
-| 北投大業段三小段-184-1等10 | 北投 | amendment `11509024`, application date 2026/09/22, in Viewer cache |
-| 南港玉成段二小段-253-1等16 | 南港 | amendment `10405044` |
-| 內湖文德段二小段-232等4 | 內湖 | amendment `11511010` |
-| 內湖東湖段一小段-14-2等1 | 內湖 | amendment `11508005`, no applicant on cp |
-| 大同雙連段三小段-98等25(原23) | 大同 | amendment `11511007` |
-| 松山寶清段二小段-353-2等21(A/B) | 松山 | `11509014`, `11509015` conflict rows |
-| 大安仁愛段五小段-480等2(原1) | 大安 | `11510016` conflict row |
+| `北投區-大業段三小段-184-1地號等10筆` | amendment `11509024` | application date 2026/09/22 |
+| `南港區-玉成段二小段-253-1地號等16筆` | amendment `10405044` | header status moved on to 業經幹事會審查 |
+| `內湖區-文德段二小段-232地號等4筆` | amendment `11511010` | **ambiguous** under the own-parcel rule (O5) |
+| `內湖區-東湖段一小段-14-2地號等1筆` | amendment `11508005` | no applicant on the district table |
+| `大同區-雙連段三小段-98地號等25筆` | amendment `11511007` | `等25筆(原23筆)` |
+| `松山區-寶清段二小段-353-2地號等21筆` | amendments `11509014` (A) and `11509015` (B) | held as `11510014` and `11510015`; one unit, two applications |
+| `松山區-敦化段二小段-449-12地號等28筆` | amendment `11509011` | held as `11510011` |
+| `大安區-仁愛段一小段-92地號等11筆` | amendment `11505026` | no header row on the live check |
+| `大安區-仁愛段五小段-480地號等2筆` | conflict row `11510016` | the 大安 row; the 信義 row has no Viewer unit |
 
-These seven units cover the four conflicts and the amendment shapes. They are the
-natural first population for the identity ledger.
+These units cover the amendment shapes and the one conflict whose second id is not
+established. The other three conflict rows (大同 393, 大同 圓環184, 中正 臨沂357) and the
+信義 row have no Viewer unit. They are new applications.
 
-**Recommendation: prove gen-2 on these seven units first.** Add units only by user
-decision after each match is checked.
-
----
-
-## Order
-
-| Step | Item | Priority | Form | Depends on | Notes |
-|---|---|---|---|---|---|
-| 1 | O1 — assign `project_uid` by evidence | P2 | new identity layer, append-only ledger | — | not `case_id`, `recno` or `project_id` |
-| 2 | O2 — keep `case_id` per application | P2 | schema field, no grouping by ID alone | O1 | four conflicts stay flagged |
-| 3 | O3 — exclude meeting-label rows | P2 | filter rule | O1 | 3 rows |
-| 4 | O4 — separate pending payload | P2 | `projects.pending.json` shape | O1 | reuse UI, not schema |
-| 5 | O5 — group amendments by land core | P3 | match rule, manual review | O1 | A/B zones separate applications |
-| 6 | O6 — prove on seven units | P3 | ledger entries, no graph change | O1–O5 | first population |
-| 7 | O7 — Viewer UI reuse decision | P4 | direct fix after payload exists | O4 | component reuse only |
-
----
-
-## Decisions to make
-
-None yet. Each item above is a recommendation. An openspec change opens on the user's
-word, one item at a time.
+**Recommendation: prove gen-2 on these nine units first.** Add units only by user decision
+after each match is checked.
 
 ---
 
 ## Appendix — method
 
 - **Viewer payload:** read `data/projects.json`; counted projects, nodes, `recno`,
-  `anchor_recno`, `member_recnos`, `implementation`, `rewards`, `edges`, `links`.
-- **District rows:** read saved `dashboard-data/cp-rows.json` (3,655 rows) and
-  `dashboard-data/duplicates.json` (4 conflicts) from the session scratchpad; counted
-  distinct `case_id` values (3,651) and district counts (12).
-- **Viewer vs district vs 168:** compared distinct `case_id` sets from
-  `dashboard-data/viewer-ids.json` (2,022 IDs), `dashboard-data/p168-rows.json`
-  (468 IDs) and `dashboard-data/cp-rows.json` (3,651 IDs).
-- **Amendments and meeting labels:** read saved
-  `dashboard-data/special-records.json` (9 amendments, 3 meeting labels).
-- **Header evidence:** read `district_header_summary.json` from the session
-  scratchpad (594 candidates, 495 successful active rows, 4 failures).
-- **Viewer graph fields:** read `viewer/app.js` lines 146–148, 935, 1359 and
-  `viewer/index.html` for the field names the UI depends on.
+  `anchor_recno`, `member_recnos`, `implementation`, `rewards`, `edges`, `links`. Named
+  case ids: 2,022 before commit `6b97a83`, 2,028 after.
+- **District rows and the Venn counts:** reproduce with the three scripts in
+  `docs/portals/urotpe_district_pages.md` §7. They write under `data_test/district_probe/`.
+- **Amendments and meeting labels:** `special-records.json` was written by hand from the
+  header evidence. No script makes it.
+- **Header evidence:** `district_header_summary.json` (594 candidates, 495 successful active
+  rows, 4 failures). On 2026-11-20 three more read-only requests read `11510011`,
+  `11510014` and `11510015`.
+- **Membership dry run (O5):** ad hoc, not kept. One `Unit` per project from
+  `expected_land_core_of_project_id`, the anchor node's parcels and the counts of all nodes;
+  `membership_verdict(name, unit, "gate")` over the active rows, same district only.
+- **Viewer graph fields:** `viewer/app.js` lines 147, 935 and 1359 and `viewer/index.html`.
+- **Part I:** read the scripts and specs it names. It cites `scripts/refresh_awaiting_caches.py:39`,
+  `urtpe/links.py:618` and `:2354`, `openspec/specs/gazette-cadence/spec.md` and
+  `docs/pipeline/etl_process.md` §11. The 2026-11-19 refresh figures (101 and 94 projects,
+  8 dates, 14 statuses, 6 cases) come from the session that ran it. Their run output is not
+  kept, and this board did not re-measure them.
+- **Part II:** the method of M1–M4 is the Batch F appendix
+  (`docs/inspections/inspection-batchF.md`, "Appendix — method"). The scripts were ad hoc.
 
-No live requests were made for this board beyond the previously saved probes. The
-pipeline was not run. No files under `urtpe/` or `viewer/` were changed.
+No pipeline run, ingest or deployment happened for this board. No file under `urtpe/` or
+`viewer/` changed.
+
+## Corrections made when this board was reorganized (2026-11-20)
+
+| Earlier text | Correction |
+|---|---|
+| O1: the three Viewer-only ids sit "in the 松山 conflict cluster" | They are the 松山 cases' own ids, read live. See O2. |
+| Order table: step labels did not match the section ids (O4 for the pending payload, O6 for the proof population, O7 for UI reuse) | The table names each item by its own section id. |
+| O4: `viewer/app.js` line 146 | Line 147. |
+| O5: nine amendments are "outside the Viewer" | Each of the nine names a unit the Viewer holds. Three are already held under another id. The screen that found nine did not read `candidate_names`, so the nine is an upper bound. |
+| O7: seven units, "cover the four conflicts" | Nine units. They cover the amendments and one conflict. |
+| Source line: 1,444 records, 675 projects, 2026-10-28 | 1,448 records, 676 projects, 2026-11-12. |
+| Probe outputs "live in the session scratchpad" | Three scripts reproduce them. |
+| Part I: `docs/etl_process.md`, `urtpe/links.py:617`, `SingleWriterLock("data")` | `docs/pipeline/etl_process.md`; `urtpe/links.py:618`; a lock over the `data` output tree, as `scripts/refresh_second_id_source.py:96` takes it. |
+
+## Provenance
+
+Parts I and II were written by other sessions on 2026-11-19 and kept uncommitted in this
+file. A `git checkout` on 2026-11-20 discarded them. They were rebuilt from the diff that
+this session had printed before the revert. Their text is unchanged except for the
+corrections in the last table, the labels `M1–M4`, and the new path names. A later edit by
+the other session after that diff, if any, is not in this copy.

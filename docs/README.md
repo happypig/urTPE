@@ -52,7 +52,7 @@ document's status: **current**, **generated**, **historical** or **temporary**.
 | `inspections/inspection-batchD.md` | Batch D collected 2026-11-04 (orphan milestones, ghost-date echo, 國 key bug, badge bugs). | Fixed collection. |
 | `inspections/inspection-batchE.md` | Batch E collected 2026-11-12 (compatibility ideographs, URL write-back, windowed list). | Fixed collection. |
 | `inspections/inspection-batchF.md` | Batch F collected 2026-11-15 (membership predicate refactor, cross-route test, dependency, sibling walk, land cores, rejected-id limit, change findings, badge gaps, section labels). | Fixed collection. |
-| `inspections/optimization.md` | Viewer gen-2 identity exploration: `project_uid`, `case_id` as application key, meeting-label exclusion, separate pending payload, seven-unit proof population. | Recommendations; no change open. |
+| `inspections/optimization.md` | Optimization board in three parts, in priority order: I the deterministic PDF and city-platform update cycle (U1–U8, A1–A7); II gen-1 membership measurements after D11 and S3/S5 (M1–M4); III the gen-2 viewer with one `project_uid` (O1–O7). Opens with the order, the dependencies and the decisions. | Recommendations; no change open. Item ids stay fixed. |
 
 ---
 

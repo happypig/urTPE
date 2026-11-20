@@ -201,7 +201,7 @@ Violating any of these corrupts output silently rather than raising.
     remote afterwards whether it holds the commit, and reports a failure when it does not.
   A failed push is reported, and the committed report is then ahead of the served one —
   which `check_deploy.py` reports as stale.
-- `scripts/` — 172 files, of which 115 are `probe_*.py`. Undated ones (`poll_gazette.py`,
+- `scripts/` — 185 files, of which 117 are `probe_*.py`. Undated ones (`poll_gazette.py`,
   `fetch_remaining_national_portal.py`, `build_project_aliases.py`, `stranded_report.py`)
   are durable tools; dated ones (`*_2026MMDD`) and `probe_*.py` are one-shot archaeology.
   `post_ingest_check.py` validates all emitted layers, runs standing checks, and uses

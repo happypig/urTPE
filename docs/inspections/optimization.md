@@ -6,8 +6,9 @@ records under one stable `project_uid`. Everything below was measured offline on
 the current payload and on saved probe outputs, unless a section says it made
 live requests. No probe ran against the pipeline beyond the saved outputs.
 
-**Source and state.** Payload `data/projects.json`: 1,444 records / 675 projects,
-統計至 2026-10-28. District pages: 3,655 distinct rows / 3,651 distinct `case_id`
+**Source and state.** Payload `data/projects.json`: 1,448 records / 676 projects,
+統計至 2026-11-12. (An earlier version of this line said 1,444 / 675 and 2026-10-28.
+That was wrong. It was the payload of two gazettes ago.) District pages: 3,655 distinct rows / 3,651 distinct `case_id`
 values, read 2026-11-19. `P_project168.aspx` snapshot 2026-11-18T12:31:41Z,
 468 IDs, checked live 2026-11-19. Probe outputs live in the session scratchpad,
 not in the repo, and are named below where they matter.

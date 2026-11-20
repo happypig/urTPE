@@ -173,6 +173,20 @@ approved projects. See §4.
 The district set had 1,632 IDs absent from the Viewer set. Eighty-seven of those IDs were
 on the 168 list. These set counts differ from row counts because four IDs name two rows.
 
+**These counts are one payload old.** They describe the Viewer before commit `6b97a83`
+(2,022 IDs). That commit's refresh added six IDs to the Viewer. All six are in the district
+tables, and none is on the 168 list. Four read `無` in the district table. Two read as
+approved (`09909271`, `10804122`). Re-measured on 2026-11-20 against the current payload:
+
+| Region | Before `6b97a83` | Current |
+|---|---:|---:|
+| Viewer IDs | 2,022 | 2,028 |
+| Viewer + district only | 1,638 | 1,644 |
+| District only | 1,545 | 1,539 |
+| District IDs absent from the Viewer | 1,632 | 1,626 |
+
+The other regions do not move. The 87 IDs of the 168 + district region are unchanged.
+
 ---
 
 ## 4. Why 3,655 rows contain only 3,651 IDs
@@ -228,6 +242,9 @@ is still pre-approval. The screen produced:
 The 497 is a row-screen result, not a project count. It includes conflicting IDs and a row
 whose header was unavailable. A future gen-2 viewer must retain application identity and
 project identity separately.
+
+On the current payload the unknown-status count is 93, not 97. The four `無` rows named in
+§3 joined the Viewer. The 497 and the 421 do not move.
 
 ### The nine amendments
 
@@ -309,17 +326,30 @@ Open issues for any production adoption:
 | `P_project168.aspx` | Snapshot 2026-11-18T12:31:41Z; checked live 2026-11-19 |
 | Viewer payload | `data/projects.json`; `published_date` 2026-11-12; generated 2026-11-18T22:36:36+08:00; 676 projects |
 
-The exploration used a session-local probe, not a repository pipeline module. To reproduce
-the crawl:
+The exploration used dated one-shot scripts, not a repository pipeline module. They write
+only under `data_test/district_probe/`, which git ignores. To reproduce the measurements:
 
-1. Fetch the entry URL in §1 with a generic `urTPE-source-review` user agent.
-2. Parse the six-cell rows and district links with `HTMLParser`.
-3. Accept seven- or eight-digit IDs and normalise them with `zfill(8)`.
-4. Fetch each discovered district once. Deduplicate the entry page and its equivalent 北投
-   URL on the six published fields.
-5. Report every district, accepted row, rejected row and duplicate before comparing sources.
-6. Call `get_project168_top.ashx` only for named candidate IDs, not as an unbounded sweep.
-7. Save the source URL, observation time and raw fields with each result.
+1. Run `python scripts/probe_district_pages_20261119.py`. It crawls the 12 pages, removes
+   the duplicate 北投 rows, and compares the rows with the Viewer and the saved 168 snapshot.
+   It writes `preapproval_rows.json` (3,925 rows), `preapproval_distinct_rows.json`
+   (3,655 rows) and `preapproval_analysis.json`.
+2. Run `python scripts/probe_district_headers_20261119.py`. It asks
+   `get_project168_top.ashx` about the screened candidates only, three requests at a time.
+   Use `--limit 3` for a smoke run.
+3. Run `python scripts/build_district_dashboard_data_20261119.py`. It works offline. It
+   writes the dashboard data files described in §8.
+
+The scripts follow these rules. Keep them in any rewrite:
+
+- Fetch each discovered district once. Deduplicate on the six published fields, not on the
+  source URL.
+- Accept seven- or eight-digit IDs and normalise them with `zfill(8)`.
+- Report every district, accepted row, rejected row and duplicate before comparing sources.
+- Call the header endpoint only for named candidate IDs. Never sweep it.
+- Save the source URL, observation time and raw fields with each result.
+
+Step 1 and 2 reach the network. Step 3 does not. A rerun gives today's data. It does not
+reproduce the 2026-11-19 counts, because the city and the Viewer payload both move.
 
 Example requests:
 
@@ -333,3 +363,44 @@ Invoke-WebRequest "https://gis.uro.taipei/ashx/get_project168_top.ashx" `
 
 These requests read public case data. They do not ingest the district rows or change the
 Viewer payload. Acquisition and ingestion must remain separate.
+
+---
+
+## 8. Companion dashboard
+
+The measurements above are also shown in a Claude artifact, "Taipei Case Sources":
+`https://claude.ai/artifact/3Xk8sdtJ1CqEhhy8B5Vbge`. It is external state. It is not
+pipeline output, and nothing in the repository reads it or writes to it.
+
+**What it shows.**
+
+- A Venn diagram of the Viewer, the 168 list and the district pages, with the seven region
+  counts. A region with fewer than 100 IDs lists its `case_id` values.
+- The explanation of 3,655 rows against 3,651 IDs, with the four conflicting IDs.
+- The field comparison of §3.
+- The nine amendments and the three meeting-label records of §5.
+
+**What it holds.** The page is `files/index.html`, at version 2. Seven datasets feed it:
+`cp`, `p168`, `viewer`, `duplicates`, `special`, `fields` and `meta-source`. They are fixed
+copies, dated 2026-11-19. They do not refresh themselves. Its Viewer figures are the
+before-`6b97a83` figures of §3 (2,022 Viewer IDs). Rebuilding the data now gives 2,028.
+Uploading a rebuild is a manual step. Nobody has done it.
+
+**The 87 IDs.** The 168 + district-only region holds 87 IDs. This document does not list
+them, because a list goes stale with the next snapshot. The artifact shows the list for the
+date of its data. To get the current list:
+
+1. Take the case IDs of the district rows.
+2. Keep the ones on the 168 snapshot.
+3. Remove the ones the Viewer holds.
+
+`scripts/build_district_dashboard_data_20261119.py` builds the three input files for this
+difference. The artifact page does the subtraction in the browser.
+
+**One file has no script.** `special-records.json` (the nine amendments, the three
+meeting labels and the screening counts) was written by hand. It is a reading of the header
+evidence of §5 and §6, not a computation. The build script does not make it.
+
+**One manual fact.** The header check never asked about `11510016`. It is a conflicting ID
+that the screen did not select. Its header was read once on 2026-11-19, and the build script
+records that reply as a constant.

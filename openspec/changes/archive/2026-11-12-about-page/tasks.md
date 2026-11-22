@@ -70,7 +70,7 @@
 - [x] 3.1 The full suite passes (`python -m pytest`) — count and skip noted.
 - [x] 3.2 `node scripts/viewer_smoke.js` still passes (the header change must
   not disturb the smoke harness).
-- [ ] 3.3 The page is opened from `file://` in a browser and from the published
+- [x] 3.3 The page is opened from `file://` in a browser and from the published
   site after push: every link resolves, no console errors, no network request
   beyond the clicked external links.
 - [x] 3.4 `python scripts/check_deploy.py` reports about.html fresh after the

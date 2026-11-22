@@ -28,5 +28,5 @@
 - [x] 3.1 `node scripts/viewer_smoke.js` — green (the windowing cases
   included). *(25 DOM rows for 675 projects; 2 spacers; all checks passed)*
 - [x] 3.2 `python -m pytest` — full suite green. *(1314 passed / 1 skipped)*
-- [ ] 3.3 Manual (the user's browser): scroll the full list, no jump, the
+- [x] 3.3 Manual (the user's browser): scroll the full list, no jump, the
   deep link lands centered.

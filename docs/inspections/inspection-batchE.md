@@ -94,7 +94,7 @@ shows a third reader, measure it before widening or shrinking the change.
 
 ---
 
-## E2 — Part 1: URL write-back + keyboard access, as one change — **DONE 2026-11-12** (openspec: viewer-url-writeback-keyboard, `c3b42b4`, archived `3ebbb75`; task 3.3, the manual browser check, still waits for the user)
+## E2 — Part 1: URL write-back + keyboard access, as one change — **DONE 2026-11-12** (openspec: viewer-url-writeback-keyboard, `c3b42b4`, archived `3ebbb75`; task 3.3, the manual browser check, confirmed by the user 2026-11-22)
 
 **The state, re-verified 2026-11-12.** The list items are `div` elements with
 an `onclick` handler (`viewer/app.js:911`). The codepoint-level search over

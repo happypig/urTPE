@@ -32,6 +32,6 @@
 
 - [x] 3.1 `node scripts/viewer_smoke.js` — green (the new cases included). *(all checks passed; 6 harness cases added)*
 - [x] 3.2 `python -m pytest` — full suite green. *(1285 passed / 1 skipped)*
-- [ ] 3.3 Manual (the user's browser): Tab reaches the list, Enter selects,
+- [x] 3.3 Manual (the user's browser): Tab reaches the list, Enter selects,
   the address bar carries `#project=`, a copy-paste + reload reopens the
   project.

@@ -30,6 +30,6 @@
 ## 3. Verification
 
 - [x] 3.1 The suite passes; the smoke harness passes.
-- [ ] 3.2 All six published pages verified in Chrome (file:// and the live
+- [x] 3.2 All six published pages verified in Chrome (file:// and the live
   site): one palette, no dark seam, the 關於 links and header order intact.
 - [x] 3.3 `check_deploy.py` reports all artifacts fresh after the push.

@@ -40,5 +40,5 @@
 - [x] 3.1 The suite passes; `node scripts/viewer_smoke.js` passes.
 - [x] 3.2 The regenerated reports diff only in the header link and the
   already-pending count changes.
-- [ ] 3.3 The four pages open from `file://` in a browser; dark mode reads
+- [x] 3.3 The four pages open from `file://` in a browser; dark mode reads
   correctly on the about page.

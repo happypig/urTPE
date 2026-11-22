@@ -12,11 +12,18 @@ Last-Modified would report a new gazette every week for one already held.
 
 Weekly by default, to match observed publication cadence. The interval is a staleness
 choice, not a correctness one: nothing about detection changes with it.
+
+`--json` prints one JSON object instead of the text, for a caller that must not scrape
+prose (optimization board, A3): the status, the gazette id, the SHA-256, the archived path,
+and `verified`, which says whether that file still matches the archive index. The text
+output and the exit code do not change with it: 1 for a failed check, 0 for everything else.
+An exception `Poller.poll()` does not catch is recorded as a failed check, not a traceback.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -24,6 +31,40 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from urtpe.archive import GazetteArchive  # noqa: E402
 from urtpe.poller import CADENCE_DAYS, PAGE_URL, Poller  # noqa: E402
+
+
+def structured_result(outcome, archive) -> dict:
+    """The outcome as a plain dict, with the archived path and whether it still verifies.
+
+    `verified` is None when there is no gazette to verify (a dry run, a failed check, a
+    quiet first week). It is False, with the reason, when the file is missing, has no index
+    entry, or no longer matches a digest the index recorded. It never changes the exit code.
+    """
+    gazette_id = outcome.gazette_id if outcome.gazette_id not in ("", "dry-run") else ""
+    path = archive.path_of(gazette_id) if gazette_id else None
+    result = {
+        "status": outcome.status,
+        "gazette_id": outcome.gazette_id,
+        "sha256": outcome.sha256,
+        "publisher_stamp": outcome.publisher_stamp,
+        "publisher_url": outcome.publisher_url,
+        "detail": outcome.detail,
+        "ingested": False,              # acquisition is never ingestion (design D4)
+        "pending_gazette_id": outcome.pending_gazette_id,
+        "dry_run": bool(outcome.dry_run),
+        "path": str(path) if path else "",
+        "verified": None,
+    }
+    if outcome.status == "failed":
+        result["error"] = outcome.detail or "check failed with no reason recorded"
+    if gazette_id:
+        try:
+            archive.assert_matches_entry(path or archive.path_for(gazette_id), gazette_id)
+            result["verified"] = True
+        except (FileNotFoundError, KeyError, ValueError) as exc:
+            result["verified"] = False
+            result["verify_error"] = str(exc)
+    return result
 
 
 def main(argv=None) -> int:
@@ -38,13 +79,22 @@ def main(argv=None) -> int:
     parser.add_argument("--cadence-days", type=int, default=CADENCE_DAYS,
                         help="expected interval between checks, for reporting a missed one "
                              "(default: %(default)s)")
+    parser.add_argument("--json", action="store_true",
+                        help="print the outcome as one JSON object instead of text")
     args = parser.parse_args(argv)
 
     archive = GazetteArchive(args.archive_root) if args.archive_root else GazetteArchive()
     poller = Poller(archive, page_url=args.page_url, cadence_days=args.cadence_days,
                     dry_run=args.dry_run)
 
-    outcome = poller.poll()
+    try:
+        outcome = poller.poll()
+    except Exception as exc:  # noqa: BLE001 - recorded, never a bare traceback (A3)
+        outcome = poller.record_failure("%s: %s" % (type(exc).__name__, exc))
+
+    if args.json:
+        print(json.dumps(structured_result(outcome, archive), ensure_ascii=False, indent=2))
+        return 1 if outcome.status == "failed" else 0
 
     print("gazette check: %s" % outcome.status)
     if outcome.publisher_stamp:

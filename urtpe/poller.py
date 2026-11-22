@@ -296,6 +296,22 @@ class Poller:
         self._record(outcome, now)
         return outcome
 
+    def record_failure(self, detail: str) -> PollOutcome:
+        """Log a check that died before it could classify anything, and return it.
+
+        `poll()` records the failures it expects (`PollerError`). An exception it does not
+        catch used to escape as a traceback with no row in `poll_log.jsonl`, so "the check
+        failed" and "the check never ran" looked the same afterwards (optimization board,
+        A3). A caller that catches such an exception records it here. A failing log write is
+        swallowed: it must never hide the failure it was recording.
+        """
+        outcome = PollOutcome(status="failed", detail=detail, dry_run=self.dry_run)
+        try:
+            self._record(outcome, dt.datetime.now().astimezone().isoformat())
+        except OSError:
+            pass
+        return outcome
+
     # --- helpers -----------------------------------------------------------
 
     def _record(self, outcome: PollOutcome, now: str) -> None:

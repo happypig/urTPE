@@ -19,7 +19,10 @@ Behavior:
 - Retries failed fetches up to 3x with exponential backoff (2s, 4s, 8s)
 - Logs failures to data/.link_cache/fetch_failures.json (JSON Lines)
 - Stops at 06:30 local time, completes current fetch, then regenerates viewer
-- Auto-regenerates viewer/projects.data.js on completion
+- Auto-regenerates viewer/projects.data.js on completion, but only when a project was updated
+- Holds the single-writer lock over data/ for the crawl and releases it before the rebuild
+  (the child urtpe.cli takes the same lock). Exit 5: another writer holds it. Exit 1: the
+  rebuild failed. One line per run goes to data/.link_cache/sweep_runs.jsonl (board U9/A8)
 
 Usage:
     python scripts/fetch_remaining_national_portal.py
@@ -58,6 +61,7 @@ from urtpe.links import (
     SEARCH_URL,
     _project_cache_dir,
 )
+from urtpe.lock import LockHeld, SingleWriterLock
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Constants
@@ -71,6 +75,12 @@ VIEW_URL_BASE = "https://twur.nlma.gov.tw/zh/urban/rebuild/view/"
 ROOT = Path("data/.link_cache")
 FAILURES_LOG = ROOT / "fetch_failures.json"
 LEDGER_PATH = ROOT / "no_match_ledger.json"
+# The output tree whose single-writer lock the crawl takes (optimization board U9 / A8). It is
+# the tree urtpe.cli locks for its own rebuild (`urtpe/cli.py:567`, `-o data`), so the sweep
+# and any ingest exclude each other. Absolute, so the lock does not depend on the cwd.
+LOCK_ROOT = REPO_ROOT / "data"
+RUN_LOG_NAME = "sweep_runs.jsonl"
+EXIT_LOCK_HELD = 5  # the same code urtpe.cli returns for LockHeld
 DEFAULT_REPROBE_DAYS = 14
 DEFAULT_MAX_PROBE = 8
 
@@ -602,7 +612,23 @@ def regenerate_viewer() -> bool:
         return False
 
 
-def main():
+def _append_run_log(entry: dict) -> None:
+    """One JSON line per run. The scheduled task keeps no stdout, so file times and this
+    line are the only evidence of what a night did (U9)."""
+    ROOT.mkdir(parents=True, exist_ok=True)
+    with open(ROOT / RUN_LOG_NAME, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def _log_run(entry: dict) -> None:
+    """A failing log write must never change what the run reports."""
+    try:
+        _append_run_log(entry)
+    except OSError as exc:
+        print(f"WARNING: run log not written: {exc}", file=sys.stderr)
+
+
+def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Fetch missing national portal data for projects.")
     parser.add_argument("--dry-run", action="store_true", help="Process only first 3 candidates")
     parser.add_argument("--max-projects", type=int, default=0, help="Maximum projects to process (0 = all)")
@@ -614,25 +640,12 @@ def main():
                         help="Stop initiating fetches at this local time; resolves to the next "
                              "occurrence after launch (default: %(default)s). Malformed input is "
                              "refused rather than defaulted.")
-    args = parser.parse_args()
+    return parser
 
-    print("=" * 60)
-    print("Fetch Remaining National Portal Data")
 
-    # Refuse a malformed stop time before touching the ledger or the portal: silently
-    # defaulting would turn a typo into an overnight crawl.
-    try:
-        hour, minute = parse_deadline(args.deadline)
-    except ValueError as exc:
-        print(f"[ERROR] {exc}", file=sys.stderr)
-        return 2
-    global _DEADLINE
-    _DEADLINE = [resolve_deadline(_PROCESS_START, hour, minute)]
-    resolved_deadline = _DEADLINE[0]
-    print(f"Stop time: {resolved_deadline:%Y-%m-%d %H:%M} local "
-          f"({(resolved_deadline - _PROCESS_START).total_seconds() / 3600:.1f}h window)")
-    print("=" * 60)
-
+def _sweep(args, resolved_deadline: datetime) -> dict:
+    """The crawl. The caller holds the single-writer lock for the whole call and runs the
+    rebuild afterwards; this function never rebuilds. Returns the run's counts."""
     # Load ledger + self-heal entries for projects that gained twur elsewhere
     ledger = load_ledger()
     removed = sweep_matched_entries(ledger)
@@ -652,7 +665,8 @@ def main():
 
     if not candidates:
         print("No candidates to process.")
-        return 0
+        return {"status": "no_candidates", "candidates": len(all_candidates),
+                "skipped": skipped_count, "processed": 0, "updated": 0, "failed": 0}
 
     # Show top 5
     print("Top 5 candidates (by 現況 date desc):")
@@ -743,11 +757,64 @@ def main():
     print(f"Updated:   {updated}")
     print(f"Failed:    {failed}")
 
-    # Regenerate viewer
-    print("\nRegenerating viewer...")
-    regenerate_viewer()
+    return {"status": "ok", "candidates": len(all_candidates), "skipped": skipped_count,
+            "processed": processed, "updated": updated, "failed": failed}
 
-    return 0
+
+def main() -> int:
+    """Exit 0 ok, 1 the rebuild failed, 2 bad --deadline, 5 another writer holds the lock."""
+    args = _parser().parse_args()
+
+    print("=" * 60)
+    print("Fetch Remaining National Portal Data")
+
+    # Refuse a malformed stop time before touching the ledger or the portal: silently
+    # defaulting would turn a typo into an overnight crawl.
+    try:
+        hour, minute = parse_deadline(args.deadline)
+    except ValueError as exc:
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        return 2
+    global _DEADLINE
+    _DEADLINE = [resolve_deadline(_PROCESS_START, hour, minute)]
+    resolved_deadline = _DEADLINE[0]
+    print(f"Stop time: {resolved_deadline:%Y-%m-%d %H:%M} local "
+          f"({(resolved_deadline - _PROCESS_START).total_seconds() / 3600:.1f}h window)")
+    print("=" * 60)
+
+    started_at = datetime.now().isoformat(timespec="seconds")
+
+    # The lock is taken before the first read, as urtpe/lock.py requires, and covers the whole
+    # crawl. A held lock means another run owns the tree: write nothing and say so.
+    lock = SingleWriterLock(LOCK_ROOT)
+    try:
+        lock.acquire()
+    except LockHeld as exc:
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        _log_run({"started_at": started_at, "status": "lock_held", "candidates": 0,
+                  "processed": 0, "updated": 0, "failed": 0, "rebuild": "skipped"})
+        return EXIT_LOCK_HELD
+    try:
+        result = _sweep(args, resolved_deadline)
+    finally:
+        # Released before the rebuild: the child urtpe.cli takes the same lock and would
+        # exit 5 against a parent that still held it.
+        lock.release()
+
+    # A run that changed no project has nothing to emit. A rebuild with no input change is
+    # not harmless: it is a second emitter of the tracked payload (U9).
+    if result["updated"] > 0:
+        print("\nRegenerating viewer...")
+        rebuild = "ok" if regenerate_viewer() else "failed"
+    else:
+        print("\nNo project updated; viewer not regenerated.")
+        rebuild = "skipped"
+
+    status = "rebuild_failed" if rebuild == "failed" else result["status"]
+    _log_run({"started_at": started_at,
+              "finished_at": datetime.now().isoformat(timespec="seconds"),
+              **result, "status": status, "rebuild": rebuild})
+    return 1 if rebuild == "failed" else 0
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ The authored HTML and its historical examples remain the source document.
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -32,8 +33,25 @@ def collected_test_count(root: Path) -> int:
     raise DocSyncError("pytest did not report a collected test count")
 
 
-def fields_for(doc: dict, root: Path, test_count: int | None = None) -> dict[str, str]:
+def stored_measurement_date(html: str) -> str | None:
+    """The sync date the page's footer already carries, or None.
+
+    The footer's "synchronised <date>" is a generation timestamp. documentation-dataset-sync
+    permits it to differ between two runs over unchanged inputs, so `--check` reads it back
+    from the page instead of comparing it with today. Before this, the check went STALE on
+    the next calendar day with no fact changed (measured 2026-11-22: footer 2026-11-20), and
+    post_ingest_check.py --check-only, which runs it, failed with it.
+    """
+    match = re.search(r'data-doc-field="footer-provenance-en"[^>]*>[^<]*?synchronised '
+                      r'(\d{4}-\d{2}-\d{2})', html)
+    return match.group(1) if match else None
+
+
+def fields_for(doc: dict, root: Path, test_count: int | None = None,
+               measurement_date: str | None = None) -> dict[str, str]:
     m = measure_etl(doc, root)
+    if measurement_date:
+        m["measurement_date"] = measurement_date
     tests = collected_test_count(root) if test_count is None else test_count
     values = {
         "dataset-summary-en": (f"Measured on the {m['published_date']} gazette: "
@@ -76,8 +94,12 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         doc = load_payload(ROOT / "viewer" / "projects.data.js")
-        fields = fields_for(doc, ROOT)
-        changed = write_or_check(ROOT / "docs" / "etl_process.html", fields, args.check)
+        page = ROOT / "docs" / "etl_process.html"
+        # Check mode compares facts. The sync date is read back from the page; a write run
+        # stamps today. A page with no readable date falls back to today and reports stale.
+        stored = stored_measurement_date(page.read_text(encoding="utf-8")) if args.check else None
+        fields = fields_for(doc, ROOT, measurement_date=stored)
+        changed = write_or_check(page, fields, args.check)
         if not args.check:
             sync_config(doc, ROOT)
     except (DocSyncError, OSError) as exc:

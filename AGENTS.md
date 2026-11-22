@@ -6,7 +6,7 @@ merged, per-project history graph plus a static viewer. Python, pymupdf, no web 
 ## Commands (verified on this machine)
 
 ```powershell
-python -m pytest                      # 1516 collected, ~3min, fully offline
+python -m pytest                      # 1522 collected, ~4min, fully offline
 python -m pytest tests/test_merge.py  # one file
 python -m pytest tests/test_merge.py::test_name -q
 python -m urtpe.cli source.pdf -o data --viewer viewer --links --recover-truncated
@@ -19,8 +19,8 @@ python scripts/sync_domain_model.py --check
 - Use the **system** interpreter (`C:\Python314\python.exe`, pytest 9.0.1, pymupdf 1.28.2).
   `.venv/` exists but contains only pip — activating it leaves you unable to run tests.
 - The count in that first line goes stale whenever tests change. Refresh it with
-  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1516 collected**;
-  the full run reports **1511 passed, 1 skipped, 4 xfailed** — the skip is deliberate, at
+  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1522 collected**;
+  the full run reports **1517 passed, 1 skipped, 4 xfailed** — the skip is deliberate, at
   `tests/test_idempotent_flags.py:117`, because the node payload builder is not exposed and
   the graph test below it covers the behaviour. The 4 xfails are strict and named: the
   offer step and the orphan name branch still refuse the anchor-parcel drifted cases of

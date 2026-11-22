@@ -135,3 +135,90 @@ def test_configured_count_is_updated_only_in_the_current_dataset_sentence():
     assert "統計至 2026-11-12" in updated
     assert "~70% stays a design observation" in updated
     assert dm.sync_config_text(updated, _payload()) == updated
+
+
+# --- the sync date is a generation timestamp, not a fact the check compares ----
+#
+# documentation-dataset-sync: "Documentation is current -- check mode after
+# successful synchronisation exits successfully", and a re-run changes nothing
+# "other than a permitted generation timestamp". `--check` compared the footer
+# against date.today(), so it went STALE on the next calendar day with no fact
+# changed (measured 2026-11-22: the footer said 2026-11-20). post_ingest_check.py
+# --check-only runs the same command, so its read-only pass failed daily too.
+
+_FOOTER = ("footer-provenance-en", "footer-provenance-zh")
+_FOOTER_SOURCE = ('<span data-doc-field="footer-provenance-en"></span>'
+                  '<span data-doc-field="footer-provenance-zh"></span>')
+
+
+def _footer_fields(fields):
+    return {name: fields[name] for name in _FOOTER}
+
+
+def test_check_does_not_go_stale_because_the_day_changed():
+    from scripts import sync_etl_process as sync
+
+    written = sync.fields_for(_payload(), dm.ROOT, test_count=7, measurement_date="2026-11-20")
+    rendered, _ = dm.replace_fields(_FOOTER_SOURCE, _footer_fields(written))
+    stored = sync.stored_measurement_date(rendered)
+    assert stored == "2026-11-20"
+    # a later day: the check reads the stored date back instead of using today
+    checked = sync.fields_for(_payload(), dm.ROOT, test_count=7, measurement_date=stored)
+    _, changed = dm.replace_fields(rendered, _footer_fields(checked))
+    assert changed == []
+
+
+def test_a_moved_payload_date_is_still_reported_stale():
+    from scripts import sync_etl_process as sync
+
+    old = dict(_payload(), published_date="2026-10-28")
+    written = sync.fields_for(old, dm.ROOT, test_count=7, measurement_date="2026-11-20")
+    rendered, _ = dm.replace_fields(_FOOTER_SOURCE, _footer_fields(written))
+    stored = sync.stored_measurement_date(rendered)
+    checked = sync.fields_for(_payload(), dm.ROOT, test_count=7, measurement_date=stored)
+    _, changed = dm.replace_fields(rendered, _footer_fields(checked))
+    assert changed == list(_FOOTER)
+
+
+def test_no_stored_date_means_the_check_uses_today_and_reports_stale():
+    from scripts import sync_etl_process as sync
+
+    assert sync.stored_measurement_date(_FOOTER_SOURCE) is None
+
+
+def _sandbox_for_main(tmp_path, monkeypatch, written_on):
+    """A copy of the real page, synced as of `written_on`, in a temp tree."""
+    from scripts import sync_etl_process as sync
+
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "viewer").mkdir()
+    (tmp_path / "viewer" / "projects.data.js").write_text(
+        "window.PROJECTS = " + json.dumps(_payload(), ensure_ascii=False) + ";",
+        encoding="utf-8")
+    page = tmp_path / "docs" / "etl_process.html"
+    page.write_text((dm.ROOT / "docs" / "etl_process.html").read_text(encoding="utf-8"),
+                    encoding="utf-8")
+    monkeypatch.setattr(sync, "ROOT", tmp_path)
+    monkeypatch.setattr(sync, "collected_test_count", lambda root: 7)
+    monkeypatch.setattr(sync, "sync_config", lambda doc, root: False)
+    dm.write_or_check(page, sync.fields_for(_payload(), tmp_path, 7, written_on))
+    return sync, page
+
+
+def test_main_check_exits_zero_on_a_page_synced_on_an_earlier_day(tmp_path, monkeypatch):
+    sync, page = _sandbox_for_main(tmp_path, monkeypatch, "2000-01-01")
+    assert sync.main(["--check"]) == 0
+
+
+def test_main_check_still_exits_nonzero_when_a_figure_is_stale(tmp_path, monkeypatch):
+    sync, page = _sandbox_for_main(tmp_path, monkeypatch, "2000-01-01")
+    monkeypatch.setattr(sync, "collected_test_count", lambda root: 8)
+    assert sync.main(["--check"]) == 1
+
+
+def test_a_write_run_stamps_the_day_it_ran(tmp_path, monkeypatch):
+    sync, page = _sandbox_for_main(tmp_path, monkeypatch, "2000-01-01")
+    monkeypatch.setattr(sync, "collected_test_count", lambda root: 8)
+    assert sync.main([]) == 0
+    assert "synchronised 2000-01-01" not in page.read_text(encoding="utf-8")
+    assert sync.main(["--check"]) == 0

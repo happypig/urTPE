@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ETL Process · PDF to Viewer</title>
+<title>ETL Process · PDF and Portals to Viewer</title>
 <!--
   Companion rendering of docs/pipeline/etl_process.md. The Markdown file stays the prose
   source of truth; this page adds the pipeline diagram, the gate table, the
@@ -239,9 +239,10 @@
 
 <header>
   <div class="hwrap">
-    <h1><span class="en">ETL Process — PDF to Viewer</span><span class="zh">ETL 流程 — 從 PDF 到檢視器</span></h1>
-    <p class="sub"><span class="en">How the Taipei urban-renewal gazette (核定案件一覽表) becomes
-      <code>viewer/projects.data.js</code> and the static HTML viewer.</span><span class="zh">臺北市都市更新公報（核定案件一覽表）如何變成
+    <h1><span class="en">ETL Process — PDF and Portals to Viewer</span><span class="zh">ETL 流程 — 從 PDF 與網站到檢視器</span></h1>
+    <p class="sub"><span class="en">How the Taipei urban-renewal gazette (核定案件一覽表) and two web portals
+      (the Taipei platform and the national portal) become
+      <code>viewer/projects.data.js</code> and the static HTML viewer.</span><span class="zh">臺北市都市更新公報（核定案件一覽表）與兩個網站（臺北市平台、全國門戶）如何變成
       <code>viewer/projects.data.js</code> 與靜態 HTML 檢視器。</span>
       <span class="en">Prose source of truth: <a href="pipeline/etl_process.md"><code>docs/pipeline/etl_process.md</code></a> ·
       Companion pages: <a href="domain-model.html">domain model</a> ·
@@ -265,9 +266,10 @@
   <p class="lead"><span class="en">One command runs the whole flow:
     <code class="cmd">python -m urtpe.cli source.pdf -o data --viewer viewer --links --recover-truncated</code>.
     Stages 2–8 run inside the single-writer lock; every gate (§6) evaluates
-    before the first artifact is written.</span><span class="zh">一行命令跑完整條流程：
+    before the first artifact is written. The web portals enter at stage 6; the sweep and the
+    refresh scripts update that cache between ingests and run on their own (table below).</span><span class="zh">一行命令跑完整條流程：
     <code class="cmd">python -m urtpe.cli source.pdf -o data --viewer viewer --links --recover-truncated</code>。
-    第 2–8 階段在單一寫入者鎖內執行；每一道關卡（§6）都在第一份產出寫入之前評估。</span></p>
+    第 2–8 階段在單一寫入者鎖內執行；每一道關卡（§6）都在第一份產出寫入之前評估。網站來源在第 6 階段進入；掃描與刷新腳本在兩次匯入之間更新該快取，且各自獨立執行（見下表）。</span></p>
 
   <div class="pipe">
     <div class="stage s-acq">

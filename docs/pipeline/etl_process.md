@@ -1,8 +1,11 @@
-# ETL Process — PDF to Viewer
+# ETL Process — PDF and Portals to Viewer
 
 The pipeline turns the Taipei City Government's urban-renewal approved-cases
-gazette (臺北市都市更新核定案件一覽表) into a per-project history graph and a
-static HTML viewer. One command runs it:
+gazette (臺北市都市更新核定案件一覽表) and the data of two web portals (the Taipei
+platform and the national portal) into a per-project history graph and a
+static HTML viewer. The portals enter at stage 6; the sweep and the refresh scripts
+update that cache between ingests and run on their own (see "Scheduled and manual
+runs" in §1). One command runs the PDF path:
 
 ```powershell
 python -m urtpe.cli source.pdf -o data --viewer viewer --links --recover-truncated

@@ -2,10 +2,10 @@
 
 ## 1. Tests first (test-first gate)
 
-- [ ] 1.1 `tests/test_about_page.py` — the design pin inverts: the page must
+- [x] 1.1 `tests/test_about_page.py` — the design pin inverts: the page must
   carry the cream tokens (`#fff8f4`, `#211d1d`, `#f3d9bf`, `#ad4d2a`) and no
   slate tokens (`#0f172a`, `#cbd5e1`) and no dark-mode block.
-- [ ] 1.2 `tests/test_about_page.py` — the three doc pages carry the cream
+- [x] 1.2 `tests/test_about_page.py` — the three doc pages carry the cream
   tokens and no dark-mode block (the generators' emitted files are read).
 
 ## 2. Implementation
@@ -32,4 +32,4 @@
 - [x] 3.1 The suite passes; the smoke harness passes.
 - [ ] 3.2 All six published pages verified in Chrome (file:// and the live
   site): one palette, no dark seam, the 關於 links and header order intact.
-- [ ] 3.3 `check_deploy.py` reports all artifacts fresh after the push.
+- [x] 3.3 `check_deploy.py` reports all artifacts fresh after the push.

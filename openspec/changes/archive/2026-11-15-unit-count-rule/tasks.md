@@ -23,7 +23,7 @@
 
 - [x] 4.1 Run the backfill over all caches; check the live pin (every payload project's cache counts equal the payload's)
 - [x] 4.2 Measure the live numbers: guard-only pairs that pass the rule (expect 22: 24 before F5's land-core repair, which moved 寶清51-13's two cases to a land-core match), gate-visible (expect 3), held by no project (expect 7); confirm `09012312` is still refused
-- [ ] 4.3 Dry-run the admission command and compare with the 7 pairs; run `--apply`
+- [x] 4.3 Dry-run the admission command and compare with the 7 pairs; run `--apply`
 - [x] 4.4 Re-emit; count list entries, node badges, joined nodes and orphan flags before and after; record them on `docs/inspection-batchF.md`; re-pin the affected tests
 - [x] 4.5 Add live pins: the 7 admitted ids are held by their projects and by no other; the 22 / 62 / 3 / 7 numbers; run the viewer smoke
 

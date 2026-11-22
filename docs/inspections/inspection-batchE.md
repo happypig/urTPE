@@ -28,7 +28,7 @@ items separate so one change's review never blocks the others.
 
 ---
 
-## E1 — the compatibility ideographs: one folding, two readers
+## E1 — the compatibility ideographs: one folding, two readers — **DONE 2026-11-12** (openspec: nfkc-fold-compat-ideographs, `a228cb6`, archived `ef482cf`)
 
 The full measurements live in batch D (D16, D16a–D16d) and in
 `docs/viewer/DashboardNUXUI.md` §11; they are not repeated here. This section records
@@ -94,7 +94,7 @@ shows a third reader, measure it before widening or shrinking the change.
 
 ---
 
-## E2 — Part 1: URL write-back + keyboard access, as one change
+## E2 — Part 1: URL write-back + keyboard access, as one change — **DONE 2026-11-12** (openspec: viewer-url-writeback-keyboard, `c3b42b4`, archived `3ebbb75`; task 3.3, the manual browser check, still waits for the user)
 
 **The state, re-verified 2026-11-12.** The list items are `div` elements with
 an `onclick` handler (`viewer/app.js:911`). The codepoint-level search over
@@ -209,7 +209,7 @@ change, so the gate and the code land together).
 
 ---
 
-## E4 — the 國 badge on a recno node: registration and name, not stage+date (user, 2026-11-12)
+## E4 — the 國 badge on a recno node: registration and name, not stage+date (user, 2026-11-12) — **DONE 2026-11-13** (openspec: national-badge-by-registration, `33d47e1`; the badge resolves at graph build and the payload carries `national_badges`)
 
 **The user's rule, restated.** The 國 badge attaches to a recno node when the
 national view page names that node's case or the project itself — and it must
@@ -274,7 +274,7 @@ change; the archive guard needs the live body carried) and
 
 ---
 
-## E5 — the construction-event 國 badge: national-only, never corroborated (user, 2026-11-12)
+## E5 — the construction-event 國 badge: national-only, never corroborated (user, 2026-11-12) — **DONE 2026-11-13** (`5c81270`; the event 國 fires on a national hit alone)
 
 **The user's rule.** The 使照核准 event row's 國 badge fires today when the
 national portal holds 使用核發日期 — even when the city holds 使照核發日期
@@ -309,7 +309,7 @@ national-only).
 
 ---
 
-## E6 — the 國 badges in the graph and on the 推動歷程 card become links; the card's badge follows the graph rule (user, 2026-11-12)
+## E6 — the 國 badges in the graph and on the 推動歷程 card become links; the card's badge follows the graph rule (user, 2026-11-12) — **DONE 2026-11-13** (`5c81270`; both 國 badges are `<a>` links to the view page)
 
 **The user's rule (item 1, refined the same day).** Two badge sites become
 links, and the card's per-row 國 adopts the graph badge's rule:
@@ -454,7 +454,7 @@ E7/E8 so the callout is reviewed once.
 
 ---
 
-## E10 — 懷生16: a live -A區 plan case the parcel search never returns (user, 2026-11-12) — **PROBED 2026-11-13, change not opened**
+## E10 — 懷生16: a live -A區 plan case the parcel search never returns (user, 2026-11-12) — **PROBED 2026-11-13; the fix shipped as F4** (openspec: unit-sibling-id-walk, `87f8d80`, archived `69c46a1`, 2026-11-15; 懷生16's 09503201 joined — see `docs/inspections/inspection-batchF.md` F4)
 
 Probe results (2026-11-13): the sibling-source gap is **unmeasurable
 offline** — the only source is the case page's 相關連結 (the Playwright
@@ -574,7 +574,7 @@ source) + cache refresh + one re-emit. The 懷生16 fix itself rides the change.
 
 ---
 
-## E11 — no 施工中 badge in 相關連結 (user, 2026-11-12)
+## E11 — no 施工中 badge in 相關連結 (user, 2026-11-12) — **DONE 2026-11-13** (`727db55`; `LINK_BADGE_SUPPRESSED` holds 施工中 and 已完工)
 
 **The user's rule (item 7).** The 相關連結 status badge names a case's
 *state of approval*, not its construction progress. 施工中 renders there 463
@@ -604,7 +604,7 @@ carries no badge; an 已駁回 case keeps one).
 
 ---
 
-## E12 — no edge below a dead node, 無 joins the dead set (user, 2026-11-12)
+## E12 — no edge below a dead node, 無 joins the dead set (user, 2026-11-12) — **DONE 2026-11-13** (`727db55`; `isDeadEnd` includes 無)
 
 **The user's rule (item 8).** A node whose case is 已駁回 / 自行撤回 / 已失效 /
 **無** renders no edge below. The D4b rule (2026-11-05) already refuses the

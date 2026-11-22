@@ -24,21 +24,21 @@ the compatibility-ideograph fix, Part 1 URL+keyboard, the windowed list) →
 
 | Check | Result at last full run |
 | --- | --- |
-| Test suite | 851 passed, 1 skipped (852 collected) at `2b96e5b` |
-| Deploy freshness | all 4 artifacts fresh (`scripts\check_deploy.py`) |
+| Test suite | 1,516 collected on 2026-11-22 (the count includes another session's untracked `tests/test_sweep_lock.py`); `tests/test_membership_verdict.py` runs 24 passed, 4 strict xfailed. The full run was not repeated in the 2026-11-22 review. |
+| Deploy freshness | all 12 artifacts fresh, checked 2026-11-22 (`scripts\check_deploy.py`) |
 | Viewer render path | `node scripts\viewer_smoke.js` passes |
 | Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |
-| Archive | 7 publications, chain whole, 09-24 restored |
+| Archive | 11 gazette PDFs held; `index.jsonl` has 76 lines; chain and the 09-24 restore last verified 2026-11-01 and not re-checked on 2026-11-22 |
 | Acquisition | **weekly scheduled task `urtpe-poll` live** (Mondays 06:30); channel verified healthy 2026-11-01 (`reuploaded`) |
-| Emission | 2026-10-15, 1,442 raw / 1,442 clean / 693 projects, 0 residuals |
-| Batch B | 8 findings queued, 0 executed (§37/§38 residuals) — see `docs/inspections/inspection-batchBC.md` |
-| Batch C | 10 findings (C1–C10); C3 done, 9 queued (post-viewer-UX gaps) — see `docs/inspections/inspection-batchBC.md` |
-| Batch B + C plan | re-reviewed 2026-11-04: S0–S16 + R in 4 waves; S7, S8, S12, S14, S16 merged into other steps; S3 done; no user decision open — see `docs/inspections/inspection-batchBC.md` |
+| Emission | `data/projects.json` generated 2026-11-18 from the 2026-11-12 gazette: 1,448 records / 676 projects; `viewer/projects.data.js` last committed 2026-11-20 (`6b97a83`) |
+| Batch B | 8 findings, all done 2026-11-04 (§37/§38 residuals) — see `docs/inspections/inspection-batchBC.md` |
+| Batch C | 10 findings (C1–C10), all done 2026-11-04 (post-viewer-UX gaps) — see `docs/inspections/inspection-batchBC.md` |
+| Batch B + C plan | re-reviewed 2026-11-04: S0–S16 + R in 4 waves; S7, S8, S12, S14, S16 merged into other steps; all steps done 2026-11-04 — see `docs/inspections/inspection-batchBC.md` |
 | Batch D | collected 2026-11-04: D1 (orphan `milestones_national` holds Taipei data), D2 (ghost-date echo + the date-first sort revisit), D3 (國 key bug: 223 later-變更 labels never bind), D4 (list badges, filters, 使照 edge bug: 287 events drawn national, edges out of dead ends) — see `docs/inspections/inspection-batchD.md` |
-| Batch E | collected 2026-11-12: E1 (the compatibility ideographs — one NFKC folding, two readers), E2 (Part 1: URL write-back + keyboard, steps 1–4), E3 (the windowed list, harness first) — three openspec changes, all awaiting the user's word; see `docs/inspections/inspection-batchE.md` |
+| Batch E | collected 2026-11-12: E1 (the compatibility ideographs — one NFKC folding, two readers), E2 (Part 1: URL write-back + keyboard, steps 1–4), E3 (the windowed list, harness first) — E1–E9, E11 and E12 done 2026-11-12/13 (E2's manual browser check and E3's still wait for the user); E10 shipped as F4; E13 phase 1 done, phases 2–3 are the nightly sweep; see `docs/inspections/inspection-batchE.md` |
 | Batch F | collected 2026-11-15: F1–F9 (the membership predicate, the cross-route test, the id-stem walk, land cores, the count rule). D11 = A decided 2026-11-15; its follow-up measurements M1–M4 are in `docs/inspections/optimization.md` Part II — see `docs/inspections/inspection-batchF.md` |
 | Optimization board | 2026-11-20: Part I the deterministic PDF and city-platform update cycle (U1–U8, A1–A7), Part II gen-1 membership after D11 and S3/S5 (M1–M4), Part III the gen-2 viewer (O1–O9). No change is open; five update decisions and six gen-2 decisions are undecided — see `docs/inspections/optimization.md` |
-| openspec | 4 changes done but unarchived; 3 fail `openspec validate` (fixed by S0) |
+| openspec | no active change (`openspec list`, 2026-11-22); 94 archived changes; 29 specs |
 
 ## Execution order — the integrated plan
 

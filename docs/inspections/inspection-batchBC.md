@@ -5,7 +5,7 @@ References to "waves 1–7" and the post-wave changes (§29–§38) are the earl
 executed work on the main board: read them in `docs/inspections/inspection.md`
 ("Execution order — the integrated plan" and its post-wave sections).
 
-### Batch B — the §37/§38 residuals, collected 2026-11-03 — **QUEUED, not started**
+### Batch B — the §37/§38 residuals, collected 2026-11-03 — **ALL DONE 2026-11-04** (B1, B5, B6 → R; B2 → S6; B3 → S1; B4 → S2; B7, B8 → S3; see the integrated plan below)
 
 Every item below is a residual that §37 or §38 left open. The viewer-UX waves
 (`docs/viewer/viewer-UX.md`) changed how the viewer draws a case. They did not close any
@@ -50,7 +50,7 @@ between the two measurements only in what the id list holds: the payload has 189
 view-verified ids in 143 projects, and the cache has 193 in 146 caches. The 4
 defects are the same 4 in both.
 
-### Batch C — the post-viewer-UX gaps, collected 2026-11-03 — **C3 DONE 2026-11-04; the rest QUEUED**
+### Batch C — the post-viewer-UX gaps, collected 2026-11-03 — **ALL DONE 2026-11-04** (C1 → S4; C2 → R; C3 → S3; C4 → S5; C5 → S15; C6 → S10; C7, C10 → S9; C8 → S10, S11; C9 → S13; see the integrated plan below)
 
 The viewer-UX waves 1–5 landed (`91699bb`…`370ddb2`): §5 centered, §1+§6 the
 gutter, §7 the [無]/[NA] labels, §2 the 國 binding, §3+§4 the event/orphan

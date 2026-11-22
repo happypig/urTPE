@@ -14,7 +14,7 @@
 - [x] 1.3 `tests/test_national_badge.py` — the round trip: the field
   survives `--from-js` (the supersede-headerless-cases D6 contract; the
   loader reads it back).
-- [ ] 1.4 `tests/test_national_badge.py` — the counters on the live payload:
+- [x] 1.4 `tests/test_national_badge.py` — the counters on the live payload:
   1,186 nodes carry 國 today → 735 under the rule; 451 lose it; 0 gain it.
 - [x] 1.5 `scripts/viewer_smoke.js` — the national-binding check re-targets
   the field: every node the payload marks `national_badges` renders exactly

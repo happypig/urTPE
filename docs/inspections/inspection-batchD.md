@@ -2262,7 +2262,7 @@ is empty. See **D16c**.
 not in `R.normalize_name`, whose table is a fixed list of the drift measured
 on the 2026-10-26 gazette (計劃→計畫, ㄧ→一, full-width parens, spacing).
 
-**Status: not fixed.** It is folded in the D9f-1 probe only. A general fix
+**Status: FIXED 2026-11-12** (openspec: nfkc-fold-compat-ideographs, `a228cb6`, archived `ef482cf`; board item E1). The text below is the measurement that scoped the fix. It was "not fixed" when written: it was folded in the D9f-1 probe only. A general fix
 would touch `R.normalize_name` (the recovery pass's own normalisation) and
 the places that compare a 案名 to a platform name. **Measured (D16a–D16d): the
 scope is 2 readers**, not 1 — the track reader (1 live case) and

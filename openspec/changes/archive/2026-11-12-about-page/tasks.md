@@ -73,8 +73,8 @@
 - [ ] 3.3 The page is opened from `file://` in a browser and from the published
   site after push: every link resolves, no console errors, no network request
   beyond the clicked external links.
-- [ ] 3.4 `python scripts/check_deploy.py` reports about.html fresh after the
+- [x] 3.4 `python scripts/check_deploy.py` reports about.html fresh after the
   push that publishes it.
-- [ ] 3.5 `AGENTS.md`'s site description names the about page among the
+- [x] 3.5 `AGENTS.md`'s site description names the about page among the
   published pages if the layout section lists them (check; append only if the
   section does).

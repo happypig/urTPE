@@ -24,7 +24,7 @@
 
 ## 4. Cache refresh + re-emit
 
-- [ ] 4.1 Run header refresh under the single-writer lock on caches lacking case_headers. (reassigned to R, `refresh-whole-corpus` — Batch B + C plan, 2026-11-04: 547 caches still lack case_headers)
+- [x] 4.1 Run header refresh under the single-writer lock on caches lacking case_headers. (reassigned to R, `refresh-whole-corpus` — Batch B + C plan, 2026-11-04: 547 caches still lack case_headers)
 - [x] 4.2 Re-emit data/ and viewer/projects.data.js as a separate chore commit (~23 MB diff). (f961f6a, 2026-11-04)
 
 ## 5. Verification

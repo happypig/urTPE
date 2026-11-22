@@ -2,10 +2,12 @@
 
 Collected 2026-11-15 to 2026-11-20. Item identifiers do not change: `U1–U8`, `A1–A7`,
 `U-D1–U-D5`, `M1–M4`, `D11`, `O1–O11` and `O-D1–O-D7`.
+Added 2026-11-22: `U9`, `A8` and `U-D6–U-D9`. The user started A8 and decided U-D6 the same
+day. A8 is committed as `2e37855`. `U-D7`, `U-D8` and `U-D9` are proposed and await the user's word.
 
 | Part | Subject | Items | Priority | Origin |
 |---|---|---|---|---|
-| I | Run the PDF and city-platform update as one deterministic cycle | U1–U8, A1–A7, U-D1–U-D5 | **P1** | exploration 2026-11-19 |
+| I | Run the PDF and city-platform update as one deterministic cycle | U1–U9, A1–A8, U-D1–U-D9 | **P1** | exploration 2026-11-19; U9, A8 and U-D6–U-D9 added 2026-11-22; A8 started and U-D6 decided that day; U-D7–U-D9 open |
 | II | Gen-1 membership: measurements that follow decisions D11 and S3/S5 | M1–M4, D11 | **P2** | moved here from `docs/inspections/inspection-batchF.md` |
 | III | Gen-2 viewer: one `project_uid` for applications and approvals | O1–O11, O-D1–O-D7 | **P3** | exploration 2026-11-19, re-measured 2026-11-20; O10 and O11 added 2026-11-21 |
 
@@ -39,6 +41,7 @@ Execute top to bottom. A row waits for every item in its "Depends on" column.
 | 1 | I | **A1** — the refresh takes the single-writer lock | **P1** | fix only | — |
 | 2 | I | **A2** — offline candidate-only fast path | **P1** | fix only | A1 |
 | 3 | I | **A3** — structured poll adapter and failure logs | **P1** | fix only | — |
+| 3b | I | **A8** — the nightly sweep takes the lock and reports a failed rebuild (**started at the user's word 2026-11-22; committed as `2e37855`; outside the standing word**) | **P1** | fix only | — |
 | 4 | I | **A4** — deterministic PDF-cycle coordinator | **P1** | OpenSpec change | A1–A3, U-D1 |
 | 5 | I | **A5** — report ownership and publication mode | **P1** | OpenSpec change | A4, U-D2, U-D3 |
 | 6 | II | **D11 = A** — S1's own-parcel form adopts the count rule | **P2** | OpenSpec change (decided; not opened) | the user's word |
@@ -81,6 +84,10 @@ Four dependencies cross Part boundaries:
 | U-D3 | If automatic publication is later approved, who owns `release-diff.html`? | one cycle owner; serialize or supersede the report-only publisher | **undecided** |
 | U-D4 | Should city-only refresh have its own cadence? | measure the need separately; do not couple it to PDF ingestion | **undecided** |
 | U-D5 | Should a diagnostic agent receive a failure bundle? | only after deterministic logs prove a triage need | **undecided** |
+| U-D6 | What happens to the `urtpe-nightly-sweep` task until A8 lands (U9)? | keep it running. Nights with no candidate exit at once and write nothing. Land A8 before about 2026-11-28, when the 2026-11-14 probes leave the 14-day window. Other options: pause it, or keep it and add a check step after its rebuild. | **decided 2026-11-22: keep it running.** The user said "start A8, keep the sweep running". |
+| U-D7 | Do the two pollers run daily instead of weekly? | yes, after A3. They write nothing under `data/`. `publish_release_diff.py` strips its stamp and exits 0 when the report is unchanged. Not read: `check_tree()`. | **proposed 2026-11-22; open** |
+| U-D8 | Does the national sweep stay its own task, or join the A4 coordinator? | stay its own task until A8 is done and A4 is proven. Both would write the same cache. | **proposed 2026-11-22; open** |
+| U-D9 | Is `refresh_whole_corpus.py` scheduled? | no. Run it on demand. A schedule needs its own OpenSpec change, a window outside 02:00–05:00, a start after ingest, and an explicit checkpoint reset. | **proposed 2026-11-22; open** |
 | D11 | Does S1's own-parcel form adopt the count rule? | **A** | **decided 2026-11-15: A.** The change is not opened. |
 | S3/S5 | Does S5 adopt the gate rule? | measure first (M4), then decide | **decided 2026-11-15: measure first.** M4 is that measurement. The choice after it is open. |
 | F8-C | Remove a cross-listed case from the wrong holder? | wait for D11 and the S3/S5 choice | **decided 2026-11-15: wait** |
@@ -91,6 +98,10 @@ Four dependencies cross Part boundaries:
 | O-D5 | Where does the pending lane write? | its own output tree with its own lock. It reads `data/projects.json` at one named revision and never writes `data/`. | **undecided** |
 | O-D6 | Does the district crawl have its own cadence? | yes. This answers U-D4 for the pending lane. Decide the interval after the change rate is measured. | **undecided** |
 | O-D7 | Where does the original value of a patched field live (O11)? | a sidecar keyed by land core and approval date, written at apply time. It does not rewrite `projects.json`. | **undecided** |
+
+**Rows added 2026-11-22.** U9, A8 and U-D6 to U-D9 are new. A8 does not widen A1.
+The user gave a separate word for A8 ("start A8") and for U-D6 ("keep the sweep running").
+U-D7, U-D8 and U-D9 are still proposed. Each one waits for the user.
 
 ---
 
@@ -106,10 +117,21 @@ dates, changed 14 statuses, added 6 cases and reported 0 failures. A later dry r
 94 projects. The rebuild preserved all 1,448 records and 676 project ids. The full suite
 reported 1,494 passed, 1 skipped, 4 xfailed. All 12 deployed artifacts matched the commit.
 
-**Current boundary.** The scheduled `urtpe-poll` task runs both pollers and
-`publish_release_diff.py`. It does not ingest a PDF or update the Viewer. The full manual
-runbook is `docs/pipeline/etl_process.md` §11. `openspec list --json` reported no active change on
-2026-11-19. This section records recommendations, not new decisions.
+**Current boundary (re-measured 2026-11-22).** Two Windows tasks run. `urtpe-poll` runs both
+pollers and `publish_release_diff.py` on Sundays at 05:10 (changed from Mondays 06:30 on
+2026-11-22). It does not ingest a PDF or update the
+Viewer. `urtpe-nightly-sweep` runs the national-portal sweep every night. It can rewrite the
+Viewer payload (U9). Nothing schedules an ingest or `refresh_whole_corpus.py`. The full manual
+runbook is `docs/pipeline/etl_process.md` §11. `openspec list` reported no active change on
+2026-11-19 and again on 2026-11-22. The recommendations in the table above stay as written. This
+section records recommendations, not new decisions. U9, A8 and U-D6 to U-D9 were added on
+2026-11-22. The user then decided A8 and U-D6. U-D7 to U-D9 stay proposals.
+
+**Gazette 2026-11-12 is ingested (read 2026-11-22).** Commit `a17a880` (2026-11-18 22:56)
+recovered its 4 truncated records and gave 1,448 records and 676 projects. The `ingested: false`
+field in `poll_log.jsonl` was true when the poller archived the PDF (2026-11-18 20:31). Nothing
+updates it afterwards. A coordinator must not read that field as the present state (U3). Not
+read: `index.jsonl`.
 
 ### U1 — one deterministic cycle, not polling inside ingestion
 
@@ -153,6 +175,13 @@ This is not a scheduler-only fix.
 | Emission | CLI ingest/rebuild | the graph and payload were written | the city reply was current or the case join was correct |
 | Reports | `post_ingest_check.py` | checks passed and dependent artifacts regenerated | anything was committed or deployed |
 | Deployment | explicit publication step | `origin/main` holds the commit and served bytes match it | unresolved source semantics were reviewed |
+| National sweep (added 2026-11-22; this row describes the state before A8) | `urtpe-nightly-sweep`, unattended | a probed candidate was merged into the cache and the no-match ledger | that the crawl held the lock, or that its own rebuild of `viewer/projects.data.js` was accepted, checked or even run |
+
+The sweep is a second emitter of the Viewer payload. It rebuilds through `python -m urtpe.cli
+--from-js viewer/projects.data.js -o data --viewer viewer --links` after any run that processes
+a candidate (`scripts/fetch_remaining_national_portal.py:568-602`, `:748`). No
+`post_ingest_check.py` follows it. U4 assumes a check follows every emission. This is a gap
+(U9).
 
 The selected refresh population is evidence-limited. It includes a payload project with an
 anchor search key when a cached case has an application date but no approval date. Terminal,
@@ -174,6 +203,7 @@ membership or claim citywide freshness.
 |---|---|---|---|
 | Structured gazette result | `poll_gazette.py` prints text; `poll_p168.py` has `--json` | preserve the poller contract; read the archive index for gazette id, SHA-256 and verified path | **fix only** adapter/tests |
 | Refresh lock | `refresh_awaiting_caches.py` warns about concurrent writers but takes no lock | acquire `SingleWriterLock` over the `data` tree, as `scripts/refresh_second_id_source.py:96` does; report `LockHeld` and write nothing | **fix only** existing safety contract |
+| Lock on the other cache writers (proposed 2026-11-22) | `urtpe/cli.py:567` takes `SingleWriterLock` over `data`. A search of `urtpe/` and `scripts/` found 15 files that mention it: 9 scripts, 4 tests and 2 modules (`urtpe/cli.py`, `urtpe/lock.py`). `fetch_remaining_national_portal.py`, `refresh_whole_corpus.py` and `refresh_awaiting_caches.py` are not among them. Not checked: whether any of them reaches the lock through another module. | the sweep must not write `data/.link_cache/` while another holder has the lock. It reports `LockHeld` and writes nothing except its own run-log line. This is A8. `refresh_whole_corpus.py` stays outside A8 and U-D9 | **fix only** (A8) |
 | Candidate-only refresh | `select_candidates()` is offline; 96 cases still awaiting does not mean 96 defects | select first; skip network and cache writes when no candidates exist | **fix only** if kept inside existing command semantics |
 | Processed hash | the archive records acquisition, not successful full-cycle publication | an idempotency record names the PDF hash and reached stage; it does not replace archive history | **OpenSpec change** with U1 |
 
@@ -320,7 +350,73 @@ model judgment.
 **Form: OpenSpec change** for any agent invocation, tool permissions or repair handoff.
 Add this only if failure triage becomes frequent; it is not a prerequisite for U1–U6.
 
-### Automation items A1–A7
+### U9 — the nightly sweep is an unattended writer, and the clock is not a lock (added 2026-11-22; fixed by A8, `2e37855`)
+
+**What exists.** The task `urtpe-nightly-sweep` starts daily at 02:00 and runs
+`scripts/fetch_remaining_national_portal.py --deadline 05:00`. This session registered it on
+2026-11-18 at the user's request. It is outside the Order table. The task XML holds no
+registration date. The first trigger boundary is 2026-11-18 02:00.
+
+**Measured 2026-11-22** (Windows Task Scheduler, the XML of both tasks, the script, `urtpe/cli.py`):
+
+| Fact | Evidence |
+|---|---|
+| Runs: 11-19, 11-20, 11-22 at 02:00, each exit 0 | `schtasks /query /v` (11-19, 11-20 read earlier; 11-22 read today). The 11-21 run was not read. |
+| Only the 11-19 run processed a candidate (1 probe; ledger 73 → 74) | `no_match_ledger.json` last write 11-19 02:01:35. `regen_log.txt` last write 11-19 02:01:46. Both are unchanged on 11-22. |
+| A run with no candidate returns before the rebuild and writes nothing | `fetch_remaining_national_portal.py:653-655` |
+| A run with any processed candidate rebuilds the payload, match or not | `:746-748`. The 11-19 log shows 676 projects and 1,448 records. |
+| The crawl holds no lock. Its child `urtpe.cli` takes `SingleWriterLock` over `data` | `urtpe/cli.py:567`. The sweep's own code has no lock call (search, 2026-11-22). |
+| The result of the rebuild does not reach the exit code | `:748` ignores `regenerate_viewer()` and `:750` returns 0 |
+| The task keeps no stdout or stderr | task XML has no redirect. Evidence of a run: file times, the ledger and `regen_log.txt` |
+| The task needs the user logged on, the machine awake and on AC power | `InteractiveToken`, `DisallowStartIfOnBatteries`. No wake setting. Not tested. |
+| The 2026-11-14 probes leave the 14-day window about 2026-11-28 | `no_match_ledger.json` TTL. The first real crawl then runs up to 3 hours. |
+
+**Why the clock is not the guarantee.** Other sessions edit this repository near 02:00. The
+payload was rewritten at 2026-11-20 01:55 and the report at 02:06. Commit `6b97a83`
+(2026-11-20 03:17) holds both. The sweep that night exited at once. On a night with
+candidates, that rebuild would have overlapped the crawl.
+
+**Proposed fix (A8, fix only).**
+
+1. Take `SingleWriterLock` over `data` before the first cache write. On `LockHeld`, write
+   nothing except its own run-log line, and exit non-zero.
+2. Release it before `regenerate_viewer()`. The child takes the same lock; a held parent lock
+   makes the child exit 5. This is a design inference. It is not measured.
+3. Skip the rebuild when the run updated no project.
+4. Return a non-zero exit when the rebuild fails.
+5. Write one line per run (start, candidates, updated, rebuild result) to a log file.
+
+**Not measured:** whether the 11-19 rewrite changed any byte of `viewer/projects.data.js`. A
+clean `git status` does not show it, because commits `d9d9eec` (11-19) and `6b97a83` (11-20)
+both touched the file after the run. Not measured either: any real crawl, since no candidate
+has aged out yet.
+
+**A8 result (2026-11-22, committed as `2e37855`, not pushed).** All five points are in `scripts/fetch_remaining_national_portal.py`.
+The crawl lives in `_sweep()`. `main()` takes the lock, calls `_sweep()`, releases the lock,
+then rebuilds only if `updated > 0`. Exit codes: 0 ok, 1 rebuild failed, 2 bad `--deadline`,
+5 lock held. One line per run goes to `data/.link_cache/sweep_runs.jsonl`. The new tests are in
+`tests/test_sweep_lock.py` (17 cases, written before the fix; the first run errored on the
+missing `LOCK_ROOT`, and no single assertion was seen failing on its own. Two cases also pass
+on the old code). The scheduled task runs the script from the working tree. The committed
+code runs at the next 02:00 (2026-11-23); no real run has used it yet. `Last Result` can now be 1 (rebuild failed) or 5 (lock held): read
+`sweep_runs.jsonl`, not `Last Result` alone. The full suite reported
+1,511 passed, 1 skipped, 4 xfailed. A real dry run of the script exited 0, left no lock file
+and wrote no ledger or payload.
+
+**Not measured after A8:** the live child. The tests replace `regenerate_viewer()`. That the
+child `urtpe.cli` exits 5 against a parent that holds the lock follows from `urtpe/cli.py:567`
+and `tests/test_lock.py:124`. No test starts the real child. No real crawl has run, because
+no candidate has aged out.
+
+**Found while doing A8, not changed:** `scripts/run_sweep_until.py` sets `DEADLINE_HOUR` and
+`DEADLINE_MINUTE` on the sweep module. Nothing reads those names any more, and it clears
+`sys.argv`, so the wrapper runs with the default `06:30` stop. It was already so before A8.
+The docstring of the sweep still names `06:30` in its first behaviour list.
+
+**Form: fix only** (A8). Moving the sweep into the A4 coordinator is a separate question
+(U-D8).
+
+### Automation items A1–A8
 
 | Step | Item | Priority | Form | Depends on | Notes |
 |---|---|---|---|---|---|
@@ -331,6 +427,7 @@ Add this only if failure triage becomes frequent; it is not a prerequisite for U
 | A5 | U5 — report ownership and publication mode | **P1** | **OpenSpec change** | A4; explicit user decision for automatic publication | start with generate-and-stop; one writer for `release-diff.html` |
 | A6 | U7 — independent city-only cadence | **P2** | **OpenSpec change** | A4; separate cadence decision | not triggered by a 168 hash alone |
 | A7 | U8 — optional read-only diagnostic agent | **P3** | **OpenSpec change** | A4–A6 and measured triage need | never in the normal ingest or publication path |
+| A8 | U9 — the nightly sweep takes the lock, releases it before its rebuild, skips a rebuild with no update, reports a failed rebuild | **P1** | **fix only** | — | **started at the user's word 2026-11-22; written, tests green, committed as `2e37855` (not pushed).** It landed before the 2026-11-28 limit. It does not widen A1. See "A8 result" in U9. |
 
 A1–A3 can land independently without opening a periodic ingest change. They do not authorize
 A4. A4 without A5 can generate and verify but cannot publish. A5 decides who may commit and
@@ -338,8 +435,7 @@ push. A6 and A7 are separate expansions, not hidden parts of the PDF-cycle imple
 
 ### Automation decisions
 
-U-D1 to U-D5 are in the "Decisions to make" table at the top of this board. All five are
-undecided.
+U-D1 to U-D5 are in the "Decisions to make" table at the top of this board. All five are undecided. U-D6 to U-D9 sit in the same table: U-D6 is decided, U-D7 to U-D9 are open.
 
 **If Part III goes ahead.** The district tables add a second lane to this cycle. See O9. Part I
 stays correct for the approved lane and is not rewritten.
@@ -853,12 +949,20 @@ and date. Then draw the marks from it.**
   8 dates, 14 statuses, 6 cases) come from the session that ran it. Their run output is not
   kept, and this board did not re-measure them. The 101 selections, the 94 later candidates
   and the 96 still-awaiting cases are different populations and are not interchangeable.
-  The scheduled-task description comes from the runbook. This board did not inspect or
-  change the Windows task.
+  The scheduled-task description of `urtpe-poll` comes from the runbook. On 2026-11-22 this
+  session read the XML of both tasks (`schtasks /query /xml`). It changed neither.
 - **Part I automation options:** work was classified against the existing acquisition-only
   specification, the single-writer contract, the bounded repairs, path-limited publication
-  and the byte-for-byte deploy check. No automatic commit, push, scheduling or agent
-  invocation was performed.
+  and the byte-for-byte deploy check. No automatic commit, push or agent invocation was
+  performed. One scheduling act happened: the user asked this session to register
+  `urtpe-nightly-sweep` (2026-11-18). See U9.
+- **U9 and U-D6 to U-D9 (2026-11-22):** read the XML of both tasks, `urtpe/lock.py`,
+  `urtpe/cli.py` (lock at `:567`), `scripts/fetch_remaining_national_portal.py`,
+  `scripts/publish_release_diff.py` (`main`, `regenerate`, `_strip_stamp`), the tail of
+  `data/.link_cache/regen_log.txt`, `git log` for the report, the payload and this file, and
+  `openspec list`. Ran `refresh_whole_corpus.py --dry-run`: 1 slice of 3 projects, because the
+  checkpoint holds 682 finished ids against 676 payload projects. No request, no ingest.
+  Not read: `check_tree()`, `index.jsonl`, any other module that might take the lock.
 - **Part II:** the method of M1–M4 is the Batch F appendix
   (`docs/inspections/inspection-batchF.md`, "Appendix — method"). The scripts were ad hoc.
 
@@ -879,6 +983,12 @@ No pipeline run, ingest or deployment happened for this board. No file under `ur
 | Items O8 and O9 | New on 2026-11-20. Proposals from the design discussion. The status mix, the 12.8% and the ledger shape were measured; the page design and the lane layout were not. |
 | Items O10 and O11 | New on 2026-11-21, at the user's request. The two chains and the patch counts were measured; the page design, the sidecar and the hover were not. The report's "652" note is a defect found while measuring O10. |
 | Part I: `docs/etl_process.md`, `urtpe/links.py:617`, `SingleWriterLock("data")` | `docs/pipeline/etl_process.md`; `urtpe/links.py:618`; a lock over the `data` output tree, as `scripts/refresh_second_id_source.py:96` takes it. |
+| Part I, "Current boundary": one scheduled task; "did not inspect or change the Windows task" (2026-11-20 text) | Two tasks. `urtpe-nightly-sweep` was added on 2026-11-18 and was missing from the board. Its XML was read on 2026-11-22. See U9. |
+| Session talk of 2026-11-22: gazette 2026-11-12 "awaits ingestion" | It was ingested on 2026-11-18 (`a17a880`). The poll-log field `ingested: false` records the state at acquisition only. |
+| Session talk of 2026-11-22: the 2026-11-19 sweep re-emit was "byte-identical"; the 2026-11-20 01:55 write was a "no-op" | Neither was measured. Commit `6b97a83` ("refresh pending case approvals and rebuild viewer", 2026-11-20 03:17) holds the 01:55 write. It was a real rebuild by another session. |
+| Session talk of 2026-11-22: the whole-corpus refresh "finds no slices" | The dry run reports 1 slice of 3 projects. |
+| `inspection-batchD.md:1128`: `urtpe-poll` runs "weekly on Sunday 06:30" | The task trigger was Monday 06:30 (`DaysOfWeek` 2) from 2026-11-01. Nobody measured Sunday. |
+| `urtpe-poll`: Mondays 06:30 (`inspection.md` lines 32 and 196, `inspection-batchD.md:1222`, `optimization.md` Part I) | The user changed the trigger to Sundays 05:10 on 2026-11-22 (`DaysOfWeek` 1). Next run 2026-11-29. Only the live statements (`inspection.md:32`, Part I) were updated. The dated log lines keep the schedule that was true on their dates. |
 
 ## Provenance
 

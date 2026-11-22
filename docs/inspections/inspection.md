@@ -29,7 +29,7 @@ the compatibility-ideograph fix, Part 1 URL+keyboard, the windowed list) →
 | Viewer render path | `node scripts\viewer_smoke.js` passes |
 | Silent-failure baseline | items 1–4 caught; item 5 "yes" by design (D5) |
 | Archive | 11 gazette PDFs held; `index.jsonl` has 76 lines; chain and the 09-24 restore last verified 2026-11-01 and not re-checked on 2026-11-22 |
-| Acquisition | **weekly scheduled task `urtpe-poll` live** (Mondays 06:30); channel verified healthy 2026-11-01 (`reuploaded`) |
+| Acquisition | **weekly scheduled task `urtpe-poll` live** (Sundays 05:10, changed from Mondays 06:30 on 2026-11-22); channel verified healthy 2026-11-01 (`reuploaded`) |
 | Emission | `data/projects.json` generated 2026-11-18 from the 2026-11-12 gazette: 1,448 records / 676 projects; `viewer/projects.data.js` last committed 2026-11-20 (`6b97a83`) |
 | Batch B | 8 findings, all done 2026-11-04 (§37/§38 residuals) — see `docs/inspections/inspection-batchBC.md` |
 | Batch C | 10 findings (C1–C10), all done 2026-11-04 (post-viewer-UX gaps) — see `docs/inspections/inspection-batchBC.md` |

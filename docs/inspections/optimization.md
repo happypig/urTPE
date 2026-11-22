@@ -391,7 +391,7 @@ clean `git status` does not show it, because commits `d9d9eec` (11-19) and `6b97
 both touched the file after the run. Not measured either: any real crawl, since no candidate
 has aged out yet.
 
-**A8 result (2026-11-22, committed as `2e37855`, not pushed).** All five points are in `scripts/fetch_remaining_national_portal.py`.
+**A8 result (2026-11-22, committed as `2e37855` and pushed to `main`).** All five points are in `scripts/fetch_remaining_national_portal.py`.
 The crawl lives in `_sweep()`. `main()` takes the lock, calls `_sweep()`, releases the lock,
 then rebuilds only if `updated > 0`. Exit codes: 0 ok, 1 rebuild failed, 2 bad `--deadline`,
 5 lock held. One line per run goes to `data/.link_cache/sweep_runs.jsonl`. The new tests are in
@@ -427,7 +427,7 @@ The docstring of the sweep still names `06:30` in its first behaviour list.
 | A5 | U5 — report ownership and publication mode | **P1** | **OpenSpec change** | A4; explicit user decision for automatic publication | start with generate-and-stop; one writer for `release-diff.html` |
 | A6 | U7 — independent city-only cadence | **P2** | **OpenSpec change** | A4; separate cadence decision | not triggered by a 168 hash alone |
 | A7 | U8 — optional read-only diagnostic agent | **P3** | **OpenSpec change** | A4–A6 and measured triage need | never in the normal ingest or publication path |
-| A8 | U9 — the nightly sweep takes the lock, releases it before its rebuild, skips a rebuild with no update, reports a failed rebuild | **P1** | **fix only** | — | **started at the user's word 2026-11-22; written, tests green, committed as `2e37855` (not pushed).** It landed before the 2026-11-28 limit. It does not widen A1. See "A8 result" in U9. |
+| A8 | U9 — the nightly sweep takes the lock, releases it before its rebuild, skips a rebuild with no update, reports a failed rebuild | **P1** | **fix only** | — | **started at the user's word 2026-11-22; written, tests green, committed as `2e37855` and pushed to `main`.** It landed before the 2026-11-28 limit. It does not widen A1. See "A8 result" in U9. |
 
 A1–A3 can land independently without opening a periodic ingest change. They do not authorize
 A4. A4 without A5 can generate and verify but cannot publish. A5 decides who may commit and

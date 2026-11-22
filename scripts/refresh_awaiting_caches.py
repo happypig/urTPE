@@ -14,8 +14,19 @@ application-for-approval date and no approval date — the state a case is in
 between applying and receiving approval. Measured 2026-11-02: 21 of 726 projects.
 Every other cached field is preserved.
 
-Single-writer rule (AGENTS.md): do not run this while an ingestion or a sweep
-owns the cache.
+Single-writer rule (AGENTS.md): this pass takes `SingleWriterLock` over the tree that
+holds the cache (`data/` for the default cache), the lock `urtpe.cli` and the nightly sweep
+take. It used to ask the operator not to run beside an ingestion or a sweep, and nothing
+enforced that (optimization board, A1). The sweep holds the lock for hours on a night with
+candidates.
+
+Order of a run (A2): select the candidates offline, with no lock and no network. A run with
+nothing to do, or `--dry-run`, ends there and takes no lock, so a no-op never collides with
+a writer. Otherwise the lock is taken and the candidates are chosen again, because another
+writer may have changed the cache between the first look and the lock.
+
+Exit codes: 0 done, 1 a project failed or the cache directory is missing, 5 another run
+holds the lock (the code `urtpe.cli` returns for `LockHeld`; nothing was written).
 
     python scripts/refresh_awaiting_caches.py [--dry-run]
 """
@@ -34,6 +45,9 @@ from urtpe.links import (  # noqa: E402
     refresh_project,
     resolve_cache_dir,
 )
+from urtpe.lock import LockHeld, SingleWriterLock  # noqa: E402
+
+EXIT_LOCK_HELD = 5  # the same code urtpe.cli returns for LockHeld
 
 
 def select_candidates(cache_dir: Path, payload_keys: dict | None = None) -> list[str]:
@@ -121,6 +135,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"no cache directory at {cache_dir}", file=sys.stderr)
         return 1
 
+    # A2: look offline first. No lock, no network.
     keys = load_search_keys(Path(args.payload))
     candidates = select_candidates(cache_dir, payload_keys=keys)
     stranded = stranded_dirs(cache_dir, keys)
@@ -133,7 +148,27 @@ def main(argv: list[str] | None = None) -> int:
         for pid in candidates:
             print(f"  {pid}")
         return 0
+    if not candidates:
+        return 0
 
+    # A1: the cache is durable state; one writer at a time. The lock root is the parent of
+    # the cache directory: `data/` for the default, the tree `urtpe.cli -o data` locks.
+    try:
+        lock = SingleWriterLock(cache_dir.parent).acquire()
+    except LockHeld as exc:
+        print(f"[LOCKED] another run owns {cache_dir.parent}: {exc}", file=sys.stderr)
+        return EXIT_LOCK_HELD
+    try:
+        # Another writer may have changed the cache while this run started.
+        keys = load_search_keys(Path(args.payload))
+        candidates = select_candidates(cache_dir, payload_keys=keys)
+        return _refresh(cache_dir, keys, candidates)
+    finally:
+        lock.release()
+
+
+def _refresh(cache_dir: Path, keys: dict, candidates: list[str]) -> int:
+    """Re-fetch each candidate. The caller holds the lock."""
     failures = 0
     totals = {"updated": 0, "status_changes": 0, "removed": 0, "conflicts": 0,
               "closed": 0, "still_awaiting": 0, "added": 0, "superseded": 0,

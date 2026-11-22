@@ -358,6 +358,37 @@
         只跑 links → graph → viewer。</span></div>
     </div>
   </div>
+
+  <h3><span class="en">Scheduled and manual runs</span><span class="zh">排程與手動執行</span></h3>
+  <p class="lead"><span class="en">Two Windows tasks run, and three steps stay manual. Only the full ingest and the rebuild
+    run the eight stages above. The state is the one measured on 2026-11-22; what is planned next is on the
+    optimization board (<code>docs/inspections/optimization.md</code>).</span><span class="zh">有兩個 Windows 排程工作在跑，另有三個步驟維持手動。
+    只有完整匯入與重建會跑上面的八個階段。此處是 2026-11-22 量測的狀態；後續規劃見
+    最佳化看板（<code>docs/inspections/optimization.md</code>）。</span></p>
+  <table>
+    <thead><tr><th><span class="en">Piece</span><span class="zh">項目</span></th><th><span class="en">What runs</span><span class="zh">執行內容</span></th><th><span class="en">State</span><span class="zh">狀態</span></th></tr></thead>
+    <tbody>
+      <tr><td><strong><span class="en">Gazette PDF</span><span class="zh">公報 PDF</span></strong></td>
+        <td><span class="en"><code>urtpe-poll</code>, Sundays 05:10: <code>poll_gazette.py</code></span><span class="zh"><code>urtpe-poll</code>，每週日 05:10：<code>poll_gazette.py</code></span></td>
+        <td><span class="en">Acquisition only. It never ingests. Ingest is manual (§9).</span><span class="zh">只取得，絕不匯入。匯入為手動（§9）。</span></td></tr>
+      <tr><td><strong><span class="en">168 list</span><span class="zh">168 清單</span></strong></td>
+        <td><span class="en"><code>poll_p168.py</code>, same task</span><span class="zh"><code>poll_p168.py</code>，同一個工作</span></td>
+        <td><span class="en">Saves a snapshot. It writes nothing under <code>data/</code>.</span><span class="zh">儲存快照。不寫入 <code>data/</code> 下任何東西。</span></td></tr>
+      <tr><td><strong><span class="en">National sweep</span><span class="zh">全國門戶掃描</span></strong></td>
+        <td><span class="en"><code>urtpe-nightly-sweep</code>, daily 02:00: <code>fetch_remaining_national_portal.py --deadline 05:00</code></span><span class="zh"><code>urtpe-nightly-sweep</code>，每日 02:00：<code>fetch_remaining_national_portal.py --deadline 05:00</code></span></td>
+        <td><span class="en">Takes the single-writer lock over <code>data/</code>, releases it before the rebuild, and rebuilds only when a project changed. One line per run goes to <code>data/.link_cache/sweep_runs.jsonl</code>. Exit 1: rebuild failed. Exit 5: lock held.</span><span class="zh">對 <code>data/</code> 取單一寫入者鎖，重建前釋放，且只在有專案變動時重建。每次執行寫一行到 <code>data/.link_cache/sweep_runs.jsonl</code>。exit 1：重建失敗。exit 5：鎖被占用。</span></td></tr>
+      <tr><td><strong><span class="en">Targeted refresh</span><span class="zh">定向刷新</span></strong></td>
+        <td><span class="en"><code>refresh_awaiting_caches.py</code>, by hand</span><span class="zh"><code>refresh_awaiting_caches.py</code>，手動</span></td>
+        <td><span class="en">Manual. It takes no lock yet.</span><span class="zh">手動。尚未取鎖。</span></td></tr>
+      <tr><td><strong><span class="en">Whole-corpus refresh</span><span class="zh">全語料刷新</span></strong></td>
+        <td><span class="en"><code>refresh_whole_corpus.py</code>, by hand</span><span class="zh"><code>refresh_whole_corpus.py</code>，手動</span></td>
+        <td><span class="en">Manual. No schedule, no lock.</span><span class="zh">手動。無排程，無鎖。</span></td></tr>
+      <tr><td><strong><span class="en">Release report</span><span class="zh">差異報告</span></strong></td>
+        <td><span class="en">Third action of <code>urtpe-poll</code>: <code>publish_release_diff.py</code></span><span class="zh"><code>urtpe-poll</code> 的第三個動作：<code>publish_release_diff.py</code></span></td>
+        <td><span class="en">Commits and pushes only <code>docs/release-diff.html</code>.</span><span class="zh">只 commit 並推送 <code>docs/release-diff.html</code>。</span></td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:12.5px;color:var(--muted)"><span class="en">The sweep is the only unattended step that can rewrite the viewer payload. The two refresh scripts and the PDF ingest run only when a person starts them.</span><span class="zh">掃描是唯一可能在無人看管下重寫檢視器 payload 的步驟。兩個刷新腳本與 PDF 匯入只在有人啟動時執行。</span></p>
 </section>
 
 <!-- ============================================================= -->
@@ -822,7 +853,7 @@
 <!-- ============================================================= -->
 <section>
   <h2><span class="n">9</span><span class="en">Operating the pipeline</span><span class="zh">操作管線</span></h2>
-  <p class="lead"><span class="en">Manual PDF-to-publication runbook. The scheduled <code>urtpe-poll</code> task only acquires inputs and publishes the release-diff report; it never ingests.</span><span class="zh">手動 PDF 至發布 runbook。排程 <code>urtpe-poll</code> 工作只取得輸入並發布 release-diff 報告，絕不匯入。</span></p>
+  <p class="lead"><span class="en">Manual PDF-to-publication runbook. The scheduled <code>urtpe-poll</code> task only acquires inputs and publishes the release-diff report; it never ingests. A second task, <code>urtpe-nightly-sweep</code>, can rewrite the viewer payload (see the table in §1).</span><span class="zh">手動 PDF 至發布 runbook。排程 <code>urtpe-poll</code> 工作只取得輸入並發布 release-diff 報告，絕不匯入。第二個工作 <code>urtpe-nightly-sweep</code> 可能重寫檢視器 payload（見 §1 的表）。</span></p>
   <table>
     <tbody>
       <tr><td class="num">1.</td><td><span class="en">Check <code>git status --short</code> and confirm no other writer owns the output tree. Run <code>python scripts/poll_gazette.py</code> and <code>python scripts/poll_p168.py</code>. Only <code>new_gazette</code> supplies a new archived PDF.</span><span class="zh">檢查 <code>git status --short</code>，確認沒有其他寫入者占用輸出樹。執行 <code>python scripts/poll_gazette.py</code> 與 <code>python scripts/poll_p168.py</code>。只有 <code>new_gazette</code> 提供新的封存 PDF。</span></td></tr>
@@ -844,12 +875,12 @@
     before deleting it) · never key anything durable on 編號 · manual corrections go in
     the ledger, not a dated script · <code>data/.link_cache/</code> is durable state —
     five backup dirs from past incidents exist because it was once lost ·
-    tests: <code>python -m pytest</code> (<span data-doc-field="test-count-en">1,499</span> collected; one deliberate skip at
+    tests: <code>python -m pytest</code> (<span data-doc-field="test-count-en">1,522</span> collected; one deliberate skip at
     <code>tests/test_idempotent_flags.py:117</code>).</span><span class="zh">每個輸出樹一次執行（鎖在 6 小時後或 PID 已死即過期 — 刪除前先確認 PID）·
     絕不以 編號 作為任何持久鍵 · 人工更正進帳本，不寫日期版的一次性腳本 ·
     <code>data/.link_cache/</code> 是持久狀態 —
     過去事故留下的五個備份目錄就是因為它曾經被清掉 ·
-    測試：<code>python -m pytest</code>（蒐集 <span data-doc-field="test-count-zh">1,499</span> 項；一項刻意 skip 於
+    測試：<code>python -m pytest</code>（蒐集 <span data-doc-field="test-count-zh">1,522</span> 項；一項刻意 skip 於
     <code>tests/test_idempotent_flags.py:117</code>）。</span>
   </div>
 </section>
@@ -865,7 +896,7 @@
   Companion to <code>docs/pipeline/etl_process.md</code>, which remains the prose source of truth;
   companion pages <a href="domain-model.html">domain-model.html</a> and
   <a href="release-diff.html">release-diff.html</a>.
-  Self-contained — no external requests. <span data-doc-field="footer-provenance-en">Measured figures from the 2026-11-12 payload, synchronised 2026-11-20.</span></span>
+  Self-contained — no external requests. <span data-doc-field="footer-provenance-en">Measured figures from the 2026-11-12 payload, synchronised 2026-11-22.</span></span>
   <span class="zh">來源：<code>urtpe/cli.py</code>、<code>urtpe/extract.py</code>、<code>urtpe/cleanse.py</code>、
   <code>urtpe/ledger.py</code>、<code>urtpe/merge.py</code>、<code>urtpe/links.py</code>、
   <code>urtpe/graph.py</code>、<code>urtpe/viewer.py</code>、<code>urtpe/tripwire.py</code>、
@@ -874,7 +905,7 @@
   本檔為 <code>docs/pipeline/etl_process.md</code> 的附頁，後者仍為文字上的 source of truth；
   附頁 <a href="domain-model.html">domain-model.html</a> 與
   <a href="release-diff.html">release-diff.html</a>。
-  完全獨立，不連任何外部資源。<span data-doc-field="footer-provenance-zh">量測數字取自 2026-11-12 payload，於 2026-11-20 同步。</span></span>
+  完全獨立，不連任何外部資源。<span data-doc-field="footer-provenance-zh">量測數字取自 2026-11-12 payload，於 2026-11-22 同步。</span></span>
 </footer>
 
 <script>

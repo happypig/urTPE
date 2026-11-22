@@ -69,6 +69,25 @@ historical records uniformly (`urtpe/cli.py:249`, `_ingest_pdf` docstring).
 A rebuild skips stages 2–5: the payload's nodes are loaded back as
 CleanRecords verbatim (`urtpe/cli.py:118`, `_load_projects_from_js`).
 
+### Scheduled and manual runs
+
+Two Windows tasks run, and three steps stay manual. Only the full ingest and
+the rebuild run the eight stages. The state below was measured on 2026-11-22.
+What is planned next is on the optimization board
+(`docs/inspections/optimization.md`).
+
+| Piece | What runs | State |
+| --- | --- | --- |
+| Gazette PDF | `urtpe-poll`, Sundays 05:10: `poll_gazette.py` | Acquisition only. It never ingests. Ingest is manual (§11). |
+| 168 list | `poll_p168.py`, same task | Saves a snapshot. It writes nothing under `data/`. |
+| National sweep | `urtpe-nightly-sweep`, daily 02:00: `fetch_remaining_national_portal.py --deadline 05:00` | Takes the single-writer lock over `data/`, releases it before the rebuild, and rebuilds only when a project changed. One line per run goes to `data/.link_cache/sweep_runs.jsonl`. Exit 1: rebuild failed. Exit 5: lock held. |
+| Targeted refresh | `refresh_awaiting_caches.py`, by hand | Manual. It takes no lock yet. |
+| Whole-corpus refresh | `refresh_whole_corpus.py`, by hand | Manual. No schedule, no lock. |
+| Release report | third action of `urtpe-poll`: `publish_release_diff.py` | Commits and pushes only `docs/release-diff.html`. |
+
+The sweep is the only unattended step that can rewrite the viewer payload. The
+two refresh scripts and the PDF ingest run only when a person starts them.
+
 ---
 
 ## 2. Acquisition (stage 1)
@@ -358,7 +377,11 @@ incident, where four concurrent runs wiped 47 caches.
 The overnight sweep `scripts/fetch_remaining_national_portal.py` backfills
 projects still missing twur links (WAF-polite: 60–180 s sleeps, `--deadline`
 default 06:30), writes into the same cache, and regenerates the viewer by
-spawning `--from-js --links --viewer`.
+spawning `--from-js --links --viewer`. The task `urtpe-nightly-sweep` runs it
+daily at 02:00 with `--deadline 05:00`. Since 2026-11-22 (A8, `2e37855`) it
+takes the single-writer lock over `data/` for the crawl, releases it before the
+rebuild, rebuilds only when a project changed, and logs each run to
+`data/.link_cache/sweep_runs.jsonl`.
 
 ---
 

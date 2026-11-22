@@ -420,9 +420,9 @@ The docstring of the sweep still names `06:30` in its first behaviour list.
 
 | Step | Item | Priority | Form | Depends on | Notes |
 |---|---|---|---|---|---|
-| A1 | U3 — refresh takes the single-writer lock over `data` | **P1** | **fix only** | — | existing safety contract; test `LockHeld` before the first write |
-| A2 | U3 — offline candidate-only fast path | **P1** | **fix only** | A1 | no candidates means no network and no rebuild |
-| A3 | U3/U4 — structured poll adapter and failure logs | **P1** | **fix only** | — | no change to acquisition or refusal semantics |
+| A1 | U3 — refresh takes the single-writer lock over `data` | **P1** | **fix only** | — | existing safety contract; test `LockHeld` before the first write. **Done 2026-11-22; committed as `efc5c32`.** See "A1 to A3 result". |
+| A2 | U3 — offline candidate-only fast path | **P1** | **fix only** | A1 | no candidates means no network and no rebuild. **Done 2026-11-22; committed as `efc5c32`.** |
+| A3 | U3/U4 — structured poll adapter and failure logs | **P1** | **fix only** | — | no change to acquisition or refusal semantics. **Done 2026-11-22; committed as `28e146a`.** |
 | A4 | U1/U3/U4/U6 — deterministic PDF-cycle coordinator | **P1** | **OpenSpec change** | A1–A3 | amend `gazette-cadence`; hash idempotency and failure drills required |
 | A5 | U5 — report ownership and publication mode | **P1** | **OpenSpec change** | A4; explicit user decision for automatic publication | start with generate-and-stop; one writer for `release-diff.html` |
 | A6 | U7 — independent city-only cadence | **P2** | **OpenSpec change** | A4; separate cadence decision | not triggered by a 168 hash alone |
@@ -432,6 +432,37 @@ The docstring of the sweep still names `06:30` in its first behaviour list.
 A1–A3 can land independently without opening a periodic ingest change. They do not authorize
 A4. A4 without A5 can generate and verify but cannot publish. A5 decides who may commit and
 push. A6 and A7 are separate expansions, not hidden parts of the PDF-cycle implementation.
+
+**A1 to A3 result (2026-11-22; A1 and A2 in `efc5c32`, A3 in `28e146a`; not pushed).** The user said "proceed A1~A3 fix".
+
+- **A1.** `scripts/refresh_awaiting_caches.py` takes `SingleWriterLock` over the parent of the
+  cache directory (`data/` for the default). On `LockHeld` it exits 5 and writes nothing. It
+  releases the lock in `finally`, also when a refresh raises. `--dry-run` writes nothing and
+  takes no lock. Checked on the real tree: a run against a lock held by another process
+  exited 5 and left no lock file.
+- **A2.** The script selects the candidates first, offline, with no lock. A run with no
+  candidate takes no lock and exits 0. Otherwise it takes the lock and selects again, because
+  another writer may have changed the cache in between. "No candidate, no network" already held
+  before A2. What is new is the order, the missing lock on a no-op run, and the second
+  selection. The script still has no rebuild step, so there was none to skip.
+- **A3.** `poll_gazette.py --json` prints the status, the gazette id, the SHA-256, the archived
+  path and `verified`, which comes from `assert_matches_entry`. `verified` is `null` when there
+  is no gazette to check, and `false` with a reason when the file no longer matches the index.
+  `Poller.record_failure()` records an exception that `poll()` does not catch. Before, such an
+  exception escaped as a traceback with no row in `poll_log.jsonl`. `poll_p168.py --json` now
+  has a `status` word (`first_seen`, `changed`, `unchanged`, `failed`) and keeps its old keys. A
+  failed check prints a `failed` object, appends a `failed` row to `p168_log.jsonl`, and keeps
+  `p168_state.json`. The default text output and the exit codes did not change; a golden test
+  pins the gazette text.
+- **Tests.** `tests/test_refresh_awaiting_lock.py` (10 cases) and `tests/test_poll_adapter.py`
+  (20 cases), written before the code. Before the fix, 3 of the 10 and 15 of the 20 failed. Of
+  those 15, 8 failed on a missing interface (`--json`, `record_failure`) and 7 on behaviour.
+  The rest pin behaviour that already held.
+- **Not measured.** No real gazette download ran with the new code: a live `--dry-run --json`
+  of both pollers worked and wrote nothing. `refresh_whole_corpus.py` still takes no lock. No
+  coordinator reads these results yet (A4).
+- **The task runs the working tree.** `urtpe-poll` starts both pollers from the working tree
+  on 2026-11-29 at 05:10. Whatever the tree holds then is what runs.
 
 ### Automation decisions
 

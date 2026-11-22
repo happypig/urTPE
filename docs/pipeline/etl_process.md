@@ -78,10 +78,10 @@ What is planned next is on the optimization board
 
 | Piece | What runs | State |
 | --- | --- | --- |
-| Gazette PDF | `urtpe-poll`, Sundays 05:10: `poll_gazette.py` | Acquisition only. It never ingests. Ingest is manual (§11). |
-| 168 list | `poll_p168.py`, same task | Saves a snapshot. It writes nothing under `data/`. |
+| Gazette PDF | `urtpe-poll`, Sundays 05:10: `poll_gazette.py` | Acquisition only. It never ingests. Ingest is manual (§11). `--json` prints a structured result: the status, the gazette id, the SHA-256, the archived path, and whether that file still matches the index. |
+| 168 list | `poll_p168.py`, same task | Saves a snapshot. It writes nothing under `data/`. A failed check appends a `failed` row to `p168_log.jsonl` and keeps the last good state. |
 | National sweep | `urtpe-nightly-sweep`, daily 02:00: `fetch_remaining_national_portal.py --deadline 05:00` | Takes the single-writer lock over `data/`, releases it before the rebuild, and rebuilds only when a project changed. One line per run goes to `data/.link_cache/sweep_runs.jsonl`. Exit 1: rebuild failed. Exit 5: lock held. |
-| Targeted refresh | `refresh_awaiting_caches.py`, by hand | Manual. It takes no lock yet. |
+| Targeted refresh | `refresh_awaiting_caches.py`, by hand | Manual. It takes the single-writer lock over `data/` and exits 5 when the lock is held. A run with no candidate, and `--dry-run`, take no lock. |
 | Whole-corpus refresh | `refresh_whole_corpus.py`, by hand | Manual. No schedule, no lock. |
 | Release report | third action of `urtpe-poll`: `publish_release_diff.py` | Commits and pushes only `docs/release-diff.html`. |
 

@@ -370,16 +370,16 @@
     <tbody>
       <tr><td><strong><span class="en">Gazette PDF</span><span class="zh">公報 PDF</span></strong></td>
         <td><span class="en"><code>urtpe-poll</code>, Sundays 05:10: <code>poll_gazette.py</code></span><span class="zh"><code>urtpe-poll</code>，每週日 05:10：<code>poll_gazette.py</code></span></td>
-        <td><span class="en">Acquisition only. It never ingests. Ingest is manual (§9).</span><span class="zh">只取得，絕不匯入。匯入為手動（§9）。</span></td></tr>
+        <td><span class="en">Acquisition only. It never ingests. Ingest is manual (§9). <code>--json</code> prints a structured result: the status, the gazette id, the SHA-256, the archived path, and whether that file still matches the index.</span><span class="zh">只取得，絕不匯入。匯入為手動（§9）。<code>--json</code> 輸出結構化結果：狀態、公報編號、SHA-256、封存路徑，以及該檔案是否仍與索引相符。</span></td></tr>
       <tr><td><strong><span class="en">168 list</span><span class="zh">168 清單</span></strong></td>
         <td><span class="en"><code>poll_p168.py</code>, same task</span><span class="zh"><code>poll_p168.py</code>，同一個工作</span></td>
-        <td><span class="en">Saves a snapshot. It writes nothing under <code>data/</code>.</span><span class="zh">儲存快照。不寫入 <code>data/</code> 下任何東西。</span></td></tr>
+        <td><span class="en">Saves a snapshot. It writes nothing under <code>data/</code>. A failed check appends a <code>failed</code> row to <code>p168_log.jsonl</code> and keeps the last good state.</span><span class="zh">儲存快照。不寫入 <code>data/</code> 下任何東西。檢查失敗時在 <code>p168_log.jsonl</code> 追加一筆 <code>failed</code> 紀錄，並保留上一個良好狀態。</span></td></tr>
       <tr><td><strong><span class="en">National sweep</span><span class="zh">全國門戶掃描</span></strong></td>
         <td><span class="en"><code>urtpe-nightly-sweep</code>, daily 02:00: <code>fetch_remaining_national_portal.py --deadline 05:00</code></span><span class="zh"><code>urtpe-nightly-sweep</code>，每日 02:00：<code>fetch_remaining_national_portal.py --deadline 05:00</code></span></td>
         <td><span class="en">Takes the single-writer lock over <code>data/</code>, releases it before the rebuild, and rebuilds only when a project changed. One line per run goes to <code>data/.link_cache/sweep_runs.jsonl</code>. Exit 1: rebuild failed. Exit 5: lock held.</span><span class="zh">對 <code>data/</code> 取單一寫入者鎖，重建前釋放，且只在有專案變動時重建。每次執行寫一行到 <code>data/.link_cache/sweep_runs.jsonl</code>。exit 1：重建失敗。exit 5：鎖被占用。</span></td></tr>
       <tr><td><strong><span class="en">Targeted refresh</span><span class="zh">定向刷新</span></strong></td>
         <td><span class="en"><code>refresh_awaiting_caches.py</code>, by hand</span><span class="zh"><code>refresh_awaiting_caches.py</code>，手動</span></td>
-        <td><span class="en">Manual. It takes no lock yet.</span><span class="zh">手動。尚未取鎖。</span></td></tr>
+        <td><span class="en">Manual. It takes the single-writer lock over <code>data/</code> and exits 5 when the lock is held. A run with no candidate, and <code>--dry-run</code>, take no lock.</span><span class="zh">手動。對 <code>data/</code> 取單一寫入者鎖，鎖被占用時 exit 5。沒有候選的執行與 <code>--dry-run</code> 不取鎖。</span></td></tr>
       <tr><td><strong><span class="en">Whole-corpus refresh</span><span class="zh">全語料刷新</span></strong></td>
         <td><span class="en"><code>refresh_whole_corpus.py</code>, by hand</span><span class="zh"><code>refresh_whole_corpus.py</code>，手動</span></td>
         <td><span class="en">Manual. No schedule, no lock.</span><span class="zh">手動。無排程，無鎖。</span></td></tr>
@@ -875,12 +875,12 @@
     before deleting it) · never key anything durable on 編號 · manual corrections go in
     the ledger, not a dated script · <code>data/.link_cache/</code> is durable state —
     five backup dirs from past incidents exist because it was once lost ·
-    tests: <code>python -m pytest</code> (<span data-doc-field="test-count-en">1,522</span> collected; one deliberate skip at
+    tests: <code>python -m pytest</code> (<span data-doc-field="test-count-en">1,552</span> collected; one deliberate skip at
     <code>tests/test_idempotent_flags.py:117</code>).</span><span class="zh">每個輸出樹一次執行（鎖在 6 小時後或 PID 已死即過期 — 刪除前先確認 PID）·
     絕不以 編號 作為任何持久鍵 · 人工更正進帳本，不寫日期版的一次性腳本 ·
     <code>data/.link_cache/</code> 是持久狀態 —
     過去事故留下的五個備份目錄就是因為它曾經被清掉 ·
-    測試：<code>python -m pytest</code>（蒐集 <span data-doc-field="test-count-zh">1,522</span> 項；一項刻意 skip 於
+    測試：<code>python -m pytest</code>（蒐集 <span data-doc-field="test-count-zh">1,552</span> 項；一項刻意 skip 於
     <code>tests/test_idempotent_flags.py:117</code>）。</span>
   </div>
 </section>

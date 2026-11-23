@@ -90,31 +90,43 @@ def check_tree() -> None:
             "Commit or stash them first." % ", ".join(conflicts))
 
 
+def committed_report() -> str:
+    """The report as HEAD holds it, or "" when HEAD has none."""
+    proc = git("show", "HEAD:" + OWNED_PATHS[0])
+    return proc.stdout if proc.returncode == 0 else ""
+
+
 def regenerate() -> bool:
-    """Rebuild the report. Returns whether the file changed.
+    """Rebuild the report. Returns whether it differs from the COMMITTED report.
 
-    The comparison ignores the generation timestamp, which the report carries
-    in its header and which changes on every run. Without that, the step would
-    commit a new blob every week even when no release changed, and the
-    repository's history would fill with reports that differ only in a date
-    — churning the published page for nothing.
+    "Changed" means: differs from what HEAD holds, ignoring the generation
+    timestamp, which the report carries in its header and which changes on
+    every run. Without the stamp rule the step would commit a new blob every
+    week even when no release changed, and the repository's history would fill
+    with reports that differ only in a date.
 
-    The timestamp is restored afterwards, so the committed report keeps the
-    moment it was actually built.
+    It used to mean: differs from the copy on disk before this run. That broke
+    when something else had already regenerated the report. `post_ingest_check.py`
+    does (and so does the PDF cycle, which runs it first): the copy on disk was
+    then the new report, the comparison saw only a timestamp, and the step said
+    "nothing to publish" while the committed report was a gazette behind
+    (measured 2026-11-23). A person who ran the check and then this step by hand
+    got the same answer.
+
+    When nothing but the timestamp differs from the committed report, the
+    committed copy is put back, so the file on disk stays byte-identical to the
+    committed one and the tree stays clean.
     """
-    before = REPORT.read_text(encoding="utf-8") if REPORT.exists() else ""
-    before_stamp = _generation_stamp(before)
     proc = run(sys.executable, str(ROOT / "scripts" / "release_diff_report.py"))
     if proc.returncode != 0:
         raise PublishError(
             "the report generator failed (exit %d):\n%s"
             % (proc.returncode, proc.stderr.strip()[-2000:]))
     after = REPORT.read_text(encoding="utf-8") if REPORT.exists() else ""
-    if _strip_stamp(before) == _strip_stamp(after):
-        # Nothing but the timestamp moved. Put the committed timestamp back so
-        # the file on disk stays byte-identical to the committed one.
-        if before and after != before:
-            REPORT.write_text(before, encoding="utf-8")
+    committed = committed_report()
+    if committed and _strip_stamp(committed) == _strip_stamp(after):
+        if after != committed:
+            REPORT.write_text(committed, encoding="utf-8")
         return False
     return True
 

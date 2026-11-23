@@ -345,3 +345,136 @@ def test_the_step_writes_nothing_under_the_emitted_tree():
     assert "raw.tsv" not in source
     assert "clean.tsv" not in source
     assert "merged.tsv" not in source
+
+
+# --- "changed" means: differs from the COMMITTED report ------------------------------------------
+#
+# openspec change a4-pdf-cycle-coordinator (design D13). The cycle runs post_ingest_check.py,
+# which regenerates docs/release-diff.html, and only then this step. The step used to compare the
+# regenerated report with its OWN copy from before the run. That copy was already the regenerated
+# report, so the step answered "nothing to publish" and committed nothing (measured 2026-11-23
+# with a unit probe). A person who ran the check and then the step by hand got the same answer.
+# "Changed" must mean: differs, ignoring the generation stamp, from what is committed.
+#
+# Every test here runs in a temporary repository that the module is pointed at. Nothing real is
+# touched, and no remote but a temporary bare one is ever pushed to.
+
+STAMP_A = "2026-11-18T10:00:00+08:00"
+STAMP_B = "2026-11-23T04:10:00+08:00"
+STAMP_C = "2026-11-23T04:12:00+08:00"
+
+
+def _page(body, stamp):
+    return "<html><body>%s</body><p>generated %s</p></html>" % (body, stamp)
+
+
+class _Done:
+    returncode = 0
+    stdout = ""
+    stderr = ""
+
+
+@pytest.fixture
+def sandbox(tmp_path, monkeypatch):
+    """A temporary repository that the publisher is pointed at."""
+    import subprocess
+    import types
+
+    from scripts import publish_release_diff as pub
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args, cwd=None):
+        return subprocess.run(["git", *args], cwd=str(cwd or repo), capture_output=True,
+                              text=True, encoding="utf-8", errors="replace")
+
+    git("init", "-q")
+    git("config", "user.email", "test@example.invalid")
+    git("config", "user.name", "test")
+    (repo / "docs").mkdir()
+    report = repo / "docs" / "release-diff.html"
+    box = types.SimpleNamespace(repo=repo, git=git, report=report, pub=pub, generated=None)
+    real_run = pub.run
+
+    def fake_run(*args, cwd=None):
+        # the generator writes what the archive says; every git call is the real one, in the repo
+        if len(args) >= 2 and str(args[1]).endswith("release_diff_report.py"):
+            report.write_text(box.generated, encoding="utf-8")
+            return _Done()
+        return real_run(*args, cwd=cwd)
+
+    monkeypatch.setattr(pub, "ROOT", repo)
+    monkeypatch.setattr(pub, "REPORT", report)
+    monkeypatch.setattr(pub, "run", fake_run)
+    return box
+
+
+def _commit_base(box, text):
+    box.report.write_text(text, encoding="utf-8")
+    box.git("add", "docs/release-diff.html")
+    box.git("commit", "-qm", "base")
+    box.git("branch", "-M", "main")
+
+
+def test_a_report_already_regenerated_by_the_check_is_still_published(sandbox):
+    _commit_base(sandbox, _page("old numbers", STAMP_A))
+    # post_ingest_check.py already wrote the new report into the working tree ...
+    sandbox.report.write_text(_page("new numbers", STAMP_B), encoding="utf-8")
+    # ... and the generator now writes the same content under a later stamp
+    sandbox.generated = _page("new numbers", STAMP_C)
+    assert sandbox.pub.regenerate() is True
+    assert "new numbers" in sandbox.report.read_text(encoding="utf-8"), (
+        "the new report was put back to the old one")
+
+
+def test_a_report_equal_to_the_committed_one_is_unchanged_and_stays_byte_identical(sandbox):
+    base = _page("same numbers", STAMP_A)
+    _commit_base(sandbox, base)
+    sandbox.generated = _page("same numbers", STAMP_C)
+    assert sandbox.pub.regenerate() is False
+    assert sandbox.report.read_text(encoding="utf-8") == base
+
+
+def test_a_stamp_only_difference_from_the_committed_report_is_not_a_change(sandbox):
+    base = _page("same numbers", STAMP_A)
+    _commit_base(sandbox, base)
+    # a stamp-only dirty file, as a check run over an unchanged report leaves it
+    sandbox.report.write_text(_page("same numbers", STAMP_B), encoding="utf-8")
+    sandbox.generated = _page("same numbers", STAMP_C)
+    assert sandbox.pub.regenerate() is False
+    assert sandbox.report.read_text(encoding="utf-8") == base
+    assert sandbox.git("status", "--porcelain", "--", "docs/release-diff.html").stdout.strip() == ""
+
+
+def test_a_report_with_no_committed_copy_is_published(sandbox):
+    (sandbox.repo / "README").write_text("x", encoding="utf-8")
+    sandbox.git("add", "README")
+    sandbox.git("commit", "-qm", "base")
+    sandbox.generated = _page("first report", STAMP_C)
+    assert sandbox.pub.regenerate() is True
+
+
+def test_the_whole_step_commits_and_pushes_a_report_the_check_already_wrote(sandbox, tmp_path):
+    remote = tmp_path / "remote.git"
+    _commit_base(sandbox, _page("old numbers", STAMP_A))
+    sandbox.git("init", "-q", "--bare", str(remote))
+    sandbox.git("remote", "add", "origin", str(remote))
+    sandbox.git("push", "-q", "origin", "main")
+    sandbox.report.write_text(_page("new numbers", STAMP_B), encoding="utf-8")
+    sandbox.generated = _page("new numbers", STAMP_C)
+    assert sandbox.pub.main([]) == 0
+    head = sandbox.git("rev-parse", "HEAD").stdout.strip()
+    remote_head = sandbox.git("rev-parse", "refs/heads/main", cwd=remote).stdout.strip()
+    assert remote_head == head, "the report was not pushed"
+    shown = sandbox.git("show", "HEAD:docs/release-diff.html").stdout
+    assert "new numbers" in shown and "old numbers" not in shown
+
+
+def test_a_dry_run_still_commits_nothing(sandbox):
+    _commit_base(sandbox, _page("old numbers", STAMP_A))
+    sandbox.report.write_text(_page("new numbers", STAMP_B), encoding="utf-8")
+    sandbox.generated = _page("new numbers", STAMP_C)
+    before = sandbox.git("rev-parse", "HEAD").stdout.strip()
+    assert sandbox.pub.main(["--dry-run"]) == 0
+    assert sandbox.git("rev-parse", "HEAD").stdout.strip() == before

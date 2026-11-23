@@ -82,6 +82,7 @@
   th{color:var(--muted);font-weight:600;font-size:12.5px}
   td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
   .nowrap{white-space:nowrap}
+  table tr.grp th{background:var(--tint);color:var(--accent);font-size:12.5px;padding:8px 10px}
 
   /* ---- §1 pipeline diagram ---- */
   .pipe{display:grid;grid-template-columns:1fr;gap:0;margin-top:16px}
@@ -372,86 +373,122 @@
     </div>
   </div>
 
-  <h3><span class="en">What runs, by source</span><span class="zh">依來源列出執行內容</span></h3>
-  <p class="lead"><span class="en">Two Windows tasks run on a schedule. Every other step starts by hand. The table lists every script that polls, sweeps, refreshes, rebuilds, verifies or publishes: the stage it touches, who starts it, whether it takes the single-writer lock, and what it writes. The state is the one read on 2026-11-23. What is planned next is on the optimization board (<code>docs/inspections/optimization.md</code>).</span><span class="zh">有兩個 Windows 排程工作按時執行，其餘步驟都由人啟動。下表列出每一個輪詢、掃描、刷新、重建、驗證或發布的腳本：它觸及的階段、由誰啟動、是否取單一寫入者鎖，以及寫入什麼。此處是 2026-11-23 讀取的狀態；後續規劃見最佳化看板（<code>docs/inspections/optimization.md</code>）。</span></p>
+  <h3><span class="en">What runs, and who starts it</span><span class="zh">執行內容與啟動者</span></h3>
+  <p class="lead"><span class="en">Two Windows tasks run on a schedule. Every other step starts by hand. The table has four groups: the <code>urtpe-poll</code> task, the <code>urtpe-nightly-sweep</code> task, the routine steps a person starts, and the one-off passes. Each row is one script, with the stage it touches, the source it reads, whether it takes the single-writer lock, and what it writes. The state is the one read on 2026-11-23. What is planned next is on the optimization board (<code>docs/inspections/optimization.md</code>).</span><span class="zh">有兩個 Windows 排程工作按時執行，其餘步驟都由人啟動。下表分四組：<code>urtpe-poll</code> 工作、<code>urtpe-nightly-sweep</code> 工作、人在例行流程中啟動的步驟，以及一次性補跑。每列是一個腳本，列出它觸及的階段、讀取的來源、是否取單一寫入者鎖，以及寫入什麼。此處是 2026-11-23 讀取的狀態；後續規劃見最佳化看板（<code>docs/inspections/optimization.md</code>）。</span></p>
   <div style="overflow-x:auto">
   <table>
-    <thead><tr><th><span class="en">Source</span><span class="zh">來源</span></th><th><span class="en">Script or command</span><span class="zh">腳本或命令</span></th><th><span class="en">Stage</span><span class="zh">階段</span></th><th><span class="en">Started by</span><span class="zh">啟動方式</span></th><th><span class="en">Lock</span><span class="zh">鎖</span></th><th><span class="en">Writes</span><span class="zh">寫入</span></th></tr></thead>
+    <thead><tr><th><span class="en">Script</span><span class="zh">腳本</span></th><th><span class="en">Stage</span><span class="zh">階段</span></th><th><span class="en">Source</span><span class="zh">來源</span></th><th><span class="en">Purpose</span><span class="zh">用途</span></th><th><span class="en">Lock</span><span class="zh">鎖</span></th><th><span class="en">Writes</span><span class="zh">寫入</span></th></tr></thead>
     <tbody>
-      <tr><td><strong><span class="en">PDF</span><span class="zh">PDF</span></strong></td>
-        <td><code>poll_gazette.py</code></td><td class="nowrap">1</td>
-        <td><span class="en">Scheduled: <code>urtpe-poll</code>, Sundays 05:10</span><span class="zh">排程：<code>urtpe-poll</code>，每週日 05:10</span></td>
-        <td><span class="en">none</span><span class="zh">無</span></td>
-        <td><span class="en">The archive only: the PDF, <code>index.jsonl</code>, <code>poll_state.json</code>, <code>poll_log.jsonl</code>. It never ingests. <code>--json</code> prints the status, the gazette id, the SHA-256, the archived path, and whether that file still matches the index.</span><span class="zh">只寫封存：PDF、<code>index.jsonl</code>、<code>poll_state.json</code>、<code>poll_log.jsonl</code>。絕不匯入。<code>--json</code> 輸出狀態、公報編號、SHA-256、封存路徑，以及該檔案是否仍與索引相符。</span></td></tr>
-      <tr><td><strong><span class="en">PDF</span><span class="zh">PDF</span></strong></td>
-        <td><code>python -m urtpe.cli &lt;pdf&gt; -o data --viewer viewer --links --recover-truncated</code> <span class="en">(full ingest)</span><span class="zh">（完整匯入）</span></td><td class="nowrap">1–8</td>
-        <td><span class="en">By hand (§9)</span><span class="zh">手動（§9）</span></td>
-        <td><span class="en">yes; exit 5 when held (stages 2–8)</span><span class="zh">有；被占用時 exit 5（第 2–8 階段）</span></td>
-        <td><code>data/*</code>, <code>viewer/projects.data.js</code>, <span class="en">the archive index</span><span class="zh">封存索引</span></td></tr>
-      <tr><td><strong><span class="en">168 list</span><span class="zh">168 清單</span></strong></td>
-        <td><code>poll_p168.py</code></td><td class="nowrap">1</td>
-        <td><span class="en">Scheduled: <code>urtpe-poll</code>, same task</span><span class="zh">排程：<code>urtpe-poll</code>，同一個工作</span></td>
-        <td><span class="en">none</span><span class="zh">無</span></td>
-        <td><span class="en">The archive only: <code>p168_snapshots/</code>, <code>p168_state.json</code>, <code>p168_log.jsonl</code>. Nothing under <code>data/</code>. A failed check appends a <code>failed</code> row and keeps the last good state.</span><span class="zh">只寫封存：<code>p168_snapshots/</code>、<code>p168_state.json</code>、<code>p168_log.jsonl</code>。不寫 <code>data/</code> 下任何東西。檢查失敗時追加一筆 <code>failed</code> 紀錄，並保留上一個良好狀態。</span></td></tr>
-      <tr><td><strong><span class="en">Taipei platform</span><span class="zh">北市平台</span></strong></td>
-        <td><code>refresh_awaiting_caches.py</code></td><td class="nowrap">6</td>
-        <td><span class="en">By hand</span><span class="zh">手動</span></td>
-        <td><span class="en">yes; exit 5 when held. <code>--dry-run</code> and a run with no candidate take no lock.</span><span class="zh">有；被占用時 exit 5。<code>--dry-run</code> 與沒有候選的執行不取鎖。</span></td>
-        <td><code>data/.link_cache/</code></td></tr>
-      <tr><td><strong><span class="en">Taipei platform</span><span class="zh">北市平台</span></strong></td>
-        <td><code>refresh_whole_corpus.py</code> <span class="en">(resumable slices)</span><span class="zh">（可續跑的分段）</span></td><td class="nowrap">6</td>
-        <td><span class="en">By hand</span><span class="zh">手動</span></td>
-        <td><span class="en">yes, one slice at a time (design D1); the lock is given back between slices. Exit 5 when held: the checkpoint keeps the finished slices, and a re-run resumes. <code>--dry-run</code> and a run with no slice left take no lock.</span><span class="zh">有，一次一個分段（設計 D1）；分段之間釋放鎖。被占用時 exit 5：檢查點保留已完成的分段，重跑會續跑。<code>--dry-run</code> 與沒有剩餘分段的執行不取鎖。</span></td>
-        <td><code>data/.link_cache/</code> <span class="en">and a checkpoint</span><span class="zh">與一份檢查點</span></td></tr>
-      <tr><td><strong><span class="en">Taipei platform, 168 list</span><span class="zh">北市平台、168 清單</span></strong></td>
-        <td><code>refresh_second_id_source.py</code>, <code>refresh_rederive_pass.py</code>, <code>refresh_unplaced_by_cell_section.py</code>, <code>walk_unit_siblings.py --apply</code></td><td class="nowrap">6</td>
-        <td><span class="en">By hand</span><span class="zh">手動</span></td>
+      <tr class="grp"><th colspan="6"><span class="en">Scheduled: <code>urtpe-poll</code>, Sundays 05:10. Three actions, in this order.</span><span class="zh">排程：<code>urtpe-poll</code>，每週日 05:10。三個動作，依此順序。</span></th></tr>
+      <tr><td><code>poll_gazette.py</code><sup>1</sup></td><td class="nowrap">1</td>
+        <td><span class="en">PDF</span><span class="zh">PDF</span></td>
+        <td><span class="en">Check whether a new gazette exists, and report what was seen.</span><span class="zh">檢查是否有新公報，並回報所見。</span></td>
+        <td>—</td>
+        <td><span class="en">The archive: the PDF, <code>index.jsonl</code>, <code>poll_state.json</code>, <code>poll_log.jsonl</code></span><span class="zh">封存：PDF、<code>index.jsonl</code>、<code>poll_state.json</code>、<code>poll_log.jsonl</code></span></td></tr>
+      <tr><td><code>poll_p168.py</code><sup>1</sup></td><td class="nowrap">1</td>
+        <td><span class="en">168 list</span><span class="zh">168 清單</span></td>
+        <td><span class="en">Poll the city's 168 fast-track case list and detect a change by hash.</span><span class="zh">輪詢市府 168 快速處理案件清單，以雜湊偵測變動。</span></td>
+        <td>—</td>
+        <td><span class="en">The archive: <code>p168_snapshots/</code>, <code>p168_state.json</code>, <code>p168_log.jsonl</code></span><span class="zh">封存：<code>p168_snapshots/</code>、<code>p168_state.json</code>、<code>p168_log.jsonl</code></span></td></tr>
+      <tr><td><code>publish_release_diff.py</code></td><td class="nowrap"><span class="en">after 8</span><span class="zh">8 之後</span></td>
+        <td><span class="en">Report</span><span class="zh">報告</span></td>
+        <td><span class="en">Regenerate the release-diff report, commit it and publish it.</span><span class="zh">重新產生歷次公報差異報告，commit 並發布。</span></td>
+        <td>—</td>
+        <td><code>docs/release-diff.html</code> <span class="en">(commit and push)</span><span class="zh">（commit 並推送）</span></td></tr>
+
+      <tr class="grp"><th colspan="6"><span class="en">Scheduled: <code>urtpe-nightly-sweep</code>, daily 02:00, stops at 05:00.</span><span class="zh">排程：<code>urtpe-nightly-sweep</code>，每日 02:00，05:00 停止。</span></th></tr>
+      <tr><td><code>fetch_remaining_national_portal.py</code><sup>2</sup></td><td class="nowrap"><span class="en">6, then 7–8</span><span class="zh">6，再到 7–8</span></td>
+        <td><span class="en">National portal</span><span class="zh">全國門戶</span></td>
+        <td><span class="en">Backfill national-portal links for projects still missing them, then rebuild.</span><span class="zh">為仍缺全國門戶連結的專案補連結，之後重建。</span></td>
+        <td><span class="en">crawl only</span><span class="zh">僅爬取時</span></td>
+        <td><code>data/.link_cache/</code>, <code>no_match_ledger.json</code>, <code>sweep_runs.jsonl</code></td></tr>
+
+      <tr class="grp"><th colspan="6"><span class="en">By hand: routine steps.</span><span class="zh">手動：例行步驟。</span></th></tr>
+      <tr><td><code>python -m urtpe.cli &lt;pdf&gt; … --links --recover-truncated</code></td><td class="nowrap">1–8</td>
+        <td><span class="en">PDF</span><span class="zh">PDF</span></td>
+        <td><span class="en">Full ingest: run all eight stages from an archived PDF (§9).</span><span class="zh">完整匯入：從封存的 PDF 跑完整八個階段（§9）。</span></td>
         <td><span class="en">yes</span><span class="zh">有</span></td>
-        <td><code>data/.link_cache/</code>. <span class="en"><code>walk_unit_siblings.py</code> copies each changed <code>result.json</code> to a backup first. Its default is a dry run that makes no request.</span><span class="zh"><code>walk_unit_siblings.py</code> 先把每個會變動的 <code>result.json</code> 備份。其預設為不發出任何請求的試跑。</span></td></tr>
-      <tr><td><strong><span class="en">Taipei platform</span><span class="zh">北市平台</span></strong></td>
-        <td><code>harvest_case_names.py</code></td><td class="nowrap">6</td>
-        <td><span class="en">By hand</span><span class="zh">手動</span></td>
-        <td><span class="en"><strong>no</strong></span><span class="zh"><strong>無</strong></span></td>
-        <td><code>data/.link_cache/</code> (<code>candidate_names</code>)</td></tr>
-      <tr><td><strong><span class="en">National portal</span><span class="zh">全國門戶</span></strong></td>
-        <td><code>fetch_remaining_national_portal.py --deadline 05:00</code> <span class="en">(the sweep)</span><span class="zh">（掃描）</span></td><td class="nowrap"><span class="en">6, then 7–8 through the rebuild</span><span class="zh">6，再經重建到 7–8</span></td>
-        <td><span class="en">Scheduled: <code>urtpe-nightly-sweep</code>, daily 02:00</span><span class="zh">排程：<code>urtpe-nightly-sweep</code>，每日 02:00</span></td>
-        <td><span class="en">yes for the crawl; released before the rebuild. Exit 5 when held.</span><span class="zh">爬取時有；重建前釋放。被占用時 exit 5。</span></td>
-        <td><span class="en"><code>data/.link_cache/</code>, <code>no_match_ledger.json</code> (14-day TTL), and one line per run in <code>sweep_runs.jsonl</code>. It starts the rebuild only after a run that updated a project. Exit 1: rebuild failed.</span><span class="zh"><code>data/.link_cache/</code>、<code>no_match_ledger.json</code>（14 天 TTL），以及每次執行在 <code>sweep_runs.jsonl</code> 的一行。只在有專案更新的執行之後啟動重建。exit 1：重建失敗。</span></td></tr>
-      <tr><td><strong><span class="en">National portal</span><span class="zh">全國門戶</span></strong></td>
-        <td><code>twur_sweep.py</code>, <code>run_sweep_until.py</code></td><td class="nowrap">6</td>
-        <td><span class="en">By hand</span><span class="zh">手動</span></td>
-        <td><span class="en"><code>twur_sweep.py</code>: <strong>no</strong>. <code>run_sweep_until.py</code> calls the sweep's <code>main()</code>, so the lock applies.</span><span class="zh"><code>twur_sweep.py</code>：<strong>無</strong>。<code>run_sweep_until.py</code> 呼叫掃描的 <code>main()</code>，所以套用其鎖。</span></td>
-        <td><code>data/.link_cache/</code>. <span class="en"><code>twur_sweep.py</code> is the older sweep. The deadline override in <code>run_sweep_until.py</code> no longer works, so it stops at the default time (optimization board, U9).</span><span class="zh"><code>twur_sweep.py</code> 是較舊的掃描。<code>run_sweep_until.py</code> 的截止時間覆寫已失效，會在預設時間停止（最佳化看板 U9）。</span></td></tr>
-      <tr><td><strong><span class="en">Payload</span><span class="zh">Payload</span></strong></td>
-        <td><code>python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --links</code> <span class="en">(rebuild)</span><span class="zh">（重建）</span></td><td class="nowrap">6–8</td>
-        <td><span class="en">By hand, and by the sweep after a run that updated a project</span><span class="zh">手動；以及掃描在有專案更新的執行之後啟動</span></td>
-        <td><span class="en">yes; exit 5 when held</span><span class="zh">有；被占用時 exit 5</span></td>
+        <td><code>data/*</code>, <code>viewer/projects.data.js</code>, <span class="en">the archive index</span><span class="zh">封存索引</span></td></tr>
+      <tr><td><code>refresh_awaiting_caches.py</code><sup>3</sup></td><td class="nowrap">6</td>
+        <td><span class="en">Taipei platform</span><span class="zh">北市平台</span></td>
+        <td><span class="en">Refresh the caches whose cases were awaiting approval when last written.</span><span class="zh">刷新上次寫入時案件仍待核定的快取。</span></td>
+        <td><span class="en">yes</span><span class="zh">有</span></td>
+        <td><code>data/.link_cache/</code></td></tr>
+      <tr><td><code>refresh_whole_corpus.py</code><sup>3</sup></td><td class="nowrap">6</td>
+        <td><span class="en">Taipei platform</span><span class="zh">北市平台</span></td>
+        <td><span class="en">Whole-corpus refresh, in resumable slices.</span><span class="zh">全語料刷新，分段、可續跑。</span></td>
+        <td><span class="en">per slice</span><span class="zh">每個分段</span></td>
+        <td><code>data/.link_cache/</code>, <span class="en">a checkpoint</span><span class="zh">一份檢查點</span></td></tr>
+      <tr><td><code>python -m urtpe.cli --from-js viewer/projects.data.js … --links</code></td><td class="nowrap">6–8</td>
+        <td><span class="en">Payload</span><span class="zh">Payload</span></td>
+        <td><span class="en">Rebuild: reload the payload and re-emit links, graph and viewer.</span><span class="zh">重建：重新載入 payload，重新輸出 links、graph、viewer。</span></td>
+        <td><span class="en">yes</span><span class="zh">有</span></td>
         <td><code>data/*</code>, <code>viewer/projects.data.js</code></td></tr>
-      <tr><td><strong><span class="en">Checks</span><span class="zh">檢查</span></strong></td>
-        <td><code>post_ingest_check.py</code> <span class="en">(<code>--check-only</code> is read-only)</span><span class="zh">（<code>--check-only</code> 為唯讀）</span></td><td class="nowrap"><span class="en">after 8</span><span class="zh">8 之後</span></td>
-        <td><span class="en">By hand (§9)</span><span class="zh">手動（§9）</span></td>
-        <td><span class="en">none of its own; its repairs call the CLI</span><span class="zh">本身無；其修復呼叫 CLI</span></td>
-        <td><span class="en">After a clean recheck it runs <code>sync_etl_process.py</code>, <code>sync_domain_model.py</code>, <code>release_diff_report.py</code> and <code>coverage_report.py</code>, which rewrite the documentation pages and reports.</span><span class="zh">全部通過後執行 <code>sync_etl_process.py</code>、<code>sync_domain_model.py</code>、<code>release_diff_report.py</code> 與 <code>coverage_report.py</code>，重寫文件頁面與報告。</span></td></tr>
-      <tr><td><strong><span class="en">Publish</span><span class="zh">發布</span></strong></td>
-        <td><code>publish_release_diff.py</code></td><td class="nowrap"><span class="en">after 8</span><span class="zh">8 之後</span></td>
-        <td><span class="en">Scheduled: <code>urtpe-poll</code>, third action</span><span class="zh">排程：<code>urtpe-poll</code>，第三個動作</span></td>
-        <td><span class="en">none</span><span class="zh">無</span></td>
-        <td><span class="en">Commits and pushes only <code>docs/release-diff.html</code>. It never writes <code>data/</code> or <code>viewer/</code>.</span><span class="zh">只 commit 並推送 <code>docs/release-diff.html</code>。絕不寫入 <code>data/</code> 或 <code>viewer/</code>。</span></td></tr>
-      <tr><td><strong><span class="en">Publish check</span><span class="zh">發布檢查</span></strong></td>
-        <td><code>check_deploy.py</code></td><td class="nowrap"><span class="en">after 8</span><span class="zh">8 之後</span></td>
-        <td><span class="en">By hand (§9)</span><span class="zh">手動（§9）</span></td>
-        <td><span class="en">none</span><span class="zh">無</span></td>
-        <td><span class="en">Nothing. It reports fresh, stale or missing for each served artifact.</span><span class="zh">不寫入。逐一回報線上檔案為 fresh、stale 或 missing。</span></td></tr>
-      <tr><td><strong><span class="en">Repair tools</span><span class="zh">修復工具</span></strong></td>
-        <td><code>repair_*.py</code>, <code>restore_*.py</code>, <code>rebuild_cache_union.py</code></td><td class="nowrap">6</td>
-        <td><span class="en">By hand, after an incident only</span><span class="zh">手動，僅在事故之後</span></td>
-        <td><span class="en">varies; read the script first</span><span class="zh">各異；先讀腳本</span></td>
-        <td><code>data/.link_cache/</code>. <span class="en">The cache is durable state; five backup directories exist from past incidents.</span><span class="zh">快取是持久狀態；過去事故留下五個備份目錄。</span></td></tr>
+      <tr><td><code>post_ingest_check.py</code><sup>4</sup></td><td class="nowrap"><span class="en">after 8</span><span class="zh">8 之後</span></td>
+        <td><span class="en">Checks</span><span class="zh">檢查</span></td>
+        <td><span class="en">Verify an emission, apply bounded existing repairs, then update the reports.</span><span class="zh">驗證輸出，套用有界的既有修復，然後更新報告。</span></td>
+        <td>—</td>
+        <td><span class="en">The documentation pages and reports</span><span class="zh">文件頁面與報告</span></td></tr>
+      <tr><td><code>check_deploy.py</code></td><td class="nowrap"><span class="en">after 8</span><span class="zh">8 之後</span></td>
+        <td><span class="en">Served site</span><span class="zh">線上站台</span></td>
+        <td><span class="en">Compare the published site against the build this repository holds.</span><span class="zh">比對線上站台與本 repo 持有的建置。</span></td>
+        <td>—</td>
+        <td><span class="en">nothing</span><span class="zh">不寫入</span></td></tr>
+
+      <tr class="grp"><th colspan="6"><span class="en">By hand: one-off passes and repair tools. Read the script's docstring before running one.</span><span class="zh">手動：一次性補跑與修復工具。執行前先讀該腳本的 docstring。</span></th></tr>
+      <tr><td><code>refresh_second_id_source.py</code></td><td class="nowrap">6</td>
+        <td><span class="en">168 list, Taipei platform</span><span class="zh">168 清單、北市平台</span></td>
+        <td><span class="en">The second id source (the 168 list), on the projects that need it.</span><span class="zh">第二個案號來源（168 清單），僅用於需要的專案。</span></td>
+        <td><span class="en">yes</span><span class="zh">有</span></td>
+        <td><code>data/.link_cache/</code></td></tr>
+      <tr><td><code>refresh_rederive_pass.py</code></td><td class="nowrap">6</td>
+        <td><span class="en">Taipei platform</span><span class="zh">北市平台</span></td>
+        <td><span class="en">Re-derive, re-fetch and label every project cache through the standing refresh.</span><span class="zh">對每個專案快取，經標準刷新重新推導、重新抓取並標示。</span></td>
+        <td><span class="en">yes</span><span class="zh">有</span></td>
+        <td><code>data/.link_cache/</code></td></tr>
+      <tr><td><code>refresh_unplaced_by_cell_section.py</code></td><td class="nowrap">6</td>
+        <td><span class="en">Taipei platform</span><span class="zh">北市平台</span></td>
+        <td><span class="en">Refresh the 7 projects that carry no city case id.</span><span class="zh">刷新 7 個沒有市府案號的專案。</span></td>
+        <td><span class="en">yes</span><span class="zh">有</span></td>
+        <td><code>data/.link_cache/</code></td></tr>
+      <tr><td><code>walk_unit_siblings.py</code><sup>5</sup></td><td class="nowrap">6</td>
+        <td><span class="en">Taipei platform</span><span class="zh">北市平台</span></td>
+        <td><span class="en">Walk each unit's held id stems and add the sibling cases found.</span><span class="zh">走訪每個單元已持有的案號字首，加入找到的同組案件。</span></td>
+        <td><span class="en">yes, with <code>--apply</code></span><span class="zh">有，加 <code>--apply</code> 時</span></td>
+        <td><code>data/.link_cache/</code>, <span class="en">a dated backup</span><span class="zh">一份有日期的備份</span></td></tr>
+      <tr><td><code>harvest_case_names.py</code></td><td class="nowrap">6</td>
+        <td><span class="en">Taipei platform</span><span class="zh">北市平台</span></td>
+        <td><span class="en">Backfill candidate case names into the per-project caches.</span><span class="zh">把候選案名補進各專案快取。</span></td>
+        <td><strong><span class="en">no</span><span class="zh">無</span></strong></td>
+        <td><code>data/.link_cache/</code></td></tr>
+      <tr><td><code>twur_sweep.py</code><sup>6</sup></td><td class="nowrap">6</td>
+        <td><span class="en">National portal</span><span class="zh">全國門戶</span></td>
+        <td><span class="en">Recover national-portal links for projects without one (the older sweep).</span><span class="zh">為沒有全國門戶連結的專案找回連結（較舊的掃描）。</span></td>
+        <td><strong><span class="en">no</span><span class="zh">無</span></strong></td>
+        <td><code>data/.link_cache/</code></td></tr>
+      <tr><td><code>run_sweep_until.py</code><sup>6</sup></td><td class="nowrap">6</td>
+        <td><span class="en">National portal</span><span class="zh">全國門戶</span></td>
+        <td><span class="en">Run the sweep now, until a given local deadline.</span><span class="zh">立即執行掃描，直到指定的本地截止時間。</span></td>
+        <td><span class="en">crawl only</span><span class="zh">僅爬取時</span></td>
+        <td><code>data/.link_cache/</code></td></tr>
+      <tr><td><code>repair_*.py</code>, <code>restore_*.py</code>, <code>rebuild_cache_union.py</code><sup>7</sup></td><td class="nowrap">6</td>
+        <td><span class="en">Cache backups</span><span class="zh">快取備份</span></td>
+        <td><span class="en">Repair or restore caches after a named incident. <code>rebuild_cache_union.py</code> union-restores them from backup generations.</span><span class="zh">在特定事故之後修復或還原快取。<code>rebuild_cache_union.py</code> 由備份世代聯集還原。</span></td>
+        <td><span class="en">varies</span><span class="zh">各異</span></td>
+        <td><code>data/.link_cache/</code></td></tr>
     </tbody>
   </table>
   </div>
-  <p style="font-size:12.5px;color:var(--muted)"><span class="en">Only the sweep is unattended and can rewrite the viewer payload. Everything else that writes the cache or the payload runs only when a person starts it.</span><span class="zh">只有掃描是無人看管且可能重寫檢視器 payload。其他寫入快取或 payload 的步驟，都只在有人啟動時執行。</span></p>
+  <p style="font-size:12.5px;color:var(--muted);margin-bottom:4px"><span class="en">Every <em>yes</em>, <em>per slice</em> and <em>crawl only</em> refuses with exit 5 and writes nothing for the work in hand when another run holds the lock. — means the script writes no cache. <strong>no</strong> means a cache writer that takes no lock.</span><span class="zh">凡標「有」、「每個分段」、「僅爬取時」者，另一個執行持有鎖時一律 exit 5，且不為手上的工作寫入任何東西。— 表示該腳本不寫入快取。<strong>無</strong>表示寫入快取卻不取鎖的腳本。</span></p>
+  <ol style="font-size:12.5px;color:var(--muted);padding-left:22px;margin-top:4px">
+    <li><span class="en"><code>poll_gazette.py --json</code> prints the status, the gazette id, the SHA-256, the archived path, and whether that file still matches the index. Neither poller ingests, and neither writes under <code>data/</code>. A failed <code>poll_p168.py</code> check appends a <code>failed</code> row to <code>p168_log.jsonl</code> and keeps the last good state.</span><span class="zh"><code>poll_gazette.py --json</code> 輸出狀態、公報編號、SHA-256、封存路徑，以及該檔案是否仍與索引相符。兩個輪詢器都不匯入，也都不寫入 <code>data/</code>。<code>poll_p168.py</code> 檢查失敗時，在 <code>p168_log.jsonl</code> 追加一筆 <code>failed</code> 紀錄，並保留上一個良好狀態。</span></li>
+    <li><span class="en">The sweep takes the lock for the crawl and releases it before the rebuild. It starts the rebuild only after a run that updated a project. It writes one line per run to <code>sweep_runs.jsonl</code>. Exit 1: the rebuild failed. Exit 5: the lock is held. It is the only unattended step that can rewrite the viewer payload.</span><span class="zh">掃描在爬取時取鎖，重建前釋放。只在有專案更新的執行之後啟動重建。每次執行在 <code>sweep_runs.jsonl</code> 寫一行。exit 1：重建失敗。exit 5：鎖被占用。它是唯一可能在無人看管下重寫檢視器 payload 的步驟。</span></li>
+    <li><span class="en"><code>--dry-run</code> and a run with no candidate (or no slice left) take no lock. <code>refresh_whole_corpus.py</code> gives the lock back between slices and writes its checkpoint inside each slice. On exit 5 the checkpoint keeps the finished slices, and a re-run resumes.</span><span class="zh"><code>--dry-run</code> 與沒有候選（或沒有剩餘分段）的執行不取鎖。<code>refresh_whole_corpus.py</code> 在分段之間釋放鎖，並在每個分段內寫檢查點。exit 5 時，檢查點保留已完成的分段，重跑會續跑。</span></li>
+    <li><span class="en"><code>post_ingest_check.py</code> takes no lock of its own; its repairs call the CLI. <code>--check-only</code> is read-only. After a clean recheck it runs <code>sync_etl_process.py</code>, <code>sync_domain_model.py</code>, <code>release_diff_report.py</code> and <code>coverage_report.py</code>, which rewrite the documentation pages and reports.</span><span class="zh"><code>post_ingest_check.py</code> 本身不取鎖；其修復呼叫 CLI。<code>--check-only</code> 為唯讀。全部通過後執行 <code>sync_etl_process.py</code>、<code>sync_domain_model.py</code>、<code>release_diff_report.py</code> 與 <code>coverage_report.py</code>，重寫文件頁面與報告。</span></li>
+    <li><span class="en"><code>walk_unit_siblings.py</code> defaults to a dry run that makes no request. With <code>--apply</code> it takes the lock and copies each changed <code>result.json</code> to a backup first.</span><span class="zh"><code>walk_unit_siblings.py</code> 預設為不發出任何請求的試跑。加 <code>--apply</code> 時才取鎖，並先把每個會變動的 <code>result.json</code> 備份。</span></li>
+    <li><span class="en"><code>twur_sweep.py</code> is the older sweep. <code>run_sweep_until.py</code> calls the sweep's <code>main()</code>, so the lock applies. Its deadline override no longer works, so it stops at the default time (optimization board, U9).</span><span class="zh"><code>twur_sweep.py</code> 是較舊的掃描。<code>run_sweep_until.py</code> 呼叫掃描的 <code>main()</code>，所以套用其鎖。其截止時間覆寫已失效，會在預設時間停止（最佳化看板 U9）。</span></li>
+    <li><span class="en">The cache is durable state, and five backup directories exist from past incidents. Use these tools only after an incident.</span><span class="zh">快取是持久狀態，過去事故留下五個備份目錄。這些工具只在事故之後使用。</span></li>
+  </ol>
 </section>
 
 <!-- ============================================================= -->

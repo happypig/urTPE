@@ -81,34 +81,83 @@ historical records uniformly (`urtpe/cli.py:249`, `_ingest_pdf` docstring).
 A rebuild skips stages 2–5: the payload's nodes are loaded back as
 CleanRecords verbatim (`urtpe/cli.py:118`, `_load_projects_from_js`).
 
-### What runs, by source
+### What runs, and who starts it
 
-Two Windows tasks run on a schedule. Every other step starts by hand. The table
-lists every script that polls, sweeps, refreshes, rebuilds, verifies or
-publishes: the stage it touches, who starts it, whether it takes the
+Two Windows tasks run on a schedule. Every other step starts by hand. The tables
+have four groups: the `urtpe-poll` task, the `urtpe-nightly-sweep` task, the
+routine steps a person starts, and the one-off passes. Each row is one script,
+with the stage it touches, the source it reads, whether it takes the
 single-writer lock, and what it writes. The state is the one read on 2026-11-23.
 What is planned next is on the optimization board
 (`docs/inspections/optimization.md`).
 
-| Source | Script or command | Stage | Started by | Lock | Writes |
-| --- | --- | --- | --- | --- | --- |
-| PDF | `poll_gazette.py` | 1 | Scheduled: `urtpe-poll`, Sundays 05:10 | none | The archive only: the PDF, `index.jsonl`, `poll_state.json`, `poll_log.jsonl`. It never ingests. `--json` prints the status, the gazette id, the SHA-256, the archived path, and whether that file still matches the index. |
-| PDF | `python -m urtpe.cli <pdf> -o data --viewer viewer --links --recover-truncated` (full ingest) | 1–8 | By hand (§11) | yes; exit 5 when held (stages 2–8) | `data/*`, `viewer/projects.data.js`, the archive index |
-| 168 list | `poll_p168.py` | 1 | Scheduled: `urtpe-poll`, same task | none | The archive only: `p168_snapshots/`, `p168_state.json`, `p168_log.jsonl`. Nothing under `data/`. A failed check appends a `failed` row and keeps the last good state. |
-| Taipei platform | `refresh_awaiting_caches.py` | 6 | By hand | yes; exit 5 when held. `--dry-run` and a run with no candidate take no lock. | `data/.link_cache/` |
-| Taipei platform | `refresh_whole_corpus.py` (resumable slices) | 6 | By hand | yes, one slice at a time (design D1); the lock is given back between slices. Exit 5 when held: the checkpoint keeps the finished slices, and a re-run resumes. `--dry-run` and a run with no slice left take no lock. | `data/.link_cache/` and a checkpoint |
-| Taipei platform, 168 list | `refresh_second_id_source.py`, `refresh_rederive_pass.py`, `refresh_unplaced_by_cell_section.py`, `walk_unit_siblings.py --apply` | 6 | By hand | yes | `data/.link_cache/`. `walk_unit_siblings.py` copies each changed `result.json` to a backup first. Its default is a dry run that makes no request. |
-| Taipei platform | `harvest_case_names.py` | 6 | By hand | **no** | `data/.link_cache/` (`candidate_names`) |
-| National portal | `fetch_remaining_national_portal.py --deadline 05:00` (the sweep) | 6, then 7–8 through the rebuild | Scheduled: `urtpe-nightly-sweep`, daily 02:00 | yes for the crawl; released before the rebuild. Exit 5 when held. | `data/.link_cache/`, `no_match_ledger.json` (14-day TTL), and one line per run in `sweep_runs.jsonl`. It starts the rebuild only after a run that updated a project. Exit 1: rebuild failed. |
-| National portal | `twur_sweep.py`, `run_sweep_until.py` | 6 | By hand | `twur_sweep.py`: **no**. `run_sweep_until.py` calls the sweep's `main()`, so the lock applies. | `data/.link_cache/`. `twur_sweep.py` is the older sweep. The deadline override in `run_sweep_until.py` no longer works, so it stops at the default time (optimization board, U9). |
-| Payload | `python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --links` (rebuild) | 6–8 | By hand, and by the sweep after a run that updated a project | yes; exit 5 when held | `data/*`, `viewer/projects.data.js` |
-| Checks | `post_ingest_check.py` (`--check-only` is read-only) | after 8 | By hand (§11) | none of its own; its repairs call the CLI | After a clean recheck it runs `sync_etl_process.py`, `sync_domain_model.py`, `release_diff_report.py` and `coverage_report.py`, which rewrite the documentation pages and reports. |
-| Publish | `publish_release_diff.py` | after 8 | Scheduled: `urtpe-poll`, third action | none | Commits and pushes only `docs/release-diff.html`. It never writes `data/` or `viewer/`. |
-| Publish check | `check_deploy.py` | after 8 | By hand (§11) | none | Nothing. It reports fresh, stale or missing for each served artifact. |
-| Repair tools | `repair_*.py`, `restore_*.py`, `rebuild_cache_union.py` | 6 | By hand, after an incident only | varies; read the script first | `data/.link_cache/`. The cache is durable state; five backup directories exist from past incidents. |
+**Scheduled: `urtpe-poll`, Sundays 05:10. Three actions, in this order.**
 
-Only the sweep is unattended and can rewrite the viewer payload. Everything
-else that writes the cache or the payload runs only when a person starts it.
+| Script | Stage | Source | Purpose | Lock | Writes |
+| --- | --- | --- | --- | --- | --- |
+| `poll_gazette.py` [1] | 1 | PDF | Check whether a new gazette exists, and report what was seen. | — | The archive: the PDF, `index.jsonl`, `poll_state.json`, `poll_log.jsonl` |
+| `poll_p168.py` [1] | 1 | 168 list | Poll the city's 168 fast-track case list and detect a change by hash. | — | The archive: `p168_snapshots/`, `p168_state.json`, `p168_log.jsonl` |
+| `publish_release_diff.py` | after 8 | Report | Regenerate the release-diff report, commit it and publish it. | — | `docs/release-diff.html` (commit and push) |
+
+**Scheduled: `urtpe-nightly-sweep`, daily 02:00, stops at 05:00.**
+
+| Script | Stage | Source | Purpose | Lock | Writes |
+| --- | --- | --- | --- | --- | --- |
+| `fetch_remaining_national_portal.py` [2] | 6, then 7–8 | National portal | Backfill national-portal links for projects still missing them, then rebuild. | crawl only | `data/.link_cache/`, `no_match_ledger.json`, `sweep_runs.jsonl` |
+
+**By hand: routine steps.**
+
+| Script | Stage | Source | Purpose | Lock | Writes |
+| --- | --- | --- | --- | --- | --- |
+| `python -m urtpe.cli <pdf> … --links --recover-truncated` | 1–8 | PDF | Full ingest: run all eight stages from an archived PDF (§11). | yes | `data/*`, `viewer/projects.data.js`, the archive index |
+| `refresh_awaiting_caches.py` [3] | 6 | Taipei platform | Refresh the caches whose cases were awaiting approval when last written. | yes | `data/.link_cache/` |
+| `refresh_whole_corpus.py` [3] | 6 | Taipei platform | Whole-corpus refresh, in resumable slices. | per slice | `data/.link_cache/`, a checkpoint |
+| `python -m urtpe.cli --from-js viewer/projects.data.js … --links` | 6–8 | Payload | Rebuild: reload the payload and re-emit links, graph and viewer. | yes | `data/*`, `viewer/projects.data.js` |
+| `post_ingest_check.py` [4] | after 8 | Checks | Verify an emission, apply bounded existing repairs, then update the reports. | — | The documentation pages and reports |
+| `check_deploy.py` | after 8 | Served site | Compare the published site against the build this repository holds. | — | nothing |
+
+**By hand: one-off passes and repair tools. Read the script's docstring before running one.**
+
+| Script | Stage | Source | Purpose | Lock | Writes |
+| --- | --- | --- | --- | --- | --- |
+| `refresh_second_id_source.py` | 6 | 168 list, Taipei platform | The second id source (the 168 list), on the projects that need it. | yes | `data/.link_cache/` |
+| `refresh_rederive_pass.py` | 6 | Taipei platform | Re-derive, re-fetch and label every project cache through the standing refresh. | yes | `data/.link_cache/` |
+| `refresh_unplaced_by_cell_section.py` | 6 | Taipei platform | Refresh the 7 projects that carry no city case id. | yes | `data/.link_cache/` |
+| `walk_unit_siblings.py` [5] | 6 | Taipei platform | Walk each unit's held id stems and add the sibling cases found. | yes, with `--apply` | `data/.link_cache/`, a dated backup |
+| `harvest_case_names.py` | 6 | Taipei platform | Backfill candidate case names into the per-project caches. | **no** | `data/.link_cache/` |
+| `twur_sweep.py` [6] | 6 | National portal | Recover national-portal links for projects without one (the older sweep). | **no** | `data/.link_cache/` |
+| `run_sweep_until.py` [6] | 6 | National portal | Run the sweep now, until a given local deadline. | crawl only | `data/.link_cache/` |
+| `repair_*.py`, `restore_*.py`, `rebuild_cache_union.py` [7] | 6 | Cache backups | Repair or restore caches after a named incident. `rebuild_cache_union.py` union-restores them from backup generations. | varies | `data/.link_cache/` |
+
+Every *yes*, *per slice* and *crawl only* refuses with exit 5 and writes nothing
+for the work in hand when another run holds the lock. — means the script writes
+no cache. **no** means a cache writer that takes no lock.
+
+1. `poll_gazette.py --json` prints the status, the gazette id, the SHA-256, the
+   archived path, and whether that file still matches the index. Neither poller
+   ingests, and neither writes under `data/`. A failed `poll_p168.py` check
+   appends a `failed` row to `p168_log.jsonl` and keeps the last good state.
+2. The sweep takes the lock for the crawl and releases it before the rebuild. It
+   starts the rebuild only after a run that updated a project. It writes one
+   line per run to `sweep_runs.jsonl`. Exit 1: the rebuild failed. Exit 5: the
+   lock is held. It is the only unattended step that can rewrite the viewer
+   payload.
+3. `--dry-run` and a run with no candidate (or no slice left) take no lock.
+   `refresh_whole_corpus.py` gives the lock back between slices and writes its
+   checkpoint inside each slice. On exit 5 the checkpoint keeps the finished
+   slices, and a re-run resumes.
+4. `post_ingest_check.py` takes no lock of its own; its repairs call the CLI.
+   `--check-only` is read-only. After a clean recheck it runs
+   `sync_etl_process.py`, `sync_domain_model.py`, `release_diff_report.py` and
+   `coverage_report.py`, which rewrite the documentation pages and reports.
+5. `walk_unit_siblings.py` defaults to a dry run that makes no request. With
+   `--apply` it takes the lock and copies each changed `result.json` to a backup
+   first.
+6. `twur_sweep.py` is the older sweep. `run_sweep_until.py` calls the sweep's
+   `main()`, so the lock applies. Its deadline override no longer works, so it
+   stops at the default time (optimization board, U9).
+7. The cache is durable state, and five backup directories exist from past
+   incidents. Use these tools only after an incident.
 
 ---
 

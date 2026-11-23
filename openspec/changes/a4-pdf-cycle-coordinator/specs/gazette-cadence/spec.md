@@ -94,6 +94,12 @@ A step that is run again after its push failed SHALL push the commit that is ahe
 - **WHEN** the payload is present but carries no readable counts
 - **THEN** the step exits 2 and commits nothing
 
+#### Scenario: A push that waits for a credential fails fast
+
+- **WHEN** the step pushes with no one at the keyboard and the stored credential is refused
+- **THEN** git is not allowed to prompt, and a push that is still running after its time limit is reported as a publication failure that names the credential
+- **AND** the commit stays local, so a later run of the step pushes it
+
 #### Scenario: A retry after a failed push lands
 
 - **WHEN** the step committed the pages, its push failed, and it is run again

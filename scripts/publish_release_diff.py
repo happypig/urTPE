@@ -44,6 +44,7 @@ finds the commit already made, and pushes it.
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import re
 import subprocess
@@ -70,10 +71,25 @@ class PublishError(RuntimeError):
     """The step could not publish."""
 
 
+#: Seconds a git command that talks to the remote may take. The scheduled cycle pushes with no
+#: one at the keyboard; a push that is still waiting after this is a credential problem, not a
+#: slow network (the push of a few KB measured 2 s on 2026-11-23).
+GIT_NETWORK_TIMEOUT = 120
+_NETWORK_GIT = {"push", "ls-remote", "fetch", "pull"}
+#: Git Credential Manager would open a browser if the stored credential were revoked or expired.
+#: Unattended, nobody answers it, so the step would wait. Refuse the prompt instead and fail fast.
+_NO_PROMPT_ENV = {"GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
+
+
 def run(*args: str, cwd: pathlib.Path | None = None) -> subprocess.CompletedProcess:
+    kwargs: dict = {}
+    if args and args[0] == "git":
+        kwargs["env"] = {**os.environ, **_NO_PROMPT_ENV}
+        if len(args) > 1 and args[1] in _NETWORK_GIT:
+            kwargs["timeout"] = GIT_NETWORK_TIMEOUT
     return subprocess.run(
         list(args), cwd=str(cwd or ROOT), capture_output=True, text=True,
-        encoding="utf-8", errors="replace")
+        encoding="utf-8", errors="replace", **kwargs)
 
 
 def git(*args: str) -> subprocess.CompletedProcess:
@@ -246,14 +262,30 @@ def push() -> None:
     that did not land is a failure, whatever git said.
     """
     head = git("rev-parse", "HEAD").stdout.strip()
-    proc = git("push", "origin", "main")
+    try:
+        proc = git("push", "origin", "main")
+    except subprocess.TimeoutExpired:
+        raise PublishError(
+            "git push timed out after %d s. Unattended, that usually means the stored GitHub "
+            "credential was refused and git was waiting for a prompt (revoked or expired token, "
+            "or no session to unlock it). Sign in again with `gh auth login` or push once by "
+            "hand.\n"
+            "The committed pages are ahead of the served one; "
+            "scripts/check_deploy.py will report them stale until the push lands."
+            % GIT_NETWORK_TIMEOUT)
     if proc.returncode != 0:
         raise PublishError(
             "git push failed: %s\n"
             "The committed report is ahead of the served one; "
             "scripts/check_deploy.py will report it stale until the push lands."
             % (proc.stderr or proc.stdout).strip()[-2000:])
-    remote = git("ls-remote", "origin", "refs/heads/main").stdout.split()
+    try:
+        remote = git("ls-remote", "origin", "refs/heads/main").stdout.split()
+    except subprocess.TimeoutExpired:
+        raise PublishError(
+            "git ls-remote timed out after %d s, so the push cannot be confirmed. "
+            "The pages may or may not have landed; run scripts/check_deploy.py."
+            % GIT_NETWORK_TIMEOUT)
     if not remote or remote[0] != head:
         raise PublishError(
             "git push reported success but the remote does not hold the "

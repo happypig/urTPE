@@ -506,6 +506,7 @@
     and writes nothing under <code>data/</code>.</span><span class="zh"><code>scripts/poll_gazette.py</code> 只回答一個問題：市政府是否發布了我們
     還沒有的公報？它只封存，從不匯入。匯入是另一個明確的動作。<code>scripts/poll_p168.py</code> 對 168 清單遵守同一規則：對正規化 JSON 取雜湊、在封存中留下快照，
     每次檢查（含失敗）都留一筆紀錄。它絕不匯入，也不寫入 <code>data/</code> 下任何東西。</span></p>
+  <div style="overflow-x:auto">
   <table>
     <thead><tr><th><span class="en">Property</span><span class="zh">性質</span></th><th><span class="en">Rule</span><span class="zh">規則</span></th><th><span class="en">Why</span><span class="zh">原因</span></th></tr></thead>
     <tbody>
@@ -526,6 +527,7 @@
         <td><span class="en">The archive index records each publication's <code>publisher_url</code>.</span><span class="zh">封存索引記錄每次發行的 <code>publisher_url</code>。</span></td></tr>
     </tbody>
   </table>
+  </div>
 </section>
 
 <!-- ============================================================= -->
@@ -568,6 +570,7 @@
     不一致，但照原樣是完整的。</span></p>
 
   <h3><span class="en">3.2 Two bounded repairs, both audited</span><span class="zh">3.2 兩種有界修補，都有稽核</span></h3>
+  <div style="overflow-x:auto">
   <table>
     <thead><tr><th><span class="en">Repair</span><span class="zh">修補</span></th><th><span class="en">Trigger</span><span class="zh">觸發</span></th><th><span class="en">Conditions (all must hold)</span><span class="zh">條件（全部成立）</span></th></tr></thead>
     <tbody>
@@ -585,6 +588,7 @@
           日期閉合（±1 天給旗標）。殘餘回到排除路徑。</span></td></tr>
     </tbody>
   </table>
+  </div>
   <p><span class="en">Calendars: ROC through the 2026-08-27 gazette, Gregorian from 2026-09-24 onward;
     accepted per cell, normalized to ISO-8601. <code>published_date</code> comes from the
     document's own 統計至 line.</span><span class="zh">日曆：民國曆到 2026-08-27 公報，西元曆自 2026-09-24 起；
@@ -679,6 +683,7 @@
     <code>--links</code> is recommended and advisory by design (D5).</span><span class="zh"><code>urtpe/links.py</code>（<span data-doc-field="links-lines-zh">4,907</span> 行，兩個門戶介接器）以
     快取優先執行：<code>result.json</code> 命中即表示該專案零 HTTP 呼叫。
     <code>--links</code> 是建議且設計上僅供參考（D5）。</span></p>
+  <div style="overflow-x:auto">
   <table>
     <thead><tr><th><span class="en">Step</span><span class="zh">步驟</span></th><th><span class="en">Source</span><span class="zh">來源</span></th><th><span class="en">Yields</span><span class="zh">產出</span></th></tr></thead>
     <tbody>
@@ -702,6 +707,7 @@
           <code>error</code> → <code>crawl_log.tsv</code></span></td></tr>
     </tbody>
   </table>
+  </div>
   <div class="callout note">
     <div class="h"><span class="en">Cache safety</span><span class="zh">快取安全</span></div>
     <span class="en">The cache is durable state: <code>project_aliases.json</code> migrates dirs across
@@ -719,6 +725,7 @@
   <p class="lead"><span class="en">A check that runs after the damage is not a check. Every gate evaluates
     before the first write, so a refused ingestion leaves every artifact exactly as it was.</span><span class="zh">在損害之後才跑的檢查不是檢查。每一道關卡都在
     第一次寫入之前評估，所以被拒絕的匯入讓每一份產出保持原樣。</span></p>
+  <div style="overflow-x:auto">
   <table class="gates">
     <thead><tr><th><span class="en">Order</span><span class="zh">順序</span></th><th><span class="en">Gate</span><span class="zh">關卡</span></th><th><span class="en">Module</span><span class="zh">模組</span></th><th><span class="en">Outcome</span><span class="zh">結果</span></th></tr></thead>
     <tbody>
@@ -748,6 +755,7 @@
         <td><code>urtpe/emission.py</code></td><td class="gex"><span class="en">warning only</span><span class="zh">僅警告</span></td></tr>
     </tbody>
   </table>
+  </div>
 
   <h3><span class="en">6.1 Exit codes are a contract</span><span class="zh">6.1 結束碼是合約</span></h3>
   <table class="exitcodes">
@@ -984,12 +992,12 @@
     before deleting it) · never key anything durable on 編號 · manual corrections go in
     the ledger, not a dated script · <code>data/.link_cache/</code> is durable state —
     five backup dirs from past incidents exist because it was once lost ·
-    tests: <code>python -m pytest</code> (<span data-doc-field="test-count-en">1,736</span> collected; one deliberate skip at
+    tests: <code>python -m pytest</code> (<span data-doc-field="test-count-en">1,743</span> collected; one deliberate skip at
     <code>tests/test_idempotent_flags.py:117</code>).</span><span class="zh">每個輸出樹一次執行（鎖在 6 小時後或 PID 已死即過期 — 刪除前先確認 PID）·
     絕不以 編號 作為任何持久鍵 · 人工更正進帳本，不寫日期版的一次性腳本 ·
     <code>data/.link_cache/</code> 是持久狀態 —
     過去事故留下的五個備份目錄就是因為它曾經被清掉 ·
-    測試：<code>python -m pytest</code>（蒐集 <span data-doc-field="test-count-zh">1,736</span> 項；一項刻意 skip 於
+    測試：<code>python -m pytest</code>（蒐集 <span data-doc-field="test-count-zh">1,743</span> 項；一項刻意 skip 於
     <code>tests/test_idempotent_flags.py:117</code>）。</span>
   </div>
 </section>

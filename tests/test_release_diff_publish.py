@@ -672,3 +672,91 @@ def test_the_step_reads_the_payload_but_never_writes_it():
                          source, re.I)
     for banned in ("raw.tsv", "clean.tsv", "merged.tsv", "projects.json"):
         assert banned not in source, banned
+
+
+# ---- an unattended push must fail fast, not wait for a credential prompt -------------------
+# openspec a4-pdf-cycle-coordinator, task 6.23. The scheduled cycle pushes with no one at the
+# keyboard. Git Credential Manager would open a browser if the stored credential were revoked,
+# and `run()` had no timeout, so the step would wait until the coordinator's 600 s limit.
+
+class _Proc:
+    def __init__(self, stdout="", returncode=0):
+        self.stdout, self.stderr, self.returncode = stdout, "", returncode
+
+
+def _capture_subprocess(monkeypatch):
+    from scripts import publish_release_diff as pub
+
+    seen = []
+
+    def fake(args, **kw):
+        seen.append((list(args), kw))
+        return _Proc()
+
+    monkeypatch.setattr(pub.subprocess, "run", fake)
+    return pub, seen
+
+
+def test_every_git_command_runs_with_prompts_disabled(monkeypatch):
+    pub, seen = _capture_subprocess(monkeypatch)
+    pub.git("status", "--porcelain")
+    env = seen[0][1]["env"]
+    assert env["GIT_TERMINAL_PROMPT"] == "0"
+    assert env["GCM_INTERACTIVE"] == "never"
+
+
+def test_a_non_git_command_keeps_the_inherited_environment(monkeypatch):
+    pub, seen = _capture_subprocess(monkeypatch)
+    pub.run("python", "-c", "pass")
+    assert seen[0][1].get("env") is None
+    assert seen[0][1].get("timeout") is None
+
+
+@pytest.mark.parametrize("sub", ["push", "ls-remote"])
+def test_a_network_git_command_has_a_timeout(monkeypatch, sub):
+    pub, seen = _capture_subprocess(monkeypatch)
+    pub.git(sub, "origin", "main")
+    assert seen[0][1]["timeout"] == pub.GIT_NETWORK_TIMEOUT
+    assert 0 < pub.GIT_NETWORK_TIMEOUT <= 300
+
+
+def test_a_local_git_command_has_no_timeout(monkeypatch):
+    pub, seen = _capture_subprocess(monkeypatch)
+    pub.git("status", "--porcelain")
+    assert seen[0][1].get("timeout") is None
+
+
+def test_a_push_that_times_out_is_a_publication_failure_naming_the_credential(monkeypatch):
+    import subprocess
+    from scripts import publish_release_diff as pub
+
+    def fake(*args, cwd=None):
+        if args[:2] == ("git", "push"):
+            raise subprocess.TimeoutExpired(list(args), pub.GIT_NETWORK_TIMEOUT)
+        return _Proc(stdout="deadbeef\n")
+
+    monkeypatch.setattr(pub, "run", fake)
+    with pytest.raises(pub.PublishError) as exc:
+        pub.push()
+    msg = str(exc.value)
+    assert "timed out" in msg and "credential" in msg
+    assert "ahead of the served one" in msg
+
+
+def test_main_exits_one_when_the_push_times_out(sandbox, tmp_path, monkeypatch):
+    import subprocess
+
+    remote = _with_remote_after_base(sandbox, tmp_path)
+    _write(sandbox, "docs/release-diff.html", _page("new numbers", STAMP_B))
+    sandbox.generated = _page("new numbers", STAMP_C)
+    inner = sandbox.pub.run
+
+    def fake(*args, cwd=None):
+        if args[:2] == ("git", "push"):
+            raise subprocess.TimeoutExpired(list(args), 1)
+        return inner(*args, cwd=cwd)
+
+    monkeypatch.setattr(sandbox.pub, "run", fake)
+    assert sandbox.pub.main([]) == 1
+    assert sandbox.git("rev-parse", "refs/heads/main", cwd=remote).stdout.strip() != \
+        sandbox.git("rev-parse", "HEAD").stdout.strip()

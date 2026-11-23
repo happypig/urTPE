@@ -6,7 +6,7 @@ merged, per-project history graph plus a static viewer. Python, pymupdf, no web 
 ## Commands (verified on this machine)
 
 ```powershell
-python -m pytest                      # 1736 collected, ~4min, fully offline
+python -m pytest                      # 1743 collected, ~4min, fully offline
 python -m pytest tests/test_merge.py  # one file
 python -m pytest tests/test_merge.py::test_name -q
 python -m urtpe.cli source.pdf -o data --viewer viewer --links --recover-truncated
@@ -19,8 +19,8 @@ python scripts/sync_domain_model.py --check
 - Use the **system** interpreter (`C:\Python314\python.exe`, pytest 9.0.1, pymupdf 1.28.2).
   `.venv/` exists but contains only pip — activating it leaves you unable to run tests.
 - The count in that first line goes stale whenever tests change. Refresh it with
-  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1736 collected**;
-  the full run reports **1731 passed, 1 skipped, 4 xfailed** — the skip is deliberate, at
+  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1743 collected**;
+  the full run reports **1738 passed, 1 skipped, 4 xfailed** — the skip is deliberate, at
   `tests/test_idempotent_flags.py:117`, because the node payload builder is not exposed and
   the graph test below it covers the behaviour. The 4 xfails are strict and named: the
   offer step and the orphan name branch still refuse the anchor-parcel drifted cases of
@@ -212,6 +212,9 @@ Violating any of these corrupts output silently rather than raising.
   alone. It refuses (exit 2) on an unreadable count or an uncommitted generator source,
   reads the counts and never writes the payload, never ingests and writes nothing under
   `data/` or `viewer/`. A retry after a failed push pushes the commit that is already ahead.
+  Every git command runs with `GIT_TERMINAL_PROMPT=0` and `GCM_INTERACTIVE=never`, and `push` and
+  `ls-remote` time out after 120 s: unattended, a refused credential must fail fast and name itself
+  rather than wait for a browser prompt. Fix it with `gh auth login` or one push by hand.
   Two hazards are closed, both measured 2026-11-09:
   - **The commit is path-limited, not merely path-scoped in the `git add`.** A `git commit`
     without a path limit takes the whole index, and the index holds whatever another

@@ -3,7 +3,8 @@
 Collected 2026-11-15 to 2026-11-20. Item identifiers do not change: `U1–U8`, `A1–A7`,
 `U-D1–U-D5`, `M1–M4`, `D11`, `O1–O11` and `O-D1–O-D7`.
 Added 2026-11-22: `U9`, `A8` and `U-D6–U-D9`. The user started A8 and decided U-D6 the same
-day. A8 is committed as `2e37855`. `U-D7`, `U-D8` and `U-D9` are proposed and await the user's word.
+day. A8 is committed as `2e37855`. `U-D7` and `U-D8` were decided on 2026-11-23, and A4 was implemented
+the same day (see the A4 row and "Current boundary after A4"). `U-D9` is proposed and awaits the user's word.
 
 | Part | Subject | Items | Priority | Origin |
 |---|---|---|---|---|
@@ -85,8 +86,8 @@ Four dependencies cross Part boundaries:
 | U-D4 | Should city-only refresh have its own cadence? | measure the need separately; do not couple it to PDF ingestion | **undecided** |
 | U-D5 | Should a diagnostic agent receive a failure bundle? | only after deterministic logs prove a triage need | **undecided** |
 | U-D6 | What happens to the `urtpe-nightly-sweep` task until A8 lands (U9)? | keep it running. Nights with no candidate exit at once and write nothing. Land A8 before about 2026-11-28, when the 2026-11-14 probes leave the 14-day window. Other options: pause it, or keep it and add a check step after its rebuild. | **decided 2026-11-22: keep it running.** The user said "start A8, keep the sweep running". |
-| U-D7 | Do the two pollers run daily instead of weekly? | yes, after A3. They write nothing under `data/`. `publish_release_diff.py` strips its stamp and exits 0 when the report is unchanged. Not read: `check_tree()`. | **proposed 2026-11-22; open** |
-| U-D8 | Does the national sweep stay its own task, or join the A4 coordinator? | stay its own task until A8 is done and A4 is proven. Both would write the same cache. | **proposed 2026-11-22; open** |
+| U-D7 | Do the two pollers run daily instead of weekly? | yes, after A3. They write nothing under `data/`. `publish_release_diff.py` strips its stamp and exits 0 when the report is unchanged. Not read: `check_tree()`. | **decided 2026-11-23: daily.** The pollers run daily inside the cycle. The cycle (`urtpe-cycle`) runs at 04:00, after a sweep window of 00:30 to 03:30. The user first chose 06:00 and then moved the cycle to 04:00. `urtpe-poll` is disabled, not deleted. |
+| U-D8 | Does the national sweep stay its own task, or join the A4 coordinator? | stay its own task until A8 is done and A4 is proven. Both would write the same cache. | **decided 2026-11-23: its own task.** The cycle checks the lock first and stops with exit 5 recorded if a writer holds it. |
 | U-D9 | Is `refresh_whole_corpus.py` scheduled? | no. Run it on demand. A schedule needs its own OpenSpec change, a window outside 02:00–05:00, a start after ingest, and an explicit checkpoint reset. | **proposed 2026-11-22; open** |
 | D11 | Does S1's own-parcel form adopt the count rule? | **A** | **decided 2026-11-15: A.** The change is not opened. |
 | S3/S5 | Does S5 adopt the gate rule? | measure first (M4), then decide | **decided 2026-11-15: measure first.** M4 is that measurement. The choice after it is open. |
@@ -126,6 +127,8 @@ runbook is `docs/pipeline/etl_process.md` §11. `openspec list` reported no acti
 2026-11-19 and again on 2026-11-22. The recommendations in the table above stay as written. This
 section records recommendations, not new decisions. U9, A8 and U-D6 to U-D9 were added on
 2026-11-22. The user then decided A8 and U-D6. U-D7 to U-D9 stay proposals.
+
+**Current boundary after A4 (2026-11-23).** Two Windows tasks run. `urtpe-cycle` runs daily at 04:00. It polls both sources, and when the archive holds a verified gazette newer than the dataset it ingests it, refreshes, rebuilds, checks and tests, then runs `publish_release_diff.py`. `urtpe-nightly-sweep` runs daily 00:30 to 03:30. `urtpe-poll` is disabled, not deleted. U-D2 is amended for the generated pages only: the cycle still never commits the emission (`data/`, `viewer/`, the TSVs), which stays uncommitted for a person, but `publish_release_diff.py` publishes `docs/release-diff.html`, `docs/coverage-report.html`, `docs/domain-model.html` and `docs/etl_process.html` as one set when the report or the payload counts changed. U-D3 is settled as "supersede": the cycle is the report's only scheduled publisher. The first unattended push has not happened yet. A push sends every commit that is ahead of `origin/main`.
 
 **Gazette 2026-11-12 is ingested (read 2026-11-22).** Commit `a17a880` (2026-11-18 22:56)
 recovered its 4 truncated records and gave 1,448 records and 676 projects. The `ingested: false`
@@ -423,8 +426,8 @@ The docstring of the sweep still names `06:30` in its first behaviour list.
 | A1 | U3 — refresh takes the single-writer lock over `data` | **P1** | **fix only** | — | existing safety contract; test `LockHeld` before the first write. **Done 2026-11-22; committed as `efc5c32`.** See "A1 to A3 result". |
 | A2 | U3 — offline candidate-only fast path | **P1** | **fix only** | A1 | no candidates means no network and no rebuild. **Done 2026-11-22; committed as `efc5c32`.** |
 | A3 | U3/U4 — structured poll adapter and failure logs | **P1** | **fix only** | — | no change to acquisition or refusal semantics. **Done 2026-11-22; committed as `28e146a`.** |
-| A4 | U1/U3/U4/U6 — deterministic PDF-cycle coordinator | **P1** | **OpenSpec change** | A1–A3 | amend `gazette-cadence`; hash idempotency and failure drills required |
-| A5 | U5 — report ownership and publication mode | **P1** | **OpenSpec change** | A4; explicit user decision for automatic publication | start with generate-and-stop; one writer for `release-diff.html` |
+| A4 | U1/U3/U4/U6 — deterministic PDF-cycle coordinator | **P1** | **OpenSpec change** | A1–A3 | amend `gazette-cadence`; hash idempotency and failure drills required. **Implemented 2026-11-23** (openspec `a4-pdf-cycle-coordinator`: coordinator `c09eabe`, status page `cb8e6b2`, publisher `fd2a0b5` and `095bd73`; scheduler edited the same day). The first scheduled runs are not yet observed (task 7.5) and the change is not archived. |
+| A5 | U5 — report ownership and publication mode | **P1** | **OpenSpec change** | A4; explicit user decision for automatic publication | start with generate-and-stop; one writer for `release-diff.html`. **Shrinks 2026-11-23:** the cycle publishes the four generated pages, so A5 now covers only committing and pushing the emission |
 | A6 | U7 — independent city-only cadence | **P2** | **OpenSpec change** | A4; separate cadence decision | not triggered by a 168 hash alone |
 | A7 | U8 — optional read-only diagnostic agent | **P3** | **OpenSpec change** | A4–A6 and measured triage need | never in the normal ingest or publication path |
 | A8 | U9 — the nightly sweep takes the lock, releases it before its rebuild, skips a rebuild with no update, reports a failed rebuild | **P1** | **fix only** | — | **started at the user's word 2026-11-22; written, tests green, committed as `2e37855` and pushed to `main`.** It landed before the 2026-11-28 limit. It does not widen A1. See "A8 result" in U9. |

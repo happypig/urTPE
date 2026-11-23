@@ -3,7 +3,7 @@
 The pipeline turns the Taipei City Government's urban-renewal approved-cases
 gazette (臺北市都市更新核定案件一覽表) and the data of two web portals (the Taipei
 platform and the national portal) into a per-project history graph and a
-static HTML viewer. The portals enter at stage 6; the sweep and the refresh scripts
+static HTML viewer. Portal data joins the project records at stage 6; the sweep and the refresh scripts
 update that cache between ingests and run on their own (see "Scheduled and manual
 runs" in §1). One command runs the PDF path:
 
@@ -30,31 +30,40 @@ truth is the emitted payload and the marked HTML fields, not this historical sam
 ## 1. Pipeline overview
 
 ```
-gazette PDF (uro.gov.taipei, ~2 MB, weekly-to-monthly)
+gazette PDF (uro.gov.taipei, ~2 MB, weekly-to-monthly)        168 list (gis.uro.taipei)
   │
   ▼
-[1] Acquire      scripts/poll_gazette.py — hash-gated download into the archive
+[1] Acquire      scripts/poll_gazette.py (PDF), scripts/poll_p168.py (168 list) — hash-gated, archive only   [PDF, 168 list]
   │                D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf
+  │                scheduled: urtpe-poll (Sundays 05:10): poll_gazette.py, poll_p168.py
   ▼
-[2] Extract      urtpe/extract.py — ruled-table read, cell by cell
+[2] Extract      urtpe/extract.py — ruled-table read, cell by cell   [PDF]
   │                → RawRecord list  → data/raw.tsv (verbatim)
+  │                stages 2-5 run only inside the full ingest
   ▼
-[3] Cleanse      urtpe/cleanse.py — normalize, derive, flag
+[3] Cleanse      urtpe/cleanse.py — normalize, derive, flag   [PDF]
   │                → CleanRecord list → data/clean.tsv
   ▼
-[4] Ledger       urtpe/ledger.py — apply manual corrections (content-keyed)
+[4] Ledger       urtpe/ledger.py — apply manual corrections (content-keyed)   [PDF + ledger]
   ▼
-[5] Merge        urtpe/merge.py — similarity clustering into families
+[5] Merge        urtpe/merge.py — similarity clustering into families   [PDF]
   │                → Project list → data/merged.tsv
   ▼
-[6] Links        urtpe/links.py — portal discovery onto the merged families (--links)
+[6] Links        urtpe/links.py — portal discovery onto the merged families (--links)   [PDF + portals]
+  │                also written outside the CLI: the sweep (urtpe-nightly-sweep, daily 02:00)
+  │                and refresh_*.py, harvest_case_names.py, ... (by hand)
   ▼
-[7] Graph        urtpe/graph.py — per-project node/edge history
+[7] Graph        urtpe/graph.py — per-project node/edge history   [PDF + portals]
   │                → data/projects.json (schema v2)
   ▼
-[8] Viewer       urtpe/viewer.py — window.PROJECTS payload for the static page
+[8] Viewer       urtpe/viewer.py — window.PROJECTS payload for the static page   [PDF + portals]
                    → viewer/projects.data.js  (open viewer/index.html from file://)
+                   rebuild (--from-js) runs stages 6-8: by hand, and after a sweep run that updated a project
 ```
+
+Stages 2-5 read only the PDF and the ledger. The 168 snapshot taken at stage 1 is
+not read by them: `post_ingest_check.py` copies it to `data/p168_all.json` for the
+coverage report, after stage 8.
 
 Stage [8] has an input path too: `viewer/projects.data.js` is both input and
 output. `--from-js` reloads it and re-emits it, so the viewer payload is state,
@@ -72,24 +81,34 @@ historical records uniformly (`urtpe/cli.py:249`, `_ingest_pdf` docstring).
 A rebuild skips stages 2–5: the payload's nodes are loaded back as
 CleanRecords verbatim (`urtpe/cli.py:118`, `_load_projects_from_js`).
 
-### Scheduled and manual runs
+### What runs, by source
 
-Two Windows tasks run, and three steps stay manual. Only the full ingest and
-the rebuild run the eight stages. The state below was measured on 2026-11-22.
+Two Windows tasks run on a schedule. Every other step starts by hand. The table
+lists every script that polls, sweeps, refreshes, rebuilds, verifies or
+publishes: the stage it touches, who starts it, whether it takes the
+single-writer lock, and what it writes. The state is the one read on 2026-11-23.
 What is planned next is on the optimization board
 (`docs/inspections/optimization.md`).
 
-| Piece | What runs | State |
-| --- | --- | --- |
-| Gazette PDF | `urtpe-poll`, Sundays 05:10: `poll_gazette.py` | Acquisition only. It never ingests. Ingest is manual (§11). `--json` prints a structured result: the status, the gazette id, the SHA-256, the archived path, and whether that file still matches the index. |
-| 168 list | `poll_p168.py`, same task | Saves a snapshot. It writes nothing under `data/`. A failed check appends a `failed` row to `p168_log.jsonl` and keeps the last good state. |
-| National sweep | `urtpe-nightly-sweep`, daily 02:00: `fetch_remaining_national_portal.py --deadline 05:00` | Takes the single-writer lock over `data/`, releases it before the rebuild, and rebuilds only when a project changed. One line per run goes to `data/.link_cache/sweep_runs.jsonl`. Exit 1: rebuild failed. Exit 5: lock held. |
-| Targeted refresh | `refresh_awaiting_caches.py`, by hand | Manual. It takes the single-writer lock over `data/` and exits 5 when the lock is held. A run with no candidate, and `--dry-run`, take no lock. |
-| Whole-corpus refresh | `refresh_whole_corpus.py`, by hand | Manual. No schedule, no lock. |
-| Release report | third action of `urtpe-poll`: `publish_release_diff.py` | Commits and pushes only `docs/release-diff.html`. |
+| Source | Script or command | Stage | Started by | Lock | Writes |
+| --- | --- | --- | --- | --- | --- |
+| PDF | `poll_gazette.py` | 1 | Scheduled: `urtpe-poll`, Sundays 05:10 | none | The archive only: the PDF, `index.jsonl`, `poll_state.json`, `poll_log.jsonl`. It never ingests. `--json` prints the status, the gazette id, the SHA-256, the archived path, and whether that file still matches the index. |
+| PDF | `python -m urtpe.cli <pdf> -o data --viewer viewer --links --recover-truncated` (full ingest) | 1–8 | By hand (§11) | yes; exit 5 when held (stages 2–8) | `data/*`, `viewer/projects.data.js`, the archive index |
+| 168 list | `poll_p168.py` | 1 | Scheduled: `urtpe-poll`, same task | none | The archive only: `p168_snapshots/`, `p168_state.json`, `p168_log.jsonl`. Nothing under `data/`. A failed check appends a `failed` row and keeps the last good state. |
+| Taipei platform | `refresh_awaiting_caches.py` | 6 | By hand | yes; exit 5 when held. `--dry-run` and a run with no candidate take no lock. | `data/.link_cache/` |
+| Taipei platform | `refresh_whole_corpus.py` (resumable slices) | 6 | By hand | yes, one slice at a time (design D1); the lock is given back between slices. Exit 5 when held: the checkpoint keeps the finished slices, and a re-run resumes. `--dry-run` and a run with no slice left take no lock. | `data/.link_cache/` and a checkpoint |
+| Taipei platform, 168 list | `refresh_second_id_source.py`, `refresh_rederive_pass.py`, `refresh_unplaced_by_cell_section.py`, `walk_unit_siblings.py --apply` | 6 | By hand | yes | `data/.link_cache/`. `walk_unit_siblings.py` copies each changed `result.json` to a backup first. Its default is a dry run that makes no request. |
+| Taipei platform | `harvest_case_names.py` | 6 | By hand | **no** | `data/.link_cache/` (`candidate_names`) |
+| National portal | `fetch_remaining_national_portal.py --deadline 05:00` (the sweep) | 6, then 7–8 through the rebuild | Scheduled: `urtpe-nightly-sweep`, daily 02:00 | yes for the crawl; released before the rebuild. Exit 5 when held. | `data/.link_cache/`, `no_match_ledger.json` (14-day TTL), and one line per run in `sweep_runs.jsonl`. It starts the rebuild only after a run that updated a project. Exit 1: rebuild failed. |
+| National portal | `twur_sweep.py`, `run_sweep_until.py` | 6 | By hand | `twur_sweep.py`: **no**. `run_sweep_until.py` calls the sweep's `main()`, so the lock applies. | `data/.link_cache/`. `twur_sweep.py` is the older sweep. The deadline override in `run_sweep_until.py` no longer works, so it stops at the default time (optimization board, U9). |
+| Payload | `python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --links` (rebuild) | 6–8 | By hand, and by the sweep after a run that updated a project | yes; exit 5 when held | `data/*`, `viewer/projects.data.js` |
+| Checks | `post_ingest_check.py` (`--check-only` is read-only) | after 8 | By hand (§11) | none of its own; its repairs call the CLI | After a clean recheck it runs `sync_etl_process.py`, `sync_domain_model.py`, `release_diff_report.py` and `coverage_report.py`, which rewrite the documentation pages and reports. |
+| Publish | `publish_release_diff.py` | after 8 | Scheduled: `urtpe-poll`, third action | none | Commits and pushes only `docs/release-diff.html`. It never writes `data/` or `viewer/`. |
+| Publish check | `check_deploy.py` | after 8 | By hand (§11) | none | Nothing. It reports fresh, stale or missing for each served artifact. |
+| Repair tools | `repair_*.py`, `restore_*.py`, `rebuild_cache_union.py` | 6 | By hand, after an incident only | varies; read the script first | `data/.link_cache/`. The cache is durable state; five backup directories exist from past incidents. |
 
-The sweep is the only unattended step that can rewrite the viewer payload. The
-two refresh scripts and the PDF ingest run only when a person starts them.
+Only the sweep is unattended and can rewrite the viewer payload. Everything
+else that writes the cache or the payload runs only when a person starts it.
 
 ---
 
@@ -98,6 +117,11 @@ two refresh scripts and the PDF ingest run only when a person starts them.
 `scripts/poll_gazette.py` answers one question: has the city published a
 gazette we do not hold? It never ingests. Ingesting an archived gazette is a
 separate explicit act (`python -m urtpe.cli <path>`).
+
+`scripts/poll_p168.py` follows the same rule for the 168 list: a hash of the
+canonical JSON, a snapshot in the archive, and a log row for every check,
+failures included. It makes two requests (a probe for the row count, then the
+full list), never ingests, and writes nothing under `data/`.
 
 - Change detection is by content hash (SHA-256), never by timestamp. The
   publisher re-uploads unchanged documents under a later 資料更新 stamp;

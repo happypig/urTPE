@@ -22,8 +22,19 @@ A finished case (已完工 / 完成成果備查, or a 使照核發日期 present
 header fetch unless step 1 or 2 moved. Every skip is counted: "not fetched
 because unchanged" never reads as "fetched and empty".
 
-Single-writer rule (AGENTS.md): do not run this while an ingestion or a
-sweep owns the cache.
+Single-writer rule (AGENTS.md): each slice takes ``SingleWriterLock`` over the tree
+that holds the cache (``data/`` for the default cache), writes the slice and its
+checkpoint, and gives the lock back. This is design D1 of the archived change
+refresh-whole-corpus; the code did not take the lock until 2026-11-23, although this
+docstring said it did. Holding the lock one slice at a time lets the nightly sweep or a
+rebuild run in the gaps. Two writers never overlap, but a project refreshed early in a run
+can change before the run ends.
+
+On ``LockHeld`` the run stops with exit 5. The slice in hand writes nothing, the
+checkpoint keeps the slices that finished, and a re-run resumes where this one stopped.
+``--dry-run`` and a run with no slice left take no lock.
+
+Exit codes: 0 done, 5 another run holds the lock.
 
     python scripts/refresh_whole_corpus.py [--dry-run] [--slice N]
         [--slices-size 100] [--delay 1.0]
@@ -45,8 +56,10 @@ from urtpe.links import (  # noqa: E402
     refresh_project,
     resolve_cache_dir,
 )
+from urtpe.lock import LockHeld, SingleWriterLock  # noqa: E402
 
 CHECKPOINT = ".refresh_checkpoint.json"
+EXIT_LOCK_HELD = 5  # the same code urtpe.cli returns for LockHeld
 
 _PAGE_DATE_RE = re.compile(r"最後更新於\s*([0-9]{2,3}\.[0-9]{1,2}\.[0-9]{1,2})")
 
@@ -216,13 +229,28 @@ def main(argv: list[str] | None = None) -> int:
 
     rep = new_report()
     all_finished = list(state.get("finished") or [])
+    locked_out = False
     for i, s in enumerate(slices):
         if args.slice is not None and i != args.slice:
             continue
         print(f"slice {i}: {len(s)} project(s)")
-        refresh_slice(cache_dir, s, search_keys, report=rep,
-                      finished=all_finished)
-        write_checkpoint(ck, s[-1], all_finished)
+        # Design D1: the lock covers one slice and its checkpoint, then is given back.
+        # The lock root is the parent of the cache directory: `data/` for the default.
+        try:
+            lock = SingleWriterLock(cache_dir.parent).acquire()
+        except LockHeld as exc:
+            print(f"[LOCKED] another run owns {cache_dir.parent}: {exc}", file=sys.stderr)
+            print(f"  stopped before slice {i}; the checkpoint keeps "
+                  f"{len(all_finished)} finished project(s). Re-run to resume.",
+                  file=sys.stderr)
+            locked_out = True
+            break
+        try:
+            refresh_slice(cache_dir, s, search_keys, report=rep,
+                          finished=all_finished)
+            write_checkpoint(ck, s[-1], all_finished)
+        finally:
+            lock.release()
         print(f"  checkpoint: {len(all_finished)} finished")
 
     print(f"\npage: {rep['page']['fetched']} fetched / "
@@ -236,6 +264,8 @@ def main(argv: list[str] | None = None) -> int:
     for src in ("page", "search", "header"):
         for pid in rep[f"{src}_failed"]:
             print(f"  FAILED {src}: {pid}")
+    if locked_out:
+        return EXIT_LOCK_HELD
     print("\nnext: python -m urtpe.cli --from-js viewer/projects.data.js -o data "
           "--links   (once, after the last slice)")
     return 0

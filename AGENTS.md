@@ -134,7 +134,20 @@ Violating any of these corrupts output silently rather than raising.
   existing SHA-256 rather than adding a second digest.
 - **Acquisition is separate from ingestion.** `urtpe/poller.py` never ingests and never
   touches the emitted dataset; the single-writer lock serialises writers without deciding
-  which writer is correct. Don't wire polling into ingestion.
+  which writer is correct. Don't wire polling into ingestion. A third component, the
+  PDF-cycle coordinator (`scripts/run_cycle.py`, logic in `urtpe/cycle.py`, openspec
+  `a4-pdf-cycle-coordinator`), reads the *archive* and may start an ingest under the
+  existing gates (U-D1, 2026-11-22). It starts one only for an archived gazette newer than
+  the dataset that verifies against its archive entry and whose hash it has not recorded as
+  finished or stopped. It never decides from a poller's `new_gazette` word (a hand-started
+  poll consumes it), never holds the `data/` lock across its children (each child takes its
+  own; a held lock stops the cycle with exit 5 recorded), never passes
+  `--allow-reconcile-block` or `--no-archive`, stops at the first non-zero exit, refuses
+  when its owned paths are dirty, and runs git read-only (`git status`). It never commits
+  the emission (U-D2); the emission stays uncommitted for a person (A5). `cycle_log.jsonl`
+  and `cycle_state.json` live in the archive root; `cycle_status.html` there is a local,
+  unpublished status page. Resume a stopped hash with
+  `python scripts/run_cycle.py --resume <sha256>`; `--dry-run` writes nothing.
 - **The publisher serves one PDF link at a time and repoints it on every publication**, so
   the live link names "whatever is newest", not any particular gazette. A *version-specific*
   URL (`…/relfile/18558/10496/<uuid>.pdf`) names one document and stays a durable address
@@ -162,8 +175,9 @@ Violating any of these corrupts output silently rather than raising.
 - `urtpe/` — the pipeline. `links.py` (64 KB, both portal adapters) is the largest and
   most failure-prone surface; `extract.py` owns the ruled-table reader; `cli.py` wires it.
   `poller.py` / `changeset.py` / `ordering.py` handle gazette cadence and are deliberately
-  decoupled from the emitted dataset. Keep pure cleansing/merge/scoring logic separate
-  from I/O adapters.
+  decoupled from the emitted dataset. `cycle.py` is the coordinator's pure logic (state
+  machine, step list, detection); `scripts/run_cycle.py` is its I/O adapter. Keep pure
+  cleansing/merge/scoring logic separate from I/O adapters.
 - `viewer/` — a static `file://` site. No dev server. The render path is
   exercised by `node scriptsiewer_smoke.js` (a Node DOM-stub harness;
   runs by hand — it reaches no network and is not a pytest case, so
@@ -187,9 +201,17 @@ Violating any of these corrupts output silently rather than raising.
   gazettes yield today, not what each yielded when it was published. Its family identity is
   the **案名's land core**, not the 地號 cell: the cell differs by one character between
   some releases, and keying on it counted three units as both dead and born.
-- `scripts/publish_release_diff.py` — the third action of the `urtpe-poll` task, after the two
-  pollers. It regenerates the report, commits it, and pushes to `main`, which is the branch
-  Pages publishes from. It never ingests and writes nothing under `data/` or `viewer/`.
+- `scripts/publish_release_diff.py` — run by `run_cycle.py` after a finished ingest (the
+  weekly `urtpe-poll` task that used to run it is disabled; the cycle, daily 04:00, is the
+  only scheduled publisher). It owns four generated pages and no other path:
+  `docs/release-diff.html`, `docs/coverage-report.html`, `docs/domain-model.html`,
+  `docs/etl_process.html`. It publishes them as one set, commits, and pushes to `main`,
+  which is the branch Pages publishes from, only when the release-diff report differs from
+  the committed one (generation stamp ignored) or the payload's project or record count
+  differs from the committed payload's. When neither differs it leaves the other three pages
+  alone. It refuses (exit 2) on an unreadable count or an uncommitted generator source,
+  reads the counts and never writes the payload, never ingests and writes nothing under
+  `data/` or `viewer/`. A retry after a failed push pushes the commit that is already ahead.
   Two hazards are closed, both measured 2026-11-09:
   - **The commit is path-limited, not merely path-scoped in the `git add`.** A `git commit`
     without a path limit takes the whole index, and the index holds whatever another
@@ -199,8 +221,9 @@ Violating any of these corrupts output silently rather than raising.
     ref; on a detached HEAD the commit the step made lives on `HEAD`, git answers
     "Everything up-to-date" and exits 0, and the remote never moves. The step asks the
     remote afterwards whether it holds the commit, and reports a failure when it does not.
-  A failed push is reported, and the committed report is then ahead of the served one —
-  which `check_deploy.py` reports as stale.
+  A failed push is reported, and the committed pages are then ahead of the served ones —
+  which `check_deploy.py` reports as stale. A push sends every commit that is ahead of
+  `origin/main`, not only these pages.
 - `scripts/` — 185 files, of which 117 are `probe_*.py`. Undated ones (`poll_gazette.py`,
   `fetch_remaining_national_portal.py`, `build_project_aliases.py`, `stranded_report.py`)
   are durable tools; dated ones (`*_2026MMDD`) and `probe_*.py` are one-shot archaeology.

@@ -116,7 +116,9 @@ def test_operating_runbook_keeps_acquisition_repair_and_publication_distinct():
     ]
     positions = [runbook.index(command) for command in steps]
     assert positions == sorted(positions)
-    assert "`publish_release_diff.py` regenerates,\ncommits and pushes only `docs/release-diff.html`" in runbook
+    assert "`publish_release_diff.py` regenerates,\ncommits and pushes only the four generated pages" in runbook
+    assert "`python scripts/run_cycle.py --resume <sha256>`" in runbook
+    assert "Never pass\n   `--allow-reconcile-block` or `--no-archive`" in runbook
     assert "Exit 0 means the CLI wrote its output; it\n   does not mean that git committed it." in runbook
     assert "--allow-reconcile-block" in runbook
     assert "never qualifies for a viewer-only repair" in runbook

@@ -1,9 +1,10 @@
 """Regenerate the release-diff report, commit it, and publish it.
 
-The third action of the `urtpe-poll` scheduled task, after the two pollers.
-A new gazette is archived by the poller; this step makes the report that
-describes it reach the site, so the published page is never a version behind
-the archive it describes.
+The PDF cycle (`scripts/run_cycle.py`, scheduled as `urtpe-cycle`) runs this step
+last, after a finished ingest. The weekly `urtpe-poll` task that used to run it is
+disabled. A person may run it by hand, for example to retry a failed push. This
+step makes the pages that describe a new gazette reach the site, so the published
+pages are never a version behind the data they describe.
 
 It does **not** ingest. The pipeline's single-writer lock is not needed and
 not taken, because nothing under `data/` or `viewer/` is written: the report

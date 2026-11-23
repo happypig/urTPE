@@ -35,7 +35,7 @@ gazette PDF (uro.gov.taipei, ~2 MB, weekly-to-monthly)        168 list (gis.uro.
   ▼
 [1] Acquire      scripts/poll_gazette.py (PDF), scripts/poll_p168.py (168 list) — hash-gated, archive only   [PDF, 168 list]
   │                D:\project\urtpe-gazettes\核定案件-YYYY-MM-DD.pdf
-  │                scheduled: urtpe-poll (Sundays 05:10): poll_gazette.py, poll_p168.py
+  │                scheduled: urtpe-cycle (daily 04:00), its first two steps: poll_gazette.py, poll_p168.py
   ▼
 [2] Extract      urtpe/extract.py — ruled-table read, cell by cell   [PDF]
   │                → RawRecord list  → data/raw.tsv (verbatim)
@@ -50,7 +50,7 @@ gazette PDF (uro.gov.taipei, ~2 MB, weekly-to-monthly)        168 list (gis.uro.
   │                → Project list → data/merged.tsv
   ▼
 [6] Links        urtpe/links.py — portal discovery onto the merged families (--links)   [PDF + portals]
-  │                also written outside the CLI: the sweep (urtpe-nightly-sweep, daily 02:00)
+  │                also written outside the CLI: the sweep (urtpe-nightly-sweep, daily 00:30)
   │                and refresh_*.py, harvest_case_names.py, ... (by hand)
   ▼
 [7] Graph        urtpe/graph.py — per-project node/edge history   [PDF + portals]
@@ -83,23 +83,29 @@ CleanRecords verbatim (`urtpe/cli.py:118`, `_load_projects_from_js`).
 
 ### What runs, and who starts it
 
-Two Windows tasks run on a schedule. Every other step starts by hand. The tables
-have four groups: the `urtpe-poll` task, the `urtpe-nightly-sweep` task, the
-routine steps a person starts, and the one-off passes. Each row is one script,
+Two Windows tasks run on a schedule: `urtpe-cycle` and `urtpe-nightly-sweep`.
+The weekly `urtpe-poll` task is disabled (not deleted), because the cycle now runs
+its two pollers and its publisher every day. When a new gazette is archived, the
+cycle also runs the ingest, the refresh, the rebuild and the checks, so a person
+starts the routine rows below only to repair or to resume. Every other step
+starts by hand. The tables have four groups: the `urtpe-cycle` task, the
+`urtpe-nightly-sweep` task, the routine steps a person starts, and the one-off
+passes. Each row is one script,
 with the stage it touches, the source it reads, whether it takes the
 single-writer lock, and what it writes. The state is the one read on 2026-11-23.
 What is planned next is on the optimization board
 (`docs/inspections/optimization.md`).
 
-**Scheduled: `urtpe-poll`, Sundays 05:10. Three actions, in this order.**
+**Scheduled: `urtpe-cycle`, daily 04:00, after the sweep stops at 03:30. One coordinator runs these steps in order and stops at the first refusal.**
 
 | Script | Stage | Source | Purpose | Lock | Writes |
 | --- | --- | --- | --- | --- | --- |
+| `run_cycle.py` | 1–8, then after 8 | Archive | Poll both sources. Ingest an archived gazette that is newer than the dataset and verifies. Refresh, rebuild, check, test, then publish. Never passes a bypass flag. `--dry-run` reads only; `--resume <sha256>` restarts a stopped hash at its failed stage. | none held; each command takes its own | The archive root: `cycle_log.jsonl`, `cycle_state.json`, `cycle_status.html` (the status page, local only) |
 | `poll_gazette.py` [1] | 1 | PDF | Check whether a new gazette exists, and report what was seen. | — | The archive: the PDF, `index.jsonl`, `poll_state.json`, `poll_log.jsonl` |
 | `poll_p168.py` [1] | 1 | 168 list | Poll the city's 168 fast-track case list and detect a change by hash. | — | The archive: `p168_snapshots/`, `p168_state.json`, `p168_log.jsonl` |
-| `publish_release_diff.py` | after 8 | Report | Regenerate the release-diff report, commit it and publish it. | — | `docs/release-diff.html` (commit and push) |
+| `publish_release_diff.py` | after 8 | Report | Only after a finished ingest: publish the four generated pages as one set when the report or the payload counts changed. It reads the counts and never writes the payload. | — | `docs/release-diff.html`, `docs/coverage-report.html`, `docs/domain-model.html`, `docs/etl_process.html` (commit and push) |
 
-**Scheduled: `urtpe-nightly-sweep`, daily 02:00, stops at 05:00.**
+**Scheduled: `urtpe-nightly-sweep`, daily 00:30, stops at 03:30.**
 
 | Script | Stage | Source | Purpose | Lock | Writes |
 | --- | --- | --- | --- | --- | --- |
@@ -454,7 +460,7 @@ The overnight sweep `scripts/fetch_remaining_national_portal.py` backfills
 projects still missing twur links (WAF-polite: 60–180 s sleeps, `--deadline`
 default 06:30), writes into the same cache, and regenerates the viewer by
 spawning `--from-js --links --viewer`. The task `urtpe-nightly-sweep` runs it
-daily at 02:00 with `--deadline 05:00`. Since 2026-11-22 (A8, `2e37855`) it
+daily at 00:30 with `--deadline 03:30`. Since 2026-11-22 (A8, `2e37855`) it
 takes the single-writer lock over `data/` for the crawl, releases it before the
 rebuild, rebuilds only when a project changed, and logs each run to
 `data/.link_cache/sweep_runs.jsonl`.
@@ -661,12 +667,17 @@ renderDetail()` path against the payload in a stub DOM.
 
 ## 11. Operating the pipeline — the update runbook
 
-The scheduled `urtpe-poll` task runs `scripts/poll_gazette.py`,
-`scripts/poll_p168.py` and `scripts/publish_release_diff.py`. The task does
-not ingest a PDF or update the viewer. `publish_release_diff.py` regenerates,
-commits and pushes only `docs/release-diff.html`. Do not use it to publish a
-new payload: its path-limited commit excludes the dataset, viewer and other
-reports.
+The scheduled `urtpe-cycle` task (daily 04:00) runs `scripts/run_cycle.py`. For
+a new archived gazette it runs sections 11.1 to 11.3 by itself, then the tests
+and the viewer smoke run, and it stops at the first refusal. After a finished
+ingest it runs `scripts/publish_release_diff.py`. The pollers never ingest, and
+the cycle never commits the emission: section 11.4 stays with a person.
+`publish_release_diff.py` regenerates,
+commits and pushes only the four generated pages (`docs/release-diff.html`,
+`docs/coverage-report.html`, `docs/domain-model.html`, `docs/etl_process.html`),
+as one set, when the report or the payload's project or record count changed. Do
+not use it to publish a new payload: its path-limited commit excludes the
+dataset, the viewer and every other path.
 
 A manual PDF-to-publication run follows these steps.
 
@@ -676,7 +687,10 @@ A manual PDF-to-publication run follows these steps.
    tree. Leave another session's changed and staged files alone.
 2. Run `python scripts/poll_gazette.py`. A `new_gazette` result archives a
    content-hashed PDF under `D:\project\urtpe-gazettes\`. `unchanged` or
-   `reuploaded` means there is no new PDF to ingest.
+   `reuploaded` means this poll archived no new PDF. A later poll reports the
+   page `unchanged` after an earlier one archived it, so read the archive and
+   compare the newest gazette's date with the dataset's, not the status word
+   alone.
 3. Run `python scripts/poll_p168.py` to refresh the archived 168-list snapshot.
    The post-ingest command verifies and copies that snapshot for the coverage
    report; neither poller ingests.
@@ -738,6 +752,28 @@ A manual PDF-to-publication run follows these steps.
    reports, must be `fresh`. `stale` after a confirmed push can be propagation
    delay: check the Pages build, then run the comparison again. Never call a
    pushed commit a deployed build before this check passes.
+
+### 11.5 When the cycle stops or the publication fails
+
+The cycle records each run in `cycle_log.jsonl`, and keeps the state of each
+gazette hash in `cycle_state.json`, both in the archive root. It writes a local
+status page, `cycle_status.html`, beside them. The page warns when no run is
+recorded for 36 hours.
+
+1. Read the newest record. A stop names the failed stage and its exit code. A
+   stopped hash waits for a person: later scheduled runs only record that it
+   awaits diagnosis and run none of its steps again.
+2. Diagnose the failed stage as section 11.2 or 11.3 says. Never pass
+   `--allow-reconcile-block` or `--no-archive`.
+3. After the repair, run `python scripts/run_cycle.py --resume <sha256>`. The
+   cycle restarts at the failed stage, not at the first step.
+4. A held lock or a dirty working tree (an earlier cycle's emission, not yet
+   committed) stops a run without a diagnosis. The next scheduled run tries the
+   same gazette again. Commit or discard the emission as section 11.4 says.
+5. If only the publication failed, the ingest stays finished. Run
+   `python scripts/publish_release_diff.py` by hand. It also pushes a commit
+   that is already ahead of the remote, so a retry after a failed push lands.
+   Use `--dry-run` first to see which trigger fired.
 
 Rules that outlast any single run:
 

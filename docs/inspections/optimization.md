@@ -459,10 +459,18 @@ push. A6 and A7 are separate expansions, not hidden parts of the PDF-cycle imple
   those 15, 8 failed on a missing interface (`--json`, `record_failure`) and 7 on behaviour.
   The rest pin behaviour that already held.
 - **Not measured.** No real gazette download ran with the new code: a live `--dry-run --json`
-  of both pollers worked and wrote nothing. `refresh_whole_corpus.py` still takes no lock. No
+  of both pollers worked and wrote nothing. `refresh_whole_corpus.py` took no lock when A1 to A3 were written; see the last bullet. No
   coordinator reads these results yet (A4).
 - **The task runs the working tree.** `urtpe-poll` starts both pollers from the working tree
   on 2026-11-29 at 05:10. Whatever the tree holds then is what runs.
+- **Whole-corpus refresh lock (2026-11-23).** `scripts/refresh_whole_corpus.py` took no lock,
+  although its docstring and design D1 of the archived change `refresh-whole-corpus` say each
+  slice does. It now takes `SingleWriterLock` over `data/` once per slice and gives it back
+  after the slice and its checkpoint, so the sweep or a rebuild can run in the gaps. On
+  `LockHeld` it exits 5, and the checkpoint keeps the finished slices. `--dry-run` and a run
+  with no slice left take no lock. 11 tests in `tests/test_refresh_whole_corpus_lock.py`; 7
+  failed before the change, on behaviour. The U3 row above, written on 2026-11-22, lists this
+  script as not taking the lock. That was true then. The script stays unscheduled (U-D9).
 
 ### Automation decisions
 

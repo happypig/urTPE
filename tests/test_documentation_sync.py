@@ -222,3 +222,59 @@ def test_a_write_run_stamps_the_day_it_ran(tmp_path, monkeypatch):
     assert sync.main([]) == 0
     assert "synchronised 2000-01-01" not in page.read_text(encoding="utf-8")
     assert sync.main(["--check"]) == 0
+
+
+# ---- domain-model.html: the same day-change rule as the ETL page --------------------------
+# Measured 2026-11-23: `sync_domain_model.py --check` reported six fields STALE with no figure
+# changed, because `fields_for` stamped today's date into "measured <date>" and the check
+# compared it with the date the page already carried (written 2026-11-20).
+
+_VIEWER = {"construction_events": 10, "ambiguous_markers": 3, "source_case_missing": 1,
+           "inverted_pairs": 2, "inverted_projects": 2}
+
+
+def _domain_sandbox(tmp_path, monkeypatch, written_on):
+    import shutil
+    from scripts import sync_domain_model as sync
+
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "viewer").mkdir()
+    shutil.copy(dm.ROOT / "viewer" / "projects.data.js", tmp_path / "viewer" / "projects.data.js")
+    page = tmp_path / "docs" / "domain-model.html"
+    shutil.copy(dm.ROOT / "docs" / "domain-model.html", page)
+    monkeypatch.setattr(sync, "ROOT", tmp_path)
+    monkeypatch.setattr(sync, "measure_viewer", lambda: dict(_VIEWER))
+    doc = dm.load_payload(tmp_path / "viewer" / "projects.data.js")
+    dm.write_or_check(page, sync.fields_for(doc, dict(_VIEWER), measurement_date=written_on))
+    return sync, page, doc
+
+
+def test_domain_model_fields_carry_the_given_measurement_date(tmp_path, monkeypatch):
+    sync, page, doc = _domain_sandbox(tmp_path, monkeypatch, "2000-01-01")
+    fields = sync.fields_for(doc, dict(_VIEWER), measurement_date="2000-01-01")
+    assert "measured 2000-01-01" in fields["measurement-source"]
+    assert sync.stored_measurement_date(page.read_text(encoding="utf-8")) == "2000-01-01"
+
+
+def test_domain_model_with_no_stored_date_reads_none():
+    from scripts import sync_domain_model as sync
+
+    assert sync.stored_measurement_date('<span data-doc-field="measurement-source"></span>') is None
+
+
+def test_domain_model_check_exits_zero_on_a_page_synced_on_an_earlier_day(tmp_path, monkeypatch):
+    sync, page, doc = _domain_sandbox(tmp_path, monkeypatch, "2000-01-01")
+    assert sync.main(["--check"]) == 0
+
+
+def test_domain_model_check_still_exits_nonzero_when_a_figure_moved(tmp_path, monkeypatch):
+    sync, page, doc = _domain_sandbox(tmp_path, monkeypatch, "2000-01-01")
+    monkeypatch.setattr(sync, "measure_viewer", lambda: dict(_VIEWER, ambiguous_markers=4))
+    assert sync.main(["--check"]) == 1
+
+
+def test_domain_model_write_run_stamps_today(tmp_path, monkeypatch):
+    import datetime as dt
+    sync, page, doc = _domain_sandbox(tmp_path, monkeypatch, "2000-01-01")
+    assert sync.main([]) == 0
+    assert sync.stored_measurement_date(page.read_text(encoding="utf-8")) == dt.date.today().isoformat()

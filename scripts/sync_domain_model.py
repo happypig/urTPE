@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import re
 import sys
 from pathlib import Path
 
@@ -50,10 +51,26 @@ def _fact_rows(m: dict, v: dict) -> str:
     return "\n".join(_row(en, zh, value) for en, zh, value in rows)
 
 
-def fields_for(doc: dict, viewer: dict | None = None) -> dict[str, str]:
+def stored_measurement_date(html: str) -> str | None:
+    """The "measured <date>" the page's measurement-source field already carries, or None.
+
+    That date is a generation timestamp. documentation-dataset-sync permits it to differ
+    between two runs over unchanged inputs, so `--check` reads it back from the page instead of
+    comparing it with today. Before this, six fields went STALE on the next calendar day with
+    no figure changed (measured 2026-11-23: page written 2026-11-20), the same flaw
+    `sync_etl_process.py` closed on 2026-11-22; `post_ingest_check.py --check-only` runs this
+    check and failed with it.
+    """
+    match = re.search(r'data-doc-field="measurement-source"[^>]*>.*?measured '
+                      r'(\d{4}-\d{2}-\d{2})', html, re.S)
+    return match.group(1) if match else None
+
+
+def fields_for(doc: dict, viewer: dict | None = None,
+               measurement_date: str | None = None) -> dict[str, str]:
     m = measure_payload(doc)
     v = measure_viewer() if viewer is None else viewer
-    date = dt.date.today().isoformat()
+    date = measurement_date or dt.date.today().isoformat()
     published = m["published_date"]
     return {
         "record-cases": (
@@ -128,9 +145,9 @@ def fields_for(doc: dict, viewer: dict | None = None) -> dict[str, str]:
     }
 
 
-def render_current(doc: dict, root: Path = ROOT):
+def render_current(doc: dict, root: Path = ROOT, measurement_date: str | None = None):
     return replace_fields((root / "docs" / "domain-model.html").read_text(encoding="utf-8"),
-                          fields_for(doc))
+                          fields_for(doc, measurement_date=measurement_date))
 
 
 def main(argv=None) -> int:
@@ -139,8 +156,11 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         doc = load_payload(ROOT / "viewer" / "projects.data.js")
-        changed = write_or_check(ROOT / "docs" / "domain-model.html",
-                                 fields_for(doc), args.check)
+        page = ROOT / "docs" / "domain-model.html"
+        # Check mode compares facts. The date is read back from the page; a write run stamps
+        # today. A page with no readable date falls back to today and reports stale.
+        stored = stored_measurement_date(page.read_text(encoding="utf-8")) if args.check else None
+        changed = write_or_check(page, fields_for(doc, measurement_date=stored), args.check)
     except (DocSyncError, OSError) as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
         return 1

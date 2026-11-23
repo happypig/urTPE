@@ -195,23 +195,6 @@ def test_the_two_kinds_of_link_are_labelled_differently():
 
 # --- the publication step ---------------------------------------------------
 
-def test_the_step_stages_only_the_paths_it_owns():
-    """The working tree routinely carries another session's changes. A
-    scheduled step that swept them into a commit would publish work nobody
-    had finished."""
-    from scripts.publish_release_diff import OWNED_PATHS
-
-    assert OWNED_PATHS == ["docs/release-diff.html"], (
-        "the step owns one path; anything else in OWNED_PATHS would be swept "
-        "into an unattended commit")
-    for path in OWNED_PATHS:
-        assert not path.startswith("viewer/"), (
-            "the step must not stage anything under viewer/; the emitted "
-            "dataset is only written by an explicit ingestion")
-        assert not path.startswith("data/"), (
-            "the step must not stage anything under data/")
-
-
 def test_the_step_sees_a_dirty_generator_as_a_reason_to_stop():
     """A working-tree change to the generator would change what "regenerate"
     means, and the published report would be one no commit explains."""
@@ -332,19 +315,6 @@ def test_the_step_reports_a_push_that_did_not_land(tmp_path, monkeypatch):
     remote_head = git("rev-parse", "refs/heads/main", cwd=remote).stdout.strip()
     assert remote_head != head, (
         "the remote holds the commit; this test no longer covers the case")
-
-
-def test_the_step_writes_nothing_under_the_emitted_tree():
-    """The emitted dataset is only ever written by an explicit ingestion. The
-    step's source must not name data/ or viewer/ as something it writes."""
-    from scripts import publish_release_diff
-
-    source = (Path(publish_release_diff.__file__)).read_text(encoding="utf-8")
-    assert "projects.data.js" not in source
-    assert "projects.json" not in source
-    assert "raw.tsv" not in source
-    assert "clean.tsv" not in source
-    assert "merged.tsv" not in source
 
 
 # --- "changed" means: differs from the COMMITTED report ------------------------------------------
@@ -478,3 +448,227 @@ def test_a_dry_run_still_commits_nothing(sandbox):
     before = sandbox.git("rev-parse", "HEAD").stdout.strip()
     assert sandbox.pub.main(["--dry-run"]) == 0
     assert sandbox.git("rev-parse", "HEAD").stdout.strip() == before
+
+
+# --- the step publishes four generated pages as one set (design D13, widened 2026-11-23) --------
+#
+# The operator chose: after a finished ingest the cycle publishes the release-diff report, the
+# coverage report, the domain model and the ETL page together, when the report changed or the
+# payload's project or record count changed. The rule lives in the script, so it holds for a hand
+# run too. These tests extend the temporary-repository sandbox above with the four pages and a
+# payload file. Nothing real is touched; the only remote is a temporary bare one.
+
+PAGES = ["docs/release-diff.html", "docs/coverage-report.html",
+         "docs/domain-model.html", "docs/etl_process.html"]
+
+
+def _payload(projects, records):
+    return ('window.PROJECTS = {"schema_version": 2, "generated_at": "x", '
+            '"published_date": "2026-11-12", "counts": {"projects": %d, "records": %d}, '
+            '"projects": []};' % (projects, records))
+
+
+def _commit_set(box, report, payload=(676, 1448), pages=PAGES):
+    """Commit the owned pages and a payload as the base, then name the branch main."""
+    for rel in pages:
+        path = box.repo / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(report if rel == PAGES[0] else "base %s" % rel, encoding="utf-8")
+    if payload is not None:
+        (box.repo / "viewer").mkdir(exist_ok=True)
+        (box.repo / "viewer" / "projects.data.js").write_text(_payload(*payload), encoding="utf-8")
+    box.git("add", ".")
+    box.git("commit", "-qm", "base")
+    box.git("branch", "-M", "main")
+
+
+def _with_remote(box, tmp_path):
+    remote = tmp_path / "remote.git"
+    box.git("init", "-q", "--bare", str(remote))
+    box.git("remote", "add", "origin", str(remote))
+    box.git("push", "-q", "origin", "main")
+    return remote
+
+
+def _write(box, rel, text):
+    path = box.repo / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _last_commit_files(box):
+    return set(box.git("show", "--name-only", "--format=", "HEAD").stdout.split())
+
+
+def test_when_the_report_changed_the_pages_that_differ_are_committed_together(sandbox, tmp_path):
+    _commit_set(sandbox, _page("old numbers", STAMP_A))
+    _with_remote(sandbox, tmp_path)
+    # post_ingest_check.py regenerated three pages; the ETL page is unchanged
+    _write(sandbox, "docs/release-diff.html", _page("new numbers", STAMP_B))
+    _write(sandbox, "docs/coverage-report.html", "coverage NEW")
+    _write(sandbox, "docs/domain-model.html", "domain NEW")
+    # another session has staged work of its own
+    _write(sandbox, "other_session_work.py", "# another session\n")
+    sandbox.git("add", "other_session_work.py")
+    sandbox.generated = _page("new numbers", STAMP_C)
+    before = sandbox.git("rev-parse", "HEAD").stdout.strip()
+
+    assert sandbox.pub.main([]) == 0
+
+    assert sandbox.git("rev-parse", "HEAD").stdout.strip() != before
+    assert _last_commit_files(sandbox) == {"docs/release-diff.html", "docs/coverage-report.html",
+                                           "docs/domain-model.html"}
+    assert "other_session_work.py" in sandbox.git("diff", "--cached", "--name-only").stdout.split()
+
+
+def test_when_only_the_counts_changed_the_other_pages_are_committed_and_the_report_is_not(sandbox, tmp_path):
+    base_report = _page("same numbers", STAMP_A)
+    _commit_set(sandbox, base_report)
+    _with_remote(sandbox, tmp_path)
+    # an ingest left a new payload and regenerated the pages; the report did not change
+    _write(sandbox, "viewer/projects.data.js", _payload(677, 1450))
+    _write(sandbox, "docs/coverage-report.html", "coverage NEW")
+    _write(sandbox, "docs/domain-model.html", "domain NEW")
+    _write(sandbox, "docs/etl_process.html", "etl NEW")
+    sandbox.generated = _page("same numbers", STAMP_C)
+
+    assert sandbox.pub.main([]) == 0
+
+    assert _last_commit_files(sandbox) == {"docs/coverage-report.html", "docs/domain-model.html",
+                                           "docs/etl_process.html"}
+    assert sandbox.report.read_text(encoding="utf-8") == base_report
+    assert "viewer/projects.data.js" not in _last_commit_files(sandbox), (
+        "the step committed the emitted payload")
+
+
+def test_when_nothing_changed_nothing_is_committed_and_the_other_pages_are_left_alone(sandbox, tmp_path):
+    _commit_set(sandbox, _page("same numbers", STAMP_A))
+    _with_remote(sandbox, tmp_path)
+    # a date-only difference in two pages: it may belong to an emission still waiting for review
+    _write(sandbox, "docs/coverage-report.html", "coverage measured 2026-11-24")
+    _write(sandbox, "docs/domain-model.html", "domain measured 2026-11-24")
+    sandbox.generated = _page("same numbers", STAMP_C)
+    before = sandbox.git("rev-parse", "HEAD").stdout.strip()
+
+    assert sandbox.pub.main([]) == 0
+
+    assert sandbox.git("rev-parse", "HEAD").stdout.strip() == before
+    assert (sandbox.repo / "docs" / "coverage-report.html").read_text(encoding="utf-8") == "coverage measured 2026-11-24"
+    assert (sandbox.repo / "docs" / "domain-model.html").read_text(encoding="utf-8") == "domain measured 2026-11-24"
+
+
+def test_a_page_that_does_not_exist_is_skipped_and_is_not_an_error(sandbox, tmp_path):
+    _commit_set(sandbox, _page("old numbers", STAMP_A), pages=["docs/release-diff.html"])
+    _with_remote(sandbox, tmp_path)
+    _write(sandbox, "docs/release-diff.html", _page("new numbers", STAMP_B))
+    sandbox.generated = _page("new numbers", STAMP_C)
+    assert sandbox.pub.main([]) == 0
+    assert _last_commit_files(sandbox) == {"docs/release-diff.html"}
+
+
+@pytest.mark.parametrize("generator", ["scripts/coverage_report.py", "scripts/coverage_checks.py",
+                                       "scripts/sync_domain_model.py", "scripts/sync_etl_process.py",
+                                       "scripts/doc_measurements.py"])
+def test_a_dirty_generator_of_another_page_stops_the_step(sandbox, tmp_path, generator):
+    _commit_set(sandbox, _page("old numbers", STAMP_A))
+    _with_remote(sandbox, tmp_path)
+    _write(sandbox, "docs/coverage-report.html", "coverage NEW")
+    (sandbox.repo / "scripts").mkdir(exist_ok=True)
+    _write(sandbox, generator, "# committed\n")
+    sandbox.git("add", generator)
+    sandbox.git("commit", "-qm", "generator")
+    _write(sandbox, generator, "# an uncommitted edit\n")
+    sandbox.generated = _page("new numbers", STAMP_C)
+    before = sandbox.git("rev-parse", "HEAD").stdout.strip()
+    assert sandbox.pub.main([]) == 2
+    assert sandbox.git("rev-parse", "HEAD").stdout.strip() == before
+
+
+def test_counts_that_cannot_be_read_stop_the_step(sandbox, tmp_path):
+    _commit_set(sandbox, _page("same numbers", STAMP_A))
+    _with_remote(sandbox, tmp_path)
+    _write(sandbox, "viewer/projects.data.js", 'window.PROJECTS = {"schema_version": 2};')
+    sandbox.generated = _page("same numbers", STAMP_C)
+    before = sandbox.git("rev-parse", "HEAD").stdout.strip()
+    assert sandbox.pub.main([]) == 2
+    assert sandbox.git("rev-parse", "HEAD").stdout.strip() == before
+
+
+def test_a_payload_absent_from_both_gives_no_counts_trigger(sandbox, tmp_path):
+    _commit_set(sandbox, _page("same numbers", STAMP_A), payload=None)
+    _with_remote(sandbox, tmp_path)
+    sandbox.generated = _page("same numbers", STAMP_C)
+    assert sandbox.pub.counts_changed() is False
+    before = sandbox.git("rev-parse", "HEAD").stdout.strip()
+    assert sandbox.pub.main([]) == 0
+    assert sandbox.git("rev-parse", "HEAD").stdout.strip() == before
+
+
+def test_a_payload_present_only_in_the_working_tree_counts_as_a_change(sandbox, tmp_path):
+    _commit_set(sandbox, _page("same numbers", STAMP_A), payload=None)
+    _write(sandbox, "viewer/projects.data.js", _payload(676, 1448))
+    assert sandbox.pub.counts_changed() is True
+
+
+def test_a_retry_after_a_failed_push_pushes_the_commit_and_exits_zero(sandbox, tmp_path):
+    remote = _with_remote_after_base(sandbox, tmp_path)
+    _write(sandbox, "docs/release-diff.html", _page("new numbers", STAMP_B))
+    sandbox.generated = _page("new numbers", STAMP_C)
+    sandbox.git("remote", "set-url", "origin", str(tmp_path / "no-such-remote.git"))
+
+    assert sandbox.pub.main([]) == 1                    # the commit is made, the push fails
+    head = sandbox.git("rev-parse", "HEAD").stdout.strip()
+    assert sandbox.git("rev-parse", "refs/heads/main", cwd=remote).stdout.strip() != head
+
+    sandbox.git("remote", "set-url", "origin", str(remote))
+    assert sandbox.pub.main([]) == 0                    # nothing new to commit, but the push must land
+    assert sandbox.git("rev-parse", "refs/heads/main", cwd=remote).stdout.strip() == head
+
+
+def _with_remote_after_base(box, tmp_path):
+    _commit_set(box, _page("old numbers", STAMP_A))
+    return _with_remote(box, tmp_path)
+
+
+def test_a_dry_run_names_the_trigger_and_commits_nothing(sandbox, tmp_path, capsys):
+    _commit_set(sandbox, _page("same numbers", STAMP_A))
+    _write(sandbox, "viewer/projects.data.js", _payload(677, 1450))
+    sandbox.generated = _page("same numbers", STAMP_C)
+    before = sandbox.git("rev-parse", "HEAD").stdout.strip()
+    assert sandbox.pub.main(["--dry-run"]) == 0
+    assert sandbox.git("rev-parse", "HEAD").stdout.strip() == before
+    out = capsys.readouterr().out
+    assert "count" in out.lower() and "dry run" in out.lower()
+
+
+def test_the_counts_are_read_from_the_head_of_the_payload():
+    from scripts import publish_release_diff as pub
+
+    assert pub.payload_counts('window.PROJECTS = {"counts": {"projects": 676, "records": 1448}, "projects": []}') == (676, 1448)
+    assert pub.payload_counts('window.PROJECTS = {"counts":{"projects":1,"records":2}}') == (1, 2)
+    with pytest.raises(pub.PublishError):
+        pub.payload_counts('window.PROJECTS = {"schema_version": 2}')
+
+
+def test_the_step_owns_exactly_the_four_generated_pages_and_nothing_under_the_emitted_tree():
+    """Replaces `test_the_step_stages_only_the_paths_it_owns`, which pinned one path."""
+    from scripts.publish_release_diff import OWNED_PATHS
+
+    assert OWNED_PATHS == PAGES
+    for path in OWNED_PATHS:
+        assert path.startswith("docs/"), path
+        assert not path.startswith(("data/", "viewer/")), (
+            "the step must not stage anything under data/ or viewer/: the emitted dataset is "
+            "only written by an explicit ingestion")
+
+
+def test_the_step_reads_the_payload_but_never_writes_it():
+    """Replaces the check that banned the string `projects.data.js` from the source. Reading the
+    payload's counts is now part of the rule, so the guard is about writing."""
+    from scripts import publish_release_diff
+
+    source = Path(publish_release_diff.__file__).read_text(encoding="utf-8")
+    assert not re.search(r"payload[^\n]*\.(write_text|write_bytes)\(|open\([^)\n]*payload[^)\n]*,\s*[\"']w",
+                         source, re.I)
+    for banned in ("raw.tsv", "clean.tsv", "merged.tsv", "projects.json"):
+        assert banned not in source, banned

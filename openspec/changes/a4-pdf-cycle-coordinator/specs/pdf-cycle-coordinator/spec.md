@@ -6,9 +6,9 @@ Runs the existing acquisition, ingest, refresh, rebuild, verification and report
 
 ### Requirement: The cycle runs the existing steps in a fixed order and commits only the report
 
-The system SHALL provide a coordinator that runs these steps in this order: poll the gazette page, poll the 168 list, detect a gazette to ingest, ingest it, refresh the caches whose cases await approval, rebuild the payload from itself, run the post-ingest check, run the test suite and the viewer smoke run, and then, only after a finished ingest, publish the release-diff report. The coordinator SHALL add no polling, ingest, refresh or publication behavior of its own: each step is the existing command with its existing gates and exit codes.
+The system SHALL provide a coordinator that runs these steps in this order: poll the gazette page, poll the 168 list, detect a gazette to ingest, ingest it, refresh the caches whose cases await approval, rebuild the payload from itself, run the post-ingest check, run the test suite and the viewer smoke run, and then, only after a finished ingest, publish the generated report pages: the release-diff report, the coverage report, the domain model and the ETL page. The coordinator SHALL add no polling, ingest, refresh or publication behavior of its own: each step is the existing command with its existing gates and exit codes.
 
-The coordinator's own use of git SHALL be read-only. It SHALL NOT stage, commit or push the emitted files: after a finished cycle they stay uncommitted for a person to review. The only commit and push a cycle causes is the one the existing report publication step makes, and that step stages and commits only the release-diff report.
+The coordinator's own use of git SHALL be read-only. It SHALL NOT stage, commit or push the emitted files: after a finished cycle they stay uncommitted for a person to review. The only commit and push a cycle causes is the one the existing publication step makes, and that step stages and commits only those four generated pages.
 
 #### Scenario: A new gazette passes through every step
 
@@ -25,8 +25,8 @@ The coordinator's own use of git SHALL be read-only. It SHALL NOT stage, commit 
 #### Scenario: The emission is left for review
 
 - **WHEN** a cycle finishes
-- **THEN** the emitted files other than the release-diff report are still uncommitted in the working tree
-- **AND** the only path the cycle caused to be committed is the release-diff report
+- **THEN** the emitted files other than the four generated pages are still uncommitted in the working tree
+- **AND** the only paths the cycle caused to be committed are the four generated pages
 
 #### Scenario: Nothing to ingest causes no write to the emitted dataset
 
@@ -253,9 +253,9 @@ A dry run SHALL run only read-only steps, SHALL report which steps it would take
 - **WHEN** the coordinator runs in dry-run mode and a gazette is ready to ingest
 - **THEN** the steps it reports end with the report publication
 
-### Requirement: The cycle runs daily and is the only scheduled publisher of the report
+### Requirement: The cycle runs daily and is the only scheduled publisher of the report pages
 
-The coordinator SHALL run once a day at 04:00 local time from one scheduled task. The nightly sweep SHALL stay its own scheduled task and SHALL stop no later than 03:30, so the two do not overlap. The release-diff report SHALL have one scheduled publisher only: the coordinator, after a finished ingest. No other scheduled task SHALL publish it.
+The coordinator SHALL run once a day at 04:00 local time from one scheduled task. The nightly sweep SHALL stay its own scheduled task and SHALL stop no later than 03:30, so the two do not overlap. The release-diff report and the generated pages that go with it SHALL have one scheduled publisher only: the coordinator, after a finished ingest. No other scheduled task SHALL publish them.
 
 #### Scenario: The daily run starts after the sweep window
 
@@ -265,5 +265,5 @@ The coordinator SHALL run once a day at 04:00 local time from one scheduled task
 #### Scenario: The report has one scheduled publisher
 
 - **WHEN** the schedule is in place
-- **THEN** the coordinator is the only scheduled task that publishes the release-diff report
+- **THEN** the coordinator is the only scheduled task that publishes the release-diff report and its pages
 - **AND** the former weekly task that did so is not scheduled

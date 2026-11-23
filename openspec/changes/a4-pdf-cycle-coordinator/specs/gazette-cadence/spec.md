@@ -50,3 +50,51 @@ the deployment check reports as stale — visible rather than silent.
 - **WHEN** a check discovers a new gazette and the PDF-cycle coordinator runs after it
 - **THEN** the check itself has only archived and indexed the gazette
 - **AND** any ingestion that follows is started by the coordinator, not by the check
+
+
+## ADDED Requirements
+
+### Requirement: The publication step publishes the generated pages as one set, and only when the report or the counts changed
+
+The publication step SHALL own four generated pages and no other path: the release-diff report, the coverage report, the domain model and the ETL page. It SHALL publish them as one set, and only when the release-diff report differs from the committed report (ignoring the report's generation stamp) or the emitted payload's project or record count differs from the committed payload's. When neither differs, it SHALL commit nothing and SHALL leave the other pages as it found them, because a page that differs from the committed copy in a date alone may belong to an emission still waiting for review. It SHALL stage only the owned pages that exist or are tracked, so a page that does not exist is skipped and is not an error.
+
+The step SHALL refuse, with exit 2 and without committing, when the source of any generator of an owned page has uncommitted changes, or when the payload is present but its counts cannot be read. A payload that is absent from both the commit and the working tree SHALL NOT trigger publication by its counts. The step SHALL write no file under the emitted output tree.
+
+A step that is run again after its push failed SHALL push the commit that is ahead of the remote and SHALL exit 0 when the push lands, even though it has nothing new to commit.
+
+#### Scenario: The report changed
+
+- **WHEN** the release-diff report differs from the committed one
+- **THEN** every owned page that differs from the committed copy is committed together in one path-limited commit
+- **AND** another session's staged file is not committed and stays staged
+
+#### Scenario: Only the counts changed
+
+- **WHEN** the release-diff report is unchanged but the payload's project or record count differs from the committed payload's
+- **THEN** the owned pages that differ are committed, and the report stays byte-identical to the committed one
+
+#### Scenario: Nothing changed
+
+- **WHEN** the report is unchanged and the counts are unchanged
+- **THEN** nothing is committed or pushed
+- **AND** the other owned pages are left exactly as they were found, even if they differ from the committed copy in a date
+
+#### Scenario: An owned page does not exist
+
+- **WHEN** an owned page is neither on disk nor tracked
+- **THEN** the step publishes the pages that do exist and reports no error
+
+#### Scenario: A generator of an owned page is uncommitted
+
+- **WHEN** the source of the coverage report's, the domain model's or the ETL page's generator has uncommitted changes
+- **THEN** the step exits 2 and commits nothing
+
+#### Scenario: The counts cannot be read
+
+- **WHEN** the payload is present but carries no readable counts
+- **THEN** the step exits 2 and commits nothing
+
+#### Scenario: A retry after a failed push lands
+
+- **WHEN** the step committed the pages, its push failed, and it is run again
+- **THEN** it pushes the commit that is ahead of the remote and exits 0

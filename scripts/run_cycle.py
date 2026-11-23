@@ -10,8 +10,9 @@ existing commands in one fixed order and adds no polling, ingest or refresh logi
 
 The coordinator's own use of git is one read-only `git status`. After a FINISHED ingest it
 records the hash as finished and then runs the existing `publish_release_diff.py` (design D13:
-the operator amended U-D2 for the release-diff report only), which commits and pushes only
-`docs/release-diff.html`. The emission itself (`data/`, `viewer/`, the other generated pages)
+the operator amended U-D2 for the four generated pages only), which commits and pushes only
+`docs/release-diff.html`, `docs/coverage-report.html`, `docs/domain-model.html` and
+`docs/etl_process.html`, as one set. The emission itself (`data/`, `viewer/`, the other generated pages)
 stays uncommitted for a person to review (A5). It never passes `--allow-reconcile-block` or
 `--no-archive`, and stops at the first step that exits non-zero. A failed publication is its own
 outcome, `publish_failed`: it never un-finishes the hash and never brings the ingest back.
@@ -363,7 +364,7 @@ def _dry_run(opts: Options, deps: Deps) -> int:
         print("dry run: would %s gazette %s (%s), starting at %s" %
               ("ingest" if det.kind == "candidate" else "resume", det.gazette_id, det.sha256[:12], start))
         print("dry run: steps: " + ", ".join(order[order.index(start):])
-              + "; the last step publishes the release-diff report, and the emission stays "
+              + "; the last step publishes the four generated pages, and the emission stays "
               "uncommitted for you to review")
         if start == "ingest":
             dirty = deps.git_dirty(cycle.OWNED_PATHS)

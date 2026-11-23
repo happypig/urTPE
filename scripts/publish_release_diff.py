@@ -19,6 +19,16 @@ step names the paths it owns on the commit command itself, not only on the
 `git add`: a `git commit` without a path limit takes the whole index, and the
 index holds whatever another session has staged (measured 2026-11-09).
 
+The step owns four generated pages and no other path: the release-diff report,
+the coverage report, the domain model and the ETL page. It publishes them as ONE
+set, and only when the report differs from the committed report (ignoring its
+generation stamp) or the payload's project or record count differs from the
+committed payload's. When neither does, it commits nothing and leaves the other
+pages as it found them: a date-only difference may belong to an emission that is
+still waiting for review. The other three pages are published as they are in the
+working tree, so run `post_ingest_check.py` first (the PDF cycle does). The step
+reads the payload's counts and never writes the payload.
+
 A failed push is reported as a failure, not swallowed. The committed report
 is then ahead of the served one, which `scripts/check_deploy.py` reports as
 stale — visible rather than silent.
@@ -26,7 +36,8 @@ stale — visible rather than silent.
     python scripts/publish_release_diff.py [--dry-run]
 
 Exit codes: 0 published (or nothing to publish), 1 the push failed, 2 the
-working tree is not in a state to publish from.
+working tree is not in a state to publish from. A retry after a failed push
+finds the commit already made, and pushes it.
 """
 
 from __future__ import annotations
@@ -43,11 +54,15 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 REPORT = ROOT / "docs" / "release-diff.html"
 # The paths this step owns. Nothing else is ever staged by it.
-OWNED_PATHS = ["docs/release-diff.html"]
+OWNED_PATHS = ["docs/release-diff.html", "docs/coverage-report.html",
+               "docs/domain-model.html", "docs/etl_process.html"]
 # The generator's own source. A working-tree change here would change what
 # "regenerate" means, so the step stops rather than publishing a report
 # produced by an uncommitted generator.
-GENERATOR_PATHS = ["scripts/release_diff.py", "scripts/release_diff_report.py"]
+GENERATOR_PATHS = ["scripts/release_diff.py", "scripts/release_diff_report.py",
+                   "scripts/coverage_report.py", "scripts/coverage_checks.py",
+                   "scripts/sync_domain_model.py", "scripts/sync_etl_process.py",
+                   "scripts/doc_measurements.py"]
 
 
 class PublishError(RuntimeError):
@@ -143,6 +158,52 @@ def _strip_stamp(text: str) -> str:
     return _STAMP_RE.sub("<stamp>", text)
 
 
+def _payload_path() -> pathlib.Path:
+    return ROOT / "viewer" / "projects.data.js"
+
+
+_COUNTS_RE = re.compile(r'"counts"\s*:\s*\{\s*"projects"\s*:\s*(\d+)\s*,\s*"records"\s*:\s*(\d+)')
+
+
+def payload_counts(text: str) -> tuple[int, int]:
+    """(projects, records) from the head of a payload. Unreadable counts are an error:
+    the step never guesses whether the dataset changed."""
+    m = _COUNTS_RE.search(text[:8192])
+    if not m:
+        raise PublishError("the payload carries no readable counts; refusing to guess "
+                           "whether the dataset changed")
+    return int(m.group(1)), int(m.group(2))
+
+
+def counts_changed() -> bool:
+    """Whether the payload's project or record count differs from the committed payload's.
+
+    A payload absent from both the commit and the working tree gives no trigger. A payload
+    present in only one of them is a change. A payload present but unreadable is an error."""
+    path = _payload_path()
+    work = path.read_text(encoding="utf-8") if path.exists() else None
+    proc = git("show", "HEAD:viewer/projects.data.js")
+    head = proc.stdout if proc.returncode == 0 else None
+    if work is None and head is None:
+        return False
+    if work is None or head is None:
+        return True
+    return payload_counts(work) != payload_counts(head)
+
+
+def stageable_paths() -> list[str]:
+    """The owned pages that exist or are tracked. `git add` fails on a path that is neither."""
+    tracked = set(git("ls-files", "--", *OWNED_PATHS).stdout.split())
+    return [p for p in OWNED_PATHS if (ROOT / p).exists() or p in tracked]
+
+
+def unpushed_owned() -> bool:
+    """Whether a commit that touches an owned page is ahead of `origin/main`. After a failed
+    push the commit already exists, so a retry has nothing new to commit but must still push."""
+    proc = git("rev-list", "origin/main..HEAD", "--", *OWNED_PATHS)
+    return proc.returncode == 0 and bool(proc.stdout.split())
+
+
 def commit(message: str) -> bool:
     """Commit the owned paths. Returns whether a commit was made.
 
@@ -155,13 +216,16 @@ def commit(message: str) -> bool:
     asks for: another session's file is neither committed nor discarded, and
     it stays staged for the session that staged it.
     """
-    proc = git("add", "--", *OWNED_PATHS)
+    paths = stageable_paths()
+    if not paths:
+        return False
+    proc = git("add", "--", *paths)
     if proc.returncode != 0:
         raise PublishError("git add failed: %s" % proc.stderr.strip())
-    staged = git("diff", "--cached", "--name-only", "--", *OWNED_PATHS).stdout.split()
+    staged = git("diff", "--cached", "--name-only", "--", *paths).stdout.split()
     if not staged:
         return False
-    proc = git("commit", "-m", message, "--", *OWNED_PATHS)
+    proc = git("commit", "-m", message, "--", *paths)
     if proc.returncode != 0:
         raise PublishError("git commit failed: %s" % proc.stderr.strip())
     return True
@@ -208,34 +272,39 @@ def main(argv: list[str] | None = None) -> int:
     try:
         check_tree()
         changed = regenerate()
+        counts = counts_changed()
     except PublishError as exc:
         print("[ERROR] %s" % exc, file=sys.stderr)
         return 2
 
-    if not changed:
-        print("[INFO] the report is unchanged; nothing to publish")
-        return 0
-
-    print("[INFO] the report changed")
+    triggered = changed or counts
+    if changed:
+        print("[INFO] the report changed")
+    if counts:
+        print("[INFO] the project or record count changed")
 
     if args.dry_run:
+        if not triggered:
+            print("[INFO] the report and the counts are unchanged; nothing to publish")
         print("[INFO] dry run: not committing, not pushing")
         return 0
 
     try:
-        made = commit("docs: regenerate the release-diff report")
-        if not made:
-            print("[INFO] nothing staged; nothing to publish")
+        made = commit("docs: regenerate the release-diff report and the generated pages") if triggered else False
+        if made:
+            print("[INFO] committed")
+        if made or unpushed_owned():
+            if not made:
+                print("[INFO] a commit of the pages is ahead of the remote; pushing it")
+            push()
+            print("[INFO] published")
             return 0
-        print("[INFO] committed")
-        push()
     except PublishError as exc:
         print("[ERROR] %s" % exc, file=sys.stderr)
         return 1
 
-    print("[INFO] published")
+    print("[INFO] the report and the counts are unchanged; nothing to publish")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -22,8 +22,10 @@ held lock (exit 5), a dirty tree and another running cycle are transient: the da
 refused, only the moment.
 
 **The report is published last, after the hash is finished** (design D13). The operator
-amended U-D2 for the release-diff report only: the coordinator's own git use is read-only, but
-after a finished ingest it runs the existing `publish_release_diff.py`. A failed push is its own
+amended U-D2 for the four generated pages only (release-diff report, coverage report, domain
+model, ETL page): the coordinator's own git use is read-only, but after a finished ingest it
+runs the existing `publish_release_diff.py`, which publishes those pages as one set when the
+report or the payload counts changed. A failed push is its own
 outcome and never brings the ingest back.
 
 **Progress is kept after every step.** The ingest updates the dataset, so once it has run the
@@ -115,8 +117,8 @@ def build_steps(python: str = "python", pdf: str = "<pdf>", dry_run: bool = Fals
         Step("post_ingest_check", (python, "scripts/post_ingest_check.py"), 1800, True),
         Step("tests", (python, "-m", "pytest", "-q"), 1800, False),
         Step("viewer_smoke", ("node", "scripts/viewer_smoke.js"), 300, False),
-        # Design D13: the existing publisher, unchanged, only after a finished ingest. It
-        # stages and commits only docs/release-diff.html; the coordinator itself runs no git.
+        # Design D13: the existing publisher, only after a finished ingest. It stages and
+        # commits only the four generated pages, as one set; the coordinator itself runs no git.
         Step("publish_report", (python, "scripts/publish_release_diff.py",
                                 *(("--dry-run",) if archive_root else ())), 600, False),
     ]

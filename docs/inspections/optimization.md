@@ -20,10 +20,12 @@ membership rule in Part III would repeat the seven-rule problem that Batch F mea
 **Rules for this board.**
 
 - Every figure names its date and its source. A figure that was not re-measured says so.
-- A recommendation is not a decision. An OpenSpec change opens on the user's word, one item
-  at a time. `openspec list` reported no active change on 2026-11-19.
+- A recommendation is not a decision. An OpenSpec change opens on the user's word. The user
+  gave that word once on 2026-11-22 for the 12 ratified rows (see "Decisions to make"). Every
+  other item, S3/S5 and F8-C included, still opens one at a time, on a separate word.
+  `openspec list` reported no active change on 2026-11-19.
 - This board changes no code, no payload and no spec. Part II keeps decisions that the user
-  already made on 2026-11-15; Part I and Part III hold none.
+  already made on 2026-11-15; Part I and Part III hold the decisions ratified on 2026-11-22 (see "Decisions to make").
 
 **State at 2026-11-20.** Payload `data/projects.json` at commit `6b97a83`: 1,448 records,
 676 projects, 統計至 2026-11-12, 2,028 Viewer case ids that carry a name. District tables:
@@ -80,11 +82,11 @@ Four dependencies cross Part boundaries:
 
 | # | Question | Recommendation | Status |
 |---|---|---|---|
-| U-D1 | May a scheduled coordinator initiate ingestion after hash acquisition? | yes, through an OpenSpec change and all existing gates | **undecided** |
-| U-D2 | Does the first coordinator stop before git publication? | **A: generate and stop first** | **undecided** |
-| U-D3 | If automatic publication is later approved, who owns `release-diff.html`? | one cycle owner; serialize or supersede the report-only publisher | **undecided** |
-| U-D4 | Should city-only refresh have its own cadence? | measure the need separately; do not couple it to PDF ingestion | **undecided** |
-| U-D5 | Should a diagnostic agent receive a failure bundle? | only after deterministic logs prove a triage need | **undecided** |
+| U-D1 | May a scheduled coordinator initiate ingestion after hash acquisition? | yes, through an OpenSpec change and all existing gates | **ratified 2026-11-22** |
+| U-D2 | Does the first coordinator stop before git publication? | **A: generate and stop first** | **ratified 2026-11-22** |
+| U-D3 | If automatic publication is later approved, who owns `release-diff.html`? | one cycle owner; serialize or supersede the report-only publisher | **ratified 2026-11-22** |
+| U-D4 | Should city-only refresh have its own cadence? | measure the need separately; do not couple it to PDF ingestion | **ratified 2026-11-22** |
+| U-D5 | Should a diagnostic agent receive a failure bundle? | only after deterministic logs prove a triage need | **ratified 2026-11-22** |
 | U-D6 | What happens to the `urtpe-nightly-sweep` task until A8 lands (U9)? | keep it running. Nights with no candidate exit at once and write nothing. Land A8 before about 2026-11-28, when the 2026-11-14 probes leave the 14-day window. Other options: pause it, or keep it and add a check step after its rebuild. | **decided 2026-11-22: keep it running.** The user said "start A8, keep the sweep running". |
 | U-D7 | Do the two pollers run daily instead of weekly? | yes, after A3. They write nothing under `data/`. `publish_release_diff.py` strips its stamp and exits 0 when the report is unchanged. Not read: `check_tree()`. | **decided 2026-11-23: daily.** The pollers run daily inside the cycle. The cycle (`urtpe-cycle`) runs at 04:00, after a sweep window of 00:30 to 03:30. The user first chose 06:00 and then moved the cycle to 04:00. `urtpe-poll` is disabled, not deleted. |
 | U-D8 | Does the national sweep stay its own task, or join the A4 coordinator? | stay its own task until A8 is done and A4 is proven. Both would write the same cache. | **decided 2026-11-23: its own task.** The cycle checks the lock first and stops with exit 5 recorded if a writer holds it. |
@@ -92,17 +94,27 @@ Four dependencies cross Part boundaries:
 | D11 | Does S1's own-parcel form adopt the count rule? | **A** | **decided 2026-11-15: A.** The change is not opened. |
 | S3/S5 | Does S5 adopt the gate rule? | measure first (M4), then decide | **decided 2026-11-15: measure first.** M4 is that measurement. The choice after it is open. |
 | F8-C | Remove a cross-listed case from the wrong holder? | wait for D11 and the S3/S5 choice | **decided 2026-11-15: wait** |
-| O-D1 | Where does the identity ledger live, and who may append? | a separate append-only file with the correction ledger's rules (keyed on land core and date, never on 編號 or `case_id` alone) | **undecided** |
-| O-D2 | What evidence assigns a record to a `project_uid`? | the `membership_verdict` land-core rule, the same district, and manual review for every ambiguous match (O5 measured one) | **undecided** |
-| O-D3 | Does any of the four conflicting IDs get a ledger correction? | no. Record the evidence; let the city correct its own ID | **undecided** |
-| O-D4 | Do the approved lane and the pending lane fail independently (O9)? | yes. A pending-lane failure stops that lane only. The old pending file stays and is marked stale with its observation time. | **undecided** |
-| O-D5 | Where does the pending lane write? | its own output tree with its own lock. It reads `data/projects.json` at one named revision and never writes `data/`. | **undecided** |
-| O-D6 | Does the district crawl have its own cadence? | yes. This answers U-D4 for the pending lane. Decide the interval after the change rate is measured. | **undecided** |
-| O-D7 | Where does the original value of a patched field live (O11)? | a sidecar keyed by land core and approval date, written at apply time. It does not rewrite `projects.json`. | **undecided** |
+| O-D1 | Where does the identity ledger live, and who may append? | a separate append-only file with the correction ledger's rules (keyed on land core and date, never on 編號 or `case_id` alone) | **ratified 2026-11-22** |
+| O-D2 | What evidence assigns a record to a `project_uid`? | the `membership_verdict` land-core rule, the same district, and manual review for every ambiguous match (O5 measured one) | **ratified 2026-11-22** |
+| O-D3 | Does any of the four conflicting IDs get a ledger correction? | no. Record the evidence; let the city correct its own ID | **ratified 2026-11-22** |
+| O-D4 | Do the approved lane and the pending lane fail independently (O9)? | yes. A pending-lane failure stops that lane only. The old pending file stays and is marked stale with its observation time. | **ratified 2026-11-22** |
+| O-D5 | Where does the pending lane write? | its own output tree with its own lock. It reads `data/projects.json` at one named revision and never writes `data/`. | **ratified 2026-11-22** |
+| O-D6 | Does the district crawl have its own cadence? | yes. This answers U-D4 for the pending lane. Decide the interval after the change rate is measured. | **ratified 2026-11-22** |
+| O-D7 | Where does the original value of a patched field live (O11)? | a sidecar keyed by land core and approval date, written at apply time. It does not rewrite `projects.json`. | **ratified 2026-11-22** |
 
-**Rows added 2026-11-22.** U9, A8 and U-D6 to U-D9 are new. A8 does not widen A1.
-The user gave a separate word for A8 ("start A8") and for U-D6 ("keep the sweep running").
-U-D7, U-D8 and U-D9 are still proposed. Each one waits for the user.
+**Ratified 2026-11-22.** The user chose "Ratify recommendations" for the 12 rows above that read
+"ratified": the recommendation column of U-D1 to U-D5 and O-D1 to O-D7 is now the decision.
+The user also gave a standing word to run Parts I to III in the order of the Order table,
+one OpenSpec change in flight at a time, with the test-first gate. Limits that stay:
+
+- Nothing is committed, pushed or published without a separate word (U-D2 = A).
+- Rows added 2026-11-22 (U9, A8, U-D6 to U-D9) are outside this word. A8 does not widen A1.
+  The user gave a separate word for A8 ("start A8") and for U-D6 ("keep the sweep running").
+  U-D7, U-D8 and U-D9 are still proposed. Each one waits for the user.
+- U-D3 leaves "serialize or supersede" to the change that implements it.
+- U-D4 and U-D5 ratify "measure first" and "only after logs prove a need". They defer A6 and A7.
+- **S3/S5 is not ratified.** It stays open and moved to an architecture exploration of the
+  seven checkers (S1 to S7). F8-C still waits for it.
 
 ---
 
@@ -124,7 +136,7 @@ pollers and `publish_release_diff.py` on Sundays at 05:10 (changed from Mondays 
 Viewer. `urtpe-nightly-sweep` runs the national-portal sweep every night. It can rewrite the
 Viewer payload (U9). Nothing schedules an ingest or `refresh_whole_corpus.py`. The full manual
 runbook is `docs/pipeline/etl_process.md` §11. `openspec list` reported no active change on
-2026-11-19 and again on 2026-11-22. The recommendations in the table above stay as written. This
+2026-11-19 and again on 2026-11-22. The decisions in the table above stay as ratified. This
 section records recommendations, not new decisions. U9, A8 and U-D6 to U-D9 were added on
 2026-11-22. The user then decided A8 and U-D6. U-D7 to U-D9 stay proposals.
 
@@ -479,7 +491,7 @@ push. A6 and A7 are separate expansions, not hidden parts of the PDF-cycle imple
 
 ### Automation decisions
 
-U-D1 to U-D5 are in the "Decisions to make" table at the top of this board. All five are undecided. U-D6 to U-D9 sit in the same table: U-D6 is decided, U-D7 to U-D9 are open.
+U-D1 to U-D5 are in the "Decisions to make" table at the top of this board. All five were ratified on 2026-11-22. U-D6 to U-D9 sit in the same table and are open.
 
 **If Part III goes ahead.** The district tables add a second lane to this cycle. See O9. Part I
 stays correct for the approved lane and is not rewritten.
@@ -497,6 +509,19 @@ implementation decisions.
 opens on the user's word (not yet opened). Also decided the same day: **S3/S5 —
 measure first** (below); **F8 option C waits** for D11 and S3/S5; the three read-only
 measurements below were ordered.
+
+**D11 implemented 2026-11-24** (openspec `d11-search-guard-count-rule`, opened at the
+user's word that day). The guard's own-parcel form now reads the gate's count rule;
+a failing count reads `count_refused`. Measured before the code, offline:
+of the 62 frozen pairs, 54 are the own-parcel form and 8 are the stem form (all 8
+held-here cross-listings, which stay — F8-C still waits). The golden table's S1
+column moved by exactly 65 pairs, all accept→refuse; S2/S3/S4/S5 untouched; the three
+tier-1 hand-checked units keep all their cases accepted. `search_taipei_cases_api`
+gained `own_counts` and `land_core`; both production callers pass them. No cache and
+no payload moved: no fresh discovery has run since F3, and a refresh appends and never
+removes (the held-here pair 臨沂412 `10205151` stays in its cache). The 62-pair fixture
+stays frozen at 62; its test now also pins the post-D11 verdicts (54 refused, 8 stem
+admitted).
 
 ### Measurements M1–M4 ordered with those decisions (2026-11-15, all read-only)
 

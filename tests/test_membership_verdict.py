@@ -103,8 +103,12 @@ OWN = ("8", "9", "18-1")
 NAME = "擬訂臺北市文山區華興段一小段{p}土地都市更新事業計畫案"
 
 
-def _guard(name, parcel="8", own=OWN, anchor=""):
-    return L.membership_verdict(name, L.Unit(CORE, own, (), anchor), "search_guard",
+def _guard(name, parcel="8", own=OWN, anchor="", counts=(4, 13)):
+    # D11 (d11-search-guard-count-rule, user decision 2026-11-15): the
+    # own-parcel form adopts the count rule, so the guard's Unit now carries
+    # the unit's counts — phase 1's empty tuple would refuse every counted
+    # own-parcel name but the land-core count's.
+    return L.membership_verdict(name, L.Unit(CORE, own, counts, anchor), "search_guard",
                                 searched_parcel=parcel)
 
 
@@ -122,6 +126,11 @@ class TestTheSearchGuardKeepsItsThreeParcelRules:
     def test_an_own_parcel(self):
         v = _guard(NAME.format(p="18-1地號等13筆"))
         assert v.accept and v.reason == "own_parcel"
+
+    def test_an_own_parcel_with_a_count_the_unit_never_declared_is_refused(self):
+        """D11: the own-parcel form adopts the count rule (the 54 measured pairs)."""
+        v = _guard(NAME.format(p="18-1地號等9筆"))
+        assert not v.accept and v.reason == "count_refused"
 
     def test_a_parcel_less_name_is_corroborated_by_the_anchor_name(self):
         anchor = "擬訂臺北市大同區崇仁新村都市更新事業計畫案"

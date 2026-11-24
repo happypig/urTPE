@@ -39,13 +39,32 @@ the search for 萬華段一小段 returns five cases of other units, and the uni
 own case lives under the 地號 cell's form.
 
 The name guard SHALL keep a case whose own name declares **any of the unit's
-own parcels**, not only the searched one. The city indexes a case under
-whichever parcel it lists first, and that is not always the unit's first:
-臨沂段三小段412's case 10305021 is indexed under 414 while its name declares
-412. A case declaring a parcel of a DIFFERENT unit SHALL still be dropped.
+own parcels**, not only the searched one, **and whose declared count passes the
+count rule**: the name's `等N筆`, or one of its `原N筆`, SHALL equal the unit's
+count at any approval — a count the unit's caches hold or the count of the
+unit's own land core. The city indexes a case under whichever parcel it lists
+first, and that is not always the unit's first: 臨沂段三小段412's case
+10305021 is indexed under 414 while its name declares 412, and its count
+matches the unit's, so the guard keeps it. A name that declares an own parcel
+and a count the unit never declared SHALL be refused and named in the rejected
+evidence: it is the shape of the 54 pairs the count rule refuses (measured
+2026-11-24, e.g. 正義段三小段418's neighbour 419等9筆 against the unit's 10).
+
+The name guard SHALL keep the two older forms unchanged: a name that declares
+**the searched parcel itself** needs no count test, and the legacy **stem form**
+(a name carrying the pre-subdivision stem) SHALL keep its current behaviour —
+its cross-listings are a separate open decision (F8 option C) and this change
+does not decide them. A parcel-less name SHALL still be admitted only by
+corroboration.
+
+A case declaring a parcel of a DIFFERENT unit SHALL still be dropped.
 
 A case found under a parcel or a section form other than the node's own SHALL
 still be accepted only on the resolver's own name-and-date acceptance test.
+
+When the caller passes no counts, the count rule SHALL fall back to the unit's
+own land-core count alone (the narrower rule, the same fallback the §8 gate
+uses); this state is a named behaviour, not a silent widening.
 
 #### Scenario: Parcel search returns r_progress cases
 - **WHEN** the system searches 玉泉段二小段 with 母號 40
@@ -81,12 +100,34 @@ still be accepted only on the resolver's own name-and-date acceptance test.
 - **THEN** the search finds case 10903061
 
 #### Scenario: A case naming another of the unit's own parcels is kept
-- **WHEN** the search for 臨沂段三小段 parcel 414 returns case 10305021, whose name declares parcel 412, and 412 is one of the unit's own parcels
+- **WHEN** the search for 臨沂段三小段 parcel 414 returns case 10305021, whose name declares parcel 412, and 412 is one of the unit's own parcels, and the name's declared count equals a count the unit declared at one of its approvals
 - **THEN** the case is kept
 
 #### Scenario: A case of another unit is still dropped
 - **WHEN** the search for 吳興一小段 parcel 330 returns a case whose name declares 58, and 58 is not one of the unit's parcels
 - **THEN** the case is dropped and named in the rejected evidence
+
+#### Scenario: An own-parcel name with an undeclared count is refused
+- **WHEN** the search for 正義段三小段 parcel 418 returns case 09810291, whose name declares parcel 419 (one of the unit's own parcels) with the count 等九筆 (9), and the unit's counts at every approval are 10
+- **THEN** the case is refused with a reason naming the count, and is recorded in `search_rejected`
+- **AND** the refusal does not depend on which parcel the search asked for
+
+#### Scenario: A count of an earlier approval passes the guard
+- **WHEN** a case's name declares one of the unit's own parcels with a count the unit declared at an earlier approval (a count its cache holds), as 華興段一小段8's case 09708111 does with 13
+- **THEN** the case is kept
+
+#### Scenario: The searched parcel itself needs no count
+- **WHEN** a case's name declares the searched parcel with a count the unit never declared
+- **THEN** the case is kept (the count rule does not widen to the exact form)
+
+#### Scenario: The stem form keeps its behaviour
+- **WHEN** a case's name carries the pre-subdivision stem of the searched parcel (e.g. 大龍段一小段265地號 while the unit is 265-7), with or without a passing count
+- **THEN** the guard's verdict is the one it gives today, whichever way it falls (the stem form's cross-listings await F8 option C)
+
+#### Scenario: No counts passed falls back to the land-core count
+- **WHEN** the caller passes the unit's parcels without counts and the case name declares an own parcel with a count equal to the unit's land-core count
+- **THEN** the case is kept
+- **AND** when the count differs from the land-core count, the case is refused
 
 ### Requirement: Fetch milestone timelines per case via the Taipei JSON API
 

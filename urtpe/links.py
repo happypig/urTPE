@@ -693,6 +693,10 @@ def discover_project_links(
                     # F3: the refresh passes the unit's parcels to this same guard;
                     # discovery must too, or one predicate gives two answers.
                     own_parcels=own_parcels_of(anchor),
+                    # D11: the own-parcel form adopts the count rule; the gate
+                    # already reads these same counts.
+                    own_counts=own_counts_of(project),
+                    land_core=land_core,
                 )
             except TypeError:
                 # an adapter that does not take the extra forms (a test double)
@@ -995,7 +999,9 @@ def _post_taipei_api(url: str, params: dict, max_retries: int = 3) -> str:
 def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dict] = None,
                             anchor_name: str = "",
                             extra_sections: Optional[list] = None,
-                            own_parcels: Optional[list] = None) -> list[dict]:
+                            own_parcels: Optional[list] = None,
+                            own_counts: Optional[list] = None,
+                            land_core: str = "") -> list[dict]:
     """Search Taipei platform cases by land section + parcel.
 
     Args:
@@ -1011,7 +1017,12 @@ def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dic
             city indexes when the gazette's 案名 and 地號 columns disagree
             (河堤五小段 vs 河堤段五小段, design D4).
         own_parcels: the unit's own parcel list — a case naming any of them
-            is the same unit's case, so the guard keeps it (design D4).
+            is the same unit's case, so the guard keeps it (design D4) — since
+            D11 only when the name's declared count also passes the count rule.
+        own_counts: the unit's counts at every approval; the count rule reads
+            them plus the land-core count.
+        land_core: the unit's land core; supplies the fallback count when
+            ``own_counts`` is empty (the gate's narrower rule).
 
     Returns list of {case_id, case_name, schedule} dicts whose case_name
     carries the searched parcel (§6.7 guard shape) or is a corroborated named-area case.
@@ -1019,7 +1030,8 @@ def search_taipei_cases_api(section: str, parcel: str, dropped_out: Optional[dic
     return _search_taipei_raw(section, parcel, guard=True, dropped_out=dropped_out,
                               anchor_name=anchor_name,
                               extra_sections=extra_sections,
-                              own_parcels=own_parcels)
+                              own_parcels=own_parcels,
+                              own_counts=own_counts, land_core=land_core)
 
 
 def search_taipei_cases_for_node(section: str, parcel: str,
@@ -1069,7 +1081,9 @@ def _search_taipei_raw(section: str, parcel: str, guard: bool = True,
                        dropped_out: Optional[dict] = None,
                        anchor_name: str = "",
                        extra_sections: Optional[list] = None,
-                       own_parcels: Optional[list] = None) -> list[dict]:
+                       own_parcels: Optional[list] = None,
+                       own_counts: Optional[list] = None,
+                       land_core: str = "") -> list[dict]:
     def _query(sec: str, p: str) -> list:
         if "-" in p:
             mono, _, suno = p.partition("-")
@@ -1144,7 +1158,9 @@ def _search_taipei_raw(section: str, parcel: str, guard: bool = True,
             seen.add(cid)
             case_name = e.get("case_name", "")
             if guard and not membership_verdict(
-                    case_name, Unit("", tuple(own_parcels or ()), (), anchor_name),
+                    case_name,
+                    Unit(land_core, tuple(own_parcels or ()),
+                         tuple(own_counts or ()), anchor_name),
                     "search_guard", searched_parcel=parcel).accept:
                 dropped[cid] = case_name
                 continue
@@ -1538,6 +1554,21 @@ def unit_accepts_case_name(own_land_core: str, case_name: str, own_parcels,
     return bool(_unit_membership_reason(own_land_core, case_name, own_parcels, own_counts))
 
 
+def _count_rule_passes(case_name: str, own_counts, land_core: str) -> bool:
+    """unit-count-rule (F7, decided by the user 2026-11-15): does the name declare
+    a count the unit held at ANY approval? The name's `等N筆`, or one of its
+    `(原N筆)`, must equal a member of ``own_counts`` or the unit's own land-core
+    count. With no ``own_counts`` the land-core count is the only count: the
+    narrower rule, never a silent widening (the caller names that state in its
+    report). Shared by the §8 gate and, since D11 (2026-11-15 decision), the
+    search guard's own-parcel form."""
+    counts = {int(c) for c in (own_counts or ()) if c}
+    core_count = _land_core_count(land_core)
+    if core_count is not None:
+        counts.add(core_count)
+    return any(c in counts for c in _name_counts(case_name))
+
+
 def _unit_membership_reason(own_land_core: str, case_name: str, own_parcels,
                             own_counts=()) -> str:
     """The rule that accepted a name for a unit: "land_core", "own_parcel", or ""
@@ -1553,11 +1584,7 @@ def _unit_membership_reason(own_land_core: str, case_name: str, own_parcels,
     if not _names_an_own_parcel_in_the_own_section(own_land_core, name, city_lc,
                                                    own_parcels):
         return ""
-    unit_counts = {int(c) for c in (own_counts or ()) if c}
-    core_count = _land_core_count(own_land_core)
-    if core_count is not None:
-        unit_counts.add(core_count)
-    return "own_parcel" if any(c in unit_counts for c in _name_counts(name)) else ""
+    return "own_parcel" if _count_rule_passes(name, own_counts, own_land_core) else ""
 
 
 @dataclass(frozen=True)
@@ -1592,9 +1619,10 @@ def membership_verdict(case_name: str, unit: Unit, policy: str, *,
 
     * ``search_guard`` (S1, the city parcel search): the name carries the searched
       parcel (``exact``), the pre-subdivision stem (``stem``: also admits a larger
-      neighbour's cases, F8) or one of the unit's own parcels (``own_parcel``), or
-      the anchor name corroborates a parcel-less name (``corroborated_area``);
-      otherwise ``dropped``.
+      neighbour's cases, F8) or one of the unit's own parcels (``own_parcel``, which
+      since D11 also needs the count rule: a failing count reads
+      ``count_refused``), or the anchor name corroborates a parcel-less name
+      (``corroborated_area``); otherwise ``dropped``.
     * ``gate`` (S2, the §8 view-page gate): ``unit_accepts_case_name`` with the
       unit's own parcels and counts: ``land_core`` or ``own_parcel``, else ``refused``.
     * ``offer`` (S3) and ``orphan_name`` (S5): the name's land core against the
@@ -1610,6 +1638,16 @@ def membership_verdict(case_name: str, unit: Unit, policy: str, *,
         own = tuple(unit.own_parcels or ())
         parcel = searched_parcel if searched_parcel is not None else (own[0] if own else "")
         rule = _parcel_rule(case_name, parcel, own)
+        # D11 (user decision 2026-11-15, d11-search-guard-count-rule): the
+        # own-parcel form adopts the gate's count rule. A name that declares an
+        # own parcel with a count the unit never declared is a neighbour's case
+        # (the 54 measured pairs, e.g. 正義段三小段418's neighbour 419等9筆), and a
+        # fresh discovery would otherwise re-admit the 46 held-by-no-project
+        # pairs D2 left out. The exact form (the searched parcel itself) and the
+        # stem form (F8) keep their behaviour.
+        if rule == "own_parcel" and not _count_rule_passes(case_name, unit.own_counts,
+                                                           unit.land_core):
+            return Verdict(False, "count_refused")
         if rule:
             return Verdict(True, rule)
         if _corroborated_area(unit.anchor_name, case_name):
@@ -2608,7 +2646,11 @@ def refresh_project(cache_dir: Path, project_id: str, fetch=None,
                     found = search(section, p, dropped_out={},
                                    anchor_name=anchor_name or "",
                                    extra_sections=extra_sections,
-                                   own_parcels=parcels_to_try) or []
+                                   own_parcels=parcels_to_try,
+                                   # D11: the guard's own-parcel form reads the
+                                   # cache's counts and its healed land core.
+                                   own_counts=cached.own_counts,
+                                   land_core=cached.land_core) or []
                 except TypeError:
                     # an adapter that does not take the extra forms
                     found = search(section, p, dropped_out={},

@@ -415,13 +415,46 @@ def _s1_accepts_rule_refuses():
 
 def test_the_search_guard_accepts_62_pairs_the_count_rule_refuses_and_may_only_shrink():
     """F3 made discovery pass own_parcels to the search guard (S1); S1's own-parcel
-    form has no count test, so a FRESH discovery (or a refresh with a 5-part key)
-    re-accepts the held_none pairs below, the 'other 46' that D2 left out. This is
-    the conflict between D8 item 2 and D2, awaiting the user (docs/inspections/
-    inspection-batchF.md, D11): S1 adopts the count rule, or discovery stops passing the
-    parcels. Until then the set is pinned: it may shrink, never grow."""
+    form had no count test, so a FRESH discovery (or a refresh with a 5-part key)
+    would re-accept the held_none pairs below, the 'other 46' that D2 left out.
+    That conflict (docs/inspections/inspection-batchF.md, D11) the user decided
+    2026-11-15: option A, the own-parcel form adopts the count rule — implemented
+    by d11-search-guard-count-rule. The fixture still freezes the 62-pair
+    form-versus-rule population the decision was measured on; it may shrink, never
+    grow. The guard's post-D11 verdicts are pinned by the companion test."""
     frozen = {(a, b) for a, b, _ in S1_PAIRS}
     live = set(_s1_accepts_rule_refuses())
     assert live <= frozen, f"new S1-only pairs: {sorted(live - frozen)}"
     assert len(S1_PAIRS) == 62
     assert sum(1 for _, _, st in S1_PAIRS if st == "held_none") == 46
+
+
+def test_after_d11_the_guard_refuses_the_54_own_parcel_pairs_and_keeps_the_8_stem():
+    """The post-D11 guard over the same frozen 62: every own-parcel-form pair is
+    refused (the count rule), every stem-form pair keeps its pre-D11 verdict —
+    the stem cross-listings are F8 option C, which waits for D11 and the S3/S5
+    choice (user decision 2026-11-15). Measured 2026-11-24: 54 own_parcel, 8 stem."""
+    cache_root = ROOT / "data" / ".link_cache"
+    refused, stem_admitted = [], []
+    for pid, cid, _st in S1_PAIRS:
+        rf = cache_root / pid / "result.json"
+        if not rf.is_file():
+            continue
+        c = json.loads(rf.read_text(encoding="utf-8"))
+        name = ""
+        for key in ("candidate_names", "search_rejected", "case_case_names"):
+            v = (c.get(key) or {}).get(cid)
+            if isinstance(v, str) and v:
+                name = v
+                break
+        core, own = c.get("land_core") or "", tuple(c.get("own_parcels") or [])
+        rule = L._parcel_rule(name, own[0], own)
+        v = L.membership_verdict(name, L.Unit(core, own,
+                                              tuple(c.get("own_counts") or ()), ""),
+                                 "search_guard", searched_parcel=own[0])
+        if rule == "stem":
+            if v.accept:
+                stem_admitted.append((pid, cid))
+        else:
+            assert not v.accept, f"own-parcel pair still admitted: {pid} {cid} ({name[:40]})"
+    assert len(stem_admitted) == 8, stem_admitted

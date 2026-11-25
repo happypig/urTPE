@@ -253,9 +253,9 @@
       <a href="release-diff.html">release-diff report</a>.</span><span class="zh">文字版的 source of truth：<a href="pipeline/etl_process.md"><code>docs/pipeline/etl_process.md</code></a> ·
       附頁：<a href="domain-model.html">領域模型</a> ·
       <a href="release-diff.html">歷次公報差異報告</a>。</span>
-      <span class="en" data-doc-field="dataset-summary-en">Measured on the 2026-11-12 gazette: <strong>1,448 records → 676 projects</strong>,
-      2002-03-21 → 2026-11-12.</span><span class="zh" data-doc-field="dataset-summary-zh">量測自 2026-11-12 公報：<strong>1,448 筆紀錄 → 676 個專案</strong>，
-      2002-03-21 → 2026-11-12。</span>
+      <span class="en" data-doc-field="dataset-summary-en">Measured on the 2026-11-19 gazette: <strong>1,450 records → 677 projects</strong>,
+      2002-03-21 → 2026-11-19.</span><span class="zh" data-doc-field="dataset-summary-zh">量測自 2026-11-19 公報：<strong>1,450 筆紀錄 → 677 個專案</strong>，
+      2002-03-21 → 2026-11-19。</span>
       </p>
     </div>
   <label class="switch"><input type="checkbox" id="lang"> <span>English</span></label>
@@ -688,7 +688,7 @@
     <thead><tr><th><span class="en">Step</span><span class="zh">步驟</span></th><th><span class="en">Source</span><span class="zh">來源</span></th><th><span class="en">Yields</span><span class="zh">產出</span></th></tr></thead>
     <tbody>
       <tr><td class="nowrap"><span class="en">1 · Cache check</span><span class="zh">1 · 快取檢查</span></td>
-        <td><code>data/.link_cache/<project_id>/result.json</code> (<span class="en">~<span data-doc-field="cache-dirs-en">729</span> project dirs</span><span class="zh">約 <span data-doc-field="cache-dirs-zh">729</span> 個專案目錄</span>)</td>
+        <td><code>data/.link_cache/<project_id>/result.json</code> (<span class="en">~<span data-doc-field="cache-dirs-en">730</span> project dirs</span><span class="zh">約 <span data-doc-field="cache-dirs-zh">730</span> 個專案目錄</span>)</td>
         <td><span class="en">previous DiscoveryResult — no network</span><span class="zh">上一次的 DiscoveryResult — 不碰網路</span></td></tr>
       <tr><td class="nowrap"><span class="en">2 · Taipei platform</span><span class="zh">2 · 北市平台</span></td>
         <td><span class="en"><code>Get_updcase_list.ashx</code> by section + first parcel, then
@@ -794,8 +794,8 @@
     2026-10-06 的資料集曾經帶著同一旗標的 1,162 份副本。</span></p>
   <pre><code>{
   "schema_version": 2,
-  "generated_at": "…", "source": "…", "published_date": "<span data-doc-field="schema-date">2026-11-12</span>",
-  "counts": { "projects": <span data-doc-field="schema-projects">676</span>, "records": <span data-doc-field="schema-records">1448</span> },
+  "generated_at": "…", "source": "…", "published_date": "<span data-doc-field="schema-date">2026-11-19</span>",
+  "counts": { "projects": <span data-doc-field="schema-projects">677</span>, "records": <span data-doc-field="schema-records">1450</span> },
   "projects": [
     { "project_id": "中山區-中山段一小段-246地號等2筆",
       "anchor_recno": 785,
@@ -834,7 +834,7 @@
       <span class="vtitle">臺北市都市更新核定案件 · 專案歷史圖</span>
       <a href="dashboard.html" style="color:var(--acq);font-size:11.5px">政策儀表板</a>
       <a href="about.html" style="color:var(--acq);font-size:11.5px">關於</a>
-      <span class="vmeta" data-doc-field="viewer-badge">676 個專案 / 1448 筆記錄 · 統計至 2026-11-12</span>
+      <span class="vmeta" data-doc-field="viewer-badge">677 個專案 / 1450 筆記錄 · 統計至 2026-11-19</span>
       <span class="vsearch">搜尋專案（地號、行政區、實施者…）</span>
     </div>
     <div class="vfilters">
@@ -1013,7 +1013,7 @@
   Companion to <code>docs/pipeline/etl_process.md</code>, which remains the prose source of truth;
   companion pages <a href="domain-model.html">domain-model.html</a> and
   <a href="release-diff.html">release-diff.html</a>.
-  Self-contained — no external requests. <span data-doc-field="footer-provenance-en">Measured figures from the 2026-11-12 payload, synchronised 2026-11-25.</span></span>
+  Self-contained — no external requests. <span data-doc-field="footer-provenance-en">Measured figures from the 2026-11-19 payload, synchronised 2026-11-25.</span></span>
   <span class="zh">來源：<code>urtpe/cli.py</code>、<code>urtpe/extract.py</code>、<code>urtpe/cleanse.py</code>、
   <code>urtpe/ledger.py</code>、<code>urtpe/merge.py</code>、<code>urtpe/links.py</code>、
   <code>urtpe/graph.py</code>、<code>urtpe/viewer.py</code>、<code>urtpe/tripwire.py</code>、
@@ -1022,7 +1022,7 @@
   本檔為 <code>docs/pipeline/etl_process.md</code> 的附頁，後者仍為文字上的 source of truth；
   附頁 <a href="domain-model.html">domain-model.html</a> 與
   <a href="release-diff.html">release-diff.html</a>。
-  完全獨立，不連任何外部資源。<span data-doc-field="footer-provenance-zh">量測數字取自 2026-11-12 payload，於 2026-11-25 同步。</span></span>
+  完全獨立，不連任何外部資源。<span data-doc-field="footer-provenance-zh">量測數字取自 2026-11-19 payload，於 2026-11-25 同步。</span></span>
 </footer>
 
 <script>

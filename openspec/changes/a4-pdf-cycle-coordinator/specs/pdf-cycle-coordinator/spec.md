@@ -201,7 +201,7 @@ Two cycles SHALL NOT run at once. The coordinator SHALL use a lock of its own, o
 
 ### Requirement: The cycle refuses a dirty working tree
 
-Before the first step that writes the emitted files or the cache, the coordinator SHALL check the working tree for uncommitted changes in the paths a cycle owns, which SHALL be a fixed, documented list. If anything other than this cycle has changes there, including the output of an earlier cycle that no one has reviewed and committed, the coordinator SHALL stop, record the paths as the reason, write nothing, and leave the next run to try again. Uncommitted changes outside the owned paths SHALL NOT stop a cycle. A run that has nothing to ingest SHALL NOT be stopped by a dirty tree.
+Before the first step that writes the emitted files or the cache, the coordinator SHALL check the working tree for uncommitted changes in the paths a cycle owns, which SHALL be a fixed, documented list. The list SHALL name the emitted files, the four generated pages, and the two code directories `urtpe/` and `scripts/`, so that an ingest never runs with uncommitted changes to the code it runs. Only tracked files that changed count: an untracked file SHALL NOT stop a cycle. If anything other than this cycle has changes there, including the output of an earlier cycle that no one has reviewed and committed, the coordinator SHALL stop, record the paths as the reason, write nothing, and leave the next run to try again. Uncommitted changes outside the owned paths SHALL NOT stop a cycle. A run that has nothing to ingest SHALL NOT be stopped by a dirty tree.
 
 #### Scenario: An owned path has uncommitted changes
 
@@ -215,6 +215,17 @@ Before the first step that writes the emitted files or the cache, the coordinato
 - **WHEN** a cycle finished and a person has not yet committed its output, and a newer gazette is then ready
 - **THEN** the new cycle stops with the dirty paths recorded as the reason
 - **AND** the newer gazette waits, untouched, for the next run
+
+#### Scenario: Uncommitted code stops a cycle
+
+- **WHEN** a tracked file under `urtpe/` or `scripts/` has an uncommitted change and a gazette is ready to ingest
+- **THEN** the cycle stops before any write step
+- **AND** the record lists that file as the reason, and the next run tries again
+
+#### Scenario: An untracked file does not stop a cycle
+
+- **WHEN** the only difference under `urtpe/` or `scripts/` is a new untracked file
+- **THEN** the cycle runs as normal
 
 #### Scenario: An unrelated path is dirty
 

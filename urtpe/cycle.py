@@ -68,6 +68,10 @@ _EXIT_FOR_OUTCOME = {
 #: The tracked paths a cycle rewrites, and so the paths whose uncommitted changes another
 #: session could mix with the cycle's output: what an ingest emits, what the check regenerates,
 #: and the current-dataset sentence that `sync_etl_process.py` keeps in `openspec/config.yaml`.
+#: Also the code an ingest runs, `urtpe/` and `scripts/` (operator's word 2026-11-24): another
+#: session left `urtpe/links.py` edited while the cycle went live, and an ingest with half-edited
+#: code would write an emission no commit explains. Only tracked files count (see
+#: `run_cycle._real_git_dirty`), so a scratch probe script does not stop a cycle.
 #: A test asserts each exists, so the list cannot drift silently when a file moves.
 OWNED_PATHS = (
     "data/projects.json",
@@ -82,6 +86,8 @@ OWNED_PATHS = (
     "docs/release-diff.html",
     "docs/coverage-report.html",
     "openspec/config.yaml",
+    "urtpe/",
+    "scripts/",
 )
 
 

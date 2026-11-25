@@ -604,3 +604,53 @@ def test_a_chosen_archive_root_makes_the_publication_a_dry_run(h):
 def test_the_default_run_publishes_for_real(h):
     assert h.run() == 0
     assert "--dry-run" not in dict(h.calls)["publish_report"]
+
+
+# --- the dirty check also watches the code, and ignores untracked files -------------------------
+# openspec a4-pdf-cycle-coordinator, task 6.24 (operator's word 2026-11-24).
+
+def _real_dirty(tmp_path, monkeypatch):
+    import subprocess
+
+    path = ROOT / "scripts" / "run_cycle.py"
+    spec = importlib.util.spec_from_file_location("run_cycle_real_dirty", path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+
+    def git(*a):
+        return subprocess.run(["git", *a], cwd=str(tmp_path), capture_output=True, text=True)
+
+    git("init", "-q")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    for rel in ("urtpe/a.py", "scripts/b.py", "docs/page.html"):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text("x = 1\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "base")
+    monkeypatch.setattr(mod, "ROOT", tmp_path)
+    return mod, tmp_path
+
+
+_WATCHED = ("urtpe/", "scripts/", "docs/page.html")
+
+
+def test_an_edited_code_file_is_dirty(tmp_path, monkeypatch):
+    mod, repo = _real_dirty(tmp_path, monkeypatch)
+    (repo / "urtpe" / "a.py").write_text("x = 2\n", encoding="utf-8")
+    assert mod._real_git_dirty(_WATCHED) == ["urtpe/a.py"]
+
+
+def test_an_untracked_file_is_not_dirty(tmp_path, monkeypatch):
+    """A new probe script is not something the cycle runs. Only a tracked file that changed
+    counts, so the cycle is not stopped by every scratch file another session leaves."""
+    mod, repo = _real_dirty(tmp_path, monkeypatch)
+    (repo / "scripts" / "probe_new.py").write_text("print(1)\n", encoding="utf-8")
+    (repo / "urtpe" / "scratch.py").write_text("y = 1\n", encoding="utf-8")
+    assert mod._real_git_dirty(_WATCHED) == []
+
+
+def test_a_clean_tree_is_not_dirty(tmp_path, monkeypatch):
+    mod, repo = _real_dirty(tmp_path, monkeypatch)
+    assert mod._real_git_dirty(_WATCHED) == []

@@ -390,8 +390,13 @@ def _real_runner(argv: list, timeout: int) -> RunResult:
 
 
 def _real_git_dirty(paths: tuple) -> list:
-    """READ-ONLY: `git status --porcelain` over the owned paths. This is the only git command."""
-    proc = subprocess.run(["git", "status", "--porcelain", "--", *paths], cwd=ROOT,
+    """READ-ONLY: `git status --porcelain` over the owned paths. This is the only git command.
+
+    `--untracked-files=no`: a new file is not code the cycle runs (a modified tracked file that
+    imports it would itself be dirty), and without this every scratch probe script another
+    session leaves under `scripts/` would stop the cycle."""
+    proc = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no", "--", *paths],
+                          cwd=ROOT,
                           capture_output=True, text=True, encoding="utf-8", errors="replace")
     if proc.returncode:
         raise RuntimeError("git status failed: %s" % proc.stderr.strip())

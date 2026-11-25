@@ -338,6 +338,14 @@ def test_the_owned_paths_cover_what_an_ingest_and_the_check_rewrite():
         assert rel in owned, rel
 
 
+def test_the_owned_paths_include_the_code_an_ingest_runs():
+    """Measured 2026-11-24: another session left urtpe/links.py edited while the cycle went
+    live, and the check watched only the emission. An ingest with half-edited code in the
+    working tree would write an emission no commit explains."""
+    owned = set(cycle.OWNED_PATHS)
+    assert "urtpe/" in owned and "scripts/" in owned
+
+
 def test_an_owned_path_dirty_with_a_gazette_ready_refuses():
     assert cycle.dirty_decision(True, ["viewer/projects.data.js"]) == "refuse"
 

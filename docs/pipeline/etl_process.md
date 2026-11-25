@@ -767,9 +767,12 @@ recorded for 36 hours.
    `--allow-reconcile-block` or `--no-archive`.
 3. After the repair, run `python scripts/run_cycle.py --resume <sha256>`. The
    cycle restarts at the failed stage, not at the first step.
-4. A held lock or a dirty working tree (an earlier cycle's emission, not yet
-   committed) stops a run without a diagnosis. The next scheduled run tries the
-   same gazette again. Commit or discard the emission as section 11.4 says.
+4. A held lock or a dirty working tree stops a run without a diagnosis. The
+   tree is dirty when a tracked file in the emission, in the four generated
+   pages, or under `urtpe/` or `scripts/` has an uncommitted change (an earlier
+   cycle's emission, or code another session is editing). An untracked file does
+   not count. The next scheduled run tries the same gazette again. Commit or
+   discard the emission as section 11.4 says; finish or commit the code edit.
 5. If only the publication failed, the ingest stays finished. Run
    `python scripts/publish_release_diff.py` by hand. It also pushes a commit
    that is already ahead of the remote, so a retry after a failed push lands.

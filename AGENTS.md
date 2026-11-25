@@ -6,7 +6,7 @@ merged, per-project history graph plus a static viewer. Python, pymupdf, no web 
 ## Commands (verified on this machine)
 
 ```powershell
-python -m pytest                      # 1813 collected, ~4-7min, fully offline
+python -m pytest                      # 1814 collected, ~4-7min, fully offline
 python -m pytest tests/test_merge.py  # one file
 python -m pytest tests/test_merge.py::test_name -q
 python -m urtpe.cli source.pdf -o data --viewer viewer --links --recover-truncated
@@ -19,8 +19,8 @@ python scripts/sync_domain_model.py --check
 - Use the **system** interpreter (`C:\Python314\python.exe`, pytest 9.0.1, pymupdf 1.28.2).
   `.venv/` exists but contains only pip — activating it leaves you unable to run tests.
 - The count in that first line goes stale whenever tests change. Refresh it with
-  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1813 collected**;
-  the full run reports **1808 passed, 1 skipped, 4 xfailed** — the skip is deliberate, at
+  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1814 collected**;
+  the full run reports **1809 passed, 1 skipped, 4 xfailed** — the skip is deliberate, at
   `tests/test_idempotent_flags.py:117`, because the node payload builder is not exposed and
   the graph test below it covers the behaviour. The 4 xfails are strict and named: the
   offer step and the orphan name branch still refuse the anchor-parcel drifted cases of
@@ -206,10 +206,11 @@ Violating any of these corrupts output silently rather than raising.
   the **案名's land core**, not the 地號 cell: the cell differs by one character between
   some releases, and keying on it counted three units as both dead and born.
 - `scripts/publish_emission.py` — run by `run_cycle.py` after a finished ingest, **before**
-  `publish_release_diff.py` (openspec `a5-cycle-emission-publication`). It owns the eight
+  `publish_release_diff.py` (openspec `a5-cycle-emission-publication`). It owns the nine
   emission paths and no other: `data/projects.json`, `data/raw.tsv`, `data/clean.tsv`,
   `data/merged.tsv`, `data/review_report.txt`, `viewer/projects.data.js`,
-  `viewer/index.html`, `viewer/dashboard.html`. It commits them in one path-limited commit and
+  `viewer/index.html`, `viewer/dashboard.html`, `openspec/config.yaml` (the emission's own count
+  sentence, which `post_ingest_check` rewrites). It commits them in one path-limited commit and
   pushes `main`, verified against the remote, with the same no-prompt environment and 120 s
   limits as the pages publisher. It writes no file. It refuses (exit 2, nothing committed) on
   a tracked file under `urtpe/` or `scripts/` with an uncommitted change, on an unreadable

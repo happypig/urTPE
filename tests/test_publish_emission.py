@@ -82,11 +82,14 @@ def _emit(box, records=1450):
 
 # --- 1.1 the path-limited commit and the verified push -----------------------
 
-def test_the_owned_paths_are_the_emission_and_include_the_dashboard():
+def test_the_owned_paths_are_the_emission_the_dashboard_and_the_config_sentence():
+    """Nine paths. openspec/config.yaml carries the emission's own record count and date, which
+    post_ingest_check rewrites; committed with the emission it stays self-consistent, and no
+    cycle leaves it dirty for the next gazette to refuse on."""
     assert set(EMISSION) == {
         "data/projects.json", "data/raw.tsv", "data/clean.tsv", "data/merged.tsv",
         "data/review_report.txt", "viewer/projects.data.js", "viewer/index.html",
-        "viewer/dashboard.html"}
+        "viewer/dashboard.html", "openspec/config.yaml"}
 
 
 def test_the_emission_is_committed_in_one_commit_and_pushed(sandbox):

@@ -677,15 +677,18 @@ pushes belong to the two children (openspec `a5-cycle-emission-publication`,
 decided 2026-11-23: the person's review gate on the emission is gone, and the
 person's role is diagnosis).
 
-`publish_emission.py` commits the eight emission paths (`data/projects.json`,
+`publish_emission.py` commits the nine emission paths (`data/projects.json`,
 `data/raw.tsv`, `data/clean.tsv`, `data/merged.tsv`, `data/review_report.txt`,
-`viewer/projects.data.js`, `viewer/index.html`, `viewer/dashboard.html`) in one
+`viewer/projects.data.js`, `viewer/index.html`, `viewer/dashboard.html`,
+`openspec/config.yaml`) in one
 path-limited commit, and pushes `main`, then asks the remote whether it holds the
 commit. It refuses, and commits nothing, when a tracked file under `urtpe/` or
 `scripts/` has an uncommitted change, and when the payload's record count is
 lower than the committed payload's: the dataset only grows, so a drop names a
-defect. One push carries the emission and the pages in that order, so the pages
-never describe data the viewer does not serve.
+defect. The pages are committed and pushed after the emission they describe, so
+they never describe data the viewer does not serve. Two pushes, two Pages builds:
+between them the site may show the new data with the old pages, and if the second
+child fails that lag stays until a retry (`check_deploy.py` reports it stale).
 `publish_release_diff.py` regenerates,
 commits and pushes only the four generated pages (`docs/release-diff.html`,
 `docs/coverage-report.html`, `docs/domain-model.html`, `docs/etl_process.html`),

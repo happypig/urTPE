@@ -148,13 +148,13 @@ section records recommendations, not new decisions. U9, A8 and U-D6 to U-D9 were
 
 | Point | Decision |
 |---|---|
-| Path-limited commit | yes. A new child script, `scripts/publish_emission.py`, names its eight paths on the commit command (the five tracked `data/` files, `viewer/projects.data.js`, `viewer/index.html`, `viewer/dashboard.html`). |
+| Path-limited commit | yes. A new child script, `scripts/publish_emission.py`, names its nine paths on the commit command (the five tracked `data/` files, `viewer/projects.data.js`, `viewer/index.html`, `viewer/dashboard.html`, `openspec/config.yaml`). |
 | Commit only after tests and smoke | yes. It runs after the hash is recorded finished, so after both. |
 | Verified push | yes. The remote is asked whether it holds the commit; `GIT_TERMINAL_PROMPT=0`; 120 s limits. |
 | About 23 MB per ingest | accepted. No pruning and no LFS: both would break the `file://` viewer and the deploy check. |
 | One more check before the push | **a record-count drop only.** A payload below the committed record count stops the publication. Equal and higher proceed. The trajectory so far only grows (1,444, 1,448, 1,450). A project-count guard was rejected: projects can shrink when families merge. |
 | Rollback of a served emission | a person runs `git revert` on its commit. The cycle never rewrites history and never ingests a finished hash again. |
-| One consistent publication | the emission publisher runs first, the pages publisher second, so one push carries both and the pages never describe data the viewer does not serve. |
+| One consistent publication | the emission publisher runs first, the pages publisher second. These are **two pushes and two Pages builds**, not one: between them the site may show the new data with the old pages, and if the second child fails the lag stays until a retry (`check_deploy.py` reports it stale; the record names the failed stage). The pages never describe data the viewer does not serve. |
 
 Three decisions were not on the board's list. (1) The publisher is a **child script**, not code in the coordinator: the coordinator's own git use stays read-only, and a failed publication is `publish_failed`, never `stopped`, because the hash is already finished. (2) `viewer/dashboard.html` joins the dirty-tree gate's owned paths. The ingest rewrites it and the unattended commit takes it, but the gate did not watch it. (3) `post_ingest_check.py` no longer stops on the config count sentence that its own generation step updates. That ordering bug caused the 2026-11-25 first stop (task 7.5b of A4). The check after generation stays strict.
 

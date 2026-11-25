@@ -24,7 +24,7 @@ refused, only the moment.
 **The emission and the report are published last, after the hash is finished** (design D13, and
 openspec a5-cycle-emission-publication). The coordinator's own git use is read-only, but after a
 finished ingest it runs two child commands, emission first: `publish_emission.py`, which commits
-and pushes the eight emission paths (the operator's decision of 2026-11-23 reversed U-D2 for the
+and pushes the nine emission paths (the operator's decision of 2026-11-23 reversed U-D2 for the
 emission), then the existing `publish_release_diff.py`, which publishes the four generated pages
 (release-diff report, coverage report, domain model, ETL page) as one set when the report or the
 payload counts changed. A failed publication is its own outcome and never brings the ingest back;
@@ -133,8 +133,8 @@ def build_steps(python: str = "python", pdf: str = "<pdf>", dry_run: bool = Fals
         Step("tests", (python, "-m", "pytest", "-q"), 1800, False),
         Step("viewer_smoke", ("node", "scripts/viewer_smoke.js"), 300, False),
         # a5-cycle-emission-publication: the emission publisher, only after a finished ingest and
-        # before the report, so one push carries the data and the pages that describe it. It
-        # commits only the eight emission paths; the coordinator itself runs no git write.
+        # before the report, so the pages are pushed after the data they describe. It
+        # commits only the nine emission paths; the coordinator itself runs no git write.
         Step("publish_emission", (python, "scripts/publish_emission.py",
                                   *(("--dry-run",) if archive_root else ())), 600, False),
         # Design D13: the existing publisher, only after a finished ingest. It stages and

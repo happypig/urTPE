@@ -355,6 +355,20 @@ def test_the_owned_paths_hold_every_path_the_emission_publisher_commits():
     assert "viewer/dashboard.html" in owned
 
 
+def test_every_owned_path_is_committed_by_one_of_the_two_publishers():
+    """A path the dirty-tree gate watches but no publisher commits stays dirty after a cycle, and
+    the NEXT gazette refuses with exit 6. Measured 2026-11-25: openspec/config.yaml, which
+    post_ingest_check rewrites on every count-moving ingest, was still modified after the pages
+    were pushed, and a person had to commit it by hand. The two code directories are watched but
+    never rewritten by a cycle, so they are the only paths a publisher does not own."""
+    from scripts import publish_emission, publish_release_diff
+    published = set(publish_emission.OWNED_PATHS) | set(publish_release_diff.OWNED_PATHS)
+    watched = set(cycle.OWNED_PATHS) - {"urtpe/", "scripts/"}
+    assert watched == published, (
+        "watched but never committed: %s; committed but not watched: %s"
+        % (sorted(watched - published), sorted(published - watched)))
+
+
 def test_the_owned_paths_include_the_code_an_ingest_runs():
     """Measured 2026-11-24: another session left urtpe/links.py edited while the cycle went
     live, and the check watched only the emission. An ingest with half-edited code in the

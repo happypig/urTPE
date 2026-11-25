@@ -4,11 +4,11 @@
 
 The requirement's name predates this change: since it, the cycle commits and pushes the emission too. The name is kept as the stable identifier.
 
-The system SHALL provide a coordinator that runs these steps in this order: poll the gazette page, poll the 168 list, detect a gazette to ingest, ingest it, refresh the caches whose cases await approval, rebuild the payload from itself, run the post-ingest check, run the test suite and the viewer smoke run, and then, only after a finished ingest, publish the emission and publish the generated report pages: the release-diff report, the coverage report, the domain model and the ETL page. The emission publication SHALL run before the report publication, so one push carries the viewer's data and the pages that describe it together. The coordinator SHALL add no polling, ingest, refresh or report-generation behavior of its own: each step is the existing command with its existing gates and exit codes.
+The system SHALL provide a coordinator that runs these steps in this order: poll the gazette page, poll the 168 list, detect a gazette to ingest, ingest it, refresh the caches whose cases await approval, rebuild the payload from itself, run the post-ingest check, run the test suite and the viewer smoke run, and then, only after a finished ingest, publish the emission and publish the generated report pages: the release-diff report, the coverage report, the domain model and the ETL page. The emission publication SHALL run before the report publication, so the pages are committed and pushed after the data they describe. Each runs its own commit and push: between them the served site MAY show the new data with the old pages, and a lag that remains after a failed second push SHALL be visible to the deployment check and recorded as a failed publication. The coordinator SHALL add no polling, ingest, refresh or report-generation behavior of its own: each step is the existing command with its existing gates and exit codes.
 
-The coordinator's own use of git SHALL stay read-only: one status. The commit and the push are made by two child commands the coordinator starts after the hash is recorded as finished, the emission publisher and then the report publisher; neither is a bypass of any refusal. The emission publisher SHALL stage and commit only the emission paths — the tracked files under `data/` and the viewer's payload and shell pages — in one path-limited commit, and SHALL push `main` afterwards, verified by asking the remote whether it holds the commit. It SHALL commit nothing else: a file another session has staged is neither committed nor discarded by it, and stays staged for that session. Every git command it runs SHALL be unable to prompt for a credential, and a push or a remote check that exceeds its time limit SHALL be reported as a failed publication that names what did not land. A person SHALL be able to run it by hand, to retry a failed publication.
+The coordinator's own use of git SHALL stay read-only: one status. The commit and the push are made by two child commands the coordinator starts after the hash is recorded as finished, the emission publisher and then the report publisher; neither is a bypass of any refusal. The emission publisher SHALL stage and commit only the emission paths — the tracked files under `data/`, the viewer's payload and shell pages, and the emission's own count-and-date sentence in `openspec/config.yaml` — in one path-limited commit, and SHALL push `main` afterwards, verified by asking the remote whether it holds the commit. It SHALL commit nothing else: a file another session has staged is neither committed nor discarded by it, and stays staged for that session. Every git command it runs SHALL be unable to prompt for a credential, and a push or a remote check that exceeds its time limit SHALL be reported as a failed publication that names what did not land. A person SHALL be able to run it by hand, to retry a failed publication.
 
-The emission publisher SHALL refuse, without committing, when a tracked file under `urtpe/` or `scripts/` — the code that produced the emission — has an uncommitted change, so an emission is never committed by a commit that does not explain the code that wrote it. It SHALL commit and push only when the new payload's record count is greater than or equal to the committed payload's record count; a lower count SHALL stop the publication before the commit and wait for a person, because the dataset's measured trajectory only grows and a drop names a defect. The emission paths SHALL be among the paths the dirty-tree check owns, so another session's uncommitted edit to one of them stops the cycle before the ingest and is never swept into an unattended commit.
+The emission publisher SHALL refuse, without committing, when a tracked file under `urtpe/` or `scripts/` — the code that produced the emission — has an uncommitted change, so an emission is never committed by a commit that does not explain the code that wrote it. It SHALL commit and push only when the new payload's record count is greater than or equal to the committed payload's record count; a lower count SHALL stop the publication before the commit and wait for a person, because the dataset's measured trajectory only grows and a drop names a defect. Every path the dirty-tree check owns, except the two code directories, SHALL be committed by the emission publisher or the report publisher, so a finished cycle leaves none of them modified and the next gazette is not refused on them; and every emission path SHALL be among the paths the dirty-tree check owns, so another session's uncommitted edit to one of them stops the cycle before the ingest and is never swept into an unattended commit.
 
 #### Scenario: A new gazette passes through every step
 
@@ -70,6 +70,44 @@ The emission publisher SHALL refuse, without committing, when a tracked file und
 
 - **WHEN** the emission publication committed but its push failed, and it runs again
 - **THEN** it pushes the commit that is ahead of the remote and exits 0 when the push lands
+
+### Requirement: The report is published only after a finished ingest, and a failed publication never undoes the ingest
+
+After the test and smoke steps have succeeded, the coordinator SHALL record the gazette's hash as finished, and only then run the publication steps. The report publication step SHALL NOT run on a run that did not finish an ingest, and SHALL NOT run when the emission publication that precedes it failed, because the pages would describe an emission that did not land. A failure of a publication step, including its refusal when the report generator's source has uncommitted changes, SHALL be recorded as a failed publication with the step's own exit code, SHALL leave the hash finished, and SHALL NOT start the ingest again. A later run SHALL NOT publish again for a finished hash. A person SHALL retry a failed publication by running the publication step by hand.
+
+#### Scenario: The report is published after a finished ingest
+
+- **WHEN** an ingest finished, the test and smoke steps succeeded, and the emission publication succeeded
+- **THEN** the hash is recorded as finished
+- **AND** the report publication step runs as the last step
+
+#### Scenario: The report is not published on any other run
+
+- **WHEN** a run found nothing new, found the hash already done, was refused, stopped at a step, found a lock held, found a dirty working tree, found a hash awaiting diagnosis, or its emission publication failed
+- **THEN** the report publication step does not run
+
+#### Scenario: A failed publication does not undo the ingest
+
+- **WHEN** the report publication step exits non-zero after a finished ingest
+- **THEN** the run is recorded as a failed publication with that exit code
+- **AND** the hash stays recorded as finished
+- **AND** the ingest does not run again
+
+#### Scenario: The publication step refuses because the generator is not committed
+
+- **WHEN** the report publication step exits 2 because the report generator's source has uncommitted changes
+- **THEN** the run is recorded as a failed publication with exit 2
+- **AND** the hash stays recorded as finished
+
+#### Scenario: A resumed cycle that finishes publishes the report
+
+- **WHEN** a person resumes a stopped hash and every remaining step succeeds
+- **THEN** the report publication step runs last
+
+#### Scenario: A later run does not publish again
+
+- **WHEN** a later run sees a hash that finished, whether its publication succeeded or failed
+- **THEN** the report publication step does not run for it
 
 ### Requirement: Every run is recorded, including the ones that find nothing
 

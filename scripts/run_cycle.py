@@ -14,13 +14,15 @@ records the hash as finished and then runs two child commands, emission first. T
 the pushes are theirs, never this process's:
 
 - `publish_emission.py` (openspec a5-cycle-emission-publication; the operator's decision of
-  2026-11-23 reversed U-D2 for the emission) commits the eight emission paths in one
+  2026-11-23 reversed U-D2 for the emission) commits the nine emission paths in one
   path-limited commit and pushes `main`. It refuses uncommitted code and a record-count drop.
 - `publish_release_diff.py` (design D13) commits and pushes only `docs/release-diff.html`,
   `docs/coverage-report.html`, `docs/domain-model.html` and `docs/etl_process.html`, as one set.
 
-One push carries the emission and the pages in that order, so the pages never describe data the
-viewer does not serve. It never passes `--allow-reconcile-block` or `--no-archive`, and stops at
+The pages are committed and pushed AFTER the emission they describe, so they never describe data
+the viewer does not serve; between the two pushes the site may briefly show the new data with the
+old pages, and if the second child fails that lag stays until a retry (`check_deploy.py` reports it
+stale and the record names the failed stage). It never passes `--allow-reconcile-block` or `--no-archive`, and stops at
 the first step that exits non-zero. A failed publication is its own outcome, `publish_failed`: it
 never un-finishes the hash and never brings the ingest back, and a failed emission publication
 stops the report publication, because the pages would describe an emission that did not land.

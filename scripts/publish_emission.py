@@ -2,7 +2,7 @@
 
 The PDF cycle (`scripts/run_cycle.py`, scheduled as `urtpe-cycle`) runs this step after it has
 recorded a gazette's hash as finished, and before `publish_release_diff.py`, so one push carries
-the viewer's data and the four generated pages that describe it. A person may run it by hand,
+the viewer's data before the four generated pages that describe it. A person may run it by hand,
 for example to retry a failed push. openspec change a5-cycle-emission-publication; the user's
 decision of 2026-11-23 reversed U-D2 ("generate and stop") for the emission.
 
@@ -13,7 +13,7 @@ this child command, as the pages' do to `publish_release_diff.py`.
 
 The commit is **path-limited**, for the reason the pages publisher names (measured 2026-11-09):
 a `git commit` without a path limit takes the whole index, and the index holds whatever another
-session has staged. The step names its eight emission paths on the commit command itself, so
+session has staged. The step names its nine emission paths on the commit command itself, so
 another session's staged file is neither committed nor discarded, and stays staged for them.
 
 Two guards run before anything is committed:
@@ -59,7 +59,11 @@ sys.path.insert(0, str(ROOT))
 # cycle (`urtpe.cycle.OWNED_PATHS`) must watch every one of them: a test asserts it does.
 OWNED_PATHS = ["data/projects.json", "data/raw.tsv", "data/clean.tsv", "data/merged.tsv",
                "data/review_report.txt", "viewer/projects.data.js", "viewer/index.html",
-               "viewer/dashboard.html"]
+               "viewer/dashboard.html",
+               # The emission's own count-and-date sentence: `post_ingest_check` rewrites it on
+               # every ingest that moves the count. Left out, it stayed modified after a cycle and
+               # the next gazette refused with exit 6 (measured 2026-11-25: committed by hand).
+               "openspec/config.yaml"]
 # The code an ingest runs. An uncommitted change here stops the step (see the module docstring).
 CODE_PATHS = ["urtpe", "scripts"]
 PAYLOAD = "viewer/projects.data.js"

@@ -91,16 +91,34 @@ def test_real_documentation_pages_have_current_marked_facts():
     doc = dm.load_payload(dm.ROOT / "viewer" / "projects.data.js")
     etl, _ = sync_etl_process.render_current(doc, root=dm.ROOT, test_count=1484)
     assert 'data-doc-field="dataset-summary-en"' in etl
-    # The pinned facts move with the payload; the assertion names the drift.
-    # 2026-11-19: the cycle's first unattended ingest (1,450 records, 677 projects).
-    assert "2026-11-19" in etl and "1,450" in etl and "677" in etl
-    assert "1,448 records → 676 projects" not in etl
+    # The facts come from the payload, not from literals: a literal here stopped every ingest
+    # that moved a count (2026-11-25, and each gazette after it) — a5-cycle-emission-publication,
+    # design D7. The test keeps its job: the rendered pages must carry THIS payload's facts.
+    date = doc["published_date"]
+    records, projects = doc["counts"]["records"], doc["counts"]["projects"]
+    assert date in etl and "{:,}".format(records) in etl and str(projects) in etl
     assert "48 rows per Gregorian gazette" not in etl
     domain, _ = sync_domain_model.render_current(doc, root=dm.ROOT)
     assert 'data-doc-field="current-facts"' in domain
-    assert "2026-11-19" in domain and "1,450 / 677" in domain
+    assert date in domain and "{:,} / {:,}".format(records, projects) in domain
     assert "2026-10-15 payload" in domain  # historical evidence survives
     assert "83b7b2e" in domain
+
+
+def test_the_rendered_facts_follow_the_payload_they_are_rendered_from():
+    """The derived expectation above must not be vacuous. This test renders from a payload with
+    another publication date and checks that the page says so: a renderer that ignored the
+    payload would pass the derived test and fail this one. (A COMMITTED page that lags the
+    payload is a different defect; `sync_etl_process.py --check` reports it, and
+    `post_ingest_check.py --check-only` runs that check.)"""
+    from scripts import sync_etl_process
+
+    doc = dm.load_payload(dm.ROOT / "viewer" / "projects.data.js")
+    other = json.loads(json.dumps(doc))
+    other["published_date"] = "2026-11-12"
+    etl, _ = sync_etl_process.render_current(other, root=dm.ROOT, test_count=1484)
+    assert "量測自 2026-11-12 公報" in etl
+    assert "量測自 %s 公報" % doc["published_date"] not in etl
 
 
 def test_operating_runbook_keeps_acquisition_repair_and_publication_distinct():

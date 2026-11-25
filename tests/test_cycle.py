@@ -42,15 +42,20 @@ def _state(**hashes):
 # --- 1.1 the step list is data, in a fixed order, and ends before git -----------------
 
 def test_the_steps_run_in_the_fixed_order():
+    # a5-cycle-emission-publication: the emission publisher runs before the report publisher
     names = [s.name for s in cycle.build_steps(python="py")]
     assert names == ["poll_gazette", "poll_p168", "detect", "ingest", "refresh",
-                     "rebuild", "post_ingest_check", "tests", "viewer_smoke", "publish_report"]
+                     "rebuild", "post_ingest_check", "tests", "viewer_smoke",
+                     "publish_emission", "publish_report"]
     assert tuple(names) == cycle.STEP_ORDER
 
 
-def test_the_last_step_publishes_the_report_and_no_step_touches_git():
+def test_the_last_two_steps_publish_and_no_step_runs_git_itself():
+    """A4 said "no step touches git". A5 changed the contract: the coordinator's own git stays
+    read-only, and the two publishers are CHILD COMMANDS that commit. No step's argv is git."""
     steps = cycle.build_steps(python="py")
-    assert steps[-1].name == "publish_report"
+    assert [s.name for s in steps[-2:]] == ["publish_emission", "publish_report"]
+    assert steps[-2].argv[1] == "scripts/publish_emission.py"
     assert steps[-1].argv[1] == "scripts/publish_release_diff.py"
     for step in steps:
         assert "git" not in (step.argv or ())
@@ -194,7 +199,8 @@ def test_a_stopped_cycle_names_the_failed_stage_and_is_not_finished():
 def test_the_stage_after_each_step():
     assert cycle.next_step_after("ingest") == "refresh"
     assert cycle.next_step_after("refresh") == "rebuild"       # never skipped on a failed refresh
-    assert cycle.next_step_after("viewer_smoke") == "publish_report"
+    assert cycle.next_step_after("viewer_smoke") == "publish_emission"
+    assert cycle.next_step_after("publish_emission") == "publish_report"
     assert cycle.next_step_after("publish_report") is None
 
 
@@ -338,6 +344,17 @@ def test_the_owned_paths_cover_what_an_ingest_and_the_check_rewrite():
         assert rel in owned, rel
 
 
+def test_the_owned_paths_hold_every_path_the_emission_publisher_commits():
+    """a5-cycle-emission-publication: an unattended commit takes these paths, so another
+    session's uncommitted edit to any of them must stop the cycle BEFORE the ingest. The
+    dashboard was missing: the ingest rewrites it, and a person had committed it by hand."""
+    from scripts import publish_emission
+    owned = set(cycle.OWNED_PATHS)
+    for rel in publish_emission.OWNED_PATHS:
+        assert rel in owned, "%s is committed unattended but the dirty-tree gate does not watch it" % rel
+    assert "viewer/dashboard.html" in owned
+
+
 def test_the_owned_paths_include_the_code_an_ingest_runs():
     """Measured 2026-11-24: another session left urtpe/links.py edited while the cycle went
     live, and the check watched only the emission. An ingest with half-edited code in the
@@ -385,6 +402,33 @@ def test_a_publication_that_exits_non_zero_is_a_failed_publication(code):
 def test_a_publication_that_exits_zero_is_ok_and_a_timeout_is_a_failure():
     assert cycle.classify_exit("publish_report", 0) == "ok"
     assert cycle.classify_exit("publish_report", 0, timed_out=True) == "publish_failed"
+
+
+@pytest.mark.parametrize("code", [1, 2, 5, 137])
+def test_a_failed_emission_publication_is_a_failed_publication_never_a_refusal(code):
+    """a5-cycle-emission-publication: the hash is finished when the emission publisher runs, so
+    its failure is `publish_failed`. A refusal would mark the hash STOPPED, which contradicts
+    the spec ("the hash stays recorded as finished") — and exit 5 must not read as transient."""
+    assert cycle.classify_exit("publish_emission", code) == "publish_failed"
+
+
+def test_an_emission_publication_that_exits_zero_is_ok_and_a_timeout_is_a_failure():
+    assert cycle.classify_exit("publish_emission", 0) == "ok"
+    assert cycle.classify_exit("publish_emission", 0, timed_out=True) == "publish_failed"
+
+
+def test_the_emission_publisher_is_a_dry_run_on_a_chosen_archive_root():
+    """A smoke run on a temporary archive must not push the real emission either."""
+    chosen = {s.name: s for s in cycle.build_steps(python="py", archive_root="/tmp/a")}
+    assert "--dry-run" in chosen["publish_emission"].argv
+    default = {s.name: s for s in cycle.build_steps(python="py")}
+    assert "--dry-run" not in default["publish_emission"].argv
+
+
+def test_the_emission_publisher_writes_no_emitted_file_and_takes_no_lock():
+    """It only reads the payload and runs git; the data lock is for writers of data/."""
+    step = {s.name: s for s in cycle.build_steps(python="py")}["publish_emission"]
+    assert step.writes is False
 
 
 def test_a_cycle_on_a_chosen_archive_root_never_publishes_for_real():

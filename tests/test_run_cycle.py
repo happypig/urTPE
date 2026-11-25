@@ -51,6 +51,8 @@ def _name_of(argv):
         return "refresh"
     if "post_ingest_check.py" in joined:
         return "post_ingest_check"
+    if "publish_emission.py" in joined:
+        return "publish_emission"
     if "publish_release_diff.py" in joined:
         return "publish_report"
     if "viewer_smoke.js" in joined:
@@ -138,7 +140,8 @@ def h(tmp_path, rc):
 def test_a_new_gazette_runs_every_step_once_in_order(h):
     assert h.run() == 0
     assert h.names() == ["poll_gazette", "poll_p168", "ingest", "refresh", "rebuild",
-                         "post_ingest_check", "tests", "viewer_smoke", "publish_report"]
+                         "post_ingest_check", "tests", "viewer_smoke", "publish_emission",
+                         "publish_report"]
     ingest_argv = dict(h.calls)["ingest"]
     assert NEW.path in ingest_argv                       # the archived dated file, never the live link
 
@@ -153,8 +156,12 @@ def test_a_finished_cycle_is_recorded_and_the_hash_is_finished(h):
 
 
 def test_the_only_git_interaction_is_one_read_only_status_over_the_owned_paths(h):
+    """Still true of the COORDINATOR after a5-cycle-emission-publication: the commits and the
+    pushes belong to the two child publishers, run through the runner, never to this process."""
     assert h.run() == 0
     assert h.git_calls == [tuple(cycle.OWNED_PATHS)]
+    committers = [n for n, _ in h.calls if n in ("publish_emission", "publish_report")]
+    assert committers == ["publish_emission", "publish_report"]
 
 
 def test_the_script_names_no_git_write_command():
@@ -538,20 +545,65 @@ def test_the_report_is_never_published_unless_an_ingest_finished(h, rc, name):
     assert "publish_report" not in h.names()
 
 
-def test_the_report_publication_runs_last_after_the_smoke_step(h):
+@pytest.mark.parametrize("name", ["nothing_new", "already_done", "refused", "stopped",
+                                  "locked_at_start", "locked_mid_cycle", "dirty_tree",
+                                  "awaiting_diagnosis", "resume_stopped_again"])
+def test_the_emission_is_never_published_unless_an_ingest_finished(h, rc, name):
+    _scenario(h, rc, name)
+    assert "publish_emission" not in h.names()
+
+
+def test_the_publications_run_last_after_the_smoke_step_emission_first(h):
     assert h.run() == 0
-    assert h.names()[-2:] == ["viewer_smoke", "publish_report"]
+    assert h.names()[-3:] == ["viewer_smoke", "publish_emission", "publish_report"]
 
 
-def test_the_hash_is_finished_before_the_publication_starts(h, rc):
+@pytest.mark.parametrize("step", ["publish_emission", "publish_report"])
+def test_the_hash_is_finished_before_a_publication_starts(h, rc, step):
     seen = []
 
     def publisher(argv):
         seen.append(h.state()["hashes"][NEW.sha256]["status"])
         return rc.RunResult(0)
-    h.results["publish_report"] = publisher
+    h.results[step] = publisher
     assert h.run() == 0
     assert seen == ["finished"]
+
+
+@pytest.mark.parametrize("code", [1, 2])
+def test_a_failed_emission_publication_is_recorded_and_never_undoes_the_ingest(h, rc, code):
+    """The hash is finished, so this is `publish_failed`, never `stopped`: a stopped hash would
+    wait for diagnosis and a later run would skip it. The report publisher does not run after
+    it, because the pages describe an emission that did not land."""
+    h.results["publish_emission"] = rc.RunResult(code)
+    assert h.run() == 1
+    (rec,) = h.records()
+    assert rec["outcome"] == "publish_failed" and rec["exit_code"] == code
+    assert rec["failed_stage"] == "publish_emission" and rec["last_stage"] == "viewer_smoke"
+    assert h.state()["hashes"][NEW.sha256]["status"] == "finished"
+    assert "publish_report" not in h.names()
+    # the next run neither ingests nor publishes again; a person retries by hand
+    h.calls.clear()
+    h.results["publish_emission"] = None
+    assert h.run() == 0
+    assert h.names() == ["poll_gazette", "poll_p168"]
+    assert h.records()[-1]["outcome"] == "already_done"
+
+
+def test_an_emission_publication_that_times_out_is_a_failed_publication(h, rc):
+    h.results["publish_emission"] = rc.RunResult(124, timed_out=True)
+    assert h.run() == 1
+    (rec,) = h.records()
+    assert rec["outcome"] == "publish_failed" and rec["failed_stage"] == "publish_emission"
+    assert h.state()["hashes"][NEW.sha256]["status"] == "finished"
+
+
+def test_an_emission_publisher_exit_5_is_a_failed_publication_not_a_locked_stop(h, rc):
+    h.results["publish_emission"] = rc.RunResult(5)
+    assert h.run() == 1
+    (rec,) = h.records()
+    assert rec["outcome"] == "publish_failed" and rec["outcome"] != "locked"
+    assert h.state()["hashes"][NEW.sha256]["status"] == "finished"
 
 
 @pytest.mark.parametrize("code", [1, 2])
@@ -560,7 +612,7 @@ def test_a_failed_publication_is_recorded_and_never_undoes_the_ingest(h, rc, cod
     assert h.run() == 1
     (rec,) = h.records()
     assert rec["outcome"] == "publish_failed" and rec["exit_code"] == code
-    assert rec["failed_stage"] == "publish_report" and rec["last_stage"] == "viewer_smoke"
+    assert rec["failed_stage"] == "publish_report" and rec["last_stage"] == "publish_emission"
     assert h.state()["hashes"][NEW.sha256]["status"] == "finished"
     # the next run neither ingests nor publishes again; a person retries by hand
     h.calls.clear()
@@ -584,26 +636,30 @@ def test_a_resume_that_finishes_publishes_the_report_last(h, rc):
     h.results["rebuild"] = None
     h.calls.clear()
     assert h.run(resume=NEW.sha256) == 0
-    assert h.names()[-1] == "publish_report"
+    assert h.names()[-2:] == ["publish_emission", "publish_report"]
 
 
-def test_the_dry_run_plan_ends_with_the_report_publication(h, capsys):
+def test_the_dry_run_plan_ends_with_the_two_publications_emission_first(h, capsys):
     assert h.run(dry_run=True) == 0
     assert h.names() == ["poll_gazette", "poll_p168"]          # it still runs only the two polls
     out = capsys.readouterr().out
     plan = [line for line in out.splitlines() if "steps:" in line][0]
-    assert plan.split("steps:")[1].split(";")[0].strip().endswith("publish_report")
-    assert "uncommitted" in out
+    steps = plan.split("steps:")[1].split(";")[0].strip()
+    assert steps.endswith("publish_emission, publish_report")
+    # a5-cycle-emission-publication: the emission no longer waits for a person's review
+    assert "uncommitted" not in out and "review" not in out.lower().split("steps:")[1]
 
 
-def test_a_chosen_archive_root_makes_the_publication_a_dry_run(h):
+def test_a_chosen_archive_root_makes_both_publications_a_dry_run(h):
     assert h.run(archive_root=str(h.archive)) == 0
     assert "--dry-run" in dict(h.calls)["publish_report"]
+    assert "--dry-run" in dict(h.calls)["publish_emission"]
 
 
 def test_the_default_run_publishes_for_real(h):
     assert h.run() == 0
     assert "--dry-run" not in dict(h.calls)["publish_report"]
+    assert "--dry-run" not in dict(h.calls)["publish_emission"]
 
 
 # --- the dirty check also watches the code, and ignores untracked files -------------------------

@@ -208,9 +208,14 @@ def test_a_generation_that_leaves_the_fact_stale_fails_the_final_check(tmp_path,
     _emission(tmp_path)
     box = {"generated": False}
     monkeypatch.setattr(pic, "generate_reports", lambda *a, **k: None)   # generation updates nothing
-    rc = pic.run(["--root", str(tmp_path)], command_runner=_checking_runner(box, []))
+    commands = []
+    rc = pic.run(["--root", str(tmp_path)], command_runner=_checking_runner(box, commands))
     assert rc == 1
-    assert "post-generation" in capsys.readouterr().err
+    assert "pytest" in capsys.readouterr().err         # the failing check is named
+    # it failed at the check AFTER generation: the two earlier checks left the test out, the
+    # last one did not, and that is the one that stopped the command
+    flags = [any(str(c).startswith("--deselect") for c in cmd) for cmd in commands]
+    assert flags == [True, True, False], flags
 
 
 def test_check_only_runs_every_test_and_fails_on_a_stale_sentence(tmp_path, monkeypatch, capsys):

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import inspect
 import json
 import re
 import subprocess
@@ -167,11 +168,27 @@ def run_command(cmd: list[str], root: Path = ROOT) -> subprocess.CompletedProces
     return proc
 
 
-def run_local_checks(root: Path, runner=run_command) -> list[str]:
-    """Standing checks are failures by exit code AND by their success marker."""
+#: Tests that compare a fact GENERATED from the payload with the payload. `generate_reports`
+#: writes that fact later in the same run, so the check before generation cannot require it: the
+#: 2026-11-25 cycle stopped here, exit 1, because `openspec/config.yaml` still said 1,448
+#: approvals while the new payload held 1,450 — a sentence this command was about to rewrite.
+#: The check after generation, and `--check-only`, run every test, so a generation that left a
+#: fact stale still fails. A test asserts each name exists (a5-cycle-emission-publication, D9).
+GENERATED_FACT_TESTS = (
+    "tests/test_deploy_target.py::test_the_recorded_record_count_matches_the_emitted_payload",
+)
+
+
+def run_local_checks(root: Path, runner=run_command, generated_facts: bool = True) -> list[str]:
+    """Standing checks are failures by exit code AND by their success marker.
+
+    `generated_facts=False` leaves out the tests in `GENERATED_FACT_TESTS`; it is for the checks
+    that run BEFORE `generate_reports` and for nothing else."""
+    left_out = [] if generated_facts else ["--deselect=" + node for node in GENERATED_FACT_TESTS]
     checks = [
         ([sys.executable, "-m", "pytest", "tests/test_deploy_target.py",
-          "tests/test_viewer_consistency.py", "tests/test_about_page.py", "-q"], "passed"),
+          "tests/test_viewer_consistency.py", "tests/test_about_page.py", "-q", *left_out],
+         "passed"),
         (["node", "scripts/viewer_smoke.js"], "all checks passed"),
         ([sys.executable, "scripts/baseline_silent_failures.py"], "Expected end state"),
         ([sys.executable, "scripts/probe_three_coverage_proofs.py"],
@@ -198,9 +215,23 @@ def run(argv=None, *, validator=None, command_runner=run_command) -> int:
     parser.add_argument("--check-only", action="store_true")
     args = parser.parse_args(argv)
     root = Path(args.root)
-    validator = validator or (lambda path: emission_faults(path) + run_local_checks(path, command_runner))
+    if validator is None:
+        def validator(path, generated_facts=True):
+            return emission_faults(path) + run_local_checks(path, command_runner, generated_facts)
+    takes_flag = "generated_facts" in inspect.signature(validator).parameters
+
+    def validate(path, generated_facts=True):
+        """A validator injected by a test may take only the root; the real one takes the flag
+        too. Decided by its signature: a `TypeError` raised INSIDE a validator must not be
+        mistaken for a missing parameter."""
+        if takes_flag:
+            return validator(path, generated_facts=generated_facts)
+        return validator(path)
+
     try:
-        initial = validator(root)
+        # Before generation the generated-fact tests are left out (see GENERATED_FACT_TESTS);
+        # `--check-only` generates nothing, so it runs every test.
+        initial = validate(root, generated_facts=bool(args.check_only))
         if args.check_only:
             for script in ("sync_etl_process.py", "sync_domain_model.py"):
                 command_runner([sys.executable, "scripts/" + script, "--check"], root=root)
@@ -221,13 +252,14 @@ def run(argv=None, *, validator=None, command_runner=run_command) -> int:
                                 "viewer", "--links"], root=root)
             else:
                 raise CheckFailure("; ".join(initial))
-        final = validator(root)
+        final = validate(root, generated_facts=False)
         if final:
             raise CheckFailure("post-repair checks failed: " + "; ".join(final))
         generate_reports(root, command_runner)
         # Generation itself updates the configured count and documentation.
-        # Prove the final bytes, not merely the pre-generation state.
-        final = validator(root)
+        # Prove the final bytes, not merely the pre-generation state: EVERY test runs here,
+        # the generated-fact ones included, so a generation that left a fact stale fails.
+        final = validate(root, generated_facts=True)
         if final:
             raise CheckFailure("post-generation checks failed: " + "; ".join(final))
         print("[OK] verified; documentation and dependent reports updated. No commit or push performed.")

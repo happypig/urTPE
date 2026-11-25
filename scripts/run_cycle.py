@@ -254,8 +254,8 @@ def _cycle(opts: Options, deps: Deps) -> int:
         steps = {s.name: s for s in cycle.build_steps(opts.python, pdf=path or "<pdf>",
                                                       archive_root=opts.archive_root)}
         order = [n for n in cycle.STEP_ORDER if n not in ("poll_gazette", "poll_p168", "detect")]
-        # the report publication is not tracked as progress: it follows the finished mark
-        run_steps = [n for n in order[order.index(start):] if n != "publish_report"]
+        # the publications are not tracked as progress: they follow the finished mark
+        run_steps = [n for n in order[order.index(start):] if n not in cycle.PUBLICATION_STEPS]
 
         # Before the first step that writes: the dirty-tree check (only when the cycle starts
         # fresh at the ingest; past it the dirt is this cycle's own), then the lock probe.
@@ -286,7 +286,7 @@ def _cycle(opts: Options, deps: Deps) -> int:
             kind = cycle.classify_exit(name, res.exit_code, res.timed_out)
             if kind == "ok":
                 nxt = cycle.next_step_after(name)
-                if nxt is not None and nxt != "publish_report":
+                if nxt is not None and nxt not in cycle.PUBLICATION_STEPS:
                     cycle.mark_in_progress(state, sha, gazette_id, nxt, _now(deps))
                     deps.store.save_state(state)
                 last_stage = name
@@ -312,18 +312,23 @@ def _cycle(opts: Options, deps: Deps) -> int:
         cycle.mark_finished(state, sha, gazette_id, _now(deps))
         deps.store.save_state(state)
         done = True
-        current = "publish_report"
-        step = steps["publish_report"]
-        print("cycle: publish_report", flush=True)
-        res = deps.runner(list(step.argv), step.timeout)
-        if cycle.classify_exit("publish_report", res.exit_code, res.timed_out) != "ok":
-            return _finish(deps, polls, "publish_failed", sha256=sha, gazette_id=gazette_id,
-                           last_stage=last_stage, failed_stage="publish_report",
-                           exit_code=res.exit_code,
-                           reason=("publish_report timed out" if res.timed_out
-                                   else "publish_report exited %s" % res.exit_code))
+        # The two publications, emission first, each a child command that commits and pushes.
+        # A failure of the first stops the second: the pages describe an emission that did not
+        # land, and the report publisher would push them. Neither failure touches the hash.
+        for pub_name in cycle.PUBLICATION_STEPS:
+            current = pub_name
+            step = steps[pub_name]
+            print("cycle: %s" % pub_name, flush=True)
+            res = deps.runner(list(step.argv), step.timeout)
+            if cycle.classify_exit(pub_name, res.exit_code, res.timed_out) != "ok":
+                return _finish(deps, polls, "publish_failed", sha256=sha, gazette_id=gazette_id,
+                               last_stage=last_stage, failed_stage=pub_name,
+                               exit_code=res.exit_code,
+                               reason=("%s timed out" % pub_name if res.timed_out
+                                       else "%s exited %s" % (pub_name, res.exit_code)))
+            last_stage = pub_name
         return _finish(deps, polls, "ingested", sha256=sha, gazette_id=gazette_id,
-                       last_stage="publish_report")
+                       last_stage=last_stage)
     except Exception as exc:  # noqa: BLE001 - an unexpected failure is a recorded stop, not a traceback
         if done:       # the ingest finished; only the report publication failed
             return _finish(deps, polls, "publish_failed", sha256=sha, gazette_id=gazette_id,
@@ -364,8 +369,7 @@ def _dry_run(opts: Options, deps: Deps) -> int:
         print("dry run: would %s gazette %s (%s), starting at %s" %
               ("ingest" if det.kind == "candidate" else "resume", det.gazette_id, det.sha256[:12], start))
         print("dry run: steps: " + ", ".join(order[order.index(start):])
-              + "; the last step publishes the four generated pages, and the emission stays "
-              "uncommitted for you to review")
+              + "; the last two steps commit and push the emission, then the four generated pages")
         if start == "ingest":
             dirty = deps.git_dirty(cycle.OWNED_PATHS)
             if cycle.dirty_decision(True, dirty) == "refuse":

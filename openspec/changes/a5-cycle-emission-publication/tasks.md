@@ -20,10 +20,10 @@ Existing tests that encode the A4 contract and must change (listed so the red-to
 
 ## 2. Implementation
 
-- [ ] 2.1 `scripts/publish_emission.py` (new): modelled on `publish_release_diff.py`; exit 0/1/2; path-limited commit of the eight paths; verified push; `GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`, 120 s limits; the code-clean check and the no-drop guard; `--dry-run`; reuses that script's git helpers where they fit
-- [ ] 2.2 `urtpe/cycle.py`: `STEP_ORDER` gains `publish_emission` before `publish_report`; `build_steps` gains the step (timeout 600, writes False); `classify_exit` treats it like `publish_report`; `OWNED_PATHS` gains `viewer/dashboard.html`
-- [ ] 2.3 `scripts/run_cycle.py`: run the emission publisher in the post-finished block, before `publish_report`, and skip it on a failure of the other; exclude it from the progress marks the way `publish_report` is; map its failure to `publish_failed` with the failed stage named; the dry run and the status page name the step
-- [ ] 2.4 `scripts/post_ingest_check.py`: the left-out list for the initial check and the strict final check (design D9)
+- [x] 2.1 `scripts/publish_emission.py` (new): modelled on `publish_release_diff.py`; exit 0/1/2; path-limited commit of the eight paths; verified push; `GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`, 120 s limits; the code-clean check and the no-drop guard; `--dry-run`; reuses that script's git helpers where they fit
+- [x] 2.2 `urtpe/cycle.py`: `STEP_ORDER` gains `publish_emission` before `publish_report`; `build_steps` gains the step (timeout 600, writes False); `classify_exit` treats it like `publish_report`; `OWNED_PATHS` gains `viewer/dashboard.html`
+- [x] 2.3 `scripts/run_cycle.py`: run the emission publisher in the post-finished block, before `publish_report`, and skip it on a failure of the other; exclude it from the progress marks the way `publish_report` is; map its failure to `publish_failed` with the failed stage named; the dry run and the status page name the step
+- [x] 2.4 `scripts/post_ingest_check.py`: the left-out list for the initial check and the strict final check (design D9)
 - [ ] 2.5 `tests/test_documentation_sync.py`: convert the mechanical pins to payload-derived expectations (design D7), keeping the historical-prose pins
 - [ ] 2.6 Full suite green; `sync_etl_process.py --check` and `sync_domain_model.py --check` current
 

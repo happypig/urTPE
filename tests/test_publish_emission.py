@@ -115,7 +115,7 @@ def test_a_push_that_did_not_land_exits_1_and_names_it(sandbox, capsys):
     assert pub.main([]) == 1
     assert "push" in capsys.readouterr().err.lower()
     # the commit stays local, so a later run can push it
-    assert sandbox.git("log", "-1", "--format=%s").stdout.strip().startswith("data:")
+    assert sandbox.git("log", "-1", "--format=%s").stdout.strip().startswith("chore: emit the")
 
 
 def test_a_retry_after_a_failed_push_pushes_the_commit_that_is_ahead(sandbox):

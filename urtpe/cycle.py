@@ -42,7 +42,12 @@ from dataclasses import dataclass
 from typing import Callable, NamedTuple
 
 STEP_ORDER = ("poll_gazette", "poll_p168", "detect", "ingest", "refresh", "rebuild",
-              "post_ingest_check", "tests", "viewer_smoke", "publish_report")
+              "post_ingest_check", "tests", "viewer_smoke", "publish_emission", "publish_report")
+
+#: The two steps that run AFTER the hash is recorded finished, each a child command that commits
+#: and pushes (a5-cycle-emission-publication). Neither is tracked as progress, a failure of either
+#: is `publish_failed` and never a refusal, and the second does not run after a failure of the first.
+PUBLICATION_STEPS = ("publish_emission", "publish_report")
 
 #: The two flags that pass a refusal. No step may carry either (AGENTS.md: a non-zero exit is
 #: a refusal, and `--allow-reconcile-block` and `--no-archive` are marked dangerous for a reason).
@@ -81,6 +86,7 @@ OWNED_PATHS = (
     "data/review_report.txt",
     "viewer/projects.data.js",
     "viewer/index.html",
+    "viewer/dashboard.html",     # rewritten by an ingest; the emission publisher commits it
     "docs/etl_process.html",
     "docs/domain-model.html",
     "docs/release-diff.html",
@@ -123,6 +129,11 @@ def build_steps(python: str = "python", pdf: str = "<pdf>", dry_run: bool = Fals
         Step("post_ingest_check", (python, "scripts/post_ingest_check.py"), 1800, True),
         Step("tests", (python, "-m", "pytest", "-q"), 1800, False),
         Step("viewer_smoke", ("node", "scripts/viewer_smoke.js"), 300, False),
+        # a5-cycle-emission-publication: the emission publisher, only after a finished ingest and
+        # before the report, so one push carries the data and the pages that describe it. It
+        # commits only the eight emission paths; the coordinator itself runs no git write.
+        Step("publish_emission", (python, "scripts/publish_emission.py",
+                                  *(("--dry-run",) if archive_root else ())), 600, False),
         # Design D13: the existing publisher, only after a finished ingest. It stages and
         # commits only the four generated pages, as one set; the coordinator itself runs no git.
         Step("publish_report", (python, "scripts/publish_release_diff.py",
@@ -201,10 +212,11 @@ def pick_candidate(archived: list[Archived], dataset_date: str, state: dict,
 def classify_exit(step: str, exit_code: int, timed_out: bool = False) -> str:
     """`ok`, `transient` (exit 5: a lock was held) or `refusal` (anything else, a timeout too).
 
-    The report publication is different: by then the ingest has finished, so a failure of it
-    (exit 1, the push failed; exit 2, the generator's source is uncommitted; a timeout) is
-    `publish_failed`, never a refusal and never transient, and it must not undo the ingest."""
-    if step == "publish_report":
+    The two publications are different: by then the ingest has finished, so a failure of either
+    (exit 1, the push failed; exit 2, the tree or the count is not fit to publish from; a
+    timeout) is `publish_failed`, never a refusal and never transient, and it must not undo the
+    ingest. Exit 5 from a publisher is not a held lock: a publisher takes none."""
+    if step in PUBLICATION_STEPS:
         return "ok" if exit_code == 0 and not timed_out else "publish_failed"
     if timed_out:
         return "refusal"

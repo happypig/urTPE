@@ -270,7 +270,8 @@ def test_resume_restarts_at_the_failed_stage_and_skips_the_polls(h, rc):
     h.results["rebuild"] = None
     h.calls.clear()
     assert h.run(resume=NEW.sha256) == 0
-    assert h.names() == ["rebuild", "post_ingest_check", "tests", "viewer_smoke", "publish_report"]
+    assert h.names() == ["rebuild", "post_ingest_check", "tests", "viewer_smoke",
+                         "publish_emission", "publish_report"]
     assert h.state()["hashes"][NEW.sha256]["status"] == "finished"
 
 

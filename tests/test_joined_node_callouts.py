@@ -50,7 +50,10 @@ def test_the_refreshed_rights_case_joins_its_area_sibling():
     doc = json.loads(PAYLOAD.read_text(encoding="utf-8"))
     p = next(x for x in doc["projects"]
              if x["project_id"] == "文山區-木柵段三小段-623地號等39筆")
-    node = next(n for n in p["nodes"] if n["recno"] == 592)
+    # Locate by the case ids, never by recno: 編號 is a coordinate, and the
+    # 2026-11-19 publication moved this record from 592 to 594.
+    node = next(n for n in p["nodes"]
+                if {"10804121", "10804122"} <= set((n.get("links") or {}).get("taipei") or []))
     assert (node.get("links") or {}).get("taipei") == ["10804121", "10804122"]
     by_case = node.get("implementation_by_case") or {}
     assert set(by_case) >= {"10804121", "10804122"}

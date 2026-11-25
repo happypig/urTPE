@@ -229,12 +229,14 @@ def test_the_counters_on_the_live_payload():
                 today += 1
             if has_new:
                 new += 1
-    # The board's figures (2026-11-12, the decided rule WITH the 擬訂
+    # The board's figures (2026-11-19, the decided rule WITH the 擬訂
     # fallback). They move when the payload moves; the assertion names the
     # drift instead of passing silently. The board's 735 was the
     # pre-fallback measure (registration + exact name only).
     assert today == 1197, f"today's badged population moved: {today} (board says 1186; 1197 since the 2026-11-14 sweep)"
-    assert new == 808, f"the narrowed rule's population moved: {new} (board says 800; 808 since the 2026-11-15 anchor-parcel-drift correction)"
+    # 2026-11-25 (cycle ingested the 2026-11-19 gazette): 808 -> 809, one
+    # further node joins the narrowed rule.
+    assert new == 809, f"the narrowed rule's population moved: {new} (board says 800; 809 after the 2026-11-19 ingest)"
 
 
 def _name_matches_core(node, twur_name):

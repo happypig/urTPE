@@ -91,12 +91,14 @@ def test_real_documentation_pages_have_current_marked_facts():
     doc = dm.load_payload(dm.ROOT / "viewer" / "projects.data.js")
     etl, _ = sync_etl_process.render_current(doc, root=dm.ROOT, test_count=1484)
     assert 'data-doc-field="dataset-summary-en"' in etl
-    assert "2026-11-12" in etl and "1,448" in etl and "676" in etl
-    assert "1,444 records → 675 projects" not in etl
+    # The pinned facts move with the payload; the assertion names the drift.
+    # 2026-11-19: the cycle's first unattended ingest (1,450 records, 677 projects).
+    assert "2026-11-19" in etl and "1,450" in etl and "677" in etl
+    assert "1,448 records → 676 projects" not in etl
     assert "48 rows per Gregorian gazette" not in etl
     domain, _ = sync_domain_model.render_current(doc, root=dm.ROOT)
     assert 'data-doc-field="current-facts"' in domain
-    assert "2026-11-12" in domain and "1,448 / 676" in domain
+    assert "2026-11-19" in domain and "1,450 / 677" in domain
     assert "2026-10-15 payload" in domain  # historical evidence survives
     assert "83b7b2e" in domain
 

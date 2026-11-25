@@ -21,12 +21,15 @@ flake (AGENTS.md), so a hash that stopped at one is never retried by a later sch
 held lock (exit 5), a dirty tree and another running cycle are transient: the data was not
 refused, only the moment.
 
-**The report is published last, after the hash is finished** (design D13). The operator
-amended U-D2 for the four generated pages only (release-diff report, coverage report, domain
-model, ETL page): the coordinator's own git use is read-only, but after a finished ingest it
-runs the existing `publish_release_diff.py`, which publishes those pages as one set when the
-report or the payload counts changed. A failed push is its own
-outcome and never brings the ingest back.
+**The emission and the report are published last, after the hash is finished** (design D13, and
+openspec a5-cycle-emission-publication). The coordinator's own git use is read-only, but after a
+finished ingest it runs two child commands, emission first: `publish_emission.py`, which commits
+and pushes the eight emission paths (the operator's decision of 2026-11-23 reversed U-D2 for the
+emission), then the existing `publish_release_diff.py`, which publishes the four generated pages
+(release-diff report, coverage report, domain model, ETL page) as one set when the report or the
+payload counts changed. A failed publication is its own outcome and never brings the ingest back;
+a failed emission publication also stops the report publication, because the pages would describe
+an emission that did not land.
 
 **Progress is kept after every step.** The ingest updates the dataset, so once it has run the
 gazette no longer looks newer. If a later step then stops on a held lock, only a progress

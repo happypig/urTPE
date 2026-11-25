@@ -6,16 +6,24 @@ openspec change a4-pdf-cycle-coordinator (optimization board, A4). The coordinat
 existing commands in one fixed order and adds no polling, ingest or refresh logic of its own:
 
     poll_gazette --json, poll_p168 --json, detect, ingest, refresh_awaiting_caches,
-    rebuild (--from-js), post_ingest_check, pytest, viewer_smoke, publish_report.
+    rebuild (--from-js), post_ingest_check, pytest, viewer_smoke, publish_emission,
+    publish_report.
 
 The coordinator's own use of git is one read-only `git status`. After a FINISHED ingest it
-records the hash as finished and then runs the existing `publish_release_diff.py` (design D13:
-the operator amended U-D2 for the four generated pages only), which commits and pushes only
-`docs/release-diff.html`, `docs/coverage-report.html`, `docs/domain-model.html` and
-`docs/etl_process.html`, as one set. The emission itself (`data/`, `viewer/`, the other generated pages)
-stays uncommitted for a person to review (A5). It never passes `--allow-reconcile-block` or
-`--no-archive`, and stops at the first step that exits non-zero. A failed publication is its own
-outcome, `publish_failed`: it never un-finishes the hash and never brings the ingest back.
+records the hash as finished and then runs two child commands, emission first. The commits and
+the pushes are theirs, never this process's:
+
+- `publish_emission.py` (openspec a5-cycle-emission-publication; the operator's decision of
+  2026-11-23 reversed U-D2 for the emission) commits the eight emission paths in one
+  path-limited commit and pushes `main`. It refuses uncommitted code and a record-count drop.
+- `publish_release_diff.py` (design D13) commits and pushes only `docs/release-diff.html`,
+  `docs/coverage-report.html`, `docs/domain-model.html` and `docs/etl_process.html`, as one set.
+
+One push carries the emission and the pages in that order, so the pages never describe data the
+viewer does not serve. It never passes `--allow-reconcile-block` or `--no-archive`, and stops at
+the first step that exits non-zero. A failed publication is its own outcome, `publish_failed`: it
+never un-finishes the hash and never brings the ingest back, and a failed emission publication
+stops the report publication, because the pages would describe an emission that did not land.
 
 The pure rules (which gazette to ingest, when to stop, what a record holds) are in
 `urtpe/cycle.py`. This file is the adapters: the subprocess runner, a READ-ONLY `git status`,
@@ -27,7 +35,7 @@ each child then takes its own lock. A lock of its own over the ARCHIVE ROOT, a d
 directory, keeps two cycles apart without ever blocking a child.
 
 Exit codes: 0 finished, nothing to do, or already done; 1 a step failed, a hash awaits a
-person's diagnosis, or the report publication failed; 2 bad usage; 5 a lock was held or another cycle was running; 6 refused
+person's diagnosis, or a publication failed; 2 bad usage; 5 a lock was held or another cycle was running; 6 refused
 because an owned path has uncommitted changes. The record says the rest.
 
     python scripts/run_cycle.py [--dry-run] [--resume SHA256] [--archive-root PATH]

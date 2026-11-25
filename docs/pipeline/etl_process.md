@@ -670,14 +670,33 @@ renderDetail()` path against the payload in a stub DOM.
 The scheduled `urtpe-cycle` task (daily 04:00) runs `scripts/run_cycle.py`. For
 a new archived gazette it runs sections 11.1 to 11.3 by itself, then the tests
 and the viewer smoke run, and it stops at the first refusal. After a finished
-ingest it runs `scripts/publish_release_diff.py`. The pollers never ingest, and
-the cycle never commits the emission: section 11.4 stays with a person.
+ingest it runs two child commands, in this order: `scripts/publish_emission.py`,
+then `scripts/publish_release_diff.py`. The pollers never ingest. The
+coordinator's own use of git is one read-only `git status`; the commits and the
+pushes belong to the two children (openspec `a5-cycle-emission-publication`,
+decided 2026-11-23: the person's review gate on the emission is gone, and the
+person's role is diagnosis).
+
+`publish_emission.py` commits the eight emission paths (`data/projects.json`,
+`data/raw.tsv`, `data/clean.tsv`, `data/merged.tsv`, `data/review_report.txt`,
+`viewer/projects.data.js`, `viewer/index.html`, `viewer/dashboard.html`) in one
+path-limited commit, and pushes `main`, then asks the remote whether it holds the
+commit. It refuses, and commits nothing, when a tracked file under `urtpe/` or
+`scripts/` has an uncommitted change, and when the payload's record count is
+lower than the committed payload's: the dataset only grows, so a drop names a
+defect. One push carries the emission and the pages in that order, so the pages
+never describe data the viewer does not serve.
 `publish_release_diff.py` regenerates,
 commits and pushes only the four generated pages (`docs/release-diff.html`,
 `docs/coverage-report.html`, `docs/domain-model.html`, `docs/etl_process.html`),
 as one set, when the report or the payload's project or record count changed. Do
 not use it to publish a new payload: its path-limited commit excludes the
 dataset, the viewer and every other path.
+
+The cycle stops by design at `tests` when a pinned population drifts (the
+national-badge and joined-node counters). A person re-measures, updates the pin
+with the drift named, and resumes the hash (section 11.5). That is the one
+review gate that remains.
 
 A manual PDF-to-publication run follows these steps.
 
@@ -737,6 +756,14 @@ A manual PDF-to-publication run follows these steps.
 
 ### 11.4 Review and publish
 
+The scheduled cycle does this section by itself after a finished ingest
+(`scripts/publish_emission.py`, then `scripts/publish_release_diff.py`). Follow
+it by hand only for a run that did not go through the cycle.
+
+To roll back an emission that is already served, run `git revert` on its commit,
+push, and fix the cause. The cycle never rewrites history, and it never ingests a
+finished hash again.
+
 1. Review the generated pages and `git diff`. Check the payload date and counts,
    dated historical examples, bilingual passages and coverage evidence. Review
    the large dataset diff rather than staging the whole tree blindly.
@@ -771,12 +798,19 @@ recorded for 36 hours.
    tree is dirty when a tracked file in the emission, in the four generated
    pages, or under `urtpe/` or `scripts/` has an uncommitted change (an earlier
    cycle's emission, or code another session is editing). An untracked file does
-   not count. The next scheduled run tries the same gazette again. Commit or
-   discard the emission as section 11.4 says; finish or commit the code edit.
-5. If only the publication failed, the ingest stays finished. Run
-   `python scripts/publish_release_diff.py` by hand. It also pushes a commit
-   that is already ahead of the remote, so a retry after a failed push lands.
-   Use `--dry-run` first to see which trigger fired.
+   not count. The next scheduled run tries the same gazette again. A tree that is
+   dirty in an emission path means an earlier emission was not committed (a failed
+   publication, or a run made by hand): commit it as section 11.4 says, or run
+   `python scripts/publish_emission.py`. Finish or commit a code edit.
+5. If only a publication failed, the ingest stays finished, and the record names
+   the failed stage (`publish_emission` or `publish_report`). Retry by hand, in
+   this order: `python scripts/publish_emission.py`, then
+   `python scripts/publish_release_diff.py`. Each also pushes a commit that is
+   already ahead of the remote, so a retry after a failed push lands. Use
+   `--dry-run` first. The emission publisher exits 2 and commits nothing on
+   uncommitted code or on a record-count drop: a person diagnoses the cause. The
+   report publisher is not run after a failed emission publisher, because the
+   pages would describe an emission that did not land.
 
 Rules that outlast any single run:
 

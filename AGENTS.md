@@ -6,7 +6,7 @@ merged, per-project history graph plus a static viewer. Python, pymupdf, no web 
 ## Commands (verified on this machine)
 
 ```powershell
-python -m pytest                      # 1765 collected, ~4min, fully offline
+python -m pytest                      # 1813 collected, ~4-7min, fully offline
 python -m pytest tests/test_merge.py  # one file
 python -m pytest tests/test_merge.py::test_name -q
 python -m urtpe.cli source.pdf -o data --viewer viewer --links --recover-truncated
@@ -19,8 +19,8 @@ python scripts/sync_domain_model.py --check
 - Use the **system** interpreter (`C:\Python314\python.exe`, pytest 9.0.1, pymupdf 1.28.2).
   `.venv/` exists but contains only pip — activating it leaves you unable to run tests.
 - The count in that first line goes stale whenever tests change. Refresh it with
-  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1765 collected**;
-  the full run reports **1760 passed, 1 skipped, 4 xfailed** — the skip is deliberate, at
+  `python -m pytest --collect-only -q | Select-Object -Last 1`. It reports **1813 collected**;
+  the full run reports **1808 passed, 1 skipped, 4 xfailed** — the skip is deliberate, at
   `tests/test_idempotent_flags.py:117`, because the node payload builder is not exposed and
   the graph test below it covers the behaviour. The 4 xfails are strict and named: the
   offer step and the orphan name branch still refuse the anchor-parcel drifted cases of
@@ -143,8 +143,12 @@ Violating any of these corrupts output silently rather than raising.
   poll consumes it), never holds the `data/` lock across its children (each child takes its
   own; a held lock stops the cycle with exit 5 recorded), never passes
   `--allow-reconcile-block` or `--no-archive`, stops at the first non-zero exit, refuses
-  when its owned paths are dirty, and runs git read-only (`git status`). It never commits
-  the emission (U-D2); the emission stays uncommitted for a person (A5). `cycle_log.jsonl`
+  when its owned paths are dirty, and runs git read-only (`git status`). Its own git use is
+  read-only, but it runs two child commands after the hash is finished, emission first
+  (`scripts/publish_emission.py`, then `scripts/publish_release_diff.py`): the cycle commits
+  and pushes the emission itself (A5, `a5-cycle-emission-publication`, decided 2026-11-23,
+  reversing U-D2 for the emission). A failure of either child is `publish_failed`, never
+  `stopped`: the hash stays finished. `cycle_log.jsonl`
   and `cycle_state.json` live in the archive root; `cycle_status.html` there is a local,
   unpublished status page. Resume a stopped hash with
   `python scripts/run_cycle.py --resume <sha256>`; `--dry-run` writes nothing.
@@ -201,6 +205,20 @@ Violating any of these corrupts output silently rather than raising.
   gazettes yield today, not what each yielded when it was published. Its family identity is
   the **案名's land core**, not the 地號 cell: the cell differs by one character between
   some releases, and keying on it counted three units as both dead and born.
+- `scripts/publish_emission.py` — run by `run_cycle.py` after a finished ingest, **before**
+  `publish_release_diff.py` (openspec `a5-cycle-emission-publication`). It owns the eight
+  emission paths and no other: `data/projects.json`, `data/raw.tsv`, `data/clean.tsv`,
+  `data/merged.tsv`, `data/review_report.txt`, `viewer/projects.data.js`,
+  `viewer/index.html`, `viewer/dashboard.html`. It commits them in one path-limited commit and
+  pushes `main`, verified against the remote, with the same no-prompt environment and 120 s
+  limits as the pages publisher. It writes no file. It refuses (exit 2, nothing committed) on
+  a tracked file under `urtpe/` or `scripts/` with an uncommitted change, on an unreadable
+  record count, and on a record count **lower** than the committed payload's (the dataset
+  only grows, so a drop names a defect; equal and higher proceed). Exit 1 is a push that did
+  not land; a retry pushes the commit that is already ahead. A person can run it by hand,
+  with `--dry-run` first. Roll back a served emission with `git revert`; the cycle never
+  rewrites history. Every path it commits is in `urtpe.cycle.OWNED_PATHS` (a test asserts it),
+  so another session's uncommitted edit to one stops the cycle before the ingest.
 - `scripts/publish_release_diff.py` — run by `run_cycle.py` after a finished ingest (the
   weekly `urtpe-poll` task that used to run it is disabled; the cycle, daily 04:00, is the
   only scheduled publisher). It owns four generated pages and no other path:

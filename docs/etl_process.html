@@ -354,7 +354,7 @@
     <code>--from-js</code> 重新載入並重新輸出，所以 payload 是狀態，不是暫存。</span></div>
 
   <div class="loopback" style="margin-top:8px">↓ &nbsp;<strong><span class="en">After stage 8, outside the CLI:</span><span class="zh">第 8 階段之後，CLI 之外：</span></strong>
-    <span class="en">When the archive holds a verified gazette newer than the dataset, <code>urtpe-cycle</code> (<code>run_cycle.py</code>) runs stages 1–8 itself. Then it runs <code>post_ingest_check.py</code> (it verifies the emission and regenerates the reports), the tests and the viewer smoke run. After a finished ingest it runs <code>publish_release_diff.py</code>, which publishes the four generated pages when the report or the payload counts changed. The cycle never commits the emission. <code>check_deploy.py</code> compares the served site. See the table below.</span><span class="zh">當封存中有一份已驗證、且比資料集新的公報時，<code>urtpe-cycle</code>（<code>run_cycle.py</code>）自己執行第 1–8 階段。接著執行 <code>post_ingest_check.py</code>（驗證輸出並重新產生報告）、測試與檢視器煙霧測試。匯入完成後，它執行 <code>publish_release_diff.py</code>；報告或 payload 計數改變時，該腳本發布四份產生的頁面。cycle 從不 commit 輸出。<code>check_deploy.py</code> 比對線上站台。見下表。</span></div>
+    <span class="en">When the archive holds a verified gazette newer than the dataset, <code>urtpe-cycle</code> (<code>run_cycle.py</code>) runs stages 1–8 itself. Then it runs <code>post_ingest_check.py</code> (it verifies the emission and regenerates the reports), the tests and the viewer smoke run. After a finished ingest it runs two child commands, emission first: <code>publish_emission.py</code> commits and pushes the eight emission paths, then <code>publish_release_diff.py</code> publishes the four generated pages when the report or the payload counts changed. The coordinator&rsquo;s own use of git stays read-only. <code>check_deploy.py</code> compares the served site. See the table below.</span><span class="zh">當封存中有一份已驗證、且比資料集新的公報時，<code>urtpe-cycle</code>（<code>run_cycle.py</code>）自己執行第 1–8 階段。接著執行 <code>post_ingest_check.py</code>（驗證輸出並重新產生報告）、測試與檢視器煙霧測試。匯入完成後，它依序執行兩個子命令：<code>publish_emission.py</code> 提交並推送八個輸出路徑，接著 <code>publish_release_diff.py</code> 在報告或 payload 計數改變時發布四份產生的頁面。協調器本身使用 git 仍然唯讀。<code>check_deploy.py</code> 比對線上站台。見下表。</span></div>
 
   <div class="regimes">
     <div class="regime">
@@ -395,6 +395,11 @@
         <td><span class="en">Poll the city's 168 fast-track case list and detect a change by hash.</span><span class="zh">輪詢市府 168 快速處理案件清單，以雜湊偵測變動。</span></td>
         <td>—</td>
         <td><span class="en">The archive: <code>p168_snapshots/</code>, <code>p168_state.json</code>, <code>p168_log.jsonl</code></span><span class="zh">封存：<code>p168_snapshots/</code>、<code>p168_state.json</code>、<code>p168_log.jsonl</code></span></td></tr>
+      <tr><td><code>publish_emission.py</code></td><td class="nowrap"><span class="en">after 8, before the report</span><span class="zh">8 之後，報告之前</span></td>
+        <td><span class="en">Emission</span><span class="zh">輸出</span></td>
+        <td><span class="en">Only after a finished ingest: commit the eight emission paths in one path-limited commit and push <code>main</code>, verified against the remote. It refuses uncommitted code under <code>urtpe/</code> or <code>scripts/</code> and a record count lower than the committed payload&rsquo;s. It writes no file.</span><span class="zh">只在匯入完成後：把八個輸出路徑以一次限定路徑的 commit 提交，並推送 <code>main</code>，推送後向遠端確認。若 <code>urtpe/</code> 或 <code>scripts/</code> 有未提交的程式碼，或紀錄數低於已提交 payload，它拒絕。它不寫入任何檔案。</span></td>
+        <td>—</td>
+        <td><code>data/projects.json</code>, <code>data/raw.tsv</code>, <code>data/clean.tsv</code>, <code>data/merged.tsv</code>, <code>data/review_report.txt</code>, <code>viewer/projects.data.js</code>, <code>viewer/index.html</code>, <code>viewer/dashboard.html</code> <span class="en">(commit and push)</span><span class="zh">（commit 並推送）</span></td></tr>
       <tr><td><code>publish_release_diff.py</code></td><td class="nowrap"><span class="en">after 8</span><span class="zh">8 之後</span></td>
         <td><span class="en">Report</span><span class="zh">報告</span></td>
         <td><span class="en">Only after a finished ingest: publish the four generated pages as one set when the report or the payload counts changed. It reads the counts and never writes the payload.</span><span class="zh">只在匯入完成後：當報告或 payload 計數改變時，把四份產生的頁面當成一組發布。它讀取計數，從不寫入 payload。</span></td>
@@ -969,7 +974,7 @@
 <!-- ============================================================= -->
 <section>
   <h2><span class="n">9</span><span class="en">Operating the pipeline</span><span class="zh">操作管線</span></h2>
-  <p class="lead"><span class="en">Manual PDF-to-publication runbook. The scheduled <code>urtpe-cycle</code> task runs steps 1 to 5 by itself for a new gazette, stops at the first refusal, and records each run in <code>cycle_log.jsonl</code> (read the status page <code>cycle_status.html</code> in the archive root). After a finished ingest it publishes the four generated pages. It never commits the emission: step 6 stays with a person. A second task, <code>urtpe-nightly-sweep</code>, can rewrite the viewer payload (see the table in §1). The pollers themselves never ingest.</span><span class="zh">手動 PDF 至發布 runbook。排程 <code>urtpe-cycle</code> 工作會為新公報自己執行第 1 至 5 步，遇到第一個拒絕就停止，並把每次執行記在 <code>cycle_log.jsonl</code>（看封存根目錄的狀態頁 <code>cycle_status.html</code>）。匯入完成後，它發布四份產生的頁面。它從不 commit 輸出：第 6 步仍由人處理。第二個工作 <code>urtpe-nightly-sweep</code> 可能重寫檢視器 payload（見 §1 的表）。輪詢器本身絕不匯入。</span></p>
+  <p class="lead"><span class="en">Manual PDF-to-publication runbook. The scheduled <code>urtpe-cycle</code> task runs steps 1 to 5 by itself for a new gazette, stops at the first refusal, and records each run in <code>cycle_log.jsonl</code> (read the status page <code>cycle_status.html</code> in the archive root). After a finished ingest it commits and pushes the emission, then publishes the four generated pages. Step 6 is the cycle&rsquo;s own; a person diagnoses a stop and resumes it. A second task, <code>urtpe-nightly-sweep</code>, can rewrite the viewer payload (see the table in §1). The pollers themselves never ingest.</span><span class="zh">手動 PDF 至發布 runbook。排程 <code>urtpe-cycle</code> 工作會為新公報自己執行第 1 至 5 步，遇到第一個拒絕就停止，並把每次執行記在 <code>cycle_log.jsonl</code>（看封存根目錄的狀態頁 <code>cycle_status.html</code>）。匯入完成後，它提交並推送輸出，接著發布四份產生的頁面。第 6 步由 cycle 自己執行；人負責診斷停止並接續執行。第二個工作 <code>urtpe-nightly-sweep</code> 可能重寫檢視器 payload（見 §1 的表）。輪詢器本身絕不匯入。</span></p>
   <table>
     <tbody>
       <tr><td class="num">1.</td><td><span class="en">Check <code>git status --short</code> and confirm no other writer owns the output tree. Run <code>python scripts/poll_gazette.py</code> and <code>python scripts/poll_p168.py</code>. Only <code>new_gazette</code> archives a new PDF, and a later poll then reports the page unchanged. So read the archive, not only the status word: the newest gazette there must be newer than the dataset.</span><span class="zh">檢查 <code>git status --short</code>，確認沒有其他寫入者占用輸出樹。執行 <code>python scripts/poll_gazette.py</code> 與 <code>python scripts/poll_p168.py</code>。只有 <code>new_gazette</code> 會封存新的 PDF，之後再輪詢就會回報頁面未變。所以要看封存，而不只是狀態字：那裡最新的公報必須比資料集新。</span></td></tr>
@@ -992,12 +997,12 @@
     before deleting it) · never key anything durable on 編號 · manual corrections go in
     the ledger, not a dated script · <code>data/.link_cache/</code> is durable state —
     five backup dirs from past incidents exist because it was once lost ·
-    tests: <code>python -m pytest</code> (<span data-doc-field="test-count-en">1,765</span> collected; one deliberate skip at
+    tests: <code>python -m pytest</code> (<span data-doc-field="test-count-en">1,813</span> collected; one deliberate skip at
     <code>tests/test_idempotent_flags.py:117</code>).</span><span class="zh">每個輸出樹一次執行（鎖在 6 小時後或 PID 已死即過期 — 刪除前先確認 PID）·
     絕不以 編號 作為任何持久鍵 · 人工更正進帳本，不寫日期版的一次性腳本 ·
     <code>data/.link_cache/</code> 是持久狀態 —
     過去事故留下的五個備份目錄就是因為它曾經被清掉 ·
-    測試：<code>python -m pytest</code>（蒐集 <span data-doc-field="test-count-zh">1,765</span> 項；一項刻意 skip 於
+    測試：<code>python -m pytest</code>（蒐集 <span data-doc-field="test-count-zh">1,813</span> 項；一項刻意 skip 於
     <code>tests/test_idempotent_flags.py:117</code>）。</span>
   </div>
 </section>

@@ -2,7 +2,9 @@
 
 Collected 2026-11-15 to 2026-11-20. Item identifiers do not change: `U1–U8`, `A1–A7`,
 `U-D1–U-D5`, `M1–M4`, `D11`, `O1–O11` and `O-D1–O-D7`.
-Added 2026-11-26: Part IV (`N1–N5`, `N-D1–N-D4`). Nothing in it is decided or started.
+Added 2026-11-26: Part IV (`N1–N5`, `N-D1–N-D4`). The user decided N-D1 and N-D2 the same day, as one
+OpenSpec change, `twur-sweep-coverage` (written and implemented, not archived or committed; see "N1 and N2
+result"). N-D3, N-D4, N3, N4 and N5 are not decided or started.
 Added 2026-11-22: `U9`, `A8` and `U-D6–U-D9`. The user started A8 and decided U-D6 the same
 day. A8 is committed as `2e37855`. `U-D7` and `U-D8` were decided on 2026-11-23, and A4 was implemented
 the same day (see the A4 row and "Current boundary after A4"). `U-D9` is proposed and awaits the user's word.
@@ -54,9 +56,9 @@ Execute top to bottom. A row waits for every item in its "Depends on" column.
 | 5 | I | **A5** — report ownership and publication mode | **P1** | OpenSpec change | A4, U-D2, U-D3 |
 | 6 | II | **D11 = A** — S1's own-parcel form adopts the count rule | **P2** | OpenSpec change (**implemented 2026-11-24**, `d11-search-guard-count-rule`; see Part II) | — |
 | 7 | II | S3/S5 choice and F8 option C | **P2** | one OpenSpec change each | D11 (done), M4 (measured) |
-| 7a | IV | **N1** — the sweep reads every result page | **P2** | OpenSpec change (modifies one requirement) | N-D1 |
-| 7b | IV | **N2** — a title with no 等N筆 can still match | **P2** | OpenSpec change (modifies one requirement) | N-D2 |
-| 7c | IV | **N4** — record the nine hand-checked links as overrides | **P2** | data entry, no code | N-D4; for the five Class A rows, the N1 dry-run check done first |
+| 7a | IV | **N1** — the sweep reads every result page and probes list-title hits first | **P2** | OpenSpec change `twur-sweep-coverage` (one change with 7b; **written and implemented 2026-11-26, not archived or committed**) | N-D1 (decided 2026-11-26) |
+| 7b | IV | **N2** — a title with no 等N筆 can still match | **P2** | the same change `twur-sweep-coverage` | N-D2 (decided 2026-11-26) |
+| 7c | IV | **N4** — record the nine hand-checked links as overrides | **P2** | data entry, no code | N-D4; the N1 live check for the five Class A rows is done (2026-11-26) |
 | 7d | IV | **N5** — first re-measure | **P2** | read-only measurement | N1, N2, N4 |
 | 7e | IV | **N3** — a shared city case id counts as identity evidence | **P2** | OpenSpec change | N-D3, N5 (7d), §39, §12; the S3/S5 choice only if N3 is shown to be a membership rule |
 | 8 | I | **A6** — independent city-only cadence | **P2** | OpenSpec change | A4, U-D4 |
@@ -117,8 +119,8 @@ Four dependencies cross Part boundaries:
 | O-D5 | Where does the pending lane write? | its own output tree with its own lock. It reads `data/projects.json` at one named revision and never writes `data/`. | **ratified 2026-11-22** |
 | O-D6 | Does the district crawl have its own cadence? | yes. This answers U-D4 for the pending lane. Decide the interval after the change rate is measured. | **ratified 2026-11-22** |
 | O-D7 | Where does the original value of a patched field live (O11)? | a sidecar keyed by land core and approval date, written at apply time. It does not rewrite `projects.json`. | **ratified 2026-11-22** |
-| N-D1 | Does the sweep read every result page, and raise the probe limit of 8? | yes: read pages until one is empty, keep the limit per run. The spec fixes only the default of 8. | **proposed 2026-11-26; open** |
-| N-D2 | May a title with no 等N筆 match by section and parcel alone? | yes, but only when the page body also names the parcel. The count check already skips when a side has no count. | **proposed 2026-11-26; open** |
+| N-D1 | Does the sweep read every result page, and raise the probe limit of 8? | yes: read pages until one is empty, keep the limit per run, and probe the results whose list title names the parcel first (without the screen, paging fixes none of the five). The spec fixes only the default of 8. | **decided 2026-11-26** by the user's word: one OpenSpec change for N-D1 and N-D2, proceed. The change is `twur-sweep-coverage`. |
+| N-D2 | May a title with no 等N筆 match by section and parcel alone? | yes, but only when the page text outside the title also names the parcel, and only for the whole parcel (a sibling such as 51-3 never matches 51-13). The count check already skips when a side has no count. | **decided 2026-11-26**, with N-D1. |
 | N-D3 | Does a shared city case id count as identity evidence for a title that fails only on the count? | measure first (N5, after N1, N2 and N4). A shared id can come from a sibling project (§39), so never alone. | **proposed 2026-11-26; open** |
 | N-D4 | Do the nine Class A and Class B links (5 + 4) go in `twur_overrides.json` now, before any code change? | only after a parcel-level check of each. Four need it (see N4). The three Class C rows have no link to record. | **proposed 2026-11-26; open** |
 
@@ -1031,7 +1033,7 @@ and date. Then draw the marks from it.**
 
 **Why this part exists.** A project whose city case reads 施工中 or 已完工 has an approved
 plan, so the national portal (twur) should list it. 13 such projects had no twur view id in
-the table of 2026-11-26. This part records why, and what would fix it. It changes no code,
+the table of 2026-11-26. This part records why, and what would fix it. The measurement changed no code,
 no cache and no payload. The ledger, `twur_overrides.json` and `.link_cache/` were not
 written.
 
@@ -1105,11 +1107,16 @@ sweep), and this part does not recommend it. The priority stays P2 for that reas
 `page=1` and stops. Class A is five projects. The spec requires the probe limit to default to
 8 and says nothing about the page count.
 
-**Proposed form.** Read pages 1, 2, … until one holds no new view id, with the same 1.5 s
-delay between requests as the probes use. Keep `--max-probe` as the per-run bound on pages
-fetched for identity. The list page already carries each result's title, so the matcher can
-screen candidates before it fetches a view page: this would cut the 18 fetches for 南港 to
-the ones whose title names the parcel. That saving was not measured end to end.
+**Proposed form.** Read pages 1, 2, … until one holds no new view id, and probe the results
+whose list title names the section and whole parcel first. **The screen is required, not an
+optional saving.** A list page holds 10 results; 南港 has 18, so the five Class A pages are
+results 11 to 18, and the probe limit of 8 fetches only the first 8. Measured 2026-11-26:
+reading both pages without a screen reaches 0 of the 5; reading both and screening the list
+titles reaches 5 of 5, one hit each. The list anchor carries the title in `title='…'`, in
+single quotes. Some titles are cut short (view/58, view/38), so a list title only orders the
+probes and never decides a match. The probes themselves have no delay in the sweep (it waits
+60 to 180 s between projects); an earlier version of this text said "the same 1.5 s delay as
+the probes use", which was wrong. The change waits 1.5 s between list pages only.
 
 **Form: OpenSpec change.** It modifies the requirement "Configurable view-probe breadth":
 the delta must carry all three of its scenarios and the requirement body, because the
@@ -1133,10 +1140,17 @@ N4 entries for those five rows exist. After an override, the check no longer sho
 `地號等N筆` form. A single-parcel title (`…51-13地號土地…`) parses to empty and the page is
 rejected.
 
-**Proposed form.** When the parse is empty, fall back to the same rule the body check uses:
-the section appears in the title and the normalized parcel appears next to `地號`. Accept it
-only when both hold and no count is carried by the title. This is narrower than dropping the
-parse. It touches one function.
+**Proposed form.** When the parse is empty, fall back to a whole-parcel title test: the section
+directly followed by the parcel and then `地號`, and no count after it. Accept it only then, and
+only when the page text outside the title also names the parcel. This is narrower than dropping
+the parse. It touches one function. The same title test orders the probes in N1, so the two
+items share one helper.
+
+**Found while building it.** The existing body check runs on the whole page, so the page's own
+`<title>` satisfies it. For a countless title the condition "the body also names the parcel"
+(N-D2) was empty. The change adds a real one: the parcel must appear outside `<title>` and the
+meta tags. view/239 names `51-13地號` 7 times there. The evidence is weak, because the page
+heading repeats the case name.
 
 **Risk.** A looser parse can admit a sibling. 寶清段一小段 has 51-3, 51-13 and 51-17 as
 separate units (view/170, 239, 204). The fallback must compare the full normalized parcel,
@@ -1144,6 +1158,39 @@ not a prefix. Add those three as a golden table.
 
 **Form: OpenSpec change** (modifies "Strict view-page identity match"; carry its scenarios).
 Test-first.
+
+### N1 and N2 result (2026-11-26)
+
+**State.** OpenSpec change `twur-sweep-coverage` (proposal, spec delta over three requirements of
+`fetch-remaining-portal`, design, tasks), implemented in `scripts/fetch_remaining_national_portal.py`.
+Not archived, not committed, not pushed. The nightly task runs the script from the working tree, so
+the new code runs at its next start, unless the edit is reverted.
+
+**Tests.** 57 new cases in `tests/test_sweep_coverage.py`, written first. On the old code 42 failed,
+each for the stated reason (a missing helper, no paging, no ordering, no countless rule). 15 passed:
+guards that already held, such as the sibling rejections. The four older sweep test files are
+unchanged and pass. The full suite: 1,871 collected, no failure, 1 skip and 4 xfails (the named ones in
+`AGENTS.md`).
+
+**Live check** (read-only, the default probe limit of 8, candidate tuples taken from the payload;
+nothing was written):
+
+| Candidate | Result | Probed | Requests |
+|---|---|---:|---:|
+| 南港段一小段 366, 384, 412-2, 527, 560 | view/81, 82, 93, 69, 38 (all five) | 1 each | 3 each |
+| 寶清段一小段 51-13 (no count in the title) | view/239 | 1 | 2 |
+| 寶清段一小段 51-3 and 51-17 (siblings) | view/170 and view/204, each only its own | 1 each | 2 each |
+| 南港段一小段 520-2 (control: title 等16筆, our count 18) | miss, as before | 8 | 10 |
+
+This is the check that N1 asked for before any N4 entry exists. It ran on 2026-11-26, so the five
+Class A rows may now get overrides (N4) without confusing the measurement.
+
+**What the check did not show.** These projects are still unlinked in the cache. Each is in the
+no-match ledger from 2026-11-14, and the sweep skips a ledger entry until its 14-day TTL ends
+(about 2026-11-28). The sweep will link them at the first run after that, if the new code is in
+the working tree. Clearing the ledger entries earlier is a separate decision and was not done.
+N5's first measurement (7d) must wait for that run. The control row shows that the count-drift
+rows are not fixed: that is N3 and N4.
 
 ### N3 — a shared city case id as identity evidence
 

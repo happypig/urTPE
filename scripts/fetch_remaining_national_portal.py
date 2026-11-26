@@ -83,6 +83,14 @@ RUN_LOG_NAME = "sweep_runs.jsonl"
 EXIT_LOCK_HELD = 5  # the same code urtpe.cli returns for LockHeld
 DEFAULT_REPROBE_DAYS = 14
 DEFAULT_MAX_PROBE = 8
+# List paging (openspec twur-sweep-coverage, design D6). A twur list page held 10 results when
+# measured (2026-11-26: 南港段一小段 returned 10 + 8, then an empty page 3). A page shorter than
+# that is the last one, so the common section with fewer than 10 results costs one request.
+# The delay is between list pages only; the probe requests themselves are not paced here, and
+# the sweep waits 60-180 s between projects.
+LIST_PAGE_SIZE_HINT = 10
+MAX_LIST_PAGES = 10
+LIST_PAGE_DELAY_S = 1.5
 
 # ──────────────────────────────────────────────────────────────────────────────
 # No-Match Ledger (design D1/D3/D5)
@@ -347,7 +355,28 @@ def load_candidates(js_path: Optional[Path] = None) -> list[dict]:
     return candidates
 
 
-def search_portal(section: str) -> tuple[str, list[str]]:
+class SearchIds(list):
+    """The view ids of a search, in returned order, plus each result's list title.
+
+    A plain `list` of ids to every caller and every test fake. `titles` maps a view id to the
+    title the list page printed for it, and is empty when the page carried none. A list title
+    can be cut short (view/58 ends "...權利變換計"), so it is only ever used to order probes
+    (`order_probes`), never to accept or reject a page and never read for a count.
+
+    It is a list subclass, not a second return value, so `find_matching_view_with_outcome`
+    keeps calling `search_portal(section)` and every fake that injects an error or a miss
+    there keeps injecting it (openspec twur-sweep-coverage, design D5).
+    """
+
+    def __init__(self, ids=(), titles=None):
+        super().__init__(ids)
+        self.titles: dict[str, str] = dict(titles or {})
+
+
+_LIST_ANCHOR_TITLE = re.compile(r"""<a\s[^>]*?/view/(\d+)['"][^>]*?\stitle=(['"])(.*?)\2""", re.S)
+
+
+def search_portal(section: str) -> tuple[str, "SearchIds"]:
     """Search the portal by section name. Returns `(outcome, view_ids)`.
 
     The outcome is returned rather than inferred, because a request that failed and a
@@ -355,23 +384,45 @@ def search_portal(section: str) -> tuple[str, list[str]]:
     of them is evidence that the portal lacks the case. Collapsing them recorded a 14-day
     negative for every project a brief outage happened to touch, indistinguishable
     afterwards from a genuine miss.
+
+    Reads list pages 1, 2, ... (a section with 18 results holds 10 + 8): the next page is read
+    only after a full page that added a new id, up to `MAX_LIST_PAGES`. Page 1 failing is an
+    error with no ids. A later page failing, or the stop time passing between pages, is an
+    error that still carries the ids read so far: the caller probes them, and without a match
+    reports an error, because an unread page might have held the match (a miss would bury the
+    project for the re-probe TTL on the strength of pages the sweep never saw).
     """
-    params = {"title": section, "city_id": "2", "page": "1"}
     from urllib.parse import urlencode
-    url = f"{SEARCH_URL}?{urlencode(params)}"
 
-    try:
-        html = fetch_url(url, None, True)
-    except Exception as e:
-        print(f"  search failed: {e}", file=sys.stderr)
-        return OUTCOME_ERROR, []
+    ids = SearchIds()
+    for page in range(1, MAX_LIST_PAGES + 1):
+        if page > 1:
+            if is_past_deadline():
+                print(f"  search stopped before list page {page}: stop time reached", file=sys.stderr)
+                return OUTCOME_ERROR, ids
+            time.sleep(LIST_PAGE_DELAY_S)
+        params = {"title": section, "city_id": "2", "page": str(page)}
+        url = f"{SEARCH_URL}?{urlencode(params)}"
+        try:
+            html = fetch_url(url, None, True)
+        except Exception as e:
+            print(f"  search failed (list page {page}): {e}", file=sys.stderr)
+            return OUTCOME_ERROR, ids
 
-    import re
-    ids = []
-    for m in re.finditer(r"/view/(\d+)", html):
-        vid = m.group(1)
-        if vid not in ids:
-            ids.append(vid)
+        page_ids: list[str] = []
+        for m in re.finditer(r"/view/(\d+)", html):
+            if m.group(1) not in page_ids:
+                page_ids.append(m.group(1))
+        new_ids = [v for v in page_ids if v not in ids]
+        for m in _LIST_ANCHOR_TITLE.finditer(html):
+            ids.titles.setdefault(m.group(1), m.group(3).strip())
+        if not new_ids:
+            break
+        ids.extend(new_ids)
+        if len(page_ids) < LIST_PAGE_SIZE_HINT:
+            break
+    else:
+        print(f"  list page cap ({MAX_LIST_PAGES}) reached for {section}; later pages not read")
     return OUTCOME_MISS, ids
 
 
@@ -399,6 +450,51 @@ def normalize_land_token(token: str) -> str:
     Notation equivalence only — never changes numeric values.
     """
     return (token or "").translate(_FULLWIDTH_DIGITS).replace("之", "-")
+
+
+def _title_tail_after_parcel(title: str, section: str, parcel: str) -> Optional[str]:
+    """The text after `<section><parcel>地號` in a title, or None when the title lacks it.
+
+    One test for two jobs (openspec twur-sweep-coverage, design D3): the list-title screen
+    that orders probes, and the countless-title fallback of `view_page_matches` that decides.
+    The parcel must come directly after the section and `地號` directly after the parcel, so
+    the whole parcel is compared: `1-13` and `13` are not found in `51-13地號`, `51-1` is not
+    found in it, and `51-130地號` is not `51-13`. The section must start the title or follow
+    區 or 市, so a longer section name that ends in this one is not it. Notation drift (之 for
+    a hyphen, full-width digits) is normalized the way `view_page_matches` does.
+    """
+    if not title or not section or not parcel:
+        return None
+    parcel_n = normalize_land_token(parcel)
+    if not parcel_n:
+        return None
+    text = re.sub(r"(\d+)之(\d+)", r"\1-\2", title.translate(_FULLWIDTH_DIGITS))
+    needle = parcel_n + "地號"
+    start = text.find(section)
+    while start != -1:
+        after = text[start + len(section):]
+        if (start == 0 or text[start - 1] in "區市") and after.startswith(needle):
+            return after[len(needle):]
+        start = text.find(section, start + 1)
+    return None
+
+
+def title_names_parcel(title: str, section: str, parcel: str) -> bool:
+    """True when `title` names `section` followed by the whole `parcel` and 地號."""
+    return _title_tail_after_parcel(title, section, parcel) is not None
+
+
+def order_probes(vids, section: str, parcel: str) -> list[str]:
+    """Probe order: results whose list title names the candidate's section and whole parcel
+    first, then the rest, each group in returned order. Nothing is dropped.
+
+    A title only reorders. It never accepts a page (the view page's own title decides), never
+    rejects one, and is never read for a count, because a list title can be cut short. With no
+    titles (a plain list, or a page that printed none) the order is the returned order.
+    """
+    titles = getattr(vids, "titles", None) or {}
+    hits = [v for v in vids if title_names_parcel(titles.get(v, ""), section, parcel)]
+    return hits + [v for v in vids if v not in hits]
 
 
 def view_page_matches(html: str, section: str, parcel: str, count: str = "") -> bool:
@@ -433,6 +529,20 @@ def view_page_matches(html: str, section: str, parcel: str, count: str = "") -> 
 
     from urtpe.cleanse import parse_name_id
     t_district, t_section, t_parcel, t_count = parse_name_id(title_norm)
+    if not t_section and not t_parcel and t_count is None:
+        # The title carries no land count in any form, so it did not parse at all (view/239:
+        # `...寶清段一小段51-13地號土地...`). The spec already says an absent count is decided
+        # by section and parcel alone; the parse failed before that rule could run. Accept only
+        # a title that names this section and this whole parcel before 地號, with no count
+        # after it. A title that parses, with any count form, never reaches this branch.
+        tail = _title_tail_after_parcel(title_norm, section, parcel_n)
+        if tail is None or re.match(r"等?\d", tail):
+            return False
+        # The check above ran on the whole page, so the title alone satisfied it. Here the
+        # parcel must also be named in the page text outside <title> and the meta tags (the
+        # og:title meta repeats the title). view/239 names it 7 times there (probed 2026-11-26).
+        text_only = re.sub(r"<title>.*?</title>|<meta[^>]*>", "", html, flags=re.S | re.I)
+        return any(v in text_only for v in body_variants)
     if t_section != section:
         return False
     if normalize_land_token(t_parcel) != parcel_n:
@@ -459,7 +569,7 @@ def find_matching_view_with_outcome(section: str, parcel: str, count: str = "",
     error: there was nothing to fetch and therefore nothing that could have failed.
     """
     search_outcome, vids = search_portal(section)
-    if search_outcome == OUTCOME_ERROR:
+    if search_outcome == OUTCOME_ERROR and not vids:
         # The search never completed, so nothing was learned about the portal. Probing is
         # pointless with no candidates, and a miss here would suppress the project for the
         # re-probe TTL on the strength of a network blip.
@@ -467,11 +577,17 @@ def find_matching_view_with_outcome(section: str, parcel: str, count: str = "",
     if not vids:
         # The portal answered and held nothing for this section: a real negative.
         return "", {}, [], "", [], OUTCOME_MISS
+    # An error that still carries ids is a search cut short after some pages answered (a later
+    # list page failed, or the stop time passed). Those ids are probed, and a match among them
+    # is a match. Without one the result is an error, never a miss: an unread page might have
+    # held it (openspec twur-sweep-coverage, design D7).
+    search_partial = search_outcome == OUTCOME_ERROR
 
     limit = max(1, int(max_probe))
     checked: list[str] = []
     raised = 0
-    for vid in vids[:limit]:
+    ordered = order_probes(vids, section, parcel)
+    for vid in ordered[:limit]:
         print(f"  Checking view/{vid} for parcel {parcel}...")
         checked.append(vid)
         try:
@@ -494,8 +610,8 @@ def find_matching_view_with_outcome(section: str, parcel: str, count: str = "",
     if remaining > 0:
         print(f"  No match within {limit} probes ({remaining} unprobed results remain)")
     # Every probe raised, or at least one did and none answered. A miss is a negative only
-    # when the portal actually answered.
-    if checked and raised == len(checked):
+    # when the portal actually answered, and only when the search read all its pages.
+    if search_partial or (checked and raised == len(checked)):
         return "", {}, [], "", checked, OUTCOME_ERROR
     return "", {}, [], "", checked, OUTCOME_MISS
 

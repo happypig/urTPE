@@ -20,6 +20,9 @@ complete inventory and does not repeat it. The server-rendered district case tab
 `uro.gov.taipei` are outside this 40-endpoint inventory; their request contract, comparison
 with `P_project168.aspx` and measured data-quality findings are in
 [`urotpe_district_pages.md`](urotpe_district_pages.md).
+§7 (added 2026-11-26) extends the inventory with the parcel-identity endpoints —
+parcel→case, case→full parcel list, and the 街廓-type field — each with a live-tested
+example, plus the measured network block on the land office's 新舊地建號 page.
 
 ---
 
@@ -308,3 +311,126 @@ Invoke-WebRequest "https://zonegeo.udd.gov.taipei/geoserver/Taipei/wfs?service=W
 # a whole section's parcels (never a bbox filter — see the SRS trap above)
 Invoke-WebRequest "https://zonegeo.udd.gov.taipei/geoserver/Taipei/wfs?service=WFS&request=GetFeature&version=1.1.0&outputFormat=json&srsName=EPSG:4326&typename=Taipei:LAND-ALL-TWD97&maxFeatures=3000&cql_filter=sect_name%3D%27%E8%99%8E%E6%9E%97%E6%AE%B5%E5%9B%9B%E5%B0%8F%E6%AE%B5%27"
 ```
+
+---
+
+## 7. Parcel→case and case→parcel endpoints, with tested examples (probed 2026-11-26)
+
+This section extends the §3 inventory with the parcel-identity endpoints, each verified
+live on a real gazette parcel. Six handlers matter for the land-core work; the shapes
+below are measured, not inferred.
+
+**Aim:** find how the city lets you search 街廓範圍 / 街廓編號, and what sits behind a
+parcel that turned into a new parcel after construction.
+
+### 7.1 The verified six
+
+All POST, `Content-Type: application/x-www-form-urlencoded`, no session, no login.
+A `Referer` header of the calling page is accepted but not required.
+
+| # | Endpoint | Parameters (form body) | Returns |
+|---|---|---|---|
+| 1 | `getSectionList.ashx` | `qitem=SectionList_20&sec=<行政區>` | section codes + names for one district |
+| 2 | `Get_updcase_list.ashx` | `qitem=qland&sectstr=<地段小段>&monobuf=<母號>&sunobuf=<子號>` | every case touching the parcel, both 劃定 and 事業計畫 stages |
+| 3 | `GetUpdQuery.ashx` | `type=query&page_index=&page_size=&case_ward=<行政區>&ward_name=<地段小段>&ward_no1=<母號>&ward_no2=<子號>` | approved 自行劃定 units matching the parcel |
+| 4 | `GetUpdCase.ashx` | `case_id=<id>` | one case record, `mode_name` carries the 街廓 type |
+| 5 | `GetUpdSect.ashx` | `case_id=<id>` | the full parcel list of one case |
+| 6 | `Get_project168_First.ashx` | `case_id=<id>` | the 事業計畫 record: 實施者, `Place`, dates |
+
+Tested live, 2026-11-26:
+
+```
+# 1 — sections of one district
+POST ashx/getSectionList.ashx   qitem=SectionList_20&sec=松山區
+→ [{"AA48":"0655","KCNT":"民生段","landname":"民生段"}, …24 rows]
+
+# 2 — one parcel → all cases (民生段 1地號, the boundary that starts the 民生東路新社區 zone)
+POST ashx/Get_updcase_list.ashx  qitem=qland&sectstr=民生段&monobuf=1&sunobuf=0
+→ 2 rows: case_id 115512 (劃定/已公告,「民生東路新社區…暨更新計畫案」)
+          case_id R-C111006 (整建維護,「莊敬里撫遠街公寓」, 已核定)
+
+# 2 — a gazette parcel (西松段二小段 54地號等9筆 → its own 3 cases)
+POST ashx/Get_updcase_list.ashx  qitem=qland&sectstr=西松段二小段&monobuf=54&sunobuf=0
+→ 102514 劃定/已核准 · R104501 事業/已核定 · 115509 松山-5 市民大道沿線軸帶
+
+# 3 — same parcel → the approved self-designated units
+POST ashx/GetUpdQuery.ashx  type=query&page_index=1&page_size=20
+     &case_ward=松山區&ward_name=西松段二小段&ward_no1=0054&ward_no2=0000
+→ 1 row: case_id 102514, define_name=自行劃定, status=已核准
+
+# 4 — case detail, with the 街廓 field
+POST ashx/GetUpdCase.ashx  case_id=102514
+→ {"case_id":"102514","define_name":"自行劃定","mode_name":"非完整街廓",
+   "status_name":"已核准","case_area":0.2874,
+   "case_approved_date":"2015-04-01","case_approved_num":"10330971400", …}
+POST ashx/GetUpdCase.ashx  case_id=115512
+→ mode_name "非完整街廓(跨)" — the (跨) marks a unit that spans 街廓
+
+# 5 — the full parcel list behind a case
+POST ashx/GetUpdSect.ashx  case_id=102514
+→ 9 rows: 松山區 西松段二小段 0054…0062 — exactly the gazette's 「54地號等9筆」
+
+# 6 — the 事業計畫 record, with the prose 街廓 description
+POST ashx/Get_project168_First.ashx  case_id=11505015
+→ Place: "臺北市松山區八德路四段245巷56弄以南、吉祥公園以西、八德路四段245巷52弄
+   以北、吉祥路以東所圍街廓內之東側。"
+```
+
+Traps, measured:
+
+- **`sectstr` takes the section name, not the `AA48` code.** `sectstr=0655` returns an
+  empty body; `sectstr=民生段` returns rows. (§4 already noted this for §3 row 1;
+  it holds for all parcel-keyed handlers here.)
+- **`type=land` is not a valid `GetUpdQuery` mode** and answers `[]`. The parcel search
+  runs under `type=query` with `case_ward`+`ward_name`+`ward_no1/2`.
+- **`GetUpdSect` answers only on POST** (§1 already recorded the shape; now confirmed
+  with a case that has 9 parcels).
+- `ua_frmEasyCase.aspx?case_id=` (劃定 cases) and `r_progress_detail.aspx?case_id=`
+  (事業計畫 cases) are the human pages; both load their data from `GetUpdCase` /
+  `Get_project168_*` by AJAX, so the HTML carries nothing without JavaScript.
+
+### 7.2 What the city publishes for 街廓範圍 / 街廓編號
+
+**No 街廓編號 is published anywhere on this host.** The city publishes:
+
+- the 街廓 *type* per case — `GetUpdCase.mode_name`: `非完整街廓`, `非完整街廓(跨)`
+  (and, by symmetry, presumably `完整街廓`), and
+- a prose 街廓 *description* — `Get_project168_First.Place`, the 「所圍街廓內之東側」
+  style of text above, and
+- polygon boundaries — but on the UDD GeoServer, §6's `uro-redevelop-ALL-5` layer, not
+  on this host. There is no block-number field on either source.
+
+The 更新地區範圍圖 (`uro.gov.taipei/cp.aspx?n=3C7DB2F1081E962B`, 便民服務 →
+更新地區範圍) exists only as per-district PDF downloads; no queryable geometry.
+
+For urTPE the parcel list (`GetUpdSect`) is the closest thing to a 街廓範圍 the city
+exposes: it is the authoritative parcel set per case, the ground truth the gazette's
+地號 cell abbreviates as 「等N筆」.
+
+### 7.3 The post-construction parcel-renumbering source — unreachable from here
+
+`https://w2.land.gov.taipei/LBN/NOLB_V100.aspx` is the 新舊地建號查詢網頁 — the land
+office's old-land-number → new-land-number mapping, which the URO pages themselves cite
+for "the parcel was split or merged" ("可先行查詢地政局 新舊地建號查詢網頁"). This is the
+source for the user's question: a parcel that turned into a new parcel after construction.
+
+**It does not accept connections from this machine.** Measured 2026-11-26, curl
+(Chrome, then curl, same result):
+
+- `https://w2.land.gov.taipei/LBN/NOLB_V100.aspx` — connect to `210.241.73.246:443`
+  **times out at the TCP level** (28 attempts across ~21 s each); HTTP times out too;
+  connecting to the bare IP times out. Not a TLS or page error — no connection opens.
+- Sibling hosts on the same department answer 200 fine: `land.gov.taipei`,
+  `cloud.land.gov.taipei`, `lda.land.gov.taipei`, `daan.land.gov.taipei`,
+  `w3.land.gov.taipei`. Only `w2.` is dark, so it is a per-host network block, not
+  a machine-wide outage.
+- The browser tool agrees: the tab dies on an error page, same as curl.
+
+Consequence: the old→new parcel mapping cannot be probed from this machine at all.
+Any work on post-construction renumbering needs a different network, or the open-data
+route — `cloud.land.gov.taipei` (地政雲) is reachable and carries parcel layers, so it
+is the first place to look for an equivalent of NOLB's mapping.
+
+Caveat carried by the URO's own pages: 「地號資料係申請當時之資料，僅供參考」 — the
+parcel lists above are as of application, so a built project's parcels may have been
+merged or split since; NOLB (or its equivalent) is the authority for the after picture.

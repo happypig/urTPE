@@ -2,7 +2,7 @@
 
 Collected 2026-11-15 to 2026-11-20. Item identifiers do not change: `U1–U8`, `A1–A7`,
 `U-D1–U-D5`, `M1–M4`, `D11`, `O1–O11` and `O-D1–O-D7`.
-Added 2026-11-26: Part IV (`P1–P5`, `P-D1–P-D4`). Nothing in it is decided or started.
+Added 2026-11-26: Part IV (`N1–N5`, `N-D1–N-D4`). Nothing in it is decided or started.
 Added 2026-11-22: `U9`, `A8` and `U-D6–U-D9`. The user started A8 and decided U-D6 the same
 day. A8 is committed as `2e37855`. `U-D7` and `U-D8` were decided on 2026-11-23, and A4 was implemented
 the same day (see the A4 row and "Current boundary after A4"). `U-D9` is proposed and awaits the user's word.
@@ -12,12 +12,15 @@ the same day (see the A4 row and "Current boundary after A4"). `U-D9` is propose
 | I | Run the PDF and city-platform update as one deterministic cycle | U1–U9, A1–A8, U-D1–U-D9 | **P1** | exploration 2026-11-19; U9, A8 and U-D6–U-D9 added 2026-11-22; A8 started and U-D6 decided that day; U-D7–U-D9 open |
 | II | Gen-1 membership: measurements that follow decisions D11 and S3/S5 | M1–M4, D11 | **P2** | moved here from `docs/inspections/inspection-batchF.md` |
 | III | Gen-2 viewer: one `project_uid` for applications and approvals | O1–O11, O-D1–O-D7 | **P3** | exploration 2026-11-19, re-measured 2026-11-20; O10 and O11 added 2026-11-21 |
-| IV | Gen-1 national-portal coverage: construction-stage projects with no twur view id | P1–P5, P-D1–P-D4 | **P2** | measured 2026-11-26; see "Part IV" |
+| IV | Gen-1 national-portal coverage: construction-stage projects with no twur view id | N1–N5, N-D1–N-D4 | **P2** | measured 2026-11-26; see "Part IV" |
 
 **Why this order.** Part I depends on nothing in Parts II and III. It protects the data
 that both of them read. Part II decides how a city case joins a unit. Part III adds a new
 source and a new identity layer, and it must reuse the Part II decision. A second
 membership rule in Part III would repeat the seven-rule problem that Batch F measured (F1).
+Part IV (added 2026-11-26) is a coverage fix for the national portal. It has the Part II
+priority, so it runs after step 7 as steps 7a to 7e. N1, N2, N4 and N5 wait for no other
+part. N3 waits for N5 and for the sources named in its row.
 
 **Rules for this board.**
 
@@ -49,8 +52,13 @@ Execute top to bottom. A row waits for every item in its "Depends on" column.
 | 3b | I | **A8** — the nightly sweep takes the lock and reports a failed rebuild (**started at the user's word 2026-11-22; committed as `2e37855`; outside the standing word**) | **P1** | fix only | — |
 | 4 | I | **A4** — deterministic PDF-cycle coordinator | **P1** | OpenSpec change | A1–A3, U-D1 |
 | 5 | I | **A5** — report ownership and publication mode | **P1** | OpenSpec change | A4, U-D2, U-D3 |
-| 6 | II | **D11 = A** — S1's own-parcel form adopts the count rule | **P2** | OpenSpec change (decided; not opened) | the user's word |
-| 7 | II | S3/S5 choice and F8 option C | **P2** | one OpenSpec change each | D11, M4 |
+| 6 | II | **D11 = A** — S1's own-parcel form adopts the count rule | **P2** | OpenSpec change (**implemented 2026-11-24**, `d11-search-guard-count-rule`; see Part II) | — |
+| 7 | II | S3/S5 choice and F8 option C | **P2** | one OpenSpec change each | D11 (done), M4 (measured) |
+| 7a | IV | **N1** — the sweep reads every result page | **P2** | OpenSpec change (modifies one requirement) | N-D1 |
+| 7b | IV | **N2** — a title with no 等N筆 can still match | **P2** | OpenSpec change (modifies one requirement) | N-D2 |
+| 7c | IV | **N4** — record the nine hand-checked links as overrides | **P2** | data entry, no code | N-D4; for the five Class A rows, the N1 dry-run check done first |
+| 7d | IV | **N5** — first re-measure | **P2** | read-only measurement | N1, N2, N4 |
+| 7e | IV | **N3** — a shared city case id counts as identity evidence | **P2** | OpenSpec change | N-D3, N5 (7d), §39, §12; the S3/S5 choice only if N3 is shown to be a membership rule |
 | 8 | I | **A6** — independent city-only cadence | **P2** | OpenSpec change | A4, U-D4 |
 | 9 | III | **O1** — identity ledger and `project_uid` | **P3** | OpenSpec change | D11, O-D1, O-D2 |
 | 10 | III | **O2** — keep `case_id` per application; flag the four conflicts | **P3** | schema field | O1 |
@@ -64,15 +72,12 @@ Execute top to bottom. A row waits for every item in its "Depends on" column.
 | 18 | I | **A7** — optional read-only diagnostic agent | **P3** | OpenSpec change | A4–A6, U-D5 |
 | 19 | III | **O10** — reconciliation page: release-diff count to Viewer count | **P3** | fix only (the 652 note), then design and a read-only page | fix: —; page: O6, O8 |
 | 20 | III | **O11** — marks on patched values, original value on hover | **P3** | OpenSpec change (sidecar, ledger field), then UI | O1, O6, O8, O-D7 |
-| — | IV | **P1** — the sweep reads every result page | **P2** | OpenSpec change (modifies one requirement) | P-D1 |
-| — | IV | **P2** — a title with no 等N筆 can still match | **P2** | OpenSpec change (modifies one requirement) | P-D2 |
-| — | IV | **P3** — a shared city case id counts as identity evidence | **P2** | OpenSpec change | D11, M4, P-D3 |
-| — | IV | **P4** — record the six hand-checked links as overrides | **P2** | data entry, no code | P-D4 |
-| — | IV | **P5** — re-measure after each of P1–P4 | **P2** | read-only measurement | P1–P4 |
 
-Part IV has no step number. It does not depend on Parts I and III, and nothing in them
-depends on it. Its P3 reads the D11 and M4 decisions, so it waits for them. P1, P2 and P4 do
-not.
+**Part IV sits in the order as steps 7a to 7e**, after step 7, because its priority (P2) is the
+Part II tier and it outranks Part III. The sub-steps follow the 3b precedent, so steps 8 to 20
+keep their numbers. Part IV does not depend on Parts I and III, and nothing in them depends on
+it. It touches the nightly sweep script only, not the A4 coordinator. The 7a to 7e rows are
+outside the standing word of 2026-11-22 (see "Decisions to make").
 
 Four dependencies cross Part boundaries:
 
@@ -102,7 +107,7 @@ Four dependencies cross Part boundaries:
 | U-D7 | Do the two pollers run daily instead of weekly? | yes, after A3. They write nothing under `data/`. `publish_release_diff.py` strips its stamp and exits 0 when the report is unchanged. Not read: `check_tree()`. | **decided 2026-11-23: daily.** The pollers run daily inside the cycle. The cycle (`urtpe-cycle`) runs at 04:00, after a sweep window of 00:30 to 03:30. The user first chose 06:00 and then moved the cycle to 04:00. `urtpe-poll` is disabled, not deleted. |
 | U-D8 | Does the national sweep stay its own task, or join the A4 coordinator? | stay its own task until A8 is done and A4 is proven. Both would write the same cache. | **decided 2026-11-23: its own task.** The cycle checks the lock first and stops with exit 5 recorded if a writer holds it. |
 | U-D9 | Is `refresh_whole_corpus.py` scheduled? | no. Run it on demand. A schedule needs its own OpenSpec change, a window outside 02:00–05:00, a start after ingest, and an explicit checkpoint reset. | **proposed 2026-11-22; open** |
-| D11 | Does S1's own-parcel form adopt the count rule? | **A** | **decided 2026-11-15: A.** The change is not opened. |
+| D11 | Does S1's own-parcel form adopt the count rule? | **A** | **decided 2026-11-15: A.** Implemented 2026-11-24 (`d11-search-guard-count-rule`; see Part II). |
 | S3/S5 | Does S5 adopt the gate rule? | measure first (M4), then decide | **decided 2026-11-15: measure first.** M4 is that measurement. The choice after it is open. |
 | F8-C | Remove a cross-listed case from the wrong holder? | wait for D11 and the S3/S5 choice | **decided 2026-11-15: wait** |
 | O-D1 | Where does the identity ledger live, and who may append? | a separate append-only file with the correction ledger's rules (keyed on land core and date, never on 編號 or `case_id` alone) | **ratified 2026-11-22** |
@@ -112,11 +117,10 @@ Four dependencies cross Part boundaries:
 | O-D5 | Where does the pending lane write? | its own output tree with its own lock. It reads `data/projects.json` at one named revision and never writes `data/`. | **ratified 2026-11-22** |
 | O-D6 | Does the district crawl have its own cadence? | yes. This answers U-D4 for the pending lane. Decide the interval after the change rate is measured. | **ratified 2026-11-22** |
 | O-D7 | Where does the original value of a patched field live (O11)? | a sidecar keyed by land core and approval date, written at apply time. It does not rewrite `projects.json`. | **ratified 2026-11-22** |
-
-| P-D1 | Does the sweep read every result page, and raise the probe limit of 8? | yes: read pages until one is empty, keep the limit per run. The spec fixes only the default of 8. | **proposed 2026-11-26; open** |
-| P-D2 | May a title with no 等N筆 match by section and parcel alone? | yes, but only when the page body also names the parcel. The count check already skips when a side has no count. | **proposed 2026-11-26; open** |
-| P-D3 | Does a shared city case id count as identity evidence for a title that fails only on the count? | measure first (P5). A shared id can come from a sibling project (§39), so never alone. | **proposed 2026-11-26; open** |
-| P-D4 | Do the six Class B and Class A links go in `twur_overrides.json` now, before any code change? | only after a parcel-level check of each. Four need it (see P4). | **proposed 2026-11-26; open** |
+| N-D1 | Does the sweep read every result page, and raise the probe limit of 8? | yes: read pages until one is empty, keep the limit per run. The spec fixes only the default of 8. | **proposed 2026-11-26; open** |
+| N-D2 | May a title with no 等N筆 match by section and parcel alone? | yes, but only when the page body also names the parcel. The count check already skips when a side has no count. | **proposed 2026-11-26; open** |
+| N-D3 | Does a shared city case id count as identity evidence for a title that fails only on the count? | measure first (N5, after N1, N2 and N4). A shared id can come from a sibling project (§39), so never alone. | **proposed 2026-11-26; open** |
+| N-D4 | Do the nine Class A and Class B links (5 + 4) go in `twur_overrides.json` now, before any code change? | only after a parcel-level check of each. Four need it (see N4). The three Class C rows have no link to record. | **proposed 2026-11-26; open** |
 
 **Ratified 2026-11-22.** The user chose "Ratify recommendations" for the 12 rows above that read
 "ratified": the recommendation column of U-D1 to U-D5 and O-D1 to O-D7 is now the decision.
@@ -127,6 +131,9 @@ one OpenSpec change in flight at a time, with the test-first gate. Limits that s
 - Rows added 2026-11-22 (U9, A8, U-D6 to U-D9) are outside this word. A8 does not widen A1.
   The user gave a separate word for A8 ("start A8") and for U-D6 ("keep the sweep running").
   U-D7, U-D8 and U-D9 are still proposed. Each one waits for the user.
+- Part IV rows (steps 7a to 7e, N1 to N5, N-D1 to N-D4, added 2026-11-26) are outside this word.
+  Each decision and each OpenSpec change waits for a separate word. N4 also writes tracked
+  configuration (`data/twur_overrides.json`).
 - U-D3 leaves "serialize or supersede" to the change that implements it.
 - U-D4 and U-D5 ratify "measure first" and "only after logs prove a need". They defer A6 and A7.
 - **S3/S5 is not ratified.** It stays open and moved to an architecture exploration of the
@@ -1020,7 +1027,7 @@ and date. Then draw the marks from it.**
 
 ---
 
-## Part IV — Gen-1 national-portal coverage: construction-stage projects with no twur view id (P1–P5)
+## Part IV — Gen-1 national-portal coverage: construction-stage projects with no twur view id (N1–N5)
 
 **Why this part exists.** A project whose city case reads 施工中 or 已完工 has an approved
 plan, so the national portal (twur) should list it. 13 such projects had no twur view id in
@@ -1085,7 +1092,14 @@ runs, reads page 1, and records the same misses. `sweep_runs.jsonl` shows 49 can
 skipped on every night since 2026-11-22 and 1 processed on 2026-11-26 (updated 0). Those 49
 are the ones that wait for the TTL.
 
-### P1 — the sweep reads every result page
+**This is a delay, not a loss, and no step here beats the date.** A recorded miss costs one
+re-probe 14 days later. It does not remove a link or change the payload. N1 and N2 need an
+OpenSpec change with test-first, so they cannot land by 2026-11-28. N4 does not stop the sweep:
+the sweep script has no reference to overrides (search, 2026-11-26), so it still probes and
+records misses for an overridden project. The only lever before the date is U-D6 (pause the
+sweep), and this part does not recommend it. The priority stays P2 for that reason.
+
+### N1 — the sweep reads every result page
 
 **The gap.** `search_portal` (`scripts/fetch_remaining_national_portal.py:350`) requests
 `page=1` and stops. Class A is five projects. The spec requires the probe limit to default to
@@ -1103,10 +1117,17 @@ archive guard does not protect the prose (see the openspec notes in `AGENTS.md`)
 a fake search with two pages, a match on page 2, and a ledger check that an exhausted search
 records the right `view_ids_checked`.
 
-**Check before and after.** Re-run the Class A rows with `--dry-run`. All five should reach
-their view id. The no-match ledger must drop those five entries.
+**Time bound.** More pages mean more requests per candidate. The sweep already stops at its
+`--deadline` (`is_past_deadline`, `fetch_remaining_national_portal.py:690` and `:743`), and it
+writes each negative at once (design D3). So extra page reads cannot run into the 04:00 cycle.
+They can only cut the number of candidates processed per night. Add one test: a deadline that
+passes between two pages stops the crawl and records only the finished candidates.
 
-### P2 — a title with no 等N筆 can still match
+**Check before and after.** Re-run the Class A rows with `--dry-run`. All five should reach
+their view id. The no-match ledger must drop those five entries. Run this check **before** the
+N4 entries for those five rows exist. After an override, the check no longer shows what N1 did.
+
+### N2 — a title with no 等N筆 can still match
 
 **The gap.** `view_page_matches` parses the title with `parse_name_id`, which needs the
 `地號等N筆` form. A single-parcel title (`…51-13地號土地…`) parses to empty and the page is
@@ -1124,24 +1145,37 @@ not a prefix. Add those three as a golden table.
 **Form: OpenSpec change** (modifies "Strict view-page identity match"; carry its scenarios).
 Test-first.
 
-### P3 — a shared city case id as identity evidence
+### N3 — a shared city case id as identity evidence
 
 **The gap.** Three Class B rows fail only on the count. Each page shares a city case id with
 our cache. The matcher ignores case ids.
 
 **Proposed form.** Treat a shared case id as corroboration for a count mismatch, never as the
 only evidence: the section and the first parcel must still agree. A page then becomes a
-candidate with a flag, and a person confirms it through P4.
+candidate with a flag, and a person confirms it through N4.
 
-**Why wait.** This is a membership rule, and Part II decides those. A second rule here would
-repeat the seven-rule problem of Batch F (F1). It must reuse the D11 count rule and the M4
-result, and it needs a golden table over the three rows. 大龍段二小段 `等7筆` against `等2筆`
-is the case that decides whether the rule is safe.
+**Why wait.** A shared case id is weak evidence. Three things bound it:
 
-**Form: OpenSpec change**, after D11 and M4. Recommendation: **do not start it first.** P1
-and P2 are narrower and fix six of the 12.
+1. **§39 (`reject-foreign-view-cases`).** View pages carry cases of their neighbours, so a
+   shared id can come from a sibling. N3 must not weaken that rule.
+2. **§12 count normalization** (`docs/portals/facts_2_portals.md`). It is the open lever for
+   count drift, and N3 would be a second answer to the same problem. Decide which one stays.
+3. **The N5 numbers.** After N1, N2 and N4 the three count-drift rows may be settled by hand.
+   Then N3 has nothing to fix today.
 
-### P4 — record the hand-checked links as overrides
+**Not shown:** that N3 is a *membership* rule in the Part II sense. D11 is implemented
+(2026-11-24) and M4 is measured, so neither blocks N3 now. The open Part II gate is the S3/S5
+choice. `view_page_matches` matches a twur page to a project by title and body. Nothing in
+this board puts it among the seven checkers S1 to S7. If the S3/S5 exploration says it is one,
+N3 also waits for that choice. Until then, the dependency in the order table is conditional.
+
+N3 needs a golden table over the three rows. 大龍段二小段 `等7筆` against `等2筆` is the case
+that decides whether the rule is safe.
+
+**Form: OpenSpec change**, after N5. Recommendation: **do not start it first.** N1 and N2 are
+narrower and fix six of the 12.
+
+### N4 — record the hand-checked links as overrides
 
 **The mechanism.** `data/twur_overrides.json` is tracked configuration. Discovery reads it
 last in the chain (`urtpe/links.py:2185`), and it survives a `--fresh` run. An entry needs a
@@ -1150,32 +1184,63 @@ view id and its evidence fields; a record without evidence is dropped and report
 **Proposed form.** After a parcel-level check of each link, add an entry for it. The five
 Class A rows need the least: the strict matcher already accepted them. The four count-drift
 and no-count rows need a person to compare parcels first. This is data entry. It changes no
-code, and it fixes the 12 now, before P1 to P3 land.
+code, and it fixes **nine** of the 12 now, before N1 to N3 land: 5 Class A rows and 4 Class B
+rows. The three Class C rows have no known view page, so there is no link to record.
 
 **Limit.** An override is correct for today's dataset and does not fix the search. The next
-unseen project with the same shape misses again. P1 and P2 fix the cause; P4 fixes the
+unseen project with the same shape misses again. N1 and N2 fix the cause; N4 fixes the
 instances. Do both.
+
+**Three traps.**
+
+1. **The key is `project_id`, and it churns.** An entry is keyed on `project_id`
+   (`urtpe/links.py:773` and `:2272`). About 11% of multi-record families have moved their id
+   (`AGENTS.md`). The 萬華段 to 萬大段 rename in this part's own data is the shape. An entry
+   whose id no longer exists is an orphan. `unattached_overrides` reports orphans
+   (`urtpe/links.py:2220`, called at `:4904`). Write the entries right after an ingest, not
+   before one, and check the report after every ingest.
+2. **The sweep ignores overrides.** It keeps probing and recording misses for an overridden
+   project (see "This is a delay, not a loss"). An override changes the Viewer link at the
+   next rebuild. It does not clear the ledger entry.
+3. **The unjoined table may still list the project.** `scripts/temp_unjoined_projects.py`
+   reads the raw `twur_view_id` of each `result.json` (line 71). The override fills the
+   discovery result and the cache read, not necessarily that file. **Not tested:** what the
+   table shows after an override. N5 must count overridden projects in their own column and
+   must not read "still listed" as "still broken".
+
+**Order.** Run the N1 dry-run check on the five Class A rows first (see N1), then enter those
+five. The four Class B rows can be entered at any time after their parcel check.
 
 **Form: data entry in a tracked file**, one commit, no OpenSpec change. Not started. It needs
 the user's word, because it writes configuration that decides which view page the Viewer
 links.
 
-### P5 — re-measure after each step
+### N5 — re-measure after each step
 
-Run the same read-only comparison after each of P1 to P4, and again after the TTL window
-(about 2026-11-28). Name the date and the source. The numbers to watch:
+N5 is a read-only measurement, not an item that changes anything. It runs twice:
 
-| Number | 2026-11-26 | Target after P1 + P2 |
-|---|---:|---|
-| Construction-stage projects with no view id | 12 | at most 3 (Class C) |
-| Unjoined projects with a live city case | 56 | lower; the other 43 are unmeasured |
-| Ledger entries with `twur_class: has-approved` that a page match would clear | not counted | counted |
+1. **First (step 7d), after N1, N2 and N4.** Its result feeds N-D3. N5 does not wait for N3,
+   because N-D3 asks whether N3 is needed. An earlier version of this board made N3, N-D3 and
+   N5 wait for each other in a circle. This is the fix.
+2. **Second, after N3 if it is built**, and again after the TTL window (about 2026-11-28).
+
+Name the date and the source each time. The numbers to watch:
+
+| Number | 2026-11-26 | After N1 + N2 | After N3 or N4 |
+|---|---:|---|---|
+| Construction-stage projects with no view id | 12 | at most **6** (3 count-drift Class B, 3 Class C) | at most 3 (Class C) |
+| Of those, overridden by N4 | 0 | counted in their own column | counted in their own column |
+| Unjoined projects with a live city case | 56 | lower; the other 43 are unmeasured | lower |
+| Ledger entries with `twur_class: has-approved` that a page match would clear | not counted | counted | counted |
+
+N1 plus N2 fix 5 + 1 = 6 of the 12. N3 or N4 can settle the three count-drift rows. Nothing in
+this part settles the three Class C rows.
 
 The comparison script was a scratch file. Keep it as `scripts/probe_unjoined_overlap.py`
-when P5 starts, so the numbers can be reproduced. That script is a probe, so it follows the
+when N5 starts, so the numbers can be reproduced. That script is a probe, so it follows the
 `probe_*.py` convention in `scripts/` and stays read-only.
 
-### Decisions P-D1 to P-D4
+### Decisions N-D1 to N-D4
 
 They sit in the "Decisions to make" table at the top. All four are proposed and open.
 

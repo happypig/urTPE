@@ -13,6 +13,7 @@ document's status: **current**, **generated**, **historical** or **temporary**.
 | `pipeline/cli_flow_v2.md` | Current CLI and link-discovery flow. Line numbers are cited externally. | Append only; do not insert above. |
 | `pipeline/domain_model.md` | Entity and Mermaid model in two blocks: record→graph path, and gazette cadence layer (archive, ledger, poller, change sets). | Current-payload facts carry `data-doc-field` markers; regenerate with `sync_domain_model.py`. |
 | `pipeline/sync_architecture.md` | PDF-heartbeat + two-portals sync design. | Design exploration; companion to `portals/facts_2_portals.md`. |
+| `pipeline/cycle_flowchart_opencode_w_GLM53Flash.html` | Interactive flowchart of the PDF-cycle coordinator (`urtpe/cycle.py`, `scripts/run_cycle.py`). **Pre-A5 snapshot (2026-11-25):** it has no `publish_emission` step, it says the emission stays uncommitted, and its line references are 10 to 14 lines off. Read `urtpe/cycle.py` for the current order. | Stale snapshot; not regenerated. |
 | `pipeline/cli_enhancement.md` | Forward design for portal-discovery CLI consolidation (library-first). Retire when OpenSpec change lands. | Marked current; superseded by spec on landing. |
 
 ---
@@ -52,7 +53,8 @@ document's status: **current**, **generated**, **historical** or **temporary**.
 | `inspections/inspection-batchD.md` | Batch D collected 2026-11-04 (orphan milestones, ghost-date echo, 國 key bug, badge bugs). | Fixed collection. |
 | `inspections/inspection-batchE.md` | Batch E collected 2026-11-12 (compatibility ideographs, URL write-back, windowed list). | Fixed collection. |
 | `inspections/inspection-batchF.md` | Batch F collected 2026-11-15 (membership predicate refactor, cross-route test, dependency, sibling walk, land cores, rejected-id limit, change findings, badge gaps, section labels). | Fixed collection. |
-| `inspections/optimization.md` | Optimization board in three parts, in priority order: I the deterministic PDF and city-platform update cycle (U1–U8, A1–A7); II gen-1 membership measurements after D11 and S3/S5 (M1–M4); III the gen-2 viewer with one `project_uid` (O1–O7). Opens with the order, the dependencies and the decisions. | Recommendations; no change open. Item ids stay fixed. |
+| `inspections/optimization.md` | Optimization board in four parts, in priority order: I the deterministic PDF and city-platform update cycle (U1–U9, A1–A8); II gen-1 membership measurements after D11 and S3/S5 (M1–M4); III the gen-2 viewer with one `project_uid` (O1–O11); IV gen-1 national-portal coverage, the construction-stage projects with no twur view id (P1–P5, added 2026-11-26). Opens with the order, the dependencies and the decisions. | Recommendations; no change open. Item ids stay fixed. |
+| `inspections/unjoined-projects-2026-11-26.md` | Frozen table of the 56 projects with a live city case and no twur view id. Part IV of `optimization.md` cites it. | Fixed snapshot. Re-run `scripts/temp_unjoined_projects.py` for a current table. |
 
 ---
 
@@ -102,7 +104,7 @@ All links are relative, so the chain also works from `file://`.
 |---|---|
 | `temp.md` | Untracked scratchpad. |
 | `temp.live_cluster_req.md` | Untracked scratchpad. |
-| `temp_unjoined_projects.md` | Untracked scratchpad. |
+| `temp_unjoined_projects.md` | Output of `scripts/temp_unjoined_projects.py`. Untracked scratchpad; the 2026-11-26 table is kept as `inspections/unjoined-projects-2026-11-26.md`. |
 
 **Do not commit** these files. Extract durable findings into a named document
 instead.

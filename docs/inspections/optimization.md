@@ -2,6 +2,7 @@
 
 Collected 2026-11-15 to 2026-11-20. Item identifiers do not change: `U1–U8`, `A1–A7`,
 `U-D1–U-D5`, `M1–M4`, `D11`, `O1–O11` and `O-D1–O-D7`.
+Added 2026-11-26: Part IV (`P1–P5`, `P-D1–P-D4`). Nothing in it is decided or started.
 Added 2026-11-22: `U9`, `A8` and `U-D6–U-D9`. The user started A8 and decided U-D6 the same
 day. A8 is committed as `2e37855`. `U-D7` and `U-D8` were decided on 2026-11-23, and A4 was implemented
 the same day (see the A4 row and "Current boundary after A4"). `U-D9` is proposed and awaits the user's word.
@@ -11,6 +12,7 @@ the same day (see the A4 row and "Current boundary after A4"). `U-D9` is propose
 | I | Run the PDF and city-platform update as one deterministic cycle | U1–U9, A1–A8, U-D1–U-D9 | **P1** | exploration 2026-11-19; U9, A8 and U-D6–U-D9 added 2026-11-22; A8 started and U-D6 decided that day; U-D7–U-D9 open |
 | II | Gen-1 membership: measurements that follow decisions D11 and S3/S5 | M1–M4, D11 | **P2** | moved here from `docs/inspections/inspection-batchF.md` |
 | III | Gen-2 viewer: one `project_uid` for applications and approvals | O1–O11, O-D1–O-D7 | **P3** | exploration 2026-11-19, re-measured 2026-11-20; O10 and O11 added 2026-11-21 |
+| IV | Gen-1 national-portal coverage: construction-stage projects with no twur view id | P1–P5, P-D1–P-D4 | **P2** | measured 2026-11-26; see "Part IV" |
 
 **Why this order.** Part I depends on nothing in Parts II and III. It protects the data
 that both of them read. Part II decides how a city case joins a unit. Part III adds a new
@@ -62,6 +64,15 @@ Execute top to bottom. A row waits for every item in its "Depends on" column.
 | 18 | I | **A7** — optional read-only diagnostic agent | **P3** | OpenSpec change | A4–A6, U-D5 |
 | 19 | III | **O10** — reconciliation page: release-diff count to Viewer count | **P3** | fix only (the 652 note), then design and a read-only page | fix: —; page: O6, O8 |
 | 20 | III | **O11** — marks on patched values, original value on hover | **P3** | OpenSpec change (sidecar, ledger field), then UI | O1, O6, O8, O-D7 |
+| — | IV | **P1** — the sweep reads every result page | **P2** | OpenSpec change (modifies one requirement) | P-D1 |
+| — | IV | **P2** — a title with no 等N筆 can still match | **P2** | OpenSpec change (modifies one requirement) | P-D2 |
+| — | IV | **P3** — a shared city case id counts as identity evidence | **P2** | OpenSpec change | D11, M4, P-D3 |
+| — | IV | **P4** — record the six hand-checked links as overrides | **P2** | data entry, no code | P-D4 |
+| — | IV | **P5** — re-measure after each of P1–P4 | **P2** | read-only measurement | P1–P4 |
+
+Part IV has no step number. It does not depend on Parts I and III, and nothing in them
+depends on it. Its P3 reads the D11 and M4 decisions, so it waits for them. P1, P2 and P4 do
+not.
 
 Four dependencies cross Part boundaries:
 
@@ -101,6 +112,11 @@ Four dependencies cross Part boundaries:
 | O-D5 | Where does the pending lane write? | its own output tree with its own lock. It reads `data/projects.json` at one named revision and never writes `data/`. | **ratified 2026-11-22** |
 | O-D6 | Does the district crawl have its own cadence? | yes. This answers U-D4 for the pending lane. Decide the interval after the change rate is measured. | **ratified 2026-11-22** |
 | O-D7 | Where does the original value of a patched field live (O11)? | a sidecar keyed by land core and approval date, written at apply time. It does not rewrite `projects.json`. | **ratified 2026-11-22** |
+
+| P-D1 | Does the sweep read every result page, and raise the probe limit of 8? | yes: read pages until one is empty, keep the limit per run. The spec fixes only the default of 8. | **proposed 2026-11-26; open** |
+| P-D2 | May a title with no 等N筆 match by section and parcel alone? | yes, but only when the page body also names the parcel. The count check already skips when a side has no count. | **proposed 2026-11-26; open** |
+| P-D3 | Does a shared city case id count as identity evidence for a title that fails only on the count? | measure first (P5). A shared id can come from a sibling project (§39), so never alone. | **proposed 2026-11-26; open** |
+| P-D4 | Do the six Class B and Class A links go in `twur_overrides.json` now, before any code change? | only after a parcel-level check of each. Four need it (see P4). | **proposed 2026-11-26; open** |
 
 **Ratified 2026-11-22.** The user chose "Ratify recommendations" for the 12 rows above that read
 "ratified": the recommendation column of U-D1 to U-D5 and O-D1 to O-D7 is now the decision.
@@ -1004,6 +1020,167 @@ and date. Then draw the marks from it.**
 
 ---
 
+## Part IV — Gen-1 national-portal coverage: construction-stage projects with no twur view id (P1–P5)
+
+**Why this part exists.** A project whose city case reads 施工中 or 已完工 has an approved
+plan, so the national portal (twur) should list it. 13 such projects had no twur view id in
+the table of 2026-11-26. This part records why, and what would fix it. It changes no code,
+no cache and no payload. The ledger, `twur_overrides.json` and `.link_cache/` were not
+written.
+
+**Source.** `docs/inspections/unjoined-projects-2026-11-26.md`, a frozen copy of the table that
+`scripts/temp_unjoined_projects.py` writes to the paste pad `docs/temp_unjoined_projects.md`
+(regenerated 2026-11-26): 56 projects with a live city case and no view id, 7
+stranded. 13 of the 56 hold a 施工中 or 已完工 case. One of the 13 (萬華段一小段-519-2) is a
+stale cache directory: the project is now `萬大段一小段-519-2`, joined, view/294. That leaves
+12.
+
+### Measurement (2026-11-26, live reads of twur; the scratch script is not kept)
+
+For each of the 12 I read every page of the twur section search (`city_id=2`), fetched every
+result page, and compared the city case ids on the page with the ids in our cache. I then ran
+the sweep's own matcher, `view_page_matches`, on each page that shared an id.
+
+| Class | Projects | Result |
+|---|---|---|
+| **A. twur has it; the sweep missed it** | 南港段一小段 366, 384, 412-2, 527, 560 | The page is on **search page 2** (view/81, 82, 93, 69, 38). `search_portal` sends `page=1`. The strict matcher accepts all five. Each page shares one case id with our cache. |
+| **B. twur has a page; the matcher rejects it** | 寶清段一小段 51-13 | view/239. The title has **no 等N筆** (`…51-13地號土地…`). `parse_name_id` returns empty, so the matcher rejects it whatever count it is given. Both city cases match ours. |
+| | 南港段一小段 520-2 | view/62. Title 等16筆, our count 18. Shares `09407071`. |
+| | 敦化段二小段 449-12 | view/809. Title 等25筆, our count 28. Shares `10209291`. |
+| | 大龍段二小段 15 | view/23. Title 等7筆, our count 2. Shares `09303021`. |
+| **C. Not found by title search** | 榮星段六小段 657, 犁和段二小段 261-4, 大安段三小段 243 | No search page shares a case id with our cache. Tried: the 小段, the 段, the parcel alone, a combined form, and 犁/型 for the one with the rare character. twur holds 犁和段 一小段 and 三小段, but no 二小段. |
+
+**What the three mechanisms are.**
+
+1. **Pagination (Class A).** The sweep reads `page=1` and probes at most 8 results
+   (`DEFAULT_MAX_PROBE = 8`, `scripts/fetch_remaining_national_portal.py:85`). 南港段一小段
+   has 18 results over two pages. The no-match ledger probed 8 ids on 2026-11-14 and recorded
+   a miss.
+2. **A title with no count (Class B, one project).** The matcher already says an absent count
+   skips the count check (spec `fetch-remaining-portal`, "Absent count skips the count
+   check"). The parser fails earlier, before the count is read.
+3. **Count drift (Class B, three projects).** The existing open lever, "§12 count
+   normalization" (`docs/portals/facts_2_portals.md`).
+
+**What is not proven.**
+
+- **Class B are candidates, not confirmed matches.** A shared case id can come from a sibling
+  project: view pages carry cases of their neighbours, and §39 (`reject-foreign-view-cases`)
+  exists for that. The 大龍段二小段 gap (7 against 2) is large and may be a merged or earlier
+  unit. Each of the three count-drift rows needs a parcel-level comparison.
+- **Class C is "not found by title search", not "twur does not have it".** The portal list
+  is WAF-capped, so a zero is weak evidence. The ledger's `twur_class` for the three is
+  `mixed/other` (榮星), `has-approved` (犁和) and `mixed/other` (大安段). `has-approved` means
+  a city case reads 業經核定, which the spec calls recoverable: the portal page should exist.
+  The ledger holds no "recoverable" word of its own for these rows. No other source was tried.
+- **Class A is solid.** The strict matcher passes and a case id is shared. I did not compare
+  parcel lists.
+- **Not measured:** the other 43 unjoined projects without a construction-stage case. Class A
+  and B may explain some of them too. A 南港段一小段 search returns 18 results, and the
+  table lists 9 projects of that section.
+
+**The sweep will fail the same way again.** The ledger entries of 2026-11-14 expire after 14
+days (spec `fetch-remaining-portal`, "Re-probe TTL"), about 2026-11-28. A real crawl then
+runs, reads page 1, and records the same misses. `sweep_runs.jsonl` shows 49 candidates
+skipped on every night since 2026-11-22 and 1 processed on 2026-11-26 (updated 0). Those 49
+are the ones that wait for the TTL.
+
+### P1 — the sweep reads every result page
+
+**The gap.** `search_portal` (`scripts/fetch_remaining_national_portal.py:350`) requests
+`page=1` and stops. Class A is five projects. The spec requires the probe limit to default to
+8 and says nothing about the page count.
+
+**Proposed form.** Read pages 1, 2, … until one holds no new view id, with the same 1.5 s
+delay between requests as the probes use. Keep `--max-probe` as the per-run bound on pages
+fetched for identity. The list page already carries each result's title, so the matcher can
+screen candidates before it fetches a view page: this would cut the 18 fetches for 南港 to
+the ones whose title names the parcel. That saving was not measured end to end.
+
+**Form: OpenSpec change.** It modifies the requirement "Configurable view-probe breadth":
+the delta must carry all three of its scenarios and the requirement body, because the
+archive guard does not protect the prose (see the openspec notes in `AGENTS.md`). Test-first:
+a fake search with two pages, a match on page 2, and a ledger check that an exhausted search
+records the right `view_ids_checked`.
+
+**Check before and after.** Re-run the Class A rows with `--dry-run`. All five should reach
+their view id. The no-match ledger must drop those five entries.
+
+### P2 — a title with no 等N筆 can still match
+
+**The gap.** `view_page_matches` parses the title with `parse_name_id`, which needs the
+`地號等N筆` form. A single-parcel title (`…51-13地號土地…`) parses to empty and the page is
+rejected.
+
+**Proposed form.** When the parse is empty, fall back to the same rule the body check uses:
+the section appears in the title and the normalized parcel appears next to `地號`. Accept it
+only when both hold and no count is carried by the title. This is narrower than dropping the
+parse. It touches one function.
+
+**Risk.** A looser parse can admit a sibling. 寶清段一小段 has 51-3, 51-13 and 51-17 as
+separate units (view/170, 239, 204). The fallback must compare the full normalized parcel,
+not a prefix. Add those three as a golden table.
+
+**Form: OpenSpec change** (modifies "Strict view-page identity match"; carry its scenarios).
+Test-first.
+
+### P3 — a shared city case id as identity evidence
+
+**The gap.** Three Class B rows fail only on the count. Each page shares a city case id with
+our cache. The matcher ignores case ids.
+
+**Proposed form.** Treat a shared case id as corroboration for a count mismatch, never as the
+only evidence: the section and the first parcel must still agree. A page then becomes a
+candidate with a flag, and a person confirms it through P4.
+
+**Why wait.** This is a membership rule, and Part II decides those. A second rule here would
+repeat the seven-rule problem of Batch F (F1). It must reuse the D11 count rule and the M4
+result, and it needs a golden table over the three rows. 大龍段二小段 `等7筆` against `等2筆`
+is the case that decides whether the rule is safe.
+
+**Form: OpenSpec change**, after D11 and M4. Recommendation: **do not start it first.** P1
+and P2 are narrower and fix six of the 12.
+
+### P4 — record the hand-checked links as overrides
+
+**The mechanism.** `data/twur_overrides.json` is tracked configuration. Discovery reads it
+last in the chain (`urtpe/links.py:2185`), and it survives a `--fresh` run. An entry needs a
+view id and its evidence fields; a record without evidence is dropped and reported.
+
+**Proposed form.** After a parcel-level check of each link, add an entry for it. The five
+Class A rows need the least: the strict matcher already accepted them. The four count-drift
+and no-count rows need a person to compare parcels first. This is data entry. It changes no
+code, and it fixes the 12 now, before P1 to P3 land.
+
+**Limit.** An override is correct for today's dataset and does not fix the search. The next
+unseen project with the same shape misses again. P1 and P2 fix the cause; P4 fixes the
+instances. Do both.
+
+**Form: data entry in a tracked file**, one commit, no OpenSpec change. Not started. It needs
+the user's word, because it writes configuration that decides which view page the Viewer
+links.
+
+### P5 — re-measure after each step
+
+Run the same read-only comparison after each of P1 to P4, and again after the TTL window
+(about 2026-11-28). Name the date and the source. The numbers to watch:
+
+| Number | 2026-11-26 | Target after P1 + P2 |
+|---|---:|---|
+| Construction-stage projects with no view id | 12 | at most 3 (Class C) |
+| Unjoined projects with a live city case | 56 | lower; the other 43 are unmeasured |
+| Ledger entries with `twur_class: has-approved` that a page match would clear | not counted | counted |
+
+The comparison script was a scratch file. Keep it as `scripts/probe_unjoined_overlap.py`
+when P5 starts, so the numbers can be reproduced. That script is a probe, so it follows the
+`probe_*.py` convention in `scripts/` and stays read-only.
+
+### Decisions P-D1 to P-D4
+
+They sit in the "Decisions to make" table at the top. All four are proposed and open.
+
+---
+
 ## Appendix — method
 
 - **Viewer payload:** read `data/projects.json`; counted projects, nodes, `recno`,
@@ -1048,6 +1225,18 @@ and date. Then draw the marks from it.**
   `openspec list`. Ran `refresh_whole_corpus.py --dry-run`: 1 slice of 3 projects, because the
   checkpoint holds 682 finished ids against 676 payload projects. No request, no ingest.
   Not read: `check_tree()`, `index.jsonl`, any other module that might take the lock.
+- **Part IV (2026-11-26):** ran `scripts/temp_unjoined_projects.py` (56 projects, 7
+  stranded). Selected the 13 rows whose live cases include 施工中 or 已完工, read each
+  `result.json` (`city_case_ids`, `case_schedules`, `search_rejected`) and `no_match_ledger.json`.
+  Then made live read-only requests to twur: the section search (pages until empty, 1.5 s
+  between requests), every result view page, and `view_page_matches` from
+  `scripts/fetch_remaining_national_portal.py` on each page that shared a case id.
+  Also searched four alternate title forms for the three Class C rows. Checked the 8 rows that
+  left the table (all hold a view id), and found the 萬華段 → 萬大段 rename by case id in
+  `data/projects.json`. Read `openspec/specs/fetch-remaining-portal/spec.md`,
+  `urtpe/links.py:2185` and `sweep_runs.jsonl`. The probe script was a scratch file and is not
+  kept. No write to `data/.link_cache/`, the ledger or `twur_overrides.json`. Not read: the
+  other 43 unjoined projects' twur pages.
 - **Part II:** the method of M1–M4 is the Batch F appendix
   (`docs/inspections/inspection-batchF.md`, "Appendix — method"). The scripts were ad hoc.
 

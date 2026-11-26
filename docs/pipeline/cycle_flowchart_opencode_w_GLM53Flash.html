@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF-cycle coordinator — code flowchart (cycle.py + run_cycle.py)</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --ink: #1c1c1a; --muted: #6b6b66;
+    --line: #d8d8d2; --accent: #353535;
+    --ok: #2e7d43; --ok-bg: #e7f3ea;
+    --warn: #a06a00; --warn-bg: #fdf2dc;
+    --bad: #b3372f; --bad-bg: #fbe9e7;
+    --info: #2b5fa8; --info-bg: #e8f0fb;
+    --pub: #6b4fa8; --pub-bg: #efeafb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.55 "Segoe UI", system-ui, sans-serif; }
+  header { padding: 28px 36px 10px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13.5px; }
+  .sub code { background: #eee; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+  nav.tabs { display: flex; gap: 6px; padding: 14px 36px 0; border-bottom: 1px solid var(--line); }
+  nav.tabs button { border: 1px solid var(--line); border-bottom: none; background: #efefec;
+    padding: 8px 18px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; color: var(--muted); }
+  nav.tabs button.active { background: var(--panel); color: var(--ink); font-weight: 600;
+    position: relative; top: 1px; }
+  main { padding: 26px 36px 80px; max-width: 1060px; }
+  section.view { display: none; }
+  section.view.active { display: block; }
+  h2 { font-size: 16px; margin: 26px 0 10px; }
+  p.lead { color: var(--muted); margin: 0 0 18px; max-width: 70ch; }
+
+  /* flow nodes */
+  .flow { display: flex; flex-direction: column; }
+  .node { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 16px; cursor: pointer; position: relative; }
+  .node:hover { border-color: var(--accent); }
+  .node.selected { outline: 2px solid var(--accent); }
+  .node .t { font-weight: 600; font-size: 14.5px; }
+  .node .d { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .node .ref { position: absolute; right: 12px; top: 10px; font-size: 11px; color: var(--muted);
+    font-family: Consolas, monospace; }
+  .arrow { width: 2px; height: 22px; background: var(--line); margin-left: 40px; }
+  .arrow::after { content: ""; display: block; width: 7px; height: 7px; border-right: 2px solid var(--line);
+    border-bottom: 2px solid var(--line); transform: rotate(45deg); margin: -6px 0 0 -3px; }
+  .node.terminal { border-radius: 999px; text-align: center; padding: 8px 16px; }
+  .node.decision { background: var(--info-bg); border-color: #bcd0ec; }
+  .node.lock { background: var(--warn-bg); border-color: #ecd9a8; }
+  .node.ok { background: var(--ok-bg); border-color: #bcdcc4; }
+  .node.bad { background: var(--bad-bg); border-color: #eec5c1; }
+  .node.pub { background: var(--pub-bg); border-color: #d5c8ef; }
+  .branches { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 2px 24px; }
+  .branch { border-radius: 8px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); }
+  .branch:hover { border-color: var(--accent); }
+  .branch b { font-size: 12.5px; }
+  .branch.ok { background: var(--ok-bg); } .branch.warn { background: var(--warn-bg); }
+  .branch.bad { background: var(--bad-bg); } .branch.pub { background: var(--pub-bg); }
+  .branch .code { font-family: Consolas, monospace; color: var(--muted); }
+  .indented { margin-left: 44px; }
+
+  /* detail panel */
+  #detail { position: fixed; right: 0; top: 0; bottom: 0; width: 380px; background: var(--panel);
+    border-left: 1px solid var(--line); padding: 22px; display: none; overflow-y: auto;
+    box-shadow: -8px 0 24px rgba(0,0,0,.06); z-index: 10; }
+  #detail.open { display: block; }
+  #detail h3 { margin: 0 0 6px; font-size: 15px; }
+  #detail .ref { font-family: Consolas, monospace; font-size: 12px; color: var(--muted); }
+  #detail pre { background: #f2f2ef; padding: 10px; border-radius: 8px; font-size: 12px;
+    overflow-x: auto; font-family: Consolas, monospace; }
+  #detail p { font-size: 13.5px; color: var(--ink); }
+  #close-detail { position: absolute; right: 14px; top: 12px; border: none; background: none;
+    font-size: 18px; cursor: pointer; color: var(--muted); }
+
+  /* pipeline */
+  .pipe { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+  .step .num { font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+  .step .name { font-weight: 700; font-size: 15px; font-family: Consolas, monospace; }
+  .step .cmd { font-family: Consolas, monospace; font-size: 12px; color: var(--muted);
+    background: #f2f2ef; border-radius: 6px; padding: 6px 8px; margin-top: 6px; word-break: break-all; }
+  .badges { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge { font-size: 11.5px; border-radius: 999px; padding: 2px 9px; }
+  .badge.w { background: var(--warn-bg); color: var(--warn); }
+  .badge.t { background: var(--info-bg); color: var(--info); }
+  .badge.internal { background: var(--pub-bg); color: var(--pub); }
+  .order-note { color: var(--muted); font-size: 12.5px; margin: 4px 0 16px; }
+
+  /* rules + tables */
+  table { border-collapse: collapse; width: 100%; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line);
+    font-size: 13.5px; vertical-align: top; }
+  th { background: #f0f0ed; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  td code, .inline { font-family: Consolas, monospace; font-size: 12.5px; background: #f2f2ef;
+    padding: 1px 5px; border-radius: 4px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
+  .card h3 { margin: 0 0 8px; font-size: 14px; }
+  .card ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink); }
+  .card li { margin: 3px 0; }
+  .card .fn { font-family: Consolas, monospace; font-size: 12px; color: var(--muted); }
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 4px; }
+  .legend span { font-size: 12px; border-radius: 999px; padding: 3px 11px; }
+  @media (max-width: 900px) { .pipe, .cards { grid-template-columns: 1fr; } #detail { width: 100%; } }
+  @media print { nav.tabs { display: none; } section.view { display: block !important; page-break-after: always; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PDF-cycle coordinator — code flowchart</h1>
+  <div class="sub">
+    <code>urtpe/cycle.py</code> — pure logic (no I/O) &nbsp;·&nbsp;
+    <code>scripts/run_cycle.py</code> — adapters (subprocess, git, store, locks) &nbsp;·&nbsp;
+    openspec change <code>a4-pdf-cycle-coordinator</code>
+  </div>
+  <div class="legend">
+    <span style="background:var(--info-bg);color:var(--info)">decision</span>
+    <span style="background:var(--ok-bg);color:var(--ok)">exit 0</span>
+    <span style="background:var(--warn-bg);color:var(--warn)">transient / exit 5</span>
+    <span style="background:var(--bad-bg);color:var(--bad)">refusal / exit 1·6</span>
+    <span style="background:var(--pub-bg);color:var(--pub)">publication</span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button data-view="flow" class="active">Run flow</button>
+  <button data-view="pipe">Step pipeline</button>
+  <button data-view="detect">Detection (pick_candidate)</button>
+  <button data-view="rules">Rules &amp; exit codes</button>
+  <button data-view="modules">Module split</button>
+</nav>
+
+<main>
+
+<!-- ============ RUN FLOW ============ -->
+<section class="view active" id="view-flow">
+  <p class="lead">One scheduled or manual run of <code>scripts/run_cycle.py</code>.
+  Click any node for its source reference and rules. Outcome colors = process exit code family.</p>
+
+  <div class="flow">
+    <div class="node" data-k="main">
+      <span class="ref">run_cycle.main (L423)</span>
+      <div class="t">main(argv) → parse_args, resolve archive root</div>
+      <div class="d">--dry-run | --resume SHA256 | --archive-root PATH; builds Deps (runner, git_dirty, store, clock, archive)</div>
+    </div>
+    <div class="arrow"></div>
+
+    <div class="node decision" data-k="run">
+      <span class="ref">run_cycle.run (L174)</span>
+      <div class="t">run(): --dry-run?</div>
+      <div class="d">Branches into the read-only dry path or the real cycle.</div>
+    </div>
+    <div class="branches">
+      <button class="branch" data-k="dry">--dry-run → _dry_run (writes nothing)</button>
+      <button class="branch" data-k="lock-archive">real run → acquire archive lock</button>
+    </div>
+
+    <div class="node lock" data-k="lock-archive">
+      <span class="ref">run_cycle.run (L178) · urtpe.lock.SingleWriterLock</span>
+      <div class="t">acquire SingleWriterLock(archive_dir)</div>
+      <div class="d">Keeps two coordinator cycles apart; children take their own data/ locks (A8 lesson).</div>
+    </div>
+    <div class="branches">
+      <button class="branch bad" data-k="another_cycle">LockHeld → outcome another_cycle → exit 5</button>
+      <button class="branch ok" data-k="cycle">acquired → _cycle()</button>
+    </div>
+
+    <div class="node" data-k="cycle">
+      <span class="ref">run_cycle._cycle (L204)</span>
+      <div class="t">_cycle(): load state</div>
+      <div class="d">CycleStore.load_state() — cycle_state.json beside cycle_log.jsonl in the archive root.</div>
+    </div>
+    <div class="arrow"></div>
+
+    <div class="node decision" data-k="resume-branch">
+      <span class="ref">run_cycle._cycle (L212)</span>
+      <div class="t">--resume SHA256 given?</div>
+    </div>
+    <div class="branches">
+      <button class="branch" data-k="resume">yes → resume_plan(state, sha)</button>
+      <button class="branch" data-k="polls">no → run the two polls</button>
+    </div>
+
+    <div class="node" data-k="resume">
+      <span class="ref">run_cycle._cycle (L214) · cycle.resume_plan (L246)</span>
+      <div class="t">resume: resolve (gazette_id, start stage)</div>
+      <div class="d">state entry must be stopped or in_progress; polls are skipped entirely.</div>
+    </div>
+    <div class="branches">
+      <button class="branch bad" data-k="resume-invalid">no such entry → exit 2 (usage)</button>
+      <button class="branch ok" data-k="mark-progress">valid → mark_in_progress, save state</button>
+    </div>
+
+    <div class="node" data-k="polls">
+      <span class="ref">run_cycle._cycle (L223) · _poll_status (L162)</span>
+      <div class="t">poll_gazette --json → poll_p168 --json</div>
+      <div class="d">Status word parsed from stdout JSON. Timeout or malformed output is a failure, never “nothing new”.</div>
+    </div>
+    <div class="branches">
+      <button class="branch bad" data-k="poll-fail">poll not ok → outcome stopped → exit 1</button>
+      <button class="branch ok" data-k="detect">both ok → detect</button>
+    </div>
+
+    <div class="node decision" data-k="detect">
+      <span class="ref">run_cycle._cycle (L236) · cycle.pick_candidate (L164)</span>
+      <div class="t">detect: pick_candidate(archived, dataset_date, state, verify)</div>
+      <div class="d">The archive decides, not a poller status word. Five Detection kinds, five exits. See the Detection tab.</div>
+    </div>
+    <div class="branches">
+      <button class="branch ok" data-k="det-none">none → nothing_new → exit 0</button>
+      <button class="branch ok" data-k="det-done">already_done → exit 0</button>
+      <button class="branch bad" data-k="det-await">awaiting_diagnosis → exit 1</button>
+      <button class="branch bad" data-k="det-unverified">unverified → mark_stopped(detect) → refused → exit 1</button>
+      <button class="branch" data-k="proceed">candidate/resume → continue</button>
+    </div>
+
+    <div class="node" data-k="proceed">
+      <span class="ref">run_cycle._cycle (L251)</span>
+      <div class="t">start stage = ingest (candidate) or det.stage (resume)</div>
+      <div class="d">run_steps = STEP_ORDER minus polls/detect, minus publish_report (published last, after the finished mark).</div>
+    </div>
+    <div class="arrow"></div>
+
+    <div class="node decision" data-k="dirty">
+      <span class="ref">run_cycle._cycle (L262) · cycle.dirty_decision (L287) · _real_git_dirty (L392)</span>
+      <div class="t">starting fresh at ingest? → dirty-tree check</div>
+      <div class="d">Read-only git status --porcelain --untracked-files=no over cycle.OWNED_PATHS. A quiet day is never refused.</div>
+    </div>
+    <div class="branches">
+      <button class="branch bad" data-k="dirty-refuse">candidate ready + owned paths dirty → dirty_tree → exit 6</button>
+      <button class="branch ok" data-k="lock-probe">clean → continue</button>
+    </div>
+
+    <div class="node lock" data-k="lock-probe">
+      <span class="ref">run_cycle._cycle (L268)</span>
+      <div class="t">first write step? → probe SingleWriterLock(data_dir)</div>
+      <div class="d">Probe only, release at once: the parent never holds the data lock (A8: a held parent lock makes the child exit 5).</div>
+    </div>
+    <div class="branches">
+      <button class="branch warn" data-k="locked">LockHeld → outcome locked → exit 5</button>
+      <button class="branch ok" data-k="mark-progress2">free → mark_in_progress(start), save state</button>
+    </div>
+
+    <div class="node" data-k="loop">
+      <span class="ref">run_cycle._cycle (L281)</span>
+      <div class="t">step loop: ingest → refresh → rebuild → post_ingest_check → tests → viewer_smoke</div>
+      <div class="d">Each step: deps.runner(argv, timeout) → cycle.classify_exit → three kinds.</div>
+    </div>
+    <div class="branches">
+      <button class="branch ok" data-k="st-ok">ok → mark_in_progress(next), advance</button>
+      <button class="branch warn" data-k="st-transient">transient (exit 5) → stay at THIS stage → locked → exit 5</button>
+      <button class="branch bad" data-k="st-refuse">refusal → mark_stopped → refused/stopped → exit 1</button>
+    </div>
+
+    <div class="node pub" data-k="finish">
+      <span class="ref">run_cycle._cycle (L311)</span>
+      <div class="t">all steps ok → mark_finished FIRST (design D13)</div>
+      <div class="d">The finished mark is saved before the report runs, so a failed push never un-finishes the ingest.</div>
+    </div>
+    <div class="arrow"></div>
+
+    <div class="node pub" data-k="publish">
+      <span class="ref">run_cycle._cycle (L315) · cycle.classify_exit (L207)</span>
+      <div class="t">publish_report → scripts/publish_release_diff.py</div>
+      <div class="d">Stages and commits only the four generated pages. --dry-run when an alternate archive root is set.</div>
+    </div>
+    <div class="branches">
+      <button class="branch ok" data-k="ingested">ok → outcome ingested → exit 0</button>
+      <button class="branch pub" data-k="pub-failed">failure/timeout → publish_failed → exit 1 (hash stays finished)</button>
+    </div>
+
+    <div class="node decision" data-k="unexpected">
+      <span class="ref">run_cycle._cycle (L327)</span>
+      <div class="t">unexpected exception anywhere?</div>
+      <div class="d">Recorded as a stop, never a traceback.</div>
+    </div>
+    <div class="branches">
+      <button class="branch pub" data-k="exc-done">hash finished → publish_failed (exit 1)</button>
+      <button class="branch bad" data-k="exc-stop">otherwise → mark_stopped(current) → stopped (exit 1)</button>
+    </div>
+  </div>
+
+  <h2>Every run writes one record</h2>
+  <div class="node" data-k="record">
+    <span class="ref">run_cycle._finish (L191) · cycle.make_record (L257)</span>
+    <div class="t">_finish(): append to cycle_log.jsonl, refresh status page (best effort), return exit code</div>
+    <div class="d">Outcomes: nothing_new · ingested · already_done · refused · stopped · awaiting_diagnosis · locked · another_cycle · dirty_tree · publish_failed</div>
+  </div>
+</section>
+
+<!-- ============ PIPELINE ============ -->
+<section class="view" id="view-pipe">
+  <p class="lead">The cycle as data — <code>cycle.build_steps()</code> (cycle.py L104). Fixed order, no step is git,
+  none carries a bypass flag (<code>--allow-reconcile-block</code> / <code>--no-archive</code> are forbidden, AGENTS.md).</p>
+  <p class="order-note">Running order: poll_gazette → poll_p168 → detect (internal) → ingest → refresh → rebuild → post_ingest_check → tests → viewer_smoke → publish_report</p>
+  <div class="pipe">
+    <div class="step"><div class="num">1 · reads only</div><div class="name">poll_gazette</div>
+      <div class="cmd">python scripts/poll_gazette.py --json [--dry-run] [--archive-root R]</div>
+      <div class="badges"><span class="badge t">timeout 300s</span><span class="badge w">no write</span></div></div>
+    <div class="step"><div class="num">2 · reads only</div><div class="name">poll_p168</div>
+      <div class="cmd">python scripts/poll_p168.py --json [--dry-run] [--archive-root R]</div>
+      <div class="badges"><span class="badge t">timeout 300s</span><span class="badge w">no write</span></div></div>
+    <div class="step"><div class="num">3 · internal</div><div class="name">detect</div>
+      <div class="cmd">cycle.pick_candidate(...) — no subprocess (argv is None)</div>
+      <div class="badges"><span class="badge internal">in-process</span><span class="badge w">no write</span></div></div>
+    <div class="step"><div class="num">4 · writes</div><div class="name">ingest</div>
+      <div class="cmd">python -m urtpe.cli &lt;pdf&gt; -o data --viewer viewer --links --recover-truncated</div>
+      <div class="badges"><span class="badge t">timeout 900s</span><span class="badge w">writes data/ + viewer/</span></div></div>
+    <div class="step"><div class="num">5 · writes</div><div class="name">refresh</div>
+      <div class="cmd">python scripts/refresh_awaiting_caches.py</div>
+      <div class="badges"><span class="badge t">timeout 1800s</span><span class="badge w">writes caches</span></div></div>
+    <div class="step"><div class="num">6 · writes</div><div class="name">rebuild</div>
+      <div class="cmd">python -m urtpe.cli --from-js viewer/projects.data.js -o data --viewer viewer --links</div>
+      <div class="badges"><span class="badge t">timeout 900s</span><span class="badge w">writes data/ + viewer/</span></div></div>
+    <div class="step"><div class="num">7 · writes</div><div class="name">post_ingest_check</div>
+      <div class="cmd">python scripts/post_ingest_check.py</div>
+      <div class="badges"><span class="badge t">timeout 1800s</span><span class="badge w">writes regenerated pages</span></div></div>
+    <div class="step"><div class="num">8 · reads only</div><div class="name">tests</div>
+      <div class="cmd">python -m pytest -q</div>
+      <div class="badges"><span class="badge t">timeout 1800s</span><span class="badge w">no write</span></div></div>
+    <div class="step"><div class="num">9 · reads only</div><div class="name">viewer_smoke</div>
+      <div class="cmd">node scripts/viewer_smoke.js</div>
+      <div class="badges"><span class="badge t">timeout 300s</span><span class="badge w">no write</span></div></div>
+    <div class="step"><div class="num">10 · after the finished mark</div><div class="name">publish_report</div>
+      <div class="cmd">python scripts/publish_release_diff.py [--dry-run when archive_root set]</div>
+      <div class="badges"><span class="badge t">timeout 600s</span><span class="badge w">commits 4 generated pages</span></div></div>
+  </div>
+  <h2>Owned paths (dirty check + publish scope)</h2>
+  <div class="card">
+    <ul>
+      <li class="fn">data/projects.json · data/raw.tsv · data/clean.tsv · data/merged.tsv · data/review_report.txt</li>
+      <li class="fn">viewer/projects.data.js · viewer/index.html</li>
+      <li class="fn">docs/etl_process.html · docs/domain-model.html · docs/release-diff.html · docs/coverage-report.html</li>
+      <li class="fn">openspec/config.yaml (the current-dataset sentence, kept by sync_etl_process.py)</li>
+      <li class="fn">urtpe/ · scripts/ — the code an ingest runs</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ DETECTION ============ -->
+<section class="view" id="view-detect">
+  <p class="lead"><code>cycle.pick_candidate()</code> (cycle.py L164) — decide from the archive and the record, never from a
+  poller’s status word. Any poll can have archived a gazette, including a hand-started one.</p>
+
+  <div class="flow">
+    <div class="node decision" data-k="p-progress">
+      <span class="ref">cycle.py L174</span>
+      <div class="t">any hash with status in_progress?</div>
+      <div class="d">Its ingest already moved the dataset — the date rule alone would say “nothing to do”.</div>
+    </div>
+    <div class="branches">
+      <button class="branch" data-k="p-resume">yes → Detection(resume, stage=next_stage)</button>
+      <button class="branch" data-k="p-newer">no → newest archived gazette newer than dataset?</button>
+    </div>
+
+    <div class="node decision" data-k="p-newer">
+      <span class="ref">cycle.py L182</span>
+      <div class="t">newer = [a for a in archived if a.gazette_id &gt; dataset_date]</div>
+      <div class="d">Only the NEWEST matters: each gazette is a complete list, so an older unfinished one is superseded.</div>
+    </div>
+    <div class="branches">
+      <button class="branch ok" data-k="p-none">none → Detection(none) → nothing_new → exit 0</button>
+      <button class="branch" data-k="p-entry">newest found → look up its record entry by sha256</button>
+    </div>
+
+    <div class="node decision" data-k="p-entry">
+      <span class="ref">cycle.py L186</span>
+      <div class="t">entry status?</div>
+    </div>
+    <div class="branches">
+      <button class="branch ok" data-k="p-finished">finished → already_done → exit 0</button>
+      <button class="branch bad" data-k="p-stopped">stopped → awaiting_diagnosis (stage, exit_code) → exit 1</button>
+      <button class="branch" data-k="p-verify">no entry (or other) → verify file against archive entry</button>
+    </div>
+
+    <div class="node decision" data-k="p-verify">
+      <span class="ref">cycle.py L193 · archive.assert_matches_entry</span>
+      <div class="t">verify(): file matches its archive entry (sha256)?</div>
+    </div>
+    <div class="branches">
+      <button class="branch bad" data-k="p-unverified">no → unverified → mark_stopped(detect) → refused → exit 1</button>
+      <button class="branch ok" data-k="p-candidate">yes → Detection(candidate) → the cycle runs from ingest</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RULES ============ -->
+<section class="view" id="view-rules">
+  <p class="lead">The stop rule — <code>cycle.classify_exit()</code> (cycle.py L201) — and the contract it serves.
+  A non-zero exit is a refusal, not a flake: a later scheduled run never retries a refused hash.</p>
+
+  <div class="cards">
+    <div class="card"><h3>classify_exit(step, exit_code, timed_out)</h3>
+      <ul>
+        <li><span class="inline">publish_report</span>: ok only if exit 0 and no timeout — else <span class="inline">publish_failed</span></li>
+        <li>timed_out → <span class="inline">refusal</span></li>
+        <li>exit 0 → <span class="inline">ok</span></li>
+        <li>exit 5 → <span class="inline">transient</span> (a held lock: the moment, not the data)</li>
+        <li>anything else → <span class="inline">refusal</span></li>
+      </ul>
+    </div>
+    <div class="card"><h3>dirty_decision(candidate_ready, dirty_paths)</h3>
+      <ul>
+        <li><span class="inline">refuse</span> only when a gazette is ready AND an owned tracked path has uncommitted changes → exit 6</li>
+        <li>a quiet day is never stopped by a dirty tree: it writes nothing</li>
+        <li>only checked when the cycle starts fresh at ingest; past it, the dirt is this cycle’s own</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Exit codes</h2>
+  <table>
+    <tr><th>code</th><th>meaning</th><th>outcomes</th></tr>
+    <tr><td><code>0</code></td><td>finished, nothing to do, or already done</td><td><code>nothing_new</code>, <code>ingested</code>, <code>already_done</code></td></tr>
+    <tr><td><code>1</code></td><td>a step failed, a hash awaits diagnosis, or the publication failed</td><td><code>refused</code>, <code>stopped</code>, <code>awaiting_diagnosis</code>, <code>publish_failed</code></td></tr>
+    <tr><td><code>2</code></td><td>bad usage (bad --resume, unknown outcome)</td><td>—</td></tr>
+    <tr><td><code>5</code></td><td>a lock was held, or another cycle was running</td><td><code>locked</code>, <code>another_cycle</code></td></tr>
+    <tr><td><code>6</code></td><td>refused: an owned path has uncommitted changes</td><td><code>dirty_tree</code></td></tr>
+  </table>
+
+  <h2>Refusal vs transient (AGENTS.md)</h2>
+  <table>
+    <tr><th>kind</th><th>examples</th><th>next run</th></tr>
+    <tr><td><b>refusal</b></td><td>ingest exited 2/3/4, tests failed, step timeout</td><td>never retried by a scheduled run — a person must diagnose</td></tr>
+    <tr><td><b>transient</b></td><td>held lock (exit 5), dirty tree (exit 6, its own outcome), another cycle running</td><td>the hash stays at its stage; the next run resumes there</td></tr>
+  </table>
+
+  <h2>The four decisions worth reading (cycle.py docstring)</h2>
+  <div class="cards">
+    <div class="card"><h3>1 · The archive decides</h3><ul>
+      <li class="fn">poll_gazette reports new_gazette once; later polls say unchanged</li>
+      <li class="fn">so the ingest target is chosen from the archive (pick_candidate), never from a status word</li></ul></div>
+    <div class="card"><h3>2 · Refusal waits, a busy moment does not</h3><ul>
+      <li class="fn">non-zero exit = refusal → stopped, awaiting a person</li>
+      <li class="fn">held lock / dirty tree / other cycle = transient → resume next run</li></ul></div>
+    <div class="card"><h3>3 · Report published last (D13)</h3><ul>
+      <li class="fn">mark_finished BEFORE publish_report</li>
+      <li class="fn">a failed push is publish_failed and never un-finishes the ingest</li></ul></div>
+    <div class="card"><h3>4 · Progress kept after every step</h3><ul>
+      <li class="fn">the ingest moves the dataset — without a progress entry the next run sees “nothing to do”</li>
+      <li class="fn">mark_in_progress(next_stage) after each ok step enables resume</li></ul></div>
+  </div>
+</section>
+
+<!-- ============ MODULES ============ -->
+<section class="view" id="view-modules">
+  <p class="lead">The split that makes both files testable: pure rules vs side effects. Tests replace <code>Deps</code>;
+  <code>main()</code> builds the real ones.</p>
+  <div class="cards">
+    <div class="card"><h3>urtpe/cycle.py — pure logic (no disk, no clock, no process)</h3>
+      <ul>
+        <li><span class="fn">STEP_ORDER · FORBIDDEN_FLAGS · EXIT_* · OWNED_PATHS</span> — constants as data</li>
+        <li><span class="fn">Step · build_steps()</span> — the cycle as data, in fixed order</li>
+        <li><span class="fn">next_step_after()</span> — pipeline successor</li>
+        <li><span class="fn">Archived · Detection · pick_candidate()</span> — what to ingest</li>
+        <li><span class="fn">classify_exit() · exit_code_for()</span> — the stop rule</li>
+        <li><span class="fn">empty_state · mark_in_progress · mark_finished · mark_stopped · resume_plan</span> — the hash record</li>
+        <li><span class="fn">make_record · newest_record_age_hours</span> — the run record (cycle_log.jsonl)</li>
+        <li><span class="fn">dirty_decision() · parse_published_date()</span> — git and dataset date</li>
+      </ul>
+    </div>
+    <div class="card"><h3>scripts/run_cycle.py — adapters (everything that touches the world)</h3>
+      <ul>
+        <li><span class="fn">_real_runner()</span> — subprocess with per-step timeout (timeout = exit 124 + timed_out)</li>
+        <li><span class="fn">_real_git_dirty()</span> — the ONLY git command: read-only status --porcelain --untracked-files=no</li>
+        <li><span class="fn">_dataset_date()</span> — reads published_date from the payload head (first 8 KiB)</li>
+        <li><span class="fn">CycleStore</span> — cycle_log.jsonl append + atomic cycle_state.json write (tmp + os.replace)</li>
+        <li><span class="fn">SingleWriterLock / LockHeld</span> — archive lock for the cycle, probe-only lock for data/</li>
+        <li><span class="fn">_poll_status()</span> — poll stdout JSON → (status, ok)</li>
+        <li><span class="fn">run() · _cycle() · _dry_run() · _finish()</span> — the orchestration on the flow tab</li>
+        <li><span class="fn">main()</span> — builds Deps; status page is optional (import cycle_status)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<aside id="detail">
+  <button id="close-detail" title="close">×</button>
+  <h3 id="d-title"></h3>
+  <div class="ref" id="d-ref"></div>
+  <p id="d-doc"></p>
+  <pre id="d-code"></pre>
+</aside>
+
+<script>
+"use strict";
+const DETAILS = {
+  main: ["main(argv) — entry point", "run_cycle.py L423–456",
+    "Parses flags, resolves the archive root (arg or urtpe.archive.DEFAULT_ARCHIVE_ROOT), builds a GazetteArchive, wires Deps with the real adapters, and calls run(). An optional `cycle_status` module refreshes a status page after every finish (best effort)."],
+  run: ["run(opts, deps) — dry-run gate", "run_cycle.py L174–184",
+    "dry_run → _dry_run() (read-only). Otherwise acquire the archive-root SingleWriterLock; LockHeld → another_cycle (exit 5); then _cycle() in a try/finally that always releases the lock."],
+  dry: ["_dry_run(opts, deps) — read-only preview", "run_cycle.py L344–375",
+    "Runs only the two polls with their own --dry-run, then pick_candidate says what a real run would do (would ingest/resume gazette X starting at stage Y, would REFUSE if dirty). Writes no record, no archive file, nothing under the emitted tree."],
+  "lock-archive": ["Archive lock", "run_cycle.py L178 · urtpe.lock.SingleWriterLock",
+    "A lock over the ARCHIVE ROOT — a different directory from data/ — keeps two cycles apart. The A8 lesson: a parent that holds the data/ lock makes the child CLI exit 5, so the coordinator never does that."],
+  another_cycle: ["outcome another_cycle", "run() L180 · exit_code_for()",
+    "Another cycle holds the archive lock. Transient by definition; exit 5. The record's reason names the holder."],
+  cycle: ["_cycle(opts, deps) — the real sequence", "run_cycle.py L204–341",
+    "Loads state, resumes or polls, detects, then walks the write steps. Every exit path funnels through _finish(), which appends the record and returns the outcome's exit code."],
+  "resume-branch": ["--resume SHA256", "run_cycle.py L212–221",
+    "Resume skips both polls entirely and restarts the stopped hash at its failed stage."],
+  resume: ["resume_plan(state, sha)", "cycle.py L246–252",
+    "Returns (gazette_id, stage). The entry must be stopped (→ entry.stage) or in_progress (→ entry.next_stage); anything else raises ValueError."],
+  "resume-invalid": ["cannot resume", "run_cycle.py L215–217",
+    "ValueError from resume_plan → message on stderr → exit 2 (usage). No record is written."],
+  "mark-progress": ["Progress is kept after every step", "cycle.py docstring decision 4",
+    "mark_in_progress writes (status=in_progress, next_stage, at) keyed by sha256 — never by 編號, recno or project_id. Without it, an interrupted ingest would look like 'nothing to do'."],
+  polls: ["The two polls", "run_cycle.py L223–234 · _poll_status L162",
+    "poll_gazette and poll_p168 run with --json. _poll_status parses stdout JSON for 'status'; a timeout or malformed body is a failure — never mistaken for 'nothing new'. polls[key] lands in the record."],
+  "poll-fail": ["A failed poll stops the run", "run_cycle.py L230–233",
+    "outcome stopped, failed_stage = poll name, exit 1. The poll may be retried; the data was not refused, the moment was."],
+  detect: ["detect — the fork in the road", "run_cycle.py L236 · cycle.pick_candidate L164",
+    "pick_candidate(archived, dataset_date, state, verify) returns one of five Detection kinds: none, candidate, resume, already_done, awaiting_diagnosis, unverified. See the Detection tab."],
+  "det-none": ["nothing_new", "run_cycle.py L237–238",
+    "No archived gazette is newer than the emitted dataset's published_date. Exit 0."],
+  "det-done": ["already_done", "run_cycle.py L240–242",
+    "The newest newer gazette's hash is marked finished. Exit 0, with a reason in the record."],
+  "det-await": ["awaiting_diagnosis", "run_cycle.py L243–245",
+    "The newest newer hash is stopped (refused earlier). A person must diagnose before any retry; exit 1, failed_stage = the stage it stopped at."],
+  "det-unverified": ["unverified → refused", "run_cycle.py L246–250",
+    "verify() (archive.assert_matches_entry) failed: the file does not match its archive entry. mark_stopped(detect, exit 1) → outcome refused, exit 1."],
+  proceed: ["start stage", "run_cycle.py L251–258",
+    "candidate → start at ingest; resume → start at det.stage. run_steps excludes the polls, detect, and publish_report — publication is not tracked as progress: it follows the finished mark."],
+  dirty: ["The dirty-tree check", "run_cycle.py L262–267 · cycle.dirty_decision L287 · _real_git_dirty L392",
+    "Only when starting fresh at ingest. Read-only `git status --porcelain --untracked-files=no -- <OWNED_PATHS>`. Untracked scratch files never stop a cycle; tracked edits in urtpe/ or scripts/ do — an ingest with half-edited code would write an emission no commit explains."],
+  "dirty-refuse": ["outcome dirty_tree", "run() exit 6",
+    "Candidate ready + owned tracked paths dirty → refuse, exit 6. The record lists the dirty paths."],
+  "lock-probe": ["The data/ lock probe", "run_cycle.py L268–276",
+    "Before the first writing step: acquire SingleWriterLock(data_dir) then release immediately. A held lock → outcome locked, exit 5 — transient: the next run resumes at this stage."],
+  locked: ["outcome locked (probe)", "run_cycle.py L272–276",
+    "exit 5, failed_stage = start. Transient: the data was not refused, only the moment."],
+  "mark-progress2": ["mark_in_progress(start)", "run_cycle.py L278–279",
+    "Saved before the first step so a crash mid-step still records where the cycle was."],
+  loop: ["The step loop", "run_cycle.py L281–309",
+    "For each of ingest → refresh → rebuild → post_ingest_check → tests → viewer_smoke: runner(argv, timeout), then classify_exit decides ok / transient / refusal. After each ok step, mark_in_progress(next) — except when next is publish_report."],
+  "st-ok": ["ok → advance", "run_cycle.py L287–293",
+    "last_stage = name; state's next_stage moves forward; the payload's published_date has changed by the time ingest runs."],
+  "st-transient": ["transient → locked, stay", "run_cycle.py L294–301",
+    "Another writer took the lock after the last step. The hash stays at THIS stage (the ingest already moved the dataset), so the next run resumes here. Exit 5."],
+  "st-refuse": ["refusal → stopped", "run_cycle.py L302–309",
+    "mark_stopped(stage, exit_code). A special case: ingest exiting 2/3/4 is 'refused' rather than 'stopped' — still exit 1, still awaits a person."],
+  finish: ["mark_finished BEFORE publish", "run_cycle.py L311–314 · design D13",
+    "The hash is recorded finished first. A failed push must never un-finish the ingest or bring it back."],
+  publish: ["publish_report", "run_cycle.py L315–318 · cycle.py L128–129",
+    "The existing scripts/publish_release_diff.py stages and commits exactly docs/release-diff.html, docs/coverage-report.html, docs/domain-model.html, docs/etl_process.html as one set. Runs with --dry-run when an alternate archive root is chosen (a smoke cycle must never push the real report)."],
+  ingested: ["outcome ingested", "run_cycle.py L325–326",
+    "The full cycle completed. Exit 0."],
+  "pub-failed": ["outcome publish_failed", "run_cycle.py L319–324",
+    "Exit 1. The hash STAYS finished; the emission stays uncommitted for review. A failed push is its own outcome and never brings the ingest back."],
+  unexpected: ["Unexpected exception", "run_cycle.py L327–341",
+    "An unexpected failure is a recorded stop, not a traceback. If the hash already finished → publish_failed; else mark_stopped(current) → stopped. Both exit 1."],
+  "exc-done": ["done → publish_failed", "run_cycle.py L328–332",
+    "Only the report publication could have failed after the finished mark."],
+  "exc-stop": ["not done → stopped", "run_cycle.py L333–341",
+    "mark_stopped at the current stage, failed_stage='internal', reason names the exception and stage."],
+  record: ["The record", "run_cycle._finish L191 · cycle.make_record L257",
+    "One line of cycle_log.jsonl per run, including the quiet ones: time, polls, sha256, gazette_id, last_stage, failed_stage, exit_code, outcome, reason. cycle_status (optional) re-renders the status page."],
+  "p-progress": ["in_progress wins first", "cycle.py L174–180",
+    "A hash with a progress entry resumes first: its ingest already moved the dataset, so the date rule alone would say there is nothing to do."],
+  "p-resume": ["Detection(resume)", "cycle.py L179–180",
+    "kind=resume, stage=next_stage from the entry. The cycle restarts there with polls skipped."],
+  "p-newer": ["The date rule", "cycle.py L182–185",
+    "newer = archived gazettes with gazette_id > dataset_date (ISO dates compare lexicographically). Only the newest is considered — each gazette is a complete list, so ingesting the newest supersedes any older unfinished one."],
+  "p-none": ["Detection(none)", "cycle.py L184",
+    "→ outcome nothing_new, exit 0. The quiet day."],
+  "p-entry": ["Look up the record entry", "cycle.py L186",
+    "entry = state.hashes[newest.sha256]. The record never keys on 編號, recno or project_id — only the content hash."],
+  "p-finished": ["finished → already_done", "cycle.py L187–188",
+    "This hash already completed a cycle. Exit 0."],
+  "p-stopped": ["stopped → awaiting_diagnosis", "cycle.py L189–192",
+    "reason: 'stopped at <stage> with exit <code>'. A person must diagnose; exit 1."],
+  "p-verify": ["verify against the archive", "cycle.py L193",
+    "The caller-supplied verify() calls archive.assert_matches_entry(path, gazette_id): the file must match its recorded sha256. Prevents ingesting a corrupted or swapped file."],
+  "p-unverified": ["unverified → refused", "cycle.py L194–195 → run_cycle L246–250",
+    "The coordinator stops the hash at detect and exits 1. No ingest is attempted from an unverified file."],
+  "p-candidate": ["Detection(candidate)", "cycle.py L196",
+    "The normal path: newest newer verified gazette → the cycle runs from ingest with that PDF."],
+};
+const $ = (s, r) => (r || document).querySelector(s);
+document.querySelectorAll("[data-k]").forEach(el => {
+  el.addEventListener("click", () => {
+    const k = el.dataset.k, d = DETAILS[k];
+    if (!d) return;
+    document.querySelectorAll(".node.selected").forEach(n => n.classList.remove("selected"));
+    if (el.classList.contains("node")) el.classList.add("selected");
+    $("#d-title").textContent = d[0];
+    $("#d-ref").textContent = d[1];
+    $("#d-doc").textContent = d[2];
+    $("#d-code").textContent = "";
+    $("#detail").classList.add("open");
+  });
+});
+$("#close-detail").addEventListener("click", () => $("#detail").classList.remove("open"));
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("#detail").classList.remove("open"); });
+document.querySelectorAll("nav.tabs button").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("nav.tabs button").forEach(x => x.classList.remove("active"));
+    document.querySelectorAll("section.view").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    $("#view-" + b.dataset.view).classList.add("active");
+    window.scrollTo({ top: 0 });
+  });
+});
+</script>
+</body>
+</html>

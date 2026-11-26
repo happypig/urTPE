@@ -116,7 +116,9 @@
   <div class="sub">
     <code>urtpe/cycle.py</code> — pure logic (no I/O) &nbsp;·&nbsp;
     <code>scripts/run_cycle.py</code> — adapters (subprocess, git, store, locks) &nbsp;·&nbsp;
-    openspec change <code>a4-pdf-cycle-coordinator</code>
+    openspec changes <code>a4-pdf-cycle-coordinator</code> &nbsp;·&nbsp;
+    <code>a5-cycle-emission-publication</code><br>
+    Synced 2026-11-26 with the code as of commit <code>928cc10</code>; line references cite that commit.
   </div>
   <div class="legend">
     <span style="background:var(--info-bg);color:var(--info)">decision</span>
@@ -144,14 +146,14 @@
 
   <div class="flow">
     <div class="node" data-k="main">
-      <span class="ref">run_cycle.main (L423)</span>
+      <span class="ref">run_cycle.main (L437)</span>
       <div class="t">main(argv) → parse_args, resolve archive root</div>
       <div class="d">--dry-run | --resume SHA256 | --archive-root PATH; builds Deps (runner, git_dirty, store, clock, archive)</div>
     </div>
     <div class="arrow"></div>
 
     <div class="node decision" data-k="run">
-      <span class="ref">run_cycle.run (L174)</span>
+      <span class="ref">run_cycle.run (L184)</span>
       <div class="t">run(): --dry-run?</div>
       <div class="d">Branches into the read-only dry path or the real cycle.</div>
     </div>
@@ -161,7 +163,7 @@
     </div>
 
     <div class="node lock" data-k="lock-archive">
-      <span class="ref">run_cycle.run (L178) · urtpe.lock.SingleWriterLock</span>
+      <span class="ref">run_cycle.run (L188) · urtpe.lock.SingleWriterLock</span>
       <div class="t">acquire SingleWriterLock(archive_dir)</div>
       <div class="d">Keeps two coordinator cycles apart; children take their own data/ locks (A8 lesson).</div>
     </div>
@@ -171,14 +173,14 @@
     </div>
 
     <div class="node" data-k="cycle">
-      <span class="ref">run_cycle._cycle (L204)</span>
+      <span class="ref">run_cycle._cycle (L214)</span>
       <div class="t">_cycle(): load state</div>
       <div class="d">CycleStore.load_state() — cycle_state.json beside cycle_log.jsonl in the archive root.</div>
     </div>
     <div class="arrow"></div>
 
     <div class="node decision" data-k="resume-branch">
-      <span class="ref">run_cycle._cycle (L212)</span>
+      <span class="ref">run_cycle._cycle (L222)</span>
       <div class="t">--resume SHA256 given?</div>
     </div>
     <div class="branches">
@@ -187,7 +189,7 @@
     </div>
 
     <div class="node" data-k="resume">
-      <span class="ref">run_cycle._cycle (L214) · cycle.resume_plan (L246)</span>
+      <span class="ref">run_cycle._cycle (L224) · cycle.resume_plan (L261)</span>
       <div class="t">resume: resolve (gazette_id, start stage)</div>
       <div class="d">state entry must be stopped or in_progress; polls are skipped entirely.</div>
     </div>
@@ -197,7 +199,7 @@
     </div>
 
     <div class="node" data-k="polls">
-      <span class="ref">run_cycle._cycle (L223) · _poll_status (L162)</span>
+      <span class="ref">run_cycle._cycle (L233) · _poll_status (L172)</span>
       <div class="t">poll_gazette --json → poll_p168 --json</div>
       <div class="d">Status word parsed from stdout JSON. Timeout or malformed output is a failure, never “nothing new”.</div>
     </div>
@@ -207,9 +209,9 @@
     </div>
 
     <div class="node decision" data-k="detect">
-      <span class="ref">run_cycle._cycle (L236) · cycle.pick_candidate (L164)</span>
+      <span class="ref">run_cycle._cycle (L246) · cycle.pick_candidate (L178)</span>
       <div class="t">detect: pick_candidate(archived, dataset_date, state, verify)</div>
-      <div class="d">The archive decides, not a poller status word. Five Detection kinds, five exits. See the Detection tab.</div>
+      <div class="d">The archive decides, not a poller status word. Six Detection kinds: four end the run (none, already_done, awaiting_diagnosis, unverified), two continue (candidate, resume). See the Detection tab.</div>
     </div>
     <div class="branches">
       <button class="branch ok" data-k="det-none">none → nothing_new → exit 0</button>
@@ -220,14 +222,14 @@
     </div>
 
     <div class="node" data-k="proceed">
-      <span class="ref">run_cycle._cycle (L251)</span>
+      <span class="ref">run_cycle._cycle (L261)</span>
       <div class="t">start stage = ingest (candidate) or det.stage (resume)</div>
-      <div class="d">run_steps = STEP_ORDER minus polls/detect, minus publish_report (published last, after the finished mark).</div>
+      <div class="d">run_steps = STEP_ORDER minus polls/detect, minus the two publication steps (they run last, after the finished mark).</div>
     </div>
     <div class="arrow"></div>
 
     <div class="node decision" data-k="dirty">
-      <span class="ref">run_cycle._cycle (L262) · cycle.dirty_decision (L287) · _real_git_dirty (L392)</span>
+      <span class="ref">run_cycle._cycle (L272) · cycle.dirty_decision (L302) · _real_git_dirty (L406)</span>
       <div class="t">starting fresh at ingest? → dirty-tree check</div>
       <div class="d">Read-only git status --porcelain --untracked-files=no over cycle.OWNED_PATHS. A quiet day is never refused.</div>
     </div>
@@ -237,7 +239,7 @@
     </div>
 
     <div class="node lock" data-k="lock-probe">
-      <span class="ref">run_cycle._cycle (L268)</span>
+      <span class="ref">run_cycle._cycle (L278)</span>
       <div class="t">first write step? → probe SingleWriterLock(data_dir)</div>
       <div class="d">Probe only, release at once: the parent never holds the data lock (A8: a held parent lock makes the child exit 5).</div>
     </div>
@@ -247,7 +249,7 @@
     </div>
 
     <div class="node" data-k="loop">
-      <span class="ref">run_cycle._cycle (L281)</span>
+      <span class="ref">run_cycle._cycle (L291)</span>
       <div class="t">step loop: ingest → refresh → rebuild → post_ingest_check → tests → viewer_smoke</div>
       <div class="d">Each step: deps.runner(argv, timeout) → cycle.classify_exit → three kinds.</div>
     </div>
@@ -258,16 +260,26 @@
     </div>
 
     <div class="node pub" data-k="finish">
-      <span class="ref">run_cycle._cycle (L311)</span>
+      <span class="ref">run_cycle._cycle (L321)</span>
       <div class="t">all steps ok → mark_finished FIRST (design D13)</div>
-      <div class="d">The finished mark is saved before the report runs, so a failed push never un-finishes the ingest.</div>
+      <div class="d">The finished mark is saved before either publication runs, so a failed push never un-finishes the ingest.</div>
     </div>
     <div class="arrow"></div>
 
+    <div class="node pub" data-k="publish-emission">
+      <span class="ref">run_cycle._cycle (L325–339) · cycle.PUBLICATION_STEPS (L53)</span>
+      <div class="t">publish_emission → scripts/publish_emission.py</div>
+      <div class="d">First publication, a child command: one path-limited commit of the nine emission paths, then a verified push of main. Refuses uncommitted code and a record-count drop (exit 2). --dry-run when an alternate archive root is set.</div>
+    </div>
+    <div class="branches">
+      <button class="branch pub" data-k="emission-failed">failure/timeout → publish_failed → exit 1 (publish_report does NOT run; hash stays finished)</button>
+      <button class="branch ok" data-k="emission-ok">ok → publish_report</button>
+    </div>
+
     <div class="node pub" data-k="publish">
-      <span class="ref">run_cycle._cycle (L315) · cycle.classify_exit (L207)</span>
+      <span class="ref">run_cycle._cycle (L325–339) · cycle.classify_exit (L215)</span>
       <div class="t">publish_report → scripts/publish_release_diff.py</div>
-      <div class="d">Stages and commits only the four generated pages. --dry-run when an alternate archive root is set.</div>
+      <div class="d">Second publication: stages and commits only the four generated pages, as one set, when the report or the payload counts changed. Runs after the emission, so the pages never describe data the viewer does not serve. --dry-run when an alternate archive root is set.</div>
     </div>
     <div class="branches">
       <button class="branch ok" data-k="ingested">ok → outcome ingested → exit 0</button>
@@ -275,7 +287,7 @@
     </div>
 
     <div class="node decision" data-k="unexpected">
-      <span class="ref">run_cycle._cycle (L327)</span>
+      <span class="ref">run_cycle._cycle (L342)</span>
       <div class="t">unexpected exception anywhere?</div>
       <div class="d">Recorded as a stop, never a traceback.</div>
     </div>
@@ -287,7 +299,7 @@
 
   <h2>Every run writes one record</h2>
   <div class="node" data-k="record">
-    <span class="ref">run_cycle._finish (L191) · cycle.make_record (L257)</span>
+    <span class="ref">run_cycle._finish (L201) · cycle.make_record (L272)</span>
     <div class="t">_finish(): append to cycle_log.jsonl, refresh status page (best effort), return exit code</div>
     <div class="d">Outcomes: nothing_new · ingested · already_done · refused · stopped · awaiting_diagnosis · locked · another_cycle · dirty_tree · publish_failed</div>
   </div>
@@ -295,9 +307,9 @@
 
 <!-- ============ PIPELINE ============ -->
 <section class="view" id="view-pipe">
-  <p class="lead">The cycle as data — <code>cycle.build_steps()</code> (cycle.py L104). Fixed order, no step is git,
-  none carries a bypass flag (<code>--allow-reconcile-block</code> / <code>--no-archive</code> are forbidden, AGENTS.md).</p>
-  <p class="order-note">Running order: poll_gazette → poll_p168 → detect (internal) → ingest → refresh → rebuild → post_ingest_check → tests → viewer_smoke → publish_report</p>
+  <p class="lead">The cycle as data — <code>cycle.build_steps()</code> (cycle.py L113). Fixed order. The coordinator runs no git write itself;
+  the last two steps are child commands that commit and push. None carries a bypass flag (<code>--allow-reconcile-block</code> / <code>--no-archive</code> are forbidden, AGENTS.md).</p>
+  <p class="order-note">Running order: poll_gazette → poll_p168 → detect (internal) → ingest → refresh → rebuild → post_ingest_check → tests → viewer_smoke → publish_emission → publish_report</p>
   <div class="pipe">
     <div class="step"><div class="num">1 · reads only</div><div class="name">poll_gazette</div>
       <div class="cmd">python scripts/poll_gazette.py --json [--dry-run] [--archive-root R]</div>
@@ -326,30 +338,40 @@
     <div class="step"><div class="num">9 · reads only</div><div class="name">viewer_smoke</div>
       <div class="cmd">node scripts/viewer_smoke.js</div>
       <div class="badges"><span class="badge t">timeout 300s</span><span class="badge w">no write</span></div></div>
-    <div class="step"><div class="num">10 · after the finished mark</div><div class="name">publish_report</div>
+    <div class="step"><div class="num">10 · after the finished mark</div><div class="name">publish_emission</div>
+      <div class="cmd">python scripts/publish_emission.py [--dry-run when archive_root set]</div>
+      <div class="badges"><span class="badge t">timeout 600s</span><span class="badge w">commits + pushes 9 emission paths</span></div></div>
+    <div class="step"><div class="num">11 · after publish_emission</div><div class="name">publish_report</div>
       <div class="cmd">python scripts/publish_release_diff.py [--dry-run when archive_root set]</div>
-      <div class="badges"><span class="badge t">timeout 600s</span><span class="badge w">commits 4 generated pages</span></div></div>
+      <div class="badges"><span class="badge t">timeout 600s</span><span class="badge w">commits + pushes 4 generated pages</span></div></div>
   </div>
-  <h2>Owned paths (dirty check + publish scope)</h2>
-  <div class="card">
-    <ul>
-      <li class="fn">data/projects.json · data/raw.tsv · data/clean.tsv · data/merged.tsv · data/review_report.txt</li>
-      <li class="fn">viewer/projects.data.js · viewer/index.html</li>
-      <li class="fn">docs/etl_process.html · docs/domain-model.html · docs/release-diff.html · docs/coverage-report.html</li>
-      <li class="fn">openspec/config.yaml (the current-dataset sentence, kept by sync_etl_process.py)</li>
-      <li class="fn">urtpe/ · scripts/ — the code an ingest runs</li>
-    </ul>
+  <h2>Owned paths</h2>
+  <div class="cards">
+    <div class="card"><h3>Dirty-tree check — <span class="fn">cycle.OWNED_PATHS (L84)</span></h3>
+      <ul>
+        <li class="fn">data/projects.json · data/raw.tsv · data/clean.tsv · data/merged.tsv · data/review_report.txt</li>
+        <li class="fn">viewer/projects.data.js · viewer/index.html · viewer/dashboard.html</li>
+        <li class="fn">docs/etl_process.html · docs/domain-model.html · docs/release-diff.html · docs/coverage-report.html</li>
+        <li class="fn">openspec/config.yaml (the current-dataset sentence, kept by sync_etl_process.py)</li>
+        <li class="fn">urtpe/ · scripts/ — the code an ingest runs (tracked files only)</li>
+      </ul></div>
+    <div class="card"><h3>Publication scope — what each child commits</h3>
+      <ul>
+        <li><b>publish_emission</b> (9): data/projects.json · raw.tsv · clean.tsv · merged.tsv · review_report.txt · viewer/projects.data.js · index.html · dashboard.html · openspec/config.yaml</li>
+        <li><b>publish_report</b> (4): docs/release-diff.html · coverage-report.html · domain-model.html · etl_process.html</li>
+        <li>Every emission path is also in OWNED_PATHS (a test asserts it), so another session's uncommitted edit to one stops the cycle before the ingest.</li>
+      </ul></div>
   </div>
 </section>
 
 <!-- ============ DETECTION ============ -->
 <section class="view" id="view-detect">
-  <p class="lead"><code>cycle.pick_candidate()</code> (cycle.py L164) — decide from the archive and the record, never from a
+  <p class="lead"><code>cycle.pick_candidate()</code> (cycle.py L178) — decide from the archive and the record, never from a
   poller’s status word. Any poll can have archived a gazette, including a hand-started one.</p>
 
   <div class="flow">
     <div class="node decision" data-k="p-progress">
-      <span class="ref">cycle.py L174</span>
+      <span class="ref">cycle.py L187</span>
       <div class="t">any hash with status in_progress?</div>
       <div class="d">Its ingest already moved the dataset — the date rule alone would say “nothing to do”.</div>
     </div>
@@ -359,7 +381,7 @@
     </div>
 
     <div class="node decision" data-k="p-newer">
-      <span class="ref">cycle.py L182</span>
+      <span class="ref">cycle.py L196</span>
       <div class="t">newer = [a for a in archived if a.gazette_id &gt; dataset_date]</div>
       <div class="d">Only the NEWEST matters: each gazette is a complete list, so an older unfinished one is superseded.</div>
     </div>
@@ -369,7 +391,7 @@
     </div>
 
     <div class="node decision" data-k="p-entry">
-      <span class="ref">cycle.py L186</span>
+      <span class="ref">cycle.py L200</span>
       <div class="t">entry status?</div>
     </div>
     <div class="branches">
@@ -379,7 +401,7 @@
     </div>
 
     <div class="node decision" data-k="p-verify">
-      <span class="ref">cycle.py L193 · archive.assert_matches_entry</span>
+      <span class="ref">cycle.py L207 · archive.assert_matches_entry</span>
       <div class="t">verify(): file matches its archive entry (sha256)?</div>
     </div>
     <div class="branches">
@@ -391,13 +413,13 @@
 
 <!-- ============ RULES ============ -->
 <section class="view" id="view-rules">
-  <p class="lead">The stop rule — <code>cycle.classify_exit()</code> (cycle.py L201) — and the contract it serves.
+  <p class="lead">The stop rule — <code>cycle.classify_exit()</code> (cycle.py L215) — and the contract it serves.
   A non-zero exit is a refusal, not a flake: a later scheduled run never retries a refused hash.</p>
 
   <div class="cards">
     <div class="card"><h3>classify_exit(step, exit_code, timed_out)</h3>
       <ul>
-        <li><span class="inline">publish_report</span>: ok only if exit 0 and no timeout — else <span class="inline">publish_failed</span></li>
+        <li><span class="inline">publish_emission</span> · <span class="inline">publish_report</span>: ok only if exit 0 and no timeout — else <span class="inline">publish_failed</span> (exit 5 from a publisher is not a held lock: it takes none)</li>
         <li>timed_out → <span class="inline">refusal</span></li>
         <li>exit 0 → <span class="inline">ok</span></li>
         <li>exit 5 → <span class="inline">transient</span> (a held lock: the moment, not the data)</li>
@@ -417,8 +439,8 @@
   <table>
     <tr><th>code</th><th>meaning</th><th>outcomes</th></tr>
     <tr><td><code>0</code></td><td>finished, nothing to do, or already done</td><td><code>nothing_new</code>, <code>ingested</code>, <code>already_done</code></td></tr>
-    <tr><td><code>1</code></td><td>a step failed, a hash awaits diagnosis, or the publication failed</td><td><code>refused</code>, <code>stopped</code>, <code>awaiting_diagnosis</code>, <code>publish_failed</code></td></tr>
-    <tr><td><code>2</code></td><td>bad usage (bad --resume, unknown outcome)</td><td>—</td></tr>
+    <tr><td><code>1</code></td><td>a step failed, a hash awaits diagnosis, or a publication failed</td><td><code>refused</code>, <code>stopped</code>, <code>awaiting_diagnosis</code>, <code>publish_failed</code></td></tr>
+    <tr><td><code>2</code></td><td>bad usage (a --resume with no stopped or in-progress hash, or bad arguments)</td><td>—</td></tr>
     <tr><td><code>5</code></td><td>a lock was held, or another cycle was running</td><td><code>locked</code>, <code>another_cycle</code></td></tr>
     <tr><td><code>6</code></td><td>refused: an owned path has uncommitted changes</td><td><code>dirty_tree</code></td></tr>
   </table>
@@ -428,6 +450,7 @@
     <tr><th>kind</th><th>examples</th><th>next run</th></tr>
     <tr><td><b>refusal</b></td><td>ingest exited 2/3/4, tests failed, step timeout</td><td>never retried by a scheduled run — a person must diagnose</td></tr>
     <tr><td><b>transient</b></td><td>held lock (exit 5), dirty tree (exit 6, its own outcome), another cycle running</td><td>the hash stays at its stage; the next run resumes there</td></tr>
+    <tr><td><b>publish failure</b></td><td>emission push did not land (exit 1), tree or count not fit to publish (exit 2), report push failed, timeout</td><td>the hash stays finished and is not ingested again; a person retries the publisher by hand (a retry pushes the commit already ahead)</td></tr>
   </table>
 
   <h2>The four decisions worth reading (cycle.py docstring)</h2>
@@ -438,9 +461,10 @@
     <div class="card"><h3>2 · Refusal waits, a busy moment does not</h3><ul>
       <li class="fn">non-zero exit = refusal → stopped, awaiting a person</li>
       <li class="fn">held lock / dirty tree / other cycle = transient → resume next run</li></ul></div>
-    <div class="card"><h3>3 · Report published last (D13)</h3><ul>
-      <li class="fn">mark_finished BEFORE publish_report</li>
-      <li class="fn">a failed push is publish_failed and never un-finishes the ingest</li></ul></div>
+    <div class="card"><h3>3 · Emission, then report, published last (D13, A5)</h3><ul>
+      <li class="fn">mark_finished BEFORE publish_emission and publish_report</li>
+      <li class="fn">emission first, so the pages never describe data the viewer does not serve</li>
+      <li class="fn">a failed push is publish_failed and never un-finishes the ingest; a failed emission stops the report</li></ul></div>
     <div class="card"><h3>4 · Progress kept after every step</h3><ul>
       <li class="fn">the ingest moves the dataset — without a progress entry the next run sees “nothing to do”</li>
       <li class="fn">mark_in_progress(next_stage) after each ok step enables resume</li></ul></div>
@@ -454,7 +478,7 @@
   <div class="cards">
     <div class="card"><h3>urtpe/cycle.py — pure logic (no disk, no clock, no process)</h3>
       <ul>
-        <li><span class="fn">STEP_ORDER · FORBIDDEN_FLAGS · EXIT_* · OWNED_PATHS</span> — constants as data</li>
+        <li><span class="fn">STEP_ORDER · PUBLICATION_STEPS · FORBIDDEN_FLAGS · EXIT_* · OWNED_PATHS</span> — constants as data</li>
         <li><span class="fn">Step · build_steps()</span> — the cycle as data, in fixed order</li>
         <li><span class="fn">next_step_after()</span> — pipeline successor</li>
         <li><span class="fn">Archived · Detection · pick_candidate()</span> — what to ingest</li>
@@ -467,7 +491,7 @@
     <div class="card"><h3>scripts/run_cycle.py — adapters (everything that touches the world)</h3>
       <ul>
         <li><span class="fn">_real_runner()</span> — subprocess with per-step timeout (timeout = exit 124 + timed_out)</li>
-        <li><span class="fn">_real_git_dirty()</span> — the ONLY git command: read-only status --porcelain --untracked-files=no</li>
+        <li><span class="fn">_real_git_dirty()</span> — the only git command this process runs: read-only status --porcelain --untracked-files=no (the commits and pushes belong to the two child publishers)</li>
         <li><span class="fn">_dataset_date()</span> — reads published_date from the payload head (first 8 KiB)</li>
         <li><span class="fn">CycleStore</span> — cycle_log.jsonl append + atomic cycle_state.json write (tmp + os.replace)</li>
         <li><span class="fn">SingleWriterLock / LockHeld</span> — archive lock for the cycle, probe-only lock for data/</li>
@@ -492,95 +516,101 @@
 <script>
 "use strict";
 const DETAILS = {
-  main: ["main(argv) — entry point", "run_cycle.py L423–456",
+  main: ["main(argv) — entry point", "run_cycle.py L437–470",
     "Parses flags, resolves the archive root (arg or urtpe.archive.DEFAULT_ARCHIVE_ROOT), builds a GazetteArchive, wires Deps with the real adapters, and calls run(). An optional `cycle_status` module refreshes a status page after every finish (best effort)."],
-  run: ["run(opts, deps) — dry-run gate", "run_cycle.py L174–184",
+  run: ["run(opts, deps) — dry-run gate", "run_cycle.py L184–194",
     "dry_run → _dry_run() (read-only). Otherwise acquire the archive-root SingleWriterLock; LockHeld → another_cycle (exit 5); then _cycle() in a try/finally that always releases the lock."],
-  dry: ["_dry_run(opts, deps) — read-only preview", "run_cycle.py L344–375",
-    "Runs only the two polls with their own --dry-run, then pick_candidate says what a real run would do (would ingest/resume gazette X starting at stage Y, would REFUSE if dirty). Writes no record, no archive file, nothing under the emitted tree."],
-  "lock-archive": ["Archive lock", "run_cycle.py L178 · urtpe.lock.SingleWriterLock",
+  dry: ["_dry_run(opts, deps) — read-only preview", "run_cycle.py L359–389",
+    "Runs only the two polls with their own --dry-run, then pick_candidate says what a real run would do (would ingest/resume gazette X starting at stage Y, would REFUSE if dirty). Writes no record, no archive file, nothing under the emitted tree. It also prints the steps a real run would take; the last two commit and push the emission, then the four generated pages."],
+  "lock-archive": ["Archive lock", "run_cycle.py L188 · urtpe.lock.SingleWriterLock",
     "A lock over the ARCHIVE ROOT — a different directory from data/ — keeps two cycles apart. The A8 lesson: a parent that holds the data/ lock makes the child CLI exit 5, so the coordinator never does that."],
-  another_cycle: ["outcome another_cycle", "run() L180 · exit_code_for()",
+  another_cycle: ["outcome another_cycle", "run() L190 · exit_code_for()",
     "Another cycle holds the archive lock. Transient by definition; exit 5. The record's reason names the holder."],
-  cycle: ["_cycle(opts, deps) — the real sequence", "run_cycle.py L204–341",
+  cycle: ["_cycle(opts, deps) — the real sequence", "run_cycle.py L214–356",
     "Loads state, resumes or polls, detects, then walks the write steps. Every exit path funnels through _finish(), which appends the record and returns the outcome's exit code."],
-  "resume-branch": ["--resume SHA256", "run_cycle.py L212–221",
+  "resume-branch": ["--resume SHA256", "run_cycle.py L222–231",
     "Resume skips both polls entirely and restarts the stopped hash at its failed stage."],
-  resume: ["resume_plan(state, sha)", "cycle.py L246–252",
+  resume: ["resume_plan(state, sha)", "cycle.py L261–267",
     "Returns (gazette_id, stage). The entry must be stopped (→ entry.stage) or in_progress (→ entry.next_stage); anything else raises ValueError."],
-  "resume-invalid": ["cannot resume", "run_cycle.py L215–217",
+  "resume-invalid": ["cannot resume", "run_cycle.py L225–227",
     "ValueError from resume_plan → message on stderr → exit 2 (usage). No record is written."],
   "mark-progress": ["Progress is kept after every step", "cycle.py docstring decision 4",
     "mark_in_progress writes (status=in_progress, next_stage, at) keyed by sha256 — never by 編號, recno or project_id. Without it, an interrupted ingest would look like 'nothing to do'."],
-  polls: ["The two polls", "run_cycle.py L223–234 · _poll_status L162",
+  polls: ["The two polls", "run_cycle.py L233–244 · _poll_status L172",
     "poll_gazette and poll_p168 run with --json. _poll_status parses stdout JSON for 'status'; a timeout or malformed body is a failure — never mistaken for 'nothing new'. polls[key] lands in the record."],
-  "poll-fail": ["A failed poll stops the run", "run_cycle.py L230–233",
+  "poll-fail": ["A failed poll stops the run", "run_cycle.py L240–243",
     "outcome stopped, failed_stage = poll name, exit 1. The poll may be retried; the data was not refused, the moment was."],
-  detect: ["detect — the fork in the road", "run_cycle.py L236 · cycle.pick_candidate L164",
-    "pick_candidate(archived, dataset_date, state, verify) returns one of five Detection kinds: none, candidate, resume, already_done, awaiting_diagnosis, unverified. See the Detection tab."],
-  "det-none": ["nothing_new", "run_cycle.py L237–238",
+  detect: ["detect — the fork in the road", "run_cycle.py L246 · cycle.pick_candidate L178",
+    "pick_candidate(archived, dataset_date, state, verify) returns one of six Detection kinds: none, candidate, resume, already_done, awaiting_diagnosis, unverified. See the Detection tab."],
+  "det-none": ["nothing_new", "run_cycle.py L247–248",
     "No archived gazette is newer than the emitted dataset's published_date. Exit 0."],
-  "det-done": ["already_done", "run_cycle.py L240–242",
+  "det-done": ["already_done", "run_cycle.py L250–252",
     "The newest newer gazette's hash is marked finished. Exit 0, with a reason in the record."],
-  "det-await": ["awaiting_diagnosis", "run_cycle.py L243–245",
+  "det-await": ["awaiting_diagnosis", "run_cycle.py L253–255",
     "The newest newer hash is stopped (refused earlier). A person must diagnose before any retry; exit 1, failed_stage = the stage it stopped at."],
-  "det-unverified": ["unverified → refused", "run_cycle.py L246–250",
+  "det-unverified": ["unverified → refused", "run_cycle.py L256–260",
     "verify() (archive.assert_matches_entry) failed: the file does not match its archive entry. mark_stopped(detect, exit 1) → outcome refused, exit 1."],
-  proceed: ["start stage", "run_cycle.py L251–258",
-    "candidate → start at ingest; resume → start at det.stage. run_steps excludes the polls, detect, and publish_report — publication is not tracked as progress: it follows the finished mark."],
-  dirty: ["The dirty-tree check", "run_cycle.py L262–267 · cycle.dirty_decision L287 · _real_git_dirty L392",
+  proceed: ["start stage", "run_cycle.py L261–268",
+    "candidate → start at ingest; resume → start at det.stage. run_steps excludes the polls, detect, and the two publication steps — publication is not tracked as progress: it follows the finished mark."],
+  dirty: ["The dirty-tree check", "run_cycle.py L272–277 · cycle.dirty_decision L302 · _real_git_dirty L406",
     "Only when starting fresh at ingest. Read-only `git status --porcelain --untracked-files=no -- <OWNED_PATHS>`. Untracked scratch files never stop a cycle; tracked edits in urtpe/ or scripts/ do — an ingest with half-edited code would write an emission no commit explains."],
   "dirty-refuse": ["outcome dirty_tree", "run() exit 6",
     "Candidate ready + owned tracked paths dirty → refuse, exit 6. The record lists the dirty paths."],
-  "lock-probe": ["The data/ lock probe", "run_cycle.py L268–276",
+  "lock-probe": ["The data/ lock probe", "run_cycle.py L278–286",
     "Before the first writing step: acquire SingleWriterLock(data_dir) then release immediately. A held lock → outcome locked, exit 5 — transient: the next run resumes at this stage."],
-  locked: ["outcome locked (probe)", "run_cycle.py L272–276",
+  locked: ["outcome locked (probe)", "run_cycle.py L282–286",
     "exit 5, failed_stage = start. Transient: the data was not refused, only the moment."],
-  "mark-progress2": ["mark_in_progress(start)", "run_cycle.py L278–279",
+  "mark-progress2": ["mark_in_progress(start)", "run_cycle.py L288–289",
     "Saved before the first step so a crash mid-step still records where the cycle was."],
-  loop: ["The step loop", "run_cycle.py L281–309",
-    "For each of ingest → refresh → rebuild → post_ingest_check → tests → viewer_smoke: runner(argv, timeout), then classify_exit decides ok / transient / refusal. After each ok step, mark_in_progress(next) — except when next is publish_report."],
-  "st-ok": ["ok → advance", "run_cycle.py L287–293",
-    "last_stage = name; state's next_stage moves forward; the payload's published_date has changed by the time ingest runs."],
-  "st-transient": ["transient → locked, stay", "run_cycle.py L294–301",
+  loop: ["The step loop", "run_cycle.py L291–319",
+    "For each of ingest → refresh → rebuild → post_ingest_check → tests → viewer_smoke: runner(argv, timeout), then classify_exit decides ok / transient / refusal. After each ok step, mark_in_progress(next) — except when next is a publication step."],
+  "st-ok": ["ok → advance", "run_cycle.py L297–303",
+    "last_stage = name; state's next_stage moves forward (never into a publication step); the payload's published_date has changed by the time ingest runs."],
+  "st-transient": ["transient → locked, stay", "run_cycle.py L304–311",
     "Another writer took the lock after the last step. The hash stays at THIS stage (the ingest already moved the dataset), so the next run resumes here. Exit 5."],
-  "st-refuse": ["refusal → stopped", "run_cycle.py L302–309",
+  "st-refuse": ["refusal → stopped", "run_cycle.py L312–319",
     "mark_stopped(stage, exit_code). A special case: ingest exiting 2/3/4 is 'refused' rather than 'stopped' — still exit 1, still awaits a person."],
-  finish: ["mark_finished BEFORE publish", "run_cycle.py L311–314 · design D13",
-    "The hash is recorded finished first. A failed push must never un-finish the ingest or bring it back."],
-  publish: ["publish_report", "run_cycle.py L315–318 · cycle.py L128–129",
-    "The existing scripts/publish_release_diff.py stages and commits exactly docs/release-diff.html, docs/coverage-report.html, docs/domain-model.html, docs/etl_process.html as one set. Runs with --dry-run when an alternate archive root is chosen (a smoke cycle must never push the real report)."],
-  ingested: ["outcome ingested", "run_cycle.py L325–326",
-    "The full cycle completed. Exit 0."],
-  "pub-failed": ["outcome publish_failed", "run_cycle.py L319–324",
-    "Exit 1. The hash STAYS finished; the emission stays uncommitted for review. A failed push is its own outcome and never brings the ingest back."],
-  unexpected: ["Unexpected exception", "run_cycle.py L327–341",
+  finish: ["mark_finished BEFORE publish", "run_cycle.py L321–324 · design D13",
+    "The hash is recorded finished first. A failed push must never un-finish the ingest or bring it back. Both publications run after it."],
+  "publish-emission": ["publish_emission — first publication", "run_cycle.py L325–339 · cycle.py L138–139 · scripts/publish_emission.py",
+    "Runs after the hash is recorded finished (a5-cycle-emission-publication). A child command, not this process: one path-limited commit of the nine emission paths (data/projects.json, raw.tsv, clean.tsv, merged.tsv, review_report.txt, viewer/projects.data.js, index.html, dashboard.html, openspec/config.yaml), then a push of main verified against the remote. It refuses (exit 2, nothing committed) when a tracked file under urtpe/ or scripts/ has an uncommitted change, and when the record count is lower than the committed payload's. Exit 1 means the push did not land; a retry pushes the commit that is already ahead. Runs with --dry-run when an alternate archive root is chosen."],
+  "emission-failed": ["outcome publish_failed (emission)", "run_cycle.py L333–338 · cycle.classify_exit L215",
+    "Any non-zero exit or a timeout. The coordinator returns publish_failed at once: publish_report does NOT run, because the pages would describe an emission that did not land. failed_stage = publish_emission; the hash stays finished and the ingest is never repeated. Roll a served emission back with git revert; the cycle never rewrites history."],
+  "emission-ok": ["emission published → report", "run_cycle.py L339",
+    "last_stage = publish_emission, then the second publication runs. Two pushes and two Pages builds, not one: between them the site may show the new data with the old pages."],
+  publish: ["publish_report — second publication", "run_cycle.py L325–339 · cycle.py L142–143 · scripts/publish_release_diff.py",
+    "The existing scripts/publish_release_diff.py stages and commits exactly docs/release-diff.html, docs/coverage-report.html, docs/domain-model.html, docs/etl_process.html as one set, when the report or the payload counts changed. Runs after publish_emission, so the pages never describe data the viewer does not serve. Runs with --dry-run when an alternate archive root is chosen (a smoke cycle must never push the real report)."],
+  ingested: ["outcome ingested", "run_cycle.py L340–341",
+    "The full cycle completed: ingest checked, emission and generated pages published. Exit 0."],
+  "pub-failed": ["outcome publish_failed", "run_cycle.py L333–338",
+    "Exit 1; failed_stage names the publication (publish_emission or publish_report). The hash STAYS finished. A failed push is its own outcome and never brings the ingest back. After publish_emission exit 1 the commit may already be ahead of origin/main; after exit 2 nothing was committed. After a publish_report failure the served pages lag the served data until a retry (check_deploy.py reports it stale)."],
+  unexpected: ["Unexpected exception", "run_cycle.py L342–356",
     "An unexpected failure is a recorded stop, not a traceback. If the hash already finished → publish_failed; else mark_stopped(current) → stopped. Both exit 1."],
-  "exc-done": ["done → publish_failed", "run_cycle.py L328–332",
-    "Only the report publication could have failed after the finished mark."],
-  "exc-stop": ["not done → stopped", "run_cycle.py L333–341",
+  "exc-done": ["done → publish_failed", "run_cycle.py L343–347",
+    "An unexpected exception after the finished mark. The record names failed_stage = publish_report and the reason ends '(during publish_report)', whichever publication was in hand: the handler does not read the step it was in."],
+  "exc-stop": ["not done → stopped", "run_cycle.py L348–356",
     "mark_stopped at the current stage, failed_stage='internal', reason names the exception and stage."],
-  record: ["The record", "run_cycle._finish L191 · cycle.make_record L257",
+  record: ["The record", "run_cycle._finish L201 · cycle.make_record L272",
     "One line of cycle_log.jsonl per run, including the quiet ones: time, polls, sha256, gazette_id, last_stage, failed_stage, exit_code, outcome, reason. cycle_status (optional) re-renders the status page."],
-  "p-progress": ["in_progress wins first", "cycle.py L174–180",
+  "p-progress": ["in_progress wins first", "cycle.py L187–194",
     "A hash with a progress entry resumes first: its ingest already moved the dataset, so the date rule alone would say there is nothing to do."],
-  "p-resume": ["Detection(resume)", "cycle.py L179–180",
+  "p-resume": ["Detection(resume)", "cycle.py L193–194",
     "kind=resume, stage=next_stage from the entry. The cycle restarts there with polls skipped."],
-  "p-newer": ["The date rule", "cycle.py L182–185",
+  "p-newer": ["The date rule", "cycle.py L196–199",
     "newer = archived gazettes with gazette_id > dataset_date (ISO dates compare lexicographically). Only the newest is considered — each gazette is a complete list, so ingesting the newest supersedes any older unfinished one."],
-  "p-none": ["Detection(none)", "cycle.py L184",
+  "p-none": ["Detection(none)", "cycle.py L198",
     "→ outcome nothing_new, exit 0. The quiet day."],
-  "p-entry": ["Look up the record entry", "cycle.py L186",
+  "p-entry": ["Look up the record entry", "cycle.py L200",
     "entry = state.hashes[newest.sha256]. The record never keys on 編號, recno or project_id — only the content hash."],
-  "p-finished": ["finished → already_done", "cycle.py L187–188",
+  "p-finished": ["finished → already_done", "cycle.py L201–202",
     "This hash already completed a cycle. Exit 0."],
-  "p-stopped": ["stopped → awaiting_diagnosis", "cycle.py L189–192",
+  "p-stopped": ["stopped → awaiting_diagnosis", "cycle.py L203–206",
     "reason: 'stopped at <stage> with exit <code>'. A person must diagnose; exit 1."],
-  "p-verify": ["verify against the archive", "cycle.py L193",
+  "p-verify": ["verify against the archive", "cycle.py L207",
     "The caller-supplied verify() calls archive.assert_matches_entry(path, gazette_id): the file must match its recorded sha256. Prevents ingesting a corrupted or swapped file."],
-  "p-unverified": ["unverified → refused", "cycle.py L194–195 → run_cycle L246–250",
+  "p-unverified": ["unverified → refused", "cycle.py L208–209 → run_cycle L256–260",
     "The coordinator stops the hash at detect and exits 1. No ingest is attempted from an unverified file."],
-  "p-candidate": ["Detection(candidate)", "cycle.py L196",
+  "p-candidate": ["Detection(candidate)", "cycle.py L210",
     "The normal path: newest newer verified gazette → the cycle runs from ingest with that PDF."],
 };
 const $ = (s, r) => (r || document).querySelector(s);
